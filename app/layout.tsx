@@ -1,7 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { FiCalendar, FiUsers, FiTruck, FiLogOut } from "react-icons/fi";
-import { GiFoodTruck } from "react-icons/gi";
+import { FiLogOut } from "react-icons/fi";
 import { ReactNode, ReactElement } from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
