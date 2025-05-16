@@ -1,5 +1,5 @@
 import "./globals.css";
-import { AuthProvider } from "../Auth/auth-context";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { FiCalendar, FiUsers, FiTruck, FiLogOut } from "react-icons/fi";
 import { GiFoodTruck } from "react-icons/gi";
 import { ReactNode, ReactElement } from "react";
