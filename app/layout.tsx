@@ -10,8 +10,9 @@ import Image from "next/image";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "YYC Food Trucks",
-  description: "Employee scheduling and management system",
+  title: "YYC Foodtruck Scheduler",
+  description:
+    "A scheduling and workforce-management platform for YYC food truck operations",
 };
 
 interface RootLayoutProps {
