@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "name": "Mamta Verma",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Driver",
+    "email": "mamta@example.com",
+    "phone": "555-1234",
+    "wage": 40,
+    "isAvailable": true,
+    "availability": ["Monday", "Wednesday", "Friday"]
+  },
+  {
+    "id": 9,
+    "name": "Ali Moussa",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Driver",
+    "email": "ali@example.com",
+    "phone": "555-1234",
+    "wage": 40,
+    "isAvailable": true,
+    "availability": ["Monday", "Wednesday", "Friday"]
+  },
+  {
+    "id": 2,
+    "name": "Leona Motyer",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Server",
+    "email": "leona@example.com",
+    "phone": "555-5678",
+    "wage": 40,
+    "isAvailable": false,
+    "availability": ["Monday", "Wednesday", "Friday"]
+  },
+  {
+    "id": 3,
+    "name": "Yoohyun Kim",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Admin",
+    "email": "kim@example.com",
+    "phone": "555-9876",
+    "wage": 30,
+    "isAvailable": true,
+    "availability": ["Tuesday", "Thursday"]
+  },
+  {
+    "id": 4,
+    "name": "Chester Laraya",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Driver",
+    "email": "chester@example.com",
+    "phone": "555-4321",
+    "wage": 30,
+    "isAvailable": true,
+    "availability": ["Tuesday", "Thursday"]
+  },
+  {
+    "id": 5,
+    "name": "Rudra Pratap",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Server",
+    "email": "rudra@example.com",
+    "phone": "555-8765",
+    "wage": 15,
+    "isAvailable": true,
+    "availability": ["Tuesday", "Thursday"]
+  },
+  {
+    "id": 6,
+    "name": "Tehjib Signh",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Server",
+    "email": "tehjib@example.com",
+    "phone": "555-8765",
+    "wage": 15,
+    "isAvailable": true,
+    "availability": []
+  },
+  {
+    "id": 7,
+    "name": "Alysha Krell",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Driver",
+    "email": "alysha@example.com",
+    "phone": "555-1234",
+    "wage": 25,
+    "isAvailable": true,
+    "availability": []
+  },
+  {
+    "id": 8,
+    "name": "Jeremy Andrews",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Admin",
+    "email": "jeremy@example.com",
+    "phone": "555-1234",
+    "wage": 35,
+    "isAvailable": true,
+    "availability": []
+  },
+  {
+    "id": 10,
+    "name": "Jennifer Andrews",
+    "address": "123 Main St, Calgary, AB",
+    "role": "Admin",
+    "email": "jen@example.com",
+    "phone": "555-1234",
+    "wage": 39,
+    "isAvailable": true,
+    "availability": []
+  }
+]
