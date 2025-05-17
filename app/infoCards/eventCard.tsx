@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, ReactElement } from 'react';
+import React, { useState, ReactElement } from "react";
 
 interface Event {
   id: string;
@@ -32,7 +32,11 @@ interface EventCardProps {
   employees: Employee[];
 }
 
-export default function EventCard({ event, trucks, employees }: EventCardProps): ReactElement {
+export default function EventCard({
+  event,
+  trucks,
+  employees,
+}: EventCardProps): ReactElement {
   const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
   const [assignedTrucks, setAssignedTrucks] = useState<Truck[]>([]);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -40,7 +44,9 @@ export default function EventCard({ event, trucks, employees }: EventCardProps):
 
   const handleEmployeeSelection = (employee: Employee): void => {
     if (assignedEmployees.some((assigned) => assigned.id === employee.id)) {
-      setAssignedEmployees(assignedEmployees.filter((assigned) => assigned.id !== employee.id));
+      setAssignedEmployees(
+        assignedEmployees.filter((assigned) => assigned.id !== employee.id)
+      );
     } else if (assignedEmployees.length < event.requiredServers) {
       setAssignedEmployees([...assignedEmployees, employee]);
     }
@@ -48,7 +54,9 @@ export default function EventCard({ event, trucks, employees }: EventCardProps):
 
   const handleTruckSelection = (truck: Truck): void => {
     if (assignedTrucks.some((assigned) => assigned.id === truck.id)) {
-      setAssignedTrucks(assignedTrucks.filter((assigned) => assigned.id !== truck.id));
+      setAssignedTrucks(
+        assignedTrucks.filter((assigned) => assigned.id !== truck.id)
+      );
     } else {
       setAssignedTrucks([...assignedTrucks, truck]);
     }
@@ -64,35 +72,35 @@ export default function EventCard({ event, trucks, employees }: EventCardProps):
       <p className="event-info">Time: {event.time}</p>
 
       <div className="event-section">
-        <h4 className="event-subtitle">Required Servers: {event.requiredServers}</h4>
-        <button
-          className="btn-primary"
-          onClick={() => setModalOpen(true)}
-        >
+        <h4 className="event-subtitle">
+          Required Servers: {event.requiredServers}
+        </h4>
+        <button className="btn-primary" onClick={() => setModalOpen(true)}>
           Select Employees
         </button>
 
         {modalOpen && (
           <div className="modal-overlay">
             <div className="modal-container">
-              <h3 className="modal-title">
-                Select Employees
-              </h3>
+              <h3 className="modal-title">Select Employees</h3>
               <div className="modal-body">
                 {employees && employees.length > 0 ? (
                   employees.map((employee) => (
                     <label
                       key={employee.id}
-                      className={`employee-label ${assignedEmployees.some((assigned) => assigned.id === employee.id) ? 'employee-label-selected' : ''}`}
+                      className={`employee-label ${assignedEmployees.some((assigned) => assigned.id === employee.id) ? "employee-label-selected" : ""}`}
                     >
                       <input
                         type="checkbox"
                         className="employee-checkbox"
-                        checked={assignedEmployees.some((assigned) => assigned.id === employee.id)}
+                        checked={assignedEmployees.some(
+                          (assigned) => assigned.id === employee.id
+                        )}
                         onChange={() => handleEmployeeSelection(employee)}
                         disabled={
-                          !assignedEmployees.some((assigned) => assigned.id === employee.id) &&
-                          assignedEmployees.length >= event.requiredServers
+                          !assignedEmployees.some(
+                            (assigned) => assigned.id === employee.id
+                          ) && assignedEmployees.length >= event.requiredServers
                         }
                       />
                       <span className="employee-name">
@@ -126,30 +134,27 @@ export default function EventCard({ event, trucks, employees }: EventCardProps):
       {/* New Truck Selection Section */}
       <div className="event-section">
         <h4 className="event-subtitle">Required Trucks</h4>
-        <button
-          className="btn-primary"
-          onClick={() => setTruckModalOpen(true)}
-        >
+        <button className="btn-primary" onClick={() => setTruckModalOpen(true)}>
           Select Trucks
         </button>
 
         {truckModalOpen && (
           <div className="modal-overlay">
             <div className="modal-container">
-              <h3 className="modal-title">
-                Select Trucks
-              </h3>
+              <h3 className="modal-title">Select Trucks</h3>
               <div className="modal-body">
                 {trucks && trucks.length > 0 ? (
                   trucks.map((truck) => (
                     <label
                       key={truck.id}
-                      className={`employee-label ${assignedTrucks.some((assigned) => assigned.id === truck.id) ? 'employee-label-selected' : ''}`}
+                      className={`employee-label ${assignedTrucks.some((assigned) => assigned.id === truck.id) ? "employee-label-selected" : ""}`}
                     >
                       <input
                         type="checkbox"
                         className="employee-checkbox"
-                        checked={assignedTrucks.some((assigned) => assigned.id === truck.id)}
+                        checked={assignedTrucks.some(
+                          (assigned) => assigned.id === truck.id
+                        )}
                         onChange={() => handleTruckSelection(truck)}
                       />
                       <span className="employee-name">
@@ -182,18 +187,11 @@ export default function EventCard({ event, trucks, employees }: EventCardProps):
 
       {assignedEmployees.length > 0 && (
         <div className="event-section">
-          <h4 className="event-subtitle">
-            Assigned Employees:
-          </h4>
+          <h4 className="event-subtitle">Assigned Employees:</h4>
           <div className="assigned-employees-container">
             {assignedEmployees.map((employee) => (
-              <div
-                key={employee.id}
-                className="assigned-employee-card"
-              >
-                <h3 className="assigned-employee-name">
-                  {employee.name}
-                </h3>
+              <div key={employee.id} className="assigned-employee-card">
+                <h3 className="assigned-employee-name">{employee.name}</h3>
                 <p className="assigned-employee-role">Role: {employee.role}</p>
               </div>
             ))}
@@ -204,20 +202,15 @@ export default function EventCard({ event, trucks, employees }: EventCardProps):
       {/* Display Selected Trucks */}
       {assignedTrucks.length > 0 && (
         <div className="event-section">
-          <h4 className="event-subtitle">
-            Assigned Trucks:
-          </h4>
+          <h4 className="event-subtitle">Assigned Trucks:</h4>
           <div className="assigned-employees-container">
             {assignedTrucks.map((truck) => (
-              <div
-                key={truck.id}
-                className="assigned-employee-card"
-              >
-                <h3 className="assigned-employee-name">
-                  {truck.name}
-                </h3>
+              <div key={truck.id} className="assigned-employee-card">
+                <h3 className="assigned-employee-name">{truck.name}</h3>
                 <p className="assigned-employee-role">Type: {truck.type}</p>
-                <p className="assigned-employee-role">Capacity: {truck.capacity}</p>
+                <p className="assigned-employee-role">
+                  Capacity: {truck.capacity}
+                </p>
               </div>
             ))}
           </div>
