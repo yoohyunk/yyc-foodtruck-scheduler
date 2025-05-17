@@ -108,4 +108,3 @@ export function TruckList({ trucks, viewMode }: TruckListProps): ReactElement {
 }
 
 // Example data for testing
-

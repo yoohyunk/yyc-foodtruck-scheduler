@@ -27,7 +27,7 @@ body {
   max-width: 100vw;
   overflow-x: hidden;
   height: 100%;
-  font-family: 'Arial', sans-serif;
+  font-family: "Arial", sans-serif;
   background-color: #f9fafb;
   color: #333;
 }
@@ -35,15 +35,31 @@ body {
 /* =========================
    Utility Classes
 ========================= */
-.text-primary-dark { color: var(--primary-dark); }
-.text-primary-medium { color: var(--primary-medium); }
-.text-primary-light { color: var(--primary-light); }
-.text-secondary-dark { color: var(--secondary-dark); }
-.text-gray-500 { color: #6b7280; }
+.text-primary-dark {
+  color: var(--primary-dark);
+}
+.text-primary-medium {
+  color: var(--primary-medium);
+}
+.text-primary-light {
+  color: var(--primary-light);
+}
+.text-secondary-dark {
+  color: var(--secondary-dark);
+}
+.text-gray-500 {
+  color: #6b7280;
+}
 
-.bg-secondary-dark { background-color: var(--secondary-dark); }
-.bg-primary-medium { background-color: var(--primary-medium); }
-.bg-white { background-color: var(--white); }
+.bg-secondary-dark {
+  background-color: var(--secondary-dark);
+}
+.bg-primary-medium {
+  background-color: var(--primary-medium);
+}
+.bg-white {
+  background-color: var(--white);
+}
 
 /* =========================
    Reusable Components
@@ -58,14 +74,16 @@ body {
   gap: 0.25rem;
 }
 
-
-
 /* =========================
    Layout & Navigation
 ========================= */
 /* Header Styling */
 .header {
-  background: linear-gradient(50deg, var(--primary-dark) 0%, var(--secondary-light) 110%);
+  background: linear-gradient(
+    50deg,
+    var(--primary-dark) 0%,
+    var(--secondary-light) 110%
+  );
   padding: 1rem 2rem;
   box-shadow: 0 4px 6px var(--shadow);
   position: sticky;
@@ -138,11 +156,14 @@ body {
    Section Styling & Pages
 ========================= */
 
-
 /* ========== Landing Page ========== */
 /* Landing Page Styling */
 .landing-container {
-  background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+  background: linear-gradient(
+    135deg,
+    var(--primary-light),
+    var(--secondary-light)
+  );
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -221,7 +242,9 @@ body {
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 4px 6px var(--shadow);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .section-card:hover {
@@ -257,7 +280,9 @@ body {
   border-radius: 0.5rem;
   padding: 1rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .card:hover {
@@ -322,7 +347,10 @@ footer a:hover {
 /* Grid Layout for Sections */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(300px, 1fr)
+  ); /* Responsive grid */
   gap: 1.5rem; /* Space between grid items */
 }
 
@@ -415,7 +443,9 @@ footer a:hover {
   font-weight: 600;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   border: 1px solid var(--primary-medium);
   border-radius: 8px;
   padding: 0.75rem;
@@ -424,7 +454,9 @@ input, select, textarea {
   transition: border-color 0.3s ease;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--primary-dark);
   box-shadow: 0 0 0 3px rgba(34, 139, 34, 0.1);
@@ -522,7 +554,7 @@ tr:hover td {
 }
 
 .event-info {
-  color:var(--primary-dark);
+  color: var(--primary-dark);
   margin-bottom: 0.5rem;
 }
 
@@ -621,14 +653,14 @@ tr:hover td {
 }
 
 button[title="Edit Employee"] {
-    position: absolute; 
-    top: 0.5rem; /* Adjust the vertical position */
-    right: 0.5rem; /* Adjust the horizontal position */
-    background: none;
-    border: none;
-    font-size: 1.25rem;
-    cursor: pointer;
-  }
+  position: absolute;
+  top: 0.5rem; /* Adjust the vertical position */
+  right: 0.5rem; /* Adjust the horizontal position */
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
 
 button[title="Edit Employee"]:hover {
   color: var(--primary-medium);
@@ -637,7 +669,10 @@ button[title="Edit Employee"]:hover {
 /* Filter Buttons */
 .filter-buttons {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Match employee card size */
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(300px, 1fr)
+  ); /* Match employee card size */
   gap: 1.5rem; /* Space between buttons */
   margin-bottom: 2rem; /* Add spacing below buttons */
 }
@@ -656,7 +691,7 @@ button[title="Edit Employee"]:hover {
   color: var(--white);
 }
 
-.filter-buttons .button.bg-secondary-dark{
+.filter-buttons .button.bg-secondary-dark {
   background-color: #e5e7eb; /* Light gray for inactive buttons */
   color: var(--primary-dark);
 }
@@ -898,11 +933,11 @@ button[title="Edit Employee"]:hover {
 
 .info-text {
   font-size: 1.125rem;
-  color: #4B5563;
+  color: #4b5563;
 }
 
 .info-link {
-  color: #3B82F6;
+  color: #3b82f6;
   text-decoration: none;
 }
 
@@ -934,7 +969,7 @@ button[title="Edit Employee"]:hover {
 }
 
 .truck-card {
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 1rem;
   position: relative;
@@ -956,7 +991,7 @@ button[title="Edit Employee"]:hover {
 
 .truck-info {
   margin-bottom: 0.5rem;
-  color: #4B5563;
+  color: #4b5563;
 }
 
 .truck-info-label {
@@ -964,11 +999,11 @@ button[title="Edit Employee"]:hover {
 }
 
 .status-available {
-  color: #10B981;
+  color: #10b981;
 }
 
 .status-unavailable {
-  color: #EF4444;
+  color: #ef4444;
 }
 
 .schedule-subtitle {
