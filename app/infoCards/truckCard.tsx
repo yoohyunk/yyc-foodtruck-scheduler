@@ -108,42 +108,4 @@ export function TruckList({ trucks, viewMode }: TruckListProps): ReactElement {
 }
 
 // Example data for testing
-const exampleTrucks: Truck[] = [
-  {
-    id: 1,
-    name: "Neon",
-    type: "Food Truck",
-    capacity: 500,
-    location: "Downtown Core",
-    status: "Available",
-    driver: {
-      id: 1,
-      name: "Alice Johnson",
-      email: "alice@example.com",
-      phone: "555-1234",
-    },
-  },
-  {
-    id: 2,
-    name: "Lemonade",
-    type: "Beverage Truck",
-    capacity: 300,
-    location: "City Park",
-    status: "In Use",
-    driver: null, // No driver assigned
-  },
-  {
-    id: 3,
-    name: "Cookie Dough",
-    type: "Dessert Truck",
-    capacity: 400,
-    location: "Mall Area",
-    status: "Available",
-    driver: {
-      id: 2,
-      name: "Bob Smith",
-      email: "bob@example.com",
-      phone: "555-5678",
-    },
-  },
-];
+
