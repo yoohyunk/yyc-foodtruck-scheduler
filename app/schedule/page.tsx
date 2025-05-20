@@ -151,7 +151,9 @@ export default function Schedule(): React.ReactElement {
 
   const renderWeeklySchedule = (): React.ReactElement => {
     if (eventsThisWeek.length === 0) {
-      return <p className="empty-week-message">No events scheduled for this week.</p>;
+      return (
+        <p className="empty-week-message">No events scheduled for this week.</p>
+      );
     }
 
     return (
@@ -162,11 +164,19 @@ export default function Schedule(): React.ReactElement {
           );
 
           return (
-            <div key={day} className={`day-card${dailyEvents.length ? " day-card-has-events" : ""}`}>
+            <div
+              key={day}
+              className={`day-card${dailyEvents.length ? " day-card-has-events" : ""}`}
+            >
               <h3 className="day-title">{day}</h3>
               <div className="day-events-container">
                 {dailyEvents.map((event) => (
-                  <EventCard key={event.id} event={event} trucks={trucks} employees={employees} />
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    trucks={trucks}
+                    employees={employees}
+                  />
                 ))}
               </div>
             </div>
@@ -189,9 +199,13 @@ export default function Schedule(): React.ReactElement {
         );
       })
       .map((event) => {
-        const hasTrucks = Array.isArray(event.trucks) && event.trucks.length > 0;
-        const hasEnoughStaff = Array.isArray(event.assignedStaff) && event.assignedStaff.length >= event.requiredServers;
-        const statusClass = hasTrucks && hasEnoughStaff ? "event_scheduled" : "event_pending";
+        const hasTrucks =
+          Array.isArray(event.trucks) && event.trucks.length > 0;
+        const hasEnoughStaff =
+          Array.isArray(event.assignedStaff) &&
+          event.assignedStaff.length >= event.requiredServers;
+        const statusClass =
+          hasTrucks && hasEnoughStaff ? "event_scheduled" : "event_pending";
 
         return {
           id: event.id,
@@ -215,8 +229,9 @@ export default function Schedule(): React.ReactElement {
           onBeforeEventRender={(args) => {
             // args.data is the event data object as per DayPilot's MonthBeforeEventRenderArgs
             // The custom fields are stored in args.data.data (from our DayPilotEvent)
-            const eventData = (args.data as any).data;
-            const statusText = args.data.cssClass === "event_pending" ? "Pending" : "Scheduled";
+            const eventData = (args.data as DayPilotEvent).data;
+            const statusText =
+              args.data.cssClass === "event_pending" ? "Pending" : "Scheduled";
 
             args.data.html = `
               <div class="custom-event">
@@ -265,7 +280,10 @@ export default function Schedule(): React.ReactElement {
         <button className="navigation-button" onClick={handlePrevious}>
           &larr; Previous
         </button>
-        <button className="navigation-button today-button" onClick={handleToday}>
+        <button
+          className="navigation-button today-button"
+          onClick={handleToday}
+        >
           Today
         </button>
         <button className="navigation-button" onClick={handleNext}>
