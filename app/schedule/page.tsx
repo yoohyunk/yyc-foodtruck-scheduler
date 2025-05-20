@@ -34,19 +34,36 @@ export default function Schedule(): React.ReactElement {
   );
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch("/events.json");
+        const response = await fetch("/events.json", {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        });
+
         if (!response.ok) {
-          throw new Error("Failed to fetch events");
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
         const data = await response.json();
-        setEvents(data.events);
+
+        if (Array.isArray(data)) {
+          setEvents(data);
+        } else {
+          console.error("Received data is not an array:", data);
+          setEvents([]);
+        }
       } catch (error) {
         console.error("Error fetching events:", error);
+        setEvents([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -118,68 +135,29 @@ export default function Schedule(): React.ReactElement {
   }, [viewMode]);
 
   const getCalendarEvents = useCallback(() => {
-    const filteredEvents = events.filter((event) => {
+    if (!events || !Array.isArray(events)) {
+      return [];
+    }
+
+    return events.filter((event) => {
       const eventDate = new Date(event.date);
 
       if (viewMode === "daily") {
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        return eventDate >= startOfDay && eventDate <= endOfDay;
+        return (
+          eventDate.getDate() === selectedDate.getDate() &&
+          eventDate.getMonth() === selectedDate.getMonth() &&
+          eventDate.getFullYear() === selectedDate.getFullYear()
+        );
       } else if (viewMode === "weekly") {
-        const startOfWeek = new Date(selectedDate);
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        return eventDate >= startOfWeek && eventDate <= endOfWeek;
+        const weekStart = new Date(selectedDate);
+        weekStart.setDate(selectedDate.getDate() - selectedDate.getDay());
+        const weekEnd = new Date(selectedDate);
+        weekEnd.setDate(selectedDate.getDate() + 6);
+        return eventDate >= weekStart && eventDate <= weekEnd;
       }
       return true; // monthly view shows all events
     });
-
-    console.log("Filtered events:", filteredEvents);
-    return filteredEvents.map((event) => {
-      const hasTrucks = Array.isArray(event.trucks) && event.trucks.length > 0;
-      const hasEnoughStaff =
-        Array.isArray(event.assignedStaff) &&
-        event.assignedStaff.length >= event.requiredServers;
-      const statusClass =
-        hasTrucks && hasEnoughStaff ? "event_scheduled" : "event_pending";
-
-      // Parse time string (e.g., "14:00" or "2:00 PM")
-      const [timeStr, period] = event.time.split(" ");
-      const [hours, minutes] = timeStr.split(":").map(Number);
-
-      // Convert to 24-hour format if PM
-      let adjustedHours = hours;
-      if (period === "PM" && hours < 12) adjustedHours += 12;
-      if (period === "AM" && hours === 12) adjustedHours = 0;
-
-      // Create start and end dates
-      const startDate = new Date(event.date);
-      startDate.setHours(adjustedHours, minutes, 0, 0);
-
-      // Assume event duration is 2 hours by default
-      const endDate = new Date(startDate);
-      endDate.setHours(adjustedHours + 2, minutes, 0, 0);
-
-      return {
-        id: event.id,
-        title: event.name,
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-        className: statusClass,
-        extendedProps: {
-          time: event.time,
-          location: event.location,
-          trucks: event.trucks,
-          assignedStaff: event.assignedStaff,
-          requiredServers: event.requiredServers,
-          status: statusClass === "event_scheduled" ? "Scheduled" : "Pending",
-        },
-      };
-    });
-  }, [events, selectedDate, viewMode]);
+  }, [events, viewMode, selectedDate]);
 
   const renderCalendar = (): React.ReactElement => {
     const viewType =
@@ -333,7 +311,13 @@ export default function Schedule(): React.ReactElement {
         </button>
       </div>
 
-      {renderCalendar()}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <p className="text-lg text-gray-500">Loading schedule...</p>
+        </div>
+      ) : (
+        renderCalendar()
+      )}
     </div>
   );
 }
