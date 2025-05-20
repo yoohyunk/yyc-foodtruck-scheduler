@@ -1,34 +1,32 @@
-{
-  "events": [
-    {
-      "id": "1",
-      "name": "Downtown Food Festival",
-      "date": "2025-05-20",
-      "time": "10:00 AM",
-      "location": "Downtown Square",
-      "trucks": ["Truck 1", "Truck 2"],
-      "assignedStaff": ["John Doe", "Jane Smith"],
-      "requiredServers": 4
-    },
-    {
-      "id": "2",
-      "name": "Weekend Market",
-      "date": "2025-05-21",
-      "time": "11:00 AM",
-      "location": "Central Park",
-      "trucks": ["Truck 3"],
-      "assignedStaff": ["Mike Johnson"],
-      "requiredServers": 2
-    },
-    {
-      "id": "3",
-      "name": "Corporate Event",
-      "date": "2025-05-22",
-      "time": "12:00 PM",
-      "location": "Business Center",
-      "trucks": ["Truck 1", "Truck 4"],
-      "assignedStaff": ["Sarah Wilson", "Tom Brown"],
-      "requiredServers": 3
-    }
-  ]
-}
+[
+  {
+    "id": "1",
+    "title": "Downtown Food Festival",
+    "startTime": "2025-05-21T10:00:00",
+    "endTime": "2025-05-21T12:00:00",
+    "location": "Downtown Square",
+    "trucks": ["Truck 1", "Truck 2"],
+    "assignedStaff": ["John Doe", "Jane Smith"],
+    "requiredServers": 4
+  },
+  {
+    "id": "2",
+    "title": "Weekend Market",
+    "startTime": "2025-05-21T11:00:00",
+    "endTime": "2025-05-21T12:00:00",
+    "location": "Central Park",
+    "trucks": ["Truck 3"],
+    "assignedStaff": ["Mike Johnson"],
+    "requiredServers": 2
+  },
+  {
+    "id": "3",
+    "title": "Corporate Event",
+    "startTime": "2025-05-22T12:00:00",
+    "endTime": "2025-05-22T13:00:00",
+    "location": "Business Center",
+    "trucks": ["Truck 1", "Truck 4"],
+    "assignedStaff": ["Sarah Wilson", "Tom Brown"],
+    "requiredServers": 3
+  }
+]

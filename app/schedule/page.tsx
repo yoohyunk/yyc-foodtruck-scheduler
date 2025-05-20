@@ -19,9 +19,9 @@ const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin];
 
 interface Event {
   id: string;
-  name: string;
-  date: string;
-  time: string;
+  title: string;
+  startTime: string;
+  endTime: string;
   location: string;
   trucks?: string[];
   assignedStaff?: string[];
@@ -139,24 +139,48 @@ export default function Schedule(): React.ReactElement {
       return [];
     }
 
-    return events.filter((event) => {
-      const eventDate = new Date(event.date);
+    return events
+      .map((event) => {
+        const startDate = new Date(event.startTime);
+        const endDate = new Date(event.endTime);
 
-      if (viewMode === "daily") {
-        return (
-          eventDate.getDate() === selectedDate.getDate() &&
-          eventDate.getMonth() === selectedDate.getMonth() &&
-          eventDate.getFullYear() === selectedDate.getFullYear()
-        );
-      } else if (viewMode === "weekly") {
-        const weekStart = new Date(selectedDate);
-        weekStart.setDate(selectedDate.getDate() - selectedDate.getDay());
-        const weekEnd = new Date(selectedDate);
-        weekEnd.setDate(selectedDate.getDate() + 6);
-        return eventDate >= weekStart && eventDate <= weekEnd;
-      }
-      return true; // monthly view shows all events
-    });
+        return {
+          id: event.id,
+          title: event.title,
+          start: startDate,
+          end: endDate,
+          extendedProps: {
+            location: event.location,
+            trucks: event.trucks || [],
+            assignedStaff: event.assignedStaff || [],
+            requiredServers: event.requiredServers,
+            startTime: event.startTime,
+            endTime: event.endTime,
+            status:
+              (event.assignedStaff?.length || 0) >= event.requiredServers
+                ? "Scheduled"
+                : "Pending",
+          },
+        };
+      })
+      .filter((event) => {
+        const eventDate = new Date(event.start);
+
+        if (viewMode === "daily") {
+          return (
+            eventDate.getDate() === selectedDate.getDate() &&
+            eventDate.getMonth() === selectedDate.getMonth() &&
+            eventDate.getFullYear() === selectedDate.getFullYear()
+          );
+        } else if (viewMode === "weekly") {
+          const weekStart = new Date(selectedDate);
+          weekStart.setDate(selectedDate.getDate() - selectedDate.getDay());
+          const weekEnd = new Date(selectedDate);
+          weekEnd.setDate(selectedDate.getDate() + 6);
+          return eventDate >= weekStart && eventDate <= weekEnd;
+        }
+        return true; // monthly view shows all events
+      });
   }, [events, viewMode, selectedDate]);
 
   const renderCalendar = (): React.ReactElement => {
@@ -189,7 +213,15 @@ export default function Schedule(): React.ReactElement {
                 {eventInfo.event.title}
               </h3>
               <p className="custom-event-time text-gray-500">
-                {eventInfo.event.extendedProps.time}
+                {new Date(eventInfo.event.start!).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                -{" "}
+                {new Date(eventInfo.event.end!).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </p>
               <p className="custom-event-location text-gray-500">
                 {eventInfo.event.extendedProps.location}
@@ -312,8 +344,8 @@ export default function Schedule(): React.ReactElement {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <p className="text-lg text-gray-500">Loading schedule...</p>
+        <div className="loading-container">
+          <p className="text-primary-dark">Loading events...</p>
         </div>
       ) : (
         renderCalendar()

@@ -857,10 +857,45 @@ button[title="Edit Employee"]:hover {
 }
 
 .fc .fc-event {
-  border: none;
-  background-color: var(--white);
-  color: var(--primary-dark);
-  box-shadow: 0 2px 4px var(--shadow);
+  @apply rounded-md border-0 shadow-sm;
+  margin: 1px 2px;
+  padding: 2px 4px;
+  overflow: hidden;
+}
+
+.fc .fc-event-main {
+  @apply text-sm;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc .fc-event-title {
+  @apply font-medium;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc .fc-event-time {
+  @apply text-xs;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc .fc-event-location {
+  @apply text-xs;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc .fc-event-status {
+  @apply text-xs font-medium;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fc .fc-event.event_scheduled {
