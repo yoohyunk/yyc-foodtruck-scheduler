@@ -2,20 +2,9 @@
 import "../globals.css";
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
-
-// Import FullCalendar and its plugins
-const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
-  ssr: false,
-});
-
-// Import plugins
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-
-// Register plugins
-const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin];
+import { ViewToggle } from "./components/ViewToggle";
+import { Navigation } from "./components/Navigation";
+import { Calendar } from "./components/Calendar";
 
 interface Event {
   id: string;
@@ -156,10 +145,9 @@ export default function Schedule(): React.ReactElement {
             requiredServers: event.requiredServers,
             startTime: event.startTime,
             endTime: event.endTime,
-            status:
-              (event.assignedStaff?.length || 0) >= event.requiredServers
-                ? "Scheduled"
-                : "Pending",
+            status: ((event.assignedStaff?.length || 0) >= event.requiredServers
+              ? "Scheduled"
+              : "Pending") as "Scheduled" | "Pending",
           },
         };
       })
@@ -183,97 +171,12 @@ export default function Schedule(): React.ReactElement {
       });
   }, [events, viewMode, selectedDate]);
 
-  const renderCalendar = (): React.ReactElement => {
-    const viewType =
-      viewMode === "daily"
-        ? "timeGridDay"
-        : viewMode === "weekly"
-          ? "timeGridWeek"
-          : "dayGridMonth";
-
-    const calendarEvents = getCalendarEvents();
-
-    return (
-      <div className={`${viewMode}-schedule`}>
-        <FullCalendar
-          key={`${viewMode}-${selectedDate.toISOString()}`}
-          plugins={plugins}
-          initialView={viewType}
-          initialDate={selectedDate}
-          events={calendarEvents}
-          eventClick={(info) => {
-            const eventId = info.event.id;
-            if (eventId) {
-              router.push(`/events/${eventId}`);
-            }
-          }}
-          eventContent={(eventInfo) => (
-            <div className="custom-event">
-              <h3 className="custom-event-title text-primary-dark">
-                {eventInfo.event.title}
-              </h3>
-              <p className="custom-event-time text-gray-500">
-                {new Date(eventInfo.event.start!).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                -{" "}
-                {new Date(eventInfo.event.end!).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-              <p className="custom-event-location text-gray-500">
-                {eventInfo.event.extendedProps.location}
-              </p>
-              <p
-                className={`custom-event-status ${
-                  eventInfo.event.extendedProps.status === "Scheduled"
-                    ? "text-primary-medium"
-                    : "text-gray-500"
-                }`}
-              >
-                {eventInfo.event.extendedProps.status}
-              </p>
-            </div>
-          )}
-          height="auto"
-          eventMinHeight={70}
-          dayMaxEvents={3}
-          headerToolbar={{
-            left: "",
-            center: "",
-            right: "",
-          }}
-          dayHeaderFormat={{ weekday: "long", day: "numeric" }}
-          dayCellClassNames="custom-day-cell"
-          eventClassNames="custom-event-wrapper"
-          slotMinTime="00:00:00"
-          slotMaxTime="24:00:00"
-          slotDuration="01:00:00"
-          slotLabelInterval="01:00"
-          slotLabelFormat={{
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }}
-          displayEventTime={true}
-          displayEventEnd={true}
-          allDaySlot={false}
-          showNonCurrentDates={viewMode === "monthly"}
-          fixedWeekCount={viewMode === "monthly"}
-          dayMaxEventRows={viewMode === "monthly" ? false : 3}
-          eventDisplay="block"
-          eventOverlap={false}
-          eventConstraint={{
-            startTime: "00:00:00",
-            endTime: "24:00:00",
-            dows: [0, 1, 2, 3, 4, 5, 6],
-          }}
-        />
-      </div>
-    );
-  };
+  const handleEventClick = useCallback(
+    (eventId: string) => {
+      router.push(`/events/${eventId}`);
+    },
+    [router]
+  );
 
   return (
     <div className="schedule-container">
@@ -284,71 +187,27 @@ export default function Schedule(): React.ReactElement {
             {getDateRangeText()}
           </p>
         </div>
-        <div className="view-toggle-container">
-          <button
-            className={`view-toggle-button ${
-              viewMode === "daily"
-                ? "bg-primary-medium text-white"
-                : "bg-secondary-dark text-primary-dark"
-            }`}
-            onClick={() => setViewMode("daily")}
-          >
-            Daily View
-          </button>
-          <button
-            className={`view-toggle-button ${
-              viewMode === "weekly"
-                ? "bg-primary-medium text-white"
-                : "bg-secondary-dark text-primary-dark"
-            }`}
-            onClick={() => setViewMode("weekly")}
-          >
-            Weekly View
-          </button>
-          <button
-            className={`view-toggle-button ${
-              viewMode === "monthly"
-                ? "bg-primary-medium text-white"
-                : "bg-secondary-dark text-primary-dark"
-            }`}
-            onClick={() => setViewMode("monthly")}
-          >
-            Monthly View
-          </button>
-        </div>
+        <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
       </div>
 
-      <div className="navigation-container">
-        <button
-          className="navigation-button bg-secondary-dark text-primary-dark hover:bg-primary-light hover:text-white"
-          onClick={handlePrevious}
-        >
-          &larr; Previous
-        </button>
-        <button
-          className="navigation-button bg-primary-medium text-white hover:bg-primary-dark"
-          onClick={handleToday}
-        >
-          {viewMode === "daily"
-            ? "Today"
-            : viewMode === "weekly"
-              ? "This Week"
-              : "This Month"}
-        </button>
-        <button
-          className="navigation-button bg-secondary-dark text-primary-dark hover:bg-primary-light hover:text-white"
-          onClick={handleNext}
-        >
-          Next &rarr;
-        </button>
-      </div>
+      <Navigation
+        viewMode={viewMode}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
+        onToday={handleToday}
+      />
 
       {isLoading ? (
         <div className="loading-container">
           <p className="text-primary-dark">Loading events...</p>
         </div>
       ) : (
-        renderCalendar()
+        <Calendar
+          viewMode={viewMode}
+          selectedDate={selectedDate}
+          events={getCalendarEvents()}
+          onEventClick={handleEventClick}
+        />
       )}
     </div>
   );

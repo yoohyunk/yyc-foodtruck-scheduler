@@ -7,7 +7,8 @@
     "location": "Downtown Square",
     "trucks": ["Truck 1", "Truck 2"],
     "assignedStaff": ["John Doe", "Jane Smith"],
-    "requiredServers": 4
+    "requiredServers": 4,
+    "status": "Scheduled"
   },
   {
     "id": "2",
@@ -17,7 +18,8 @@
     "location": "Central Park",
     "trucks": ["Truck 3"],
     "assignedStaff": ["Mike Johnson"],
-    "requiredServers": 2
+    "requiredServers": 2,
+    "status": "Scheduled"
   },
   {
     "id": "3",
@@ -27,6 +29,7 @@
     "location": "Business Center",
     "trucks": ["Truck 1", "Truck 4"],
     "assignedStaff": ["Sarah Wilson", "Tom Brown"],
-    "requiredServers": 3
+    "requiredServers": 3,
+    "status": "Scheduled"
   }
 ]
