@@ -14,7 +14,6 @@ export const metadata: Metadata = {
   title: "YYC Foodtruck Scheduler",
   description:
     "A scheduling and workforce-management platform for YYC food truck operations",
-
 };
 
 interface RootLayoutProps {
@@ -65,7 +64,6 @@ export default function RootLayout({
                   <span className="nav-icon">🔑</span>
                   Login
                 </Link>
-
               </div>
             </nav>
           </header>

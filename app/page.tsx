@@ -46,14 +46,12 @@ export default function Home(): ReactElement {
       .then((response) => response.json())
       .then((data: TimeOffRequest[]) => {
         const upcomingRequests = data.filter(
-
-          (request) => new Date(request.startDate) >= new Date(),
+          (request) => new Date(request.startDate) >= new Date()
         );
         setTimeOffRequests(upcomingRequests.slice(0, 3)); // Show only the next 3 requests
       })
       .catch((error) =>
-        console.error("Error fetching time-off requests:", error),
-
+        console.error("Error fetching time-off requests:", error)
       );
   }, []);
 
