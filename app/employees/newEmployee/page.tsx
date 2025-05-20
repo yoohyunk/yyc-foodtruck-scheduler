@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, ReactElement, ChangeEvent, FormEvent } from 'react';
+import React, { useState, ReactElement, ChangeEvent, FormEvent } from "react";
 
 interface FormData {
   name: string;
@@ -15,24 +15,34 @@ interface FormData {
 
 export default function CreateEmployee(): ReactElement {
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    address: '',
-    role: '',
-    email: '',
-    phone: '',
-    wage: '',
+    name: "",
+    address: "",
+    role: "",
+    email: "",
+    phone: "",
+    wage: "",
     isAvailable: false,
     availability: [], // Array to store selected days of the week
   });
 
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const daysOfWeek = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ): void => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -70,7 +80,7 @@ export default function CreateEmployee(): ReactElement {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    console.log('Employee Created:', formData);
+    console.log("Employee Created:", formData);
     // Add logic to save the employee data (e.g., POST request to an API)
   };
 
@@ -79,7 +89,9 @@ export default function CreateEmployee(): ReactElement {
       <h1 className="form-header">Create Employee</h1>
       <form onSubmit={handleSubmit} className="employee-form">
         <div className="input-group">
-          <label htmlFor="name" className="input-label">Name</label>
+          <label htmlFor="name" className="input-label">
+            Name
+          </label>
           <input
             type="text"
             id="name"
@@ -91,7 +103,9 @@ export default function CreateEmployee(): ReactElement {
         </div>
 
         <div className="input-group">
-          <label htmlFor="address" className="input-label">Address</label>
+          <label htmlFor="address" className="input-label">
+            Address
+          </label>
           <input
             type="text"
             id="address"
@@ -103,7 +117,9 @@ export default function CreateEmployee(): ReactElement {
         </div>
 
         <div className="input-group">
-          <label htmlFor="role" className="input-label">Role</label>
+          <label htmlFor="role" className="input-label">
+            Role
+          </label>
           <select
             id="role"
             name="role"
@@ -119,7 +135,9 @@ export default function CreateEmployee(): ReactElement {
         </div>
 
         <div className="input-group">
-          <label htmlFor="email" className="input-label">Email</label>
+          <label htmlFor="email" className="input-label">
+            Email
+          </label>
           <input
             type="email"
             id="email"
@@ -131,7 +149,9 @@ export default function CreateEmployee(): ReactElement {
         </div>
 
         <div className="input-group">
-          <label htmlFor="phone" className="input-label">Phone</label>
+          <label htmlFor="phone" className="input-label">
+            Phone
+          </label>
           <input
             type="tel"
             id="phone"
@@ -143,7 +163,9 @@ export default function CreateEmployee(): ReactElement {
         </div>
 
         <div className="input-group">
-          <label htmlFor="wage" className="input-label">Wage</label>
+          <label htmlFor="wage" className="input-label">
+            Wage
+          </label>
           <input
             type="number"
             id="wage"
@@ -192,7 +214,9 @@ export default function CreateEmployee(): ReactElement {
           </div>
         </div>
 
-        <button type="submit" className="button">Create Employee</button>
+        <button type="submit" className="button">
+          Create Employee
+        </button>
       </form>
     </div>
   );

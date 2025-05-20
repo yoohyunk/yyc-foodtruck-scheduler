@@ -344,9 +344,6 @@ footer a:hover {
   color: var(--primary-medium); /* Change color on hover */
 }
 
-
-
-
 /* =========================
    Base Styles
 ========================= */
@@ -677,7 +674,6 @@ footer a {
 footer a:hover {
   color: var(--primary-medium); /* Change color on hover */
 }
-
 
 /* Grid Layout for Sections */
 .grid {

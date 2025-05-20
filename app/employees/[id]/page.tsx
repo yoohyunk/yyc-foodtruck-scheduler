@@ -1,6 +1,12 @@
-'use client';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, FormEvent, ChangeEvent, ReactElement } from 'react';
+"use client";
+import { useParams, useRouter } from "next/navigation";
+import {
+  useEffect,
+  useState,
+  FormEvent,
+  ChangeEvent,
+  ReactElement,
+} from "react";
 
 interface Employee {
   id: number;
@@ -30,55 +36,67 @@ export default function EditEmployeePage(): ReactElement {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    address: '',
-    role: '',
-    email: '',
-    phone: '',
-    wage: '',
+    name: "",
+    address: "",
+    role: "",
+    email: "",
+    phone: "",
+    wage: "",
     isAvailable: false,
     availability: [],
   });
 
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const daysOfWeek = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
 
   // Fetch employee details
   useEffect(() => {
     if (!id) return;
 
-    fetch('/employee.json')
+    fetch("/employee.json")
       .then((response) => response.json())
       .then((data: Employee[]) => {
-        const employeeData = data.find((emp) => emp.id === parseInt(id as string));
+        const employeeData = data.find(
+          (emp) => emp.id === parseInt(id as string)
+        );
         if (employeeData) {
           setFormData({
-            name: employeeData.name || '',
-            address: employeeData.address || '',
-            role: employeeData.role || '',
-            email: employeeData.email || '',
-            phone: employeeData.phone || '',
-            wage: employeeData.wage || '',
+            name: employeeData.name || "",
+            address: employeeData.address || "",
+            role: employeeData.role || "",
+            email: employeeData.email || "",
+            phone: employeeData.phone || "",
+            wage: employeeData.wage || "",
             isAvailable: employeeData.isAvailable || false,
             availability: employeeData.availability || [],
           });
         } else {
-          console.error('Employee not found');
+          console.error("Employee not found");
         }
         setIsLoading(false);
       })
       .catch((error) => {
-        console.error('Error fetching employee:', error);
+        console.error("Error fetching employee:", error);
         setIsLoading(false);
       });
   }, [id]);
 
   // Handle form input changes
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -119,23 +137,23 @@ export default function EditEmployeePage(): ReactElement {
     e.preventDefault();
 
     fetch(`/employees/${id}.json`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(formData),
     })
       .then((response) => {
         if (response.ok) {
-          alert('Employee updated successfully!');
-          router.push('/employees');
+          alert("Employee updated successfully!");
+          router.push("/employees");
         } else {
-          alert('Failed to update employee.');
+          alert("Failed to update employee.");
         }
       })
       .catch((error) => {
-        console.error('Error updating employee:', error);
-        alert('An error occurred while updating the employee.');
+        console.error("Error updating employee:", error);
+        alert("An error occurred while updating the employee.");
       });
   };
 
@@ -149,10 +167,7 @@ export default function EditEmployeePage(): ReactElement {
 
   return (
     <div className="edit-employee-page">
-      <button
-        className="button"
-        onClick={() => router.back()}
-      >
+      <button className="button" onClick={() => router.back()}>
         &larr; Back
       </button>
 
@@ -275,7 +290,9 @@ export default function EditEmployeePage(): ReactElement {
 
         {/* Availability */}
         <div>
-          <label className="block font-medium">Availability (Days of the Week)</label>
+          <label className="block font-medium">
+            Availability (Days of the Week)
+          </label>
           <div className="availability-options">
             <label className="availability-label">
               <input
@@ -298,7 +315,10 @@ export default function EditEmployeePage(): ReactElement {
           </div>
         </div>
 
-        <button type="submit" className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark">
+        <button
+          type="submit"
+          className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
+        >
           Save Changes
         </button>
       </form>
