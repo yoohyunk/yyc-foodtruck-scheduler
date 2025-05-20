@@ -22,6 +22,8 @@ interface Link {
 }
 
 export default function Home(): ReactElement {
+  const [hoveredLink, setHoveredLink] = useState<number | null>(null);
+
   const [events, setEvents] = useState<Event[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
 
@@ -31,7 +33,8 @@ export default function Home(): ReactElement {
       .then((response) => response.json())
       .then((data: Event[]) => {
         const upcomingEvents = data.filter(
-          (event) => new Date(event.date) >= new Date(),
+          (event) => new Date(event.date) >= new Date()
+
         );
         setEvents(upcomingEvents.slice(0, 5)); // Show only the next 5 events
       })
@@ -44,12 +47,14 @@ export default function Home(): ReactElement {
       .then((response) => response.json())
       .then((data: TimeOffRequest[]) => {
         const upcomingRequests = data.filter(
+
           (request) => new Date(request.startDate) >= new Date(),
         );
         setTimeOffRequests(upcomingRequests.slice(0, 3)); // Show only the next 3 requests
       })
       .catch((error) =>
         console.error("Error fetching time-off requests:", error),
+
       );
   }, []);
 
@@ -71,7 +76,16 @@ export default function Home(): ReactElement {
 
         <div className="landing-links">
           {links.map((link, index) => (
-            <a key={index} href={link.href} className="landing-link">
+            <a
+              key={index}
+              href={link.href}
+              className={`
+                landing-link 
+                ${hoveredLink === index ? "bg-gray-100 scale-105 transition-transform" : ""}
+              `}
+              onMouseEnter={() => setHoveredLink(index)}
+              onMouseLeave={() => setHoveredLink(null)}
+            >
               <span className="landing-link-icon">{link.icon}</span>
               <span>{link.name}</span>
             </a>
