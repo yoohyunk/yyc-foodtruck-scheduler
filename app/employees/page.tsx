@@ -22,7 +22,7 @@ export default function Employees(): ReactElement {
 
   // Fetch employees from employee.json
   useEffect(() => {
-    fetch("/employee.json")
+    fetch("/employees.json")
       .then((response) => {
         if (!response.ok)
           throw new Error(`HTTP error! status: ${response.status}`);

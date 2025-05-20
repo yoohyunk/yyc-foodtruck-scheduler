@@ -5,9 +5,9 @@ import { useEffect, useState, ReactElement } from "react";
 
 interface Event {
   id: number;
-  name: string;
-  date: string;
-  time: string;
+  title: string;
+  startTime: string;
+  endTime: string;
   location: string;
   requiredServers: number;
   trucks?: number[];
@@ -41,42 +41,90 @@ export default function EventDetailsPage(): ReactElement {
 
   // Fetch event details
   useEffect(() => {
-    if (!id) return;
+    const fetchEvent = async () => {
+      try {
+        const response = await fetch("/events.json", {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        });
 
-    fetch("/events.json")
-      .then((response) => response.json())
-      .then((data: Event[]) => {
-        const eventData = data.find(
-          (event) => event.id === parseInt(id as string)
-        );
-        setEvent(eventData || null);
-      })
-      .catch((error) => console.error("Error fetching event:", error));
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+          console.error("Received data is not an array:", data);
+          setEvent(null);
+          return;
+        }
+
+        const eventData = data.find((event) => event.id === id);
+
+        if (!eventData) {
+          console.error("Event not found:", id);
+          setEvent(null);
+          return;
+        }
+
+        setEvent(eventData);
+      } catch (error) {
+        console.error("Error fetching event:", error);
+        setEvent(null);
+      }
+    };
+
+    if (id) {
+      fetchEvent();
+    }
   }, [id]);
 
   // Fetch employees and trucks
   useEffect(() => {
-    fetch("/employee.json")
-      .then((response) => response.json())
-      .then((data: Employee[]) => {
-        setEmployees(data);
-        setIsLoadingEmployees(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching employees:", error);
-        setIsLoadingEmployees(false);
-      });
+    const fetchData = async () => {
+      try {
+        // Fetch employees
+        const employeesResponse = await fetch("/employees.json", {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        });
 
-    fetch("/trucks.json")
-      .then((response) => response.json())
-      .then((data: Truck[]) => {
-        setTrucks(data);
+        if (!employeesResponse.ok) {
+          throw new Error(`HTTP error! status: ${employeesResponse.status}`);
+        }
+
+        const employeesData = await employeesResponse.json();
+        setEmployees(employeesData);
+        setIsLoadingEmployees(false);
+
+        // Fetch trucks
+        const trucksResponse = await fetch("/trucks.json", {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!trucksResponse.ok) {
+          throw new Error(`HTTP error! status: ${trucksResponse.status}`);
+        }
+
+        const trucksData = await trucksResponse.json();
+        setTrucks(trucksData);
         setIsLoadingTrucks(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching trucks:", error);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setIsLoadingEmployees(false);
         setIsLoadingTrucks(false);
-      });
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleEmployeeSelection = (employee: Employee) => {
@@ -112,17 +160,18 @@ export default function EventDetailsPage(): ReactElement {
       </button>
 
       <div className="event-detail-card">
-        <h1 className="event-detail-title">{event.name}</h1>
+        <h1 className="event-detail-title">{event.title}</h1>
         <div className="event-detail-info-container">
           <p className="event-detail-info">
-            <span className="info-label">Date:</span> {event.date}
+            <span className="info-label">Date:</span> {event.startTime} -{" "}
+            {event.endTime}
           </p>
           <p className="event-detail-info">
             <span className="info-label">Location:</span> {event.location}
           </p>
-          <p className="event-detail-info">
+          {/* <p className="event-detail-info">
             <span className="info-label">Time:</span> {event.time}
-          </p>
+          </p> */}
           <p className="event-detail-info">
             <span className="info-label">Required Servers:</span>{" "}
             {event.requiredServers}
