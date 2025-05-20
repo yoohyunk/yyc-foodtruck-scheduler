@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "employeeName": "John Doe",
+    "startDate": "2025-04-20",
+    "endDate": "2025-04-25",
+    "reason": "Family vacation",
+    "status": "Approved"
+  },
+  {
+    "id": 2,
+    "employeeName": "Jane Smith",
+    "startDate": "2025-04-18",
+    "endDate": "2025-04-19",
+    "reason": "Medical appointment",
+    "status": "Pending"
+  },
+  {
+    "id": 3,
+    "employeeName": "Michael Johnson",
+    "startDate": "2025-04-15",
+    "endDate": "2025-04-16",
+    "reason": "Personal errands",
+    "status": "Denied"
+  },
+  {
+    "id": 4,
+    "employeeName": "Emily Davis",
+    "startDate": "2025-05-01",
+    "endDate": "2025-05-05",
+    "reason": "Wedding",
+    "status": "Approved"
+  },
+  {
+    "id": 5,
+    "employeeName": "Chris Brown",
+    "startDate": "2025-04-22",
+    "endDate": "2025-04-23",
+    "reason": "Conference",
+    "status": "Pending"
+  },
+  {
+    "id": 6,
+    "employeeName": "Sarah Wilson",
+    "startDate": "2025-04-10",
+    "endDate": "2025-04-12",
+    "reason": "Family emergency",
+    "status": "Denied"
+  },
+  {
+    "id": 7,
+    "employeeName": "David Lee",
+    "startDate": "2025-04-28",
+    "endDate": "2025-04-30",
+    "reason": "Vacation",
+    "status": "Approved"
+  },
+  {
+    "id": 8,
+    "employeeName": "Sophia Martinez",
+    "startDate": "2025-04-25",
+    "endDate": "2025-04-26",
+    "reason": "Religious holiday",
+    "status": "Pending"
+  },
+  {
+    "id": 9,
+    "employeeName": "James Anderson",
+    "startDate": "2025-04-15",
+    "endDate": "2025-04-17",
+    "reason": "Moving to a new house",
+    "status": "Denied"
+  },
+  {
+    "id": 10,
+    "employeeName": "Olivia Taylor",
+    "startDate": "2025-05-10",
+    "endDate": "2025-05-15",
+    "reason": "Extended vacation",
+    "status": "Approved"
+  }
+]

@@ -1,5 +1,6 @@
 import "./globals.css";
-import { AuthProvider } from "../Auth/auth-context";
+
+import { AuthProvider } from "@/contexts/AuthContext";
 import { FiLogOut } from "react-icons/fi";
 import { ReactNode, ReactElement } from "react";
 import type { Metadata } from "next";
@@ -10,8 +11,10 @@ import Image from "next/image";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "YYC Food Trucks",
-  description: "Employee scheduling and management system",
+  title: "YYC Foodtruck Scheduler",
+  description:
+    "A scheduling and workforce-management platform for YYC food truck operations",
+
 };
 
 interface RootLayoutProps {
@@ -62,6 +65,7 @@ export default function RootLayout({
                   <span className="nav-icon">🔑</span>
                   Login
                 </Link>
+
               </div>
             </nav>
           </header>

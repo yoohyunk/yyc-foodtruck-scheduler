@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /* =========================
    Global Variables
 ========================= */
@@ -341,6 +343,341 @@ footer a {
 footer a:hover {
   color: var(--primary-medium); /* Change color on hover */
 }
+
+=======
+}
+
+/* =========================
+   Base Styles
+========================= */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  height: 100%;
+  font-family: "Arial", sans-serif;
+  background-color: #f9fafb;
+  color: #333;
+}
+
+/* =========================
+   Utility Classes
+========================= */
+.text-primary-dark {
+  color: var(--primary-dark);
+}
+.text-primary-medium {
+  color: var(--primary-medium);
+}
+.text-primary-light {
+  color: var(--primary-light);
+}
+.text-secondary-dark {
+  color: var(--secondary-dark);
+}
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.bg-secondary-dark {
+  background-color: var(--secondary-dark);
+}
+.bg-primary-medium {
+  background-color: var(--primary-medium);
+}
+.bg-white {
+  background-color: var(--white);
+}
+
+/* =========================
+   Reusable Components
+========================= */
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* =========================
+   Layout & Navigation
+========================= */
+/* Header Styling */
+.header {
+  background: linear-gradient(
+    50deg,
+    var(--primary-dark) 0%,
+    var(--secondary-light) 110%
+  );
+  padding: 1rem 2rem;
+  box-shadow: 0 4px 6px var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-decoration: none;
+}
+
+.logo-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  box-shadow: 0 4px 6px var(--shadow);
+}
+
+.logo-text {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.logo-text span {
+  color: var(--secondary-dark);
+}
+
+/* Navigation Links */
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--white);
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-link:hover {
+  background: var(--primary-light);
+  color: var(--white);
+  transform: translateY(-2px);
+}
+
+.nav-icon {
+  font-size: 1.25rem;
+}
+
+/* =========================
+   Section Styling & Pages
+========================= */
+
+/* ========== Landing Page ========== */
+/* Landing Page Styling */
+.landing-container {
+  background: linear-gradient(
+    135deg,
+    var(--primary-light),
+    var(--secondary-light)
+  );
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.landing-main {
+  max-width: 800px;
+  width: 100%;
+  text-align: center;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 6px 12px var(--shadow);
+  padding: 2rem;
+}
+
+.landing-title {
+  font-size: 3rem;
+  font-weight: bold;
+  color: var(--primary-dark);
+  margin-bottom: 1rem;
+}
+
+.landing-subtitle {
+  font-size: 1.25rem;
+  color: var(--primary-medium);
+  margin-bottom: 2rem;
+}
+
+.landing-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.landing-link {
+  background: var(--secondary-dark);
+  color: var(--primary-dark);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid var(--primary-medium);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s ease;
+}
+
+.landing-link:hover {
+  background: var(--primary-medium);
+  color: var(--white);
+  transform: translateY(-4px);
+  box-shadow: 0 4px 8px var(--shadow);
+}
+
+.landing-link-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--primary-dark);
+  margin-bottom: 1rem;
+}
+
+.section-card {
+  background: var(--white);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 4px 6px var(--shadow);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.section-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px var(--shadow);
+}
+
+.section-card-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--primary-dark);
+  margin-bottom: 0.5rem;
+}
+
+.section-card-text {
+  font-size: 1rem;
+  color: var(--primary-medium);
+}
+
+/* Section Titles */
+.section-title {
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: var(--primary-dark);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Cards */
+.card {
+  background-color: var(--secondary-light);
+  border: 1px solid #e5e7eb; /* Light gray border */
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px); /* Lift effect on hover */
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15); /* Stronger shadow on hover */
+}
+
+/* Nav Links */
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--white);
+  font-weight: 600;
+  transition: color 0.3s ease;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-link:hover {
+  color: var(--primary-medium);
+  background: var(--primary-light);
+  color: var(--white);
+  transform: translateY(-2px);
+}
+
+/* Footer Styling */
+footer {
+  background-color: var(--primary-dark); /* Dark background for contrast */
+  color: var(--primary-light); /* Light text color */
+  padding: 1.5rem 0; /* Add padding to the top and bottom */
+  text-align: center;
+  font-size: 0.875rem; /* Slightly smaller font size */
+  border-top: 1px solid #e5e7eb; /* Subtle border at the top */
+}
+
+footer p {
+  margin: 0; /* Remove default margin */
+}
+
+footer a {
+  color: var(--primary-light); /* Footer links inherit light color */
+  text-decoration: none; /* Remove underline */
+  font-weight: 600; /* Make links bold */
+  transition: color 0.3s ease; /* Smooth color transition */
+}
+
+footer a:hover {
+  color: var(--primary-medium); /* Change color on hover */
+}
+
 
 /* Grid Layout for Sections */
 .grid {
