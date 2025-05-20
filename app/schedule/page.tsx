@@ -69,8 +69,7 @@ export default function Schedule(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-
- useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const [eventsRes, trucksRes, employeesRes] = await Promise.all([
@@ -160,7 +159,7 @@ export default function Schedule(): React.ReactElement {
             (event) => new Date(event.date).getDay() === index
           );
 
-           return (
+          return (
             <div
               key={day}
               className={`day-card${dailyEvents.length ? " day-card-has-events" : ""}`}
