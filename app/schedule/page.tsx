@@ -38,15 +38,18 @@ interface DayPilotEvent {
   cssClass: string;
 }
 
-const WEEKDAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
+const WEEKDAYS = useMemo(
+  () => [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ],
+  []
+);
 
 const formatDate = (date: Date, options: Intl.DateTimeFormatOptions = {}) =>
   new Intl.DateTimeFormat("en-US", {
@@ -63,9 +66,11 @@ export default function Schedule(): React.ReactElement {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
+
+ useEffect(() => {
     const fetchData = async () => {
       try {
         const [eventsRes, trucksRes, employeesRes] = await Promise.all([
@@ -88,12 +93,12 @@ export default function Schedule(): React.ReactElement {
         setEmployees(employeesData);
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        setError("Error fetching data.");
+        setLoading(false);
       }
     };
     fetchData();
   }, []);
-
   const getDateRangeText = (): string => {
     if (viewMode === "weekly") {
       const startOfWeek = new Date(selectedDate);
@@ -147,7 +152,7 @@ export default function Schedule(): React.ReactElement {
         <p className="empty-week-message">No events scheduled for this week.</p>
       );
     }
-// testig commit
+
     return (
       <div className="weekly-schedule">
         {WEEKDAYS.map((day, index) => {
@@ -155,10 +160,10 @@ export default function Schedule(): React.ReactElement {
             (event) => new Date(event.date).getDay() === index
           );
 
-          return (
+           return (
             <div
               key={day}
-              className={`day-card ${dailyEvents.length ? "day-card-has-events" : ""}`}
+              className={`day-card${dailyEvents.length ? " day-card-has-events" : ""}`}
             >
               <h3 className="day-title">{day}</h3>
               <div className="day-events-container">
