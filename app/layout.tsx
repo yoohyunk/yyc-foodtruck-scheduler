@@ -1,4 +1,5 @@
 import "./globals.css";
+
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FiLogOut } from "react-icons/fi";
 import { ReactNode, ReactElement } from "react";
@@ -58,6 +59,10 @@ export default function RootLayout({
                 <Link href="/events/newEvent/" className="nav-link">
                   <span className="nav-icon">➕</span>
                   New Event
+                </Link>
+                <Link href="/login" className="nav-link">
+                  <span className="nav-icon">🔑</span>
+                  Login
                 </Link>
               </div>
             </nav>

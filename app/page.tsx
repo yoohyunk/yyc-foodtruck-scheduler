@@ -23,6 +23,7 @@ interface Link {
 
 export default function Home(): ReactElement {
   const [hoveredLink, setHoveredLink] = useState<number | null>(null);
+
   const [events, setEvents] = useState<Event[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
 
