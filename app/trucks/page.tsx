@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect, ReactElement } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, ReactElement } from "react";
+import { useRouter } from "next/navigation";
 
 interface Truck {
   id: number;
@@ -18,26 +18,27 @@ interface Truck {
 export default function Trucks(): ReactElement {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filteredTrucks, setFilteredTrucks] = useState<Truck[]>([]);
-  const [activeFilter, setActiveFilter] = useState<string>('All');
+  const [activeFilter, setActiveFilter] = useState<string>("All");
   const router = useRouter();
 
   // Fetch trucks from trucks.json
   useEffect(() => {
-    fetch('/trucks.json')
+    fetch("/trucks.json")
       .then((response) => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
       })
       .then((data: Truck[]) => {
         setTrucks(data);
         setFilteredTrucks(data);
       })
-      .catch((error) => console.error('Error fetching trucks:', error));
+      .catch((error) => console.error("Error fetching trucks:", error));
   }, []);
 
   // Filter trucks based on the active filter
   useEffect(() => {
-    if (activeFilter === 'All') {
+    if (activeFilter === "All") {
       setFilteredTrucks(trucks);
     } else {
       setFilteredTrucks(trucks.filter((truck) => truck.type === activeFilter));
@@ -51,26 +52,26 @@ export default function Trucks(): ReactElement {
       {/* Filter Buttons */}
       <div className="filter-buttons grid">
         <button
-          className={`button ${activeFilter === 'All' ? 'bg-primary-dark text-white' : 'bg-gray-200 text-primary-dark'}`}
-          onClick={() => setActiveFilter('All')}
+          className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setActiveFilter("All")}
         >
           All
         </button>
         <button
-          className={`button ${activeFilter === 'Food Truck' ? 'bg-primary-dark text-white' : 'bg-gray-200 text-primary-dark'}`}
-          onClick={() => setActiveFilter('Food Truck')}
+          className={`button ${activeFilter === "Food Truck" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setActiveFilter("Food Truck")}
         >
           Food Trucks
         </button>
         <button
-          className={`button ${activeFilter === 'Beverage Truck' ? 'bg-primary-dark text-white' : 'bg-gray-200 text-primary-dark'}`}
-          onClick={() => setActiveFilter('Beverage Truck')}
+          className={`button ${activeFilter === "Beverage Truck" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setActiveFilter("Beverage Truck")}
         >
           Beverage Trucks
         </button>
         <button
-          className={`button ${activeFilter === 'Dessert Truck' ? 'bg-primary-dark text-white' : 'bg-gray-200 text-primary-dark'}`}
-          onClick={() => setActiveFilter('Dessert Truck')}
+          className={`button ${activeFilter === "Dessert Truck" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setActiveFilter("Dessert Truck")}
         >
           Dessert Trucks
         </button>
@@ -80,7 +81,10 @@ export default function Trucks(): ReactElement {
       <div className="truck-list grid gap-4">
         {filteredTrucks.length > 0 ? (
           filteredTrucks.map((truck) => (
-            <div key={truck.id} className="truck-card bg-white p-4 rounded shadow relative">
+            <div
+              key={truck.id}
+              className="truck-card bg-white p-4 rounded shadow relative"
+            >
               {/* Edit Button */}
               <button
                 className="edit-button"
@@ -91,15 +95,31 @@ export default function Trucks(): ReactElement {
               </button>
 
               <h3 className="text-lg font-semibold">{truck.name}</h3>
-              <p><strong>Type:</strong> {truck.type}</p>
-              <p><strong>Capacity:</strong> {truck.capacity}</p>
-              <p><strong>Status:</strong>{' '}
-                <span className={truck.status === 'Available' ? 'text-green-500' : 'text-red-500'}>
+              <p>
+                <strong>Type:</strong> {truck.type}
+              </p>
+              <p>
+                <strong>Capacity:</strong> {truck.capacity}
+              </p>
+              <p>
+                <strong>Status:</strong>{" "}
+                <span
+                  className={
+                    truck.status === "Available"
+                      ? "text-green-500"
+                      : "text-red-500"
+                  }
+                >
                   {truck.status}
                 </span>
               </p>
-              <p><strong>Driver:</strong> {truck.driver ? truck.driver.name : 'No driver assigned'}</p>
-              <p><strong>Location:</strong> {truck.location}</p>
+              <p>
+                <strong>Driver:</strong>{" "}
+                {truck.driver ? truck.driver.name : "No driver assigned"}
+              </p>
+              <p>
+                <strong>Location:</strong> {truck.location}
+              </p>
             </div>
           ))
         ) : (

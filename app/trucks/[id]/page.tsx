@@ -1,7 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect, FormEvent, ChangeEvent, ReactElement } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import {
+  useState,
+  useEffect,
+  FormEvent,
+  ChangeEvent,
+  ReactElement,
+} from "react";
+import { useParams, useRouter } from "next/navigation";
 
 interface Truck {
   id: number;
@@ -39,50 +45,55 @@ export default function EditTruckPage(): ReactElement {
   const [truck, setTruck] = useState<Truck | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    type: '',
-    capacity: '',
-    status: '',
-    driver: '',
-    location: '',
+    name: "",
+    type: "",
+    capacity: "",
+    status: "",
+    driver: "",
+    location: "",
   });
 
   // Fetch truck details
   useEffect(() => {
-    fetch('/trucks.json')
+    fetch("/trucks.json")
       .then((response) => response.json())
       .then((data: Truck[]) => {
         const truckData = data.find((t) => t.id === parseInt(id as string));
         if (truckData) {
           setTruck(truckData);
           setFormData({
-            name: truckData.name || '',
-            type: truckData.type || '',
-            capacity: truckData.capacity || '',
-            status: truckData.status || '',
-            driver: truckData.driver ? truckData.driver.name : '',
-            location: truckData.location || '',
+            name: truckData.name || "",
+            type: truckData.type || "",
+            capacity: truckData.capacity || "",
+            status: truckData.status || "",
+            driver: truckData.driver ? truckData.driver.name : "",
+            location: truckData.location || "",
           });
         } else {
-          console.error('Truck not found');
+          console.error("Truck not found");
         }
       })
-      .catch((error) => console.error('Error fetching truck:', error));
+      .catch((error) => console.error("Error fetching truck:", error));
   }, [id]);
 
   // Fetch events associated with the truck
   useEffect(() => {
-    fetch('/events.json')
+    fetch("/events.json")
       .then((response) => response.json())
       .then((data: Event[]) => {
-        const truckEvents = data.filter((event) => event.trucks && event.trucks.includes(parseInt(id as string)));
+        const truckEvents = data.filter(
+          (event) =>
+            event.trucks && event.trucks.includes(parseInt(id as string))
+        );
         setEvents(truckEvents);
       })
-      .catch((error) => console.error('Error fetching events:', error));
+      .catch((error) => console.error("Error fetching events:", error));
   }, [id]);
 
   // Handle form input changes
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -95,9 +106,9 @@ export default function EditTruckPage(): ReactElement {
     e.preventDefault();
 
     // Simulate saving the updated truck data
-    console.log('Updated Truck Data:', formData);
-    alert('Truck information updated successfully!');
-    router.push('/trucks');
+    console.log("Updated Truck Data:", formData);
+    alert("Truck information updated successfully!");
+    router.push("/trucks");
   };
 
   if (!truck) {
@@ -110,10 +121,7 @@ export default function EditTruckPage(): ReactElement {
 
   return (
     <div className="edit-truck-page">
-      <button
-        className="button mb-4"
-        onClick={() => router.back()}
-      >
+      <button className="button mb-4" onClick={() => router.back()}>
         &larr; Back
       </button>
 
@@ -241,11 +249,20 @@ export default function EditTruckPage(): ReactElement {
         {events.length > 0 ? (
           <div className="grid gap-4">
             {events.map((event) => (
-              <div key={event.id} className="event-card bg-white p-4 rounded shadow">
+              <div
+                key={event.id}
+                className="event-card bg-white p-4 rounded shadow"
+              >
                 <h3 className="text-lg font-semibold">{event.name}</h3>
-                <p><strong>Date:</strong> {event.date}</p>
-                <p><strong>Location:</strong> {event.location}</p>
-                <p><strong>Time:</strong> {event.time}</p>
+                <p>
+                  <strong>Date:</strong> {event.date}
+                </p>
+                <p>
+                  <strong>Location:</strong> {event.location}
+                </p>
+                <p>
+                  <strong>Time:</strong> {event.time}
+                </p>
               </div>
             ))}
           </div>
