@@ -3,9 +3,14 @@ import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
 
 interface Event {
+  id: string;
   name: string;
   date: string;
+  time: string;
   location: string;
+  trucks: string[];
+  assignedStaff: string[];
+  requiredServers: number;
 }
 
 interface TimeOffRequest {
@@ -32,12 +37,20 @@ export default function Home(): ReactElement {
     fetch("/events.json")
       .then((response) => response.json())
       .then((data: Event[]) => {
-        const upcomingEvents = data.filter(
-          (event) => new Date(event.date) >= new Date()
-        );
-        setEvents(upcomingEvents.slice(0, 5)); // Show only the next 5 events
+        if (Array.isArray(data)) {
+          const upcomingEvents = data.filter(
+            (event) => new Date(event.date) >= new Date()
+          );
+          setEvents(upcomingEvents.slice(0, 5)); // Show only the next 5 events
+        } else {
+          console.error("Received data is not an array:", data);
+          setEvents([]);
+        }
       })
-      .catch((error) => console.error("Error fetching events:", error));
+      .catch((error) => {
+        console.error("Error fetching events:", error);
+        setEvents([]);
+      });
   }, []);
 
   // Fetch time-off requests
