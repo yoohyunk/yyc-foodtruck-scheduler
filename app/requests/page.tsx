@@ -1,21 +1,7 @@
 "use client";
 import { useState, FormEvent, ChangeEvent, ReactElement } from "react";
 import { FiCalendar } from "react-icons/fi";
-
-interface TimeOffRequest {
-  date: string;
-  type: string;
-  duration: string;
-  status: "Approved" | "Pending" | "Rejected";
-  reason: string;
-}
-
-interface FormData {
-  date: string;
-  type: string;
-  duration: string;
-  reason: string;
-}
+import { TimeOffRequest, RequestFormData } from "../types";
 
 export default function TimeOff(): ReactElement {
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -36,7 +22,7 @@ export default function TimeOff(): ReactElement {
     },
   ]);
 
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<RequestFormData>({
     date: "",
     type: "Vacation",
     duration: "Full Day",

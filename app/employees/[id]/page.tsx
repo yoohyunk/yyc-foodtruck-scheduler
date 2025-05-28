@@ -7,29 +7,7 @@ import {
   ChangeEvent,
   ReactElement,
 } from "react";
-
-interface Employee {
-  id: number;
-  name: string;
-  address: string;
-  role: string;
-  email: string;
-  phone: string;
-  wage: string;
-  isAvailable: boolean;
-  availability: string[];
-}
-
-interface FormData {
-  name: string;
-  address: string;
-  role: string;
-  email: string;
-  phone: string;
-  wage: string;
-  isAvailable: boolean;
-  availability: string[];
-}
+import { Employee, FormData } from "@/app/types";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();

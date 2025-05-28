@@ -1,18 +1,7 @@
 "use client";
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-
-interface Employee {
-  id: number;
-  name: string;
-  role: string;
-  address: string;
-  email: string;
-  phone: string;
-  wage: string;
-  isAvailable: boolean;
-  availability: string[];
-}
+import { Employee } from "@/app/types";
 
 export default function Employees(): ReactElement {
   const [employees, setEmployees] = useState<Employee[]>([]);

@@ -1,17 +1,7 @@
 "use client";
 
 import React, { useState, ReactElement, ChangeEvent, FormEvent } from "react";
-
-interface FormData {
-  name: string;
-  address: string;
-  role: string;
-  email: string;
-  phone: string;
-  wage: string;
-  isAvailable: boolean;
-  availability: string[]; // Array to store selected days of the week
-}
+import { FormData } from "@/app/types";
 
 export default function CreateEmployee(): ReactElement {
   const [formData, setFormData] = useState<FormData>({

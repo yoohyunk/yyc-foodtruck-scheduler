@@ -5,17 +5,7 @@ import { useRouter } from "next/navigation";
 import { ViewToggle } from "./components/ViewToggle";
 import { Navigation } from "./components/Navigation";
 import { Calendar } from "./components/Calendar";
-
-interface Event {
-  id: string;
-  title: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  trucks?: string[];
-  assignedStaff?: string[];
-  requiredServers: number;
-}
+import { Event } from "../types";
 
 export default function Schedule(): React.ReactElement {
   const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">(

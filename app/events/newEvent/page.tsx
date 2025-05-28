@@ -7,28 +7,10 @@ import React, {
   ChangeEvent,
   FormEvent,
 } from "react";
-
-interface Truck {
-  id: string;
-  name: string;
-  type: string;
-  isAvailable: boolean;
-}
-
-interface FormData {
-  name: string;
-  date: string;
-  time: string;
-  location: string;
-  requiredServers: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
-  trucks: string[];
-}
+import { EventFormData, Truck } from "@/app/types";
 
 export default function AddEventPage(): ReactElement {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<EventFormData>({
     name: "",
     date: "",
     time: "",

@@ -2,29 +2,8 @@
 import "../../globals.css";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, ReactElement } from "react";
-
-interface Event {
-  id: number;
-  title: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  requiredServers: number;
-  trucks?: number[];
-  assignedStaff?: number[];
-}
-
-interface Employee {
-  id: number;
-  name: string;
-  role: string;
-}
-
-interface Truck {
-  id: number;
-  name: string;
-  type: string;
-}
+import { extractDate, extractTime } from "../utils";
+import { Event, Employee, Truck } from "@/app/types";
 
 export default function EventDetailsPage(): ReactElement {
   const { id } = useParams();
@@ -163,8 +142,12 @@ export default function EventDetailsPage(): ReactElement {
         <h1 className="event-detail-title">{event.title}</h1>
         <div className="event-detail-info-container">
           <p className="event-detail-info">
-            <span className="info-label">Date:</span> {event.startTime} -{" "}
-            {event.endTime}
+            <span className="info-label">Date:</span>{" "}
+            {extractDate(event.startTime, event.endTime)}
+          </p>
+          <p className="event-detail-info">
+            <span className="info-label">Time:</span>{" "}
+            {extractTime(event.startTime)} - {extractTime(event.endTime)}
           </p>
           <p className="event-detail-info">
             <span className="info-label">Location:</span> {event.location}

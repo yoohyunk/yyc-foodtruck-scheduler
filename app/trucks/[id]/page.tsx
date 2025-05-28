@@ -8,43 +8,15 @@ import {
   ReactElement,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
-
-interface Truck {
-  id: number;
-  name: string;
-  type: string;
-  capacity: string;
-  status: string;
-  driver?: {
-    name: string;
-  };
-  location: string;
-}
-
-interface Event {
-  id: number;
-  name: string;
-  date: string;
-  location: string;
-  time: string;
-  trucks?: number[];
-}
-
-interface FormData {
-  name: string;
-  type: string;
-  capacity: string;
-  status: string;
-  driver: string;
-  location: string;
-}
+import { Truck, Event, TruckFormData } from "@/app/types";
+import { extractDate, extractTime } from "@/app/events/utils";
 
 export default function EditTruckPage(): ReactElement {
   const { id } = useParams();
   const router = useRouter();
   const [truck, setTruck] = useState<Truck | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<TruckFormData>({
     name: "",
     type: "",
     capacity: "",
@@ -58,7 +30,7 @@ export default function EditTruckPage(): ReactElement {
     fetch("/trucks.json")
       .then((response) => response.json())
       .then((data: Truck[]) => {
-        const truckData = data.find((t) => t.id === parseInt(id as string));
+        const truckData = data.find((t) => String(t.id) === id);
         if (truckData) {
           setTruck(truckData);
           setFormData({
@@ -83,7 +55,7 @@ export default function EditTruckPage(): ReactElement {
       .then((data: Event[]) => {
         const truckEvents = data.filter(
           (event) =>
-            event.trucks && event.trucks.includes(parseInt(id as string))
+            event.trucks && event.trucks.map(String).includes(id as string)
         );
         setEvents(truckEvents);
       })
@@ -253,15 +225,17 @@ export default function EditTruckPage(): ReactElement {
                 key={event.id}
                 className="event-card bg-white p-4 rounded shadow"
               >
-                <h3 className="text-lg font-semibold">{event.name}</h3>
+                <h3 className="text-lg font-semibold">{event.title}</h3>
                 <p>
-                  <strong>Date:</strong> {event.date}
+                  <strong>Date:</strong>{" "}
+                  {extractDate(event.startTime, event.endTime)}
                 </p>
                 <p>
                   <strong>Location:</strong> {event.location}
                 </p>
                 <p>
-                  <strong>Time:</strong> {event.time}
+                  <strong>Time:</strong> {extractTime(event.startTime)} -{" "}
+                  {extractTime(event.endTime)}
                 </p>
               </div>
             ))}
