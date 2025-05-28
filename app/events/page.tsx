@@ -3,19 +3,7 @@
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { extractDate, extractTime } from "./utils";
-
-interface Event {
-  id: string;
-  name: string;
-  startTime: string;
-  endTime: string;
-  time: string;
-  location: string;
-  distance: number;
-  requiredServers: number;
-  trucks?: string[];
-  assignedStaff?: string[];
-}
+import { Event } from "../types";
 
 export default function Events(): ReactElement {
   const [events, setEvents] = useState<Event[]>([]);
@@ -143,7 +131,7 @@ export default function Events(): ReactElement {
               key={event.id}
               className="event-card bg-secondary-light p-4 rounded shadow"
             >
-              <h3 className="text-lg font-semibold">{event.name}</h3>
+              <h3 className="text-lg font-semibold">{event.title}</h3>
               <p>
                 <strong>Date:</strong>{" "}
                 {extractDate(event.startTime, event.endTime)}
