@@ -73,3 +73,19 @@ export interface TruckFormData {
   driver: string;
   location: string;
 }
+
+// time off requests types
+export interface TimeOffRequest {
+  date: string;
+  type: string;
+  duration: string;
+  status: "Approved" | "Pending" | "Rejected";
+  reason: string;
+}
+
+export interface RequestFormData {
+  date: string;
+  type: string;
+  duration: string;
+  reason: string;
+}
