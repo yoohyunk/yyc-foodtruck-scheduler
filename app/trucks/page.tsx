@@ -2,18 +2,7 @@
 
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-
-interface Truck {
-  id: number;
-  name: string;
-  type: string;
-  capacity: string;
-  status: string;
-  driver?: {
-    name: string;
-  };
-  location: string;
-}
+import { Truck } from "../types";
 
 export default function Trucks(): ReactElement {
   const [trucks, setTrucks] = useState<Truck[]>([]);

@@ -54,5 +54,22 @@ export interface Truck {
   id: string;
   name: string;
   type: string;
+  capacity: string;
+  status: string;
+  driver?: {
+    name: string;
+  };
+  location: string;
   isAvailable: boolean;
+}
+
+// trucks types
+
+export interface TruckFormData {
+  name: string;
+  type: string;
+  capacity: string;
+  status: string;
+  driver: string;
+  location: string;
 }
