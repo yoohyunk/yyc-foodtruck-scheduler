@@ -2,6 +2,7 @@
 import "../../globals.css";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, ReactElement } from "react";
+import { extractDate, extractTime } from "../utils";
 
 interface Event {
   id: number;
@@ -163,8 +164,12 @@ export default function EventDetailsPage(): ReactElement {
         <h1 className="event-detail-title">{event.title}</h1>
         <div className="event-detail-info-container">
           <p className="event-detail-info">
-            <span className="info-label">Date:</span> {event.startTime} -{" "}
-            {event.endTime}
+            <span className="info-label">Date:</span>{" "}
+            {extractDate(event.startTime, event.endTime)}
+          </p>
+          <p className="event-detail-info">
+            <span className="info-label">Time:</span>{" "}
+            {extractTime(event.startTime)} - {extractTime(event.endTime)}
           </p>
           <p className="event-detail-info">
             <span className="info-label">Location:</span> {event.location}

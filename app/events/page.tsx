@@ -2,11 +2,13 @@
 
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
+import { extractDate, extractTime } from "./utils";
 
 interface Event {
   id: string;
   name: string;
-  date: string;
+  startTime: string;
+  endTime: string;
   time: string;
   location: string;
   distance: number;
@@ -56,7 +58,7 @@ export default function Events(): ReactElement {
 
     // Apply date filter
     if (selectedDate) {
-      filtered = filtered.filter((event) => event.date === selectedDate);
+      filtered = filtered.filter((event) => event.startTime === selectedDate);
     }
 
     // Apply distance filter
@@ -143,10 +145,12 @@ export default function Events(): ReactElement {
             >
               <h3 className="text-lg font-semibold">{event.name}</h3>
               <p>
-                <strong>Date:</strong> {event.date}
+                <strong>Date:</strong>{" "}
+                {extractDate(event.startTime, event.endTime)}
               </p>
               <p>
-                <strong>Time:</strong> {event.time}
+                <strong>Time:</strong> {extractTime(event.startTime)} -{" "}
+                {extractTime(event.endTime)}
               </p>
               <p>
                 <strong>Location:</strong> {event.location}
