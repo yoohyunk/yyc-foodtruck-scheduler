@@ -84,7 +84,9 @@ body {
 /* Header Styling */
 .header {
   background: var(--primary-dark);
+  background: var(--primary-dark);
   padding: 1rem 2rem;
+  box-shadow: 0 1px 3px var(--shadow);
   box-shadow: 0 1px 3px var(--shadow);
   position: sticky;
   top: 0;
@@ -178,6 +180,7 @@ body {
 /* ========== Landing Page ========== */
 /* Landing Page Styling */
 .landing-container {
+  background: var(--background);
   background: var(--background);
   min-height: 100vh;
   display: flex;
@@ -441,7 +444,9 @@ body {
 /* Header Styling */
 .header {
   background: var(--primary-dark);
+  background: var(--primary-dark);
   padding: 1rem 2rem;
+  box-shadow: 0 1px 3px var(--shadow);
   box-shadow: 0 1px 3px var(--shadow);
   position: sticky;
   top: 0;
@@ -535,6 +540,7 @@ body {
 /* ========== Landing Page ========== */
 /* Landing Page Styling */
 .landing-container {
+  background: var(--background);
   background: var(--background);
   min-height: 100vh;
   display: flex;
