@@ -9,8 +9,11 @@
   --primary-light: #67b88a;
   --secondary-dark: #faee7fa6;
   --secondary-light: #fef3c7;
-  --shadow: rgba(0, 0, 0, 0.2);
+  --shadow: rgba(0, 0, 0, 0.1);
   --white: #ffffff;
+  --background: #f9fafb;
+  --surface: #ffffff;
+  --border: #e5e7eb;
 }
 
 /* =========================
@@ -79,13 +82,9 @@ body {
 ========================= */
 /* Header Styling */
 .header {
-  background: linear-gradient(
-    50deg,
-    var(--primary-dark) 0%,
-    var(--secondary-light) 110%
-  );
+  background: var(--primary-dark);
   padding: 1rem 2rem;
-  box-shadow: 0 4px 6px var(--shadow);
+  box-shadow: 0 1px 3px var(--shadow);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -159,11 +158,7 @@ body {
 /* ========== Landing Page ========== */
 /* Landing Page Styling */
 .landing-container {
-  background: linear-gradient(
-    135deg,
-    var(--primary-light),
-    var(--secondary-light)
-  );
+  background: var(--background);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -176,10 +171,11 @@ body {
   max-width: 800px;
   width: 100%;
   text-align: center;
-  background: var(--white);
+  background: var(--surface);
   border-radius: 12px;
-  box-shadow: 0 6px 12px var(--shadow);
+  box-shadow: 0 1px 3px var(--shadow);
   padding: 2rem;
+  border: 1px solid var(--border);
 }
 
 .landing-title {
@@ -410,13 +406,9 @@ body {
 ========================= */
 /* Header Styling */
 .header {
-  background: linear-gradient(
-    50deg,
-    var(--primary-dark) 0%,
-    var(--secondary-light) 110%
-  );
+  background: var(--primary-dark);
   padding: 1rem 2rem;
-  box-shadow: 0 4px 6px var(--shadow);
+  box-shadow: 0 1px 3px var(--shadow);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -490,11 +482,7 @@ body {
 /* ========== Landing Page ========== */
 /* Landing Page Styling */
 .landing-container {
-  background: linear-gradient(
-    135deg,
-    var(--primary-light),
-    var(--secondary-light)
-  );
+  background: var(--background);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -507,10 +495,11 @@ body {
   max-width: 800px;
   width: 100%;
   text-align: center;
-  background: var(--white);
+  background: var(--surface);
   border-radius: 12px;
-  box-shadow: 0 6px 12px var(--shadow);
+  box-shadow: 0 1px 3px var(--shadow);
   padding: 2rem;
+  border: 1px solid var(--border);
 }
 
 .landing-title {
