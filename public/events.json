@@ -2,34 +2,181 @@
   {
     "id": "1",
     "title": "Downtown Food Festival",
-    "startTime": "2025-05-21T10:00:00",
-    "endTime": "2025-05-21T12:00:00",
-    "location": "Downtown Square",
+    "startTime": "2024-03-21T10:00:00",
+    "endTime": "2024-03-21T16:00:00",
+    "location": "4908 23 Ave NW, Calgary, Alberta T3B 0Z7, Canada",
+    "coordinates": {
+      "latitude": 51.0787,
+      "longitude": -114.1590
+    },
     "trucks": ["Truck 1", "Truck 2"],
-    "assignedStaff": ["John Doe", "Jane Smith"],
+    "assignedStaff": [],
     "requiredServers": 4,
     "status": "Scheduled"
   },
   {
     "id": "2",
     "title": "Weekend Market",
-    "startTime": "2025-05-21T11:00:00",
-    "endTime": "2025-05-21T12:00:00",
-    "location": "Central Park",
+    "startTime": "2024-03-23T11:00:00",
+    "endTime": "2024-03-23T15:00:00",
+    "location": "698 Eau Claire Avenue SW, Calgary, Alberta T2P 5N4, Canada",
+    "coordinates": {
+      "latitude": 51.0512,
+      "longitude": -114.0723
+    },
     "trucks": ["Truck 3"],
-    "assignedStaff": ["Mike Johnson"],
+    "assignedStaff": [],
     "requiredServers": 2,
     "status": "Scheduled"
   },
   {
     "id": "3",
     "title": "Corporate Event",
-    "startTime": "2025-05-22T12:00:00",
-    "endTime": "2025-05-22T13:00:00",
-    "location": "Business Center",
+    "startTime": "2024-03-25T12:00:00",
+    "endTime": "2024-03-25T14:00:00",
+    "location": "120 9th Avenue SE, Calgary, Alberta T2G 0P3, Canada",
+    "coordinates": {
+      "latitude": 51.0482,
+      "longitude": -114.0671
+    },
     "trucks": ["Truck 1", "Truck 4"],
-    "assignedStaff": ["Sarah Wilson", "Tom Brown"],
+    "assignedStaff": [],
     "requiredServers": 3,
+    "status": "Scheduled"
+  },
+  {
+    "id": "4",
+    "title": "Spring Festival",
+    "startTime": "2024-04-15T10:00:00",
+    "endTime": "2024-04-15T16:00:00",
+    "location": "228 8th Avenue SE, Calgary, Alberta T2P 2K5, Canada",
+    "coordinates": {
+      "latitude": 51.0478,
+      "longitude": -114.0675
+    },
+    "trucks": ["Truck 2", "Truck 3"],
+    "assignedStaff": [],
+    "requiredServers": 5,
+    "status": "Scheduled"
+  },
+  {
+    "id": "5",
+    "title": "Community Event",
+    "startTime": "2024-04-20T11:00:00",
+    "endTime": "2024-04-20T15:00:00",
+    "location": "200 Barclay Parade SW, Calgary, Alberta T2P 4R5, Canada",
+    "coordinates": {
+      "latitude": 51.0516,
+      "longitude": -114.0719
+    },
+    "trucks": ["Truck 1", "Truck 4"],
+    "assignedStaff": [],
+    "requiredServers": 3,
+    "status": "Scheduled"
+  },
+  {
+    "id": "6",
+    "title": "Summer Kickoff",
+    "startTime": "2024-05-01T10:00:00",
+    "endTime": "2024-05-01T16:00:00",
+    "location": "200 8th Avenue SW, Calgary, Alberta T2P 1B5, Canada",
+    "coordinates": {
+      "latitude": 51.0474,
+      "longitude": -114.0679
+    },
+    "trucks": ["Truck 1", "Truck 2", "Truck 3"],
+    "assignedStaff": [],
+    "requiredServers": 6,
+    "status": "Scheduled"
+  },
+  {
+    "id": "7",
+    "title": "Corporate Lunch",
+    "startTime": "2024-05-15T11:00:00",
+    "endTime": "2024-05-15T14:00:00",
+    "location": "120 9th Avenue SE, Calgary, Alberta T2G 0P3, Canada",
+    "coordinates": {
+      "latitude": 51.0482,
+      "longitude": -114.0671
+    },
+    "trucks": ["Truck 1", "Truck 4"],
+    "assignedStaff": [],
+    "requiredServers": 4,
+    "status": "Scheduled"
+  },
+  {
+    "id": "8",
+    "title": "Summer Festival",
+    "startTime": "2024-06-15T10:00:00",
+    "endTime": "2024-06-15T16:00:00",
+    "location": "698 Eau Claire Avenue SW, Calgary, Alberta T2P 5N4, Canada",
+    "coordinates": {
+      "latitude": 51.0512,
+      "longitude": -114.0723
+    },
+    "trucks": ["Truck 2", "Truck 3"],
+    "assignedStaff": [],
+    "requiredServers": 5,
+    "status": "Scheduled"
+  },
+  {
+    "id": "9",
+    "title": "Canada Day Celebration",
+    "startTime": "2024-07-01T10:00:00",
+    "endTime": "2024-07-01T22:00:00",
+    "location": "228 8th Avenue SE, Calgary, Alberta T2P 2K5, Canada",
+    "coordinates": {
+      "latitude": 51.0478,
+      "longitude": -114.0675
+    },
+    "trucks": ["Truck 1", "Truck 2", "Truck 3", "Truck 4"],
+    "assignedStaff": [],
+    "requiredServers": 8,
+    "status": "Scheduled"
+  },
+  {
+    "id": "10",
+    "title": "Summer Market",
+    "startTime": "2024-07-20T11:00:00",
+    "endTime": "2024-07-20T15:00:00",
+    "location": "200 Barclay Parade SW, Calgary, Alberta T2P 4R5, Canada",
+    "coordinates": {
+      "latitude": 51.0516,
+      "longitude": -114.0719
+    },
+    "trucks": ["Truck 1", "Truck 3"],
+    "assignedStaff": [],
+    "requiredServers": 3,
+    "status": "Scheduled"
+  },
+  {
+    "id": "11",
+    "title": "Corporate Event",
+    "startTime": "2024-08-01T12:00:00",
+    "endTime": "2024-08-01T14:00:00",
+    "location": "120 9th Avenue SE, Calgary, Alberta T2G 0P3, Canada",
+    "coordinates": {
+      "latitude": 51.0482,
+      "longitude": -114.0671
+    },
+    "trucks": ["Truck 2", "Truck 4"],
+    "assignedStaff": [],
+    "requiredServers": 4,
+    "status": "Scheduled"
+  },
+  {
+    "id": "12",
+    "title": "Summer Festival Finale",
+    "startTime": "2024-08-31T10:00:00",
+    "endTime": "2024-08-31T16:00:00",
+    "location": "200 8th Avenue SW, Calgary, Alberta T2P 1B5, Canada",
+    "coordinates": {
+      "latitude": 51.0474,
+      "longitude": -114.0679
+    },
+    "trucks": ["Truck 1", "Truck 2", "Truck 3", "Truck 4"],
+    "assignedStaff": [],
+    "requiredServers": 8,
     "status": "Scheduled"
   }
 ]

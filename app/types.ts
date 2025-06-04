@@ -4,10 +4,11 @@ export interface Employee {
   id: number;
   name: string;
   address: string;
+  coordinates?: Coordinates;
   role: string;
   email: string;
   phone: string;
-  wage: string;
+  wage: number;
   isAvailable: boolean;
   availability: string[];
 }
@@ -30,12 +31,12 @@ export interface Event {
   title: string;
   startTime: string;
   endTime: string;
-  time: string;
   location: string;
-  distance: number;
+  coordinates?: Coordinates;
+  trucks: string[];
+  assignedStaff: string[];
   requiredServers: number;
-  trucks?: string[];
-  assignedStaff?: string[];
+  status: string;
 }
 
 export interface EventFormData {
@@ -88,4 +89,9 @@ export interface RequestFormData {
   type: string;
   duration: string;
   reason: string;
+}
+
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
 }

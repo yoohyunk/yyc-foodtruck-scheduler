@@ -7,7 +7,8 @@ import React, {
   ChangeEvent,
   FormEvent,
 } from "react";
-import { EventFormData, Truck } from "@/app/types";
+import { EventFormData, Truck, Coordinates } from "@/app/types";
+import AddressAutocomplete from "@/app/components/AddressAutocomplete";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -22,6 +23,7 @@ export default function AddEventPage(): ReactElement {
     trucks: [], // Array to store selected trucks
   });
 
+  const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
   const [trucks, setTrucks] = useState<Truck[]>([]); // State to store truck data
 
   // Fetch truck data from trucks.json
@@ -46,6 +48,14 @@ export default function AddEventPage(): ReactElement {
     });
   };
 
+  const handleLocationChange = (address: string, coords?: Coordinates) => {
+    setFormData({
+      ...formData,
+      location: address,
+    });
+    setCoordinates(coords);
+  };
+
   const handleTruckSelection = (truckId: string): void => {
     if (formData.trucks.includes(truckId)) {
       // Remove truck if already selected
@@ -64,7 +74,11 @@ export default function AddEventPage(): ReactElement {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    console.log("Event Created:", formData);
+    const eventData = {
+      ...formData,
+      coordinates,
+    };
+    console.log("Event Created:", eventData);
     // Add logic to save the event data (e.g., POST request to an API)
   };
 
@@ -118,12 +132,10 @@ export default function AddEventPage(): ReactElement {
           <label htmlFor="location" className="input-label">
             Location
           </label>
-          <input
-            type="text"
-            id="location"
-            name="location"
+          <AddressAutocomplete
             value={formData.location}
-            onChange={handleChange}
+            onChange={handleLocationChange}
+            placeholder="Enter event location"
             required
           />
         </div>

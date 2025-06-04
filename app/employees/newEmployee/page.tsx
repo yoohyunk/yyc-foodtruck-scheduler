@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, ReactElement, ChangeEvent, FormEvent } from "react";
-import { FormData } from "@/app/types";
+import { FormData, Coordinates } from "@/app/types";
+import AddressAutocomplete from "@/app/components/AddressAutocomplete";
 
 export default function CreateEmployee(): ReactElement {
   const [formData, setFormData] = useState<FormData>({
@@ -14,6 +15,8 @@ export default function CreateEmployee(): ReactElement {
     isAvailable: false,
     availability: [], // Array to store selected days of the week
   });
+
+  const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
 
   const daysOfWeek = [
     "Monday",
@@ -34,6 +37,14 @@ export default function CreateEmployee(): ReactElement {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
+  };
+
+  const handleAddressChange = (address: string, coords?: Coordinates) => {
+    setFormData({
+      ...formData,
+      address,
+    });
+    setCoordinates(coords);
   };
 
   const handleDaySelection = (day: string): void => {
@@ -68,10 +79,76 @@ export default function CreateEmployee(): ReactElement {
     }
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    console.log("Employee Created:", formData);
-    // Add logic to save the employee data (e.g., POST request to an API)
+    
+    if (!coordinates) {
+      alert('Please select a valid address from the suggestions');
+      return;
+    }
+
+    const employeeData = {
+      ...formData,
+      coordinates: {
+        latitude: coordinates.lat,
+        longitude: coordinates.lng
+      }
+    };
+
+    try {
+      // Get existing employees
+      const response = await fetch('/employees.json');
+      const employees = await response.json();
+      
+      // Generate new ID (max existing ID + 1)
+      const newId = Math.max(...employees.map((emp: any) => emp.id)) + 1;
+      
+      // Create new employee with ID
+      const newEmployee = {
+        id: newId,
+        ...employeeData,
+        isAvailable: Boolean(employeeData.isAvailable),
+        wage: Number(employeeData.wage)
+      };
+
+      // Add new employee to the list
+      const updatedEmployees = [...employees, newEmployee];
+
+      // Save updated list
+      const saveResponse = await fetch('/api/employees', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedEmployees),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error('Failed to save employee data');
+      }
+
+      // Reset form
+      setFormData({
+        name: "",
+        address: "",
+        role: "",
+        email: "",
+        phone: "",
+        wage: "",
+        isAvailable: false,
+        availability: [],
+      });
+      setCoordinates(undefined);
+
+      // Show success message
+      alert('Employee created successfully!');
+      
+      // Redirect to employees list
+      window.location.href = '/employees';
+    } catch (error) {
+      console.error('Error saving employee:', error);
+      alert('Failed to create employee. Please try again.');
+    }
   };
 
   return (
@@ -96,12 +173,10 @@ export default function CreateEmployee(): ReactElement {
           <label htmlFor="address" className="input-label">
             Address
           </label>
-          <input
-            type="text"
-            id="address"
-            name="address"
+          <AddressAutocomplete
             value={formData.address}
-            onChange={handleChange}
+            onChange={handleAddressChange}
+            placeholder="Enter employee address"
             required
           />
         </div>
