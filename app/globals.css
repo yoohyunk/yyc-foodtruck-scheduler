@@ -1053,17 +1053,29 @@ tr:hover td {
   position: relative;
 }
 
-button[title="Edit Employee"] {
+button[title="Edit Employee"],
+button[title="Delete Employee"] {
   position: absolute;
-  top: 0.5rem; /* Adjust the vertical position */
-  right: 0.5rem; /* Adjust the horizontal position */
+  top: 0.5rem;
   background: none;
   border: none;
   font-size: 1.25rem;
   cursor: pointer;
+  padding: 0.25rem;
+  transition: transform 0.2s ease;
 }
 
-button[title="Edit Employee"]:hover {
+button[title="Edit Employee"] {
+  right: 2.5rem;
+}
+
+button[title="Delete Employee"] {
+  right: 0.5rem;
+}
+
+button[title="Edit Employee"]:hover,
+button[title="Delete Employee"]:hover {
+  transform: scale(1.1);
   color: var(--primary-medium);
 }
 

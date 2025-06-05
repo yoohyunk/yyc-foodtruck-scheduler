@@ -13,6 +13,7 @@ import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import { findClosestEmployees } from "@/app/AlgApi/distance";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import HelpPopup from "@/app/components/HelpPopup";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -36,6 +37,7 @@ export default function AddEventPage(): ReactElement {
   const [employees, setEmployees] = useState<any[]>([]); // State to store employee data
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showHelpPopup, setShowHelpPopup] = useState(false);
   const addressFormRef = useRef<AddressFormRef>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -255,219 +257,230 @@ export default function AddEventPage(): ReactElement {
   };
 
   return (
-    <div className="add-event-page">
-      <h1 className="form-header">Add New Event</h1>
-      <form onSubmit={handleSubmit} className="event-form">
-        <div className="input-group">
-          <label htmlFor="name" className="input-label">
-            Event Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className={formErrors.includes('Event name is required.') ? "border-red-500" : ""}
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="date" className="input-label">
-            Date <span className="text-red-500">*</span>
-          </label>
-          <DatePicker
-            selected={selectedDate}
-            onChange={handleDateChange}
-            dateFormat="MMMM d, yyyy"
-            minDate={new Date()}
-            className={`w-full px-3 py-2 border ${formErrors.includes('Date is required.') ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            placeholderText="Select date"
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="time" className="input-label">
-            Start Time <span className="text-red-500">*</span>
-          </label>
-          <DatePicker
-            selected={selectedTime}
-            onChange={handleTimeChange}
-            showTimeSelect
-            showTimeSelectOnly
-            timeIntervals={15}
-            timeCaption="Time"
-            dateFormat="h:mm aa"
-            className={`w-full px-3 py-2 border ${formErrors.includes('Time is required.') ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            placeholderText="Select time"
-            required
-            openToDate={new Date()}
-            minTime={new Date(0, 0, 0, 0, 0, 0)}
-            maxTime={new Date(0, 0, 0, 23, 59, 59)}
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="endTime" className="input-label">
-            End Time <span className="text-red-500">*</span>
-          </label>
-          <DatePicker
-            selected={selectedEndTime}
-            onChange={handleEndTimeChange}
-            showTimeSelect
-            showTimeSelectOnly
-            timeIntervals={15}
-            timeCaption="End Time"
-            dateFormat="h:mm aa"
-            className={`w-full px-3 py-2 border ${formErrors.includes('End time is required.') || formErrors.includes('End time must be after start time.') ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            placeholderText="Select end time"
-            required
-            openToDate={new Date()}
-            minTime={new Date(0, 0, 0, 0, 0, 0)}
-            maxTime={new Date(0, 0, 0, 23, 59, 59)}
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="location" className="input-label">
-            Location <span className="text-red-500">*</span>
-          </label>
-          <AddressForm
-            ref={addressFormRef}
-            value={formData.location}
-            onChange={handleLocationChange}
-            placeholder="Enter event location"
-            required
-            className={formErrors.includes('Please enter a valid address.') ? "border-red-500" : ""}
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="requiredServers" className="input-label">
-            Required Servers <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            id="requiredServers"
-            name="requiredServers"
-            value={formData.requiredServers}
-            onChange={handleChange}
-            min="0"
-            onWheel={e => (e.target as HTMLInputElement).blur()}
-            className={formErrors.includes('Number of required servers is required.') ? "border-red-500" : ""}
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="contactName" className="input-label">
-            Contact Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="contactName"
-            name="contactName"
-            value={formData.contactName}
-            onChange={handleChange}
-            className={formErrors.includes('Contact name is required.') ? "border-red-500" : ""}
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="contactEmail" className="input-label">
-            Contact Email <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="email"
-            id="contactEmail"
-            name="contactEmail"
-            value={formData.contactEmail}
-            onChange={handleChange}
-            className={formErrors.includes('Contact email is required.') || formErrors.includes('Please enter a valid email address.') ? "border-red-500" : ""}
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="contactPhone" className="input-label">
-            Contact Phone <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="tel"
-            id="contactPhone"
-            name="contactPhone"
-            value={formData.contactPhone}
-            onChange={handleChange}
-            className={formErrors.includes('Contact phone is required.') || formErrors.includes('Please enter a valid phone number.') ? "border-red-500" : ""}
-            required
-          />
-        </div>
-
-        {/* Truck Selection Section */}
-        <div className="input-group">
-          <label className="input-label">Select Trucks <span className="text-red-500">*</span></label>
-          <div className={`truck-list grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 ${formErrors.includes('Please select at least one truck.') ? "border-red-500" : ""}`}>
-            {trucks.map((truck) => {
-              const truckIdStr = truck.id.toString();
-              return (
-                <label
-                  key={truckIdStr}
-                  className="truck-item flex items-center gap-2 p-2 border rounded-md bg-white shadow-sm"
-                  style={{ minWidth: 0 }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.trucks.includes(truckIdStr)}
-                    onChange={() => handleTruckSelection(truckIdStr)}
-                  />
-                  <span className="truncate">
-                    {truck.name} ({truck.type}) -{' '}
-                    <span className={
-                      truck.isAvailable
-                        ? "status-available text-green-600"
-                        : "status-unavailable text-red-500"
-                    }>
-                      {truck.isAvailable ? "Available" : "Unavailable"}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
+    <>
+      <div className="create-event-page">
+        <h1 className="form-header">Create Event</h1>
+        <form onSubmit={handleSubmit} className="event-form">
+          <div className="input-group">
+            <label htmlFor="name" className="input-label">
+              Event Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
           </div>
-        </div>
 
-        <button type="submit" className="button" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <span className="flex items-center justify-center">
-              <span
-                style={{
-                  display: 'inline-block',
-                  height: '1.5rem',
-                  width: '1.5rem',
-                  marginRight: '0.5rem',
-                  verticalAlign: 'middle',
-                  border: '3px solid #22c55e',
-                  borderTop: '3px solid transparent',
-                  borderRadius: '50%',
-                  background: 'white',
-                  animation: 'spin 1s linear infinite',
-                }}
-              />
-              Creating...
-              <style>{`
-                @keyframes spin {
-                  to { transform: rotate(360deg); }
-                }
-              `}</style>
-            </span>
-          ) : (
-            'Create Event'
-          )}
-        </button>
-      </form>
+          <div className="input-group">
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="location" className="input-label">
+                Location
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowHelpPopup(true)}
+                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Help
+              </button>
+            </div>
+            <AddressForm
+              ref={addressFormRef}
+              value={formData.location}
+              onChange={handleLocationChange}
+              placeholder="Enter event location"
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="date" className="input-label">
+              Date
+            </label>
+            <DatePicker
+              selected={selectedDate}
+              onChange={handleDateChange}
+              dateFormat="MMMM d, yyyy"
+              minDate={new Date()}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholderText="Select date"
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="time" className="input-label">
+              Start Time
+            </label>
+            <DatePicker
+              selected={selectedTime}
+              onChange={handleTimeChange}
+              showTimeSelect
+              showTimeSelectOnly
+              timeIntervals={15}
+              timeCaption="Time"
+              dateFormat="h:mm aa"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholderText="Select time"
+              required
+              openToDate={new Date()}
+              minTime={new Date(0, 0, 0, 0, 0, 0)}
+              maxTime={new Date(0, 0, 0, 23, 59, 59)}
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="endTime" className="input-label">
+              End Time
+            </label>
+            <DatePicker
+              selected={selectedEndTime}
+              onChange={handleEndTimeChange}
+              showTimeSelect
+              showTimeSelectOnly
+              timeIntervals={15}
+              timeCaption="End Time"
+              dateFormat="h:mm aa"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholderText="Select end time"
+              required
+              openToDate={new Date()}
+              minTime={new Date(0, 0, 0, 0, 0, 0)}
+              maxTime={new Date(0, 0, 0, 23, 59, 59)}
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="requiredServers" className="input-label">
+              Required Servers
+            </label>
+            <input
+              type="number"
+              id="requiredServers"
+              name="requiredServers"
+              value={formData.requiredServers}
+              onChange={handleChange}
+              min="0"
+              onWheel={e => (e.target as HTMLInputElement).blur()}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="contactName" className="input-label">
+              Contact Name
+            </label>
+            <input
+              type="text"
+              id="contactName"
+              name="contactName"
+              value={formData.contactName}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="contactEmail" className="input-label">
+              Contact Email
+            </label>
+            <input
+              type="email"
+              id="contactEmail"
+              name="contactEmail"
+              value={formData.contactEmail}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="contactPhone" className="input-label">
+              Contact Phone
+            </label>
+            <input
+              type="tel"
+              id="contactPhone"
+              name="contactPhone"
+              value={formData.contactPhone}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Select Trucks</label>
+            <div className={`truck-list grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 ${formErrors.includes('Please select at least one truck.') ? "border-red-500" : ""}`}>
+              {trucks.map((truck) => {
+                const truckIdStr = truck.id.toString();
+                return (
+                  <label
+                    key={truckIdStr}
+                    className="truck-item flex items-center gap-2 p-2 border rounded-md bg-white shadow-sm"
+                    style={{ minWidth: 0 }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.trucks.includes(truckIdStr)}
+                      onChange={() => handleTruckSelection(truckIdStr)}
+                    />
+                    <span className="truncate">
+                      {truck.name} ({truck.type}) -{' '}
+                      <span className={
+                        truck.isAvailable
+                          ? "status-available text-green-600"
+                          : "status-unavailable text-red-500"
+                      }>
+                        {truck.isAvailable ? "Available" : "Unavailable"}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <button type="submit" className="button" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <span className="flex items-center justify-center">
+                <span
+                  style={{
+                    display: 'inline-block',
+                    height: '1.5rem',
+                    width: '1.5rem',
+                    marginRight: '0.5rem',
+                    verticalAlign: 'middle',
+                    border: '3px solid #22c55e',
+                    borderTop: '3px solid transparent',
+                    borderRadius: '50%',
+                    background: 'white',
+                    animation: 'spin 1s linear infinite',
+                  }}
+                />
+                Creating...
+                <style>{`
+                  @keyframes spin {
+                    to { transform: rotate(360deg); }
+                  }
+                `}</style>
+              </span>
+            ) : (
+              'Create Event'
+            )}
+          </button>
+        </form>
+      </div>
       {showErrorModal && (
         <div style={{
           position: 'fixed',
@@ -522,6 +535,7 @@ export default function AddEventPage(): ReactElement {
           </div>
         </div>
       )}
-    </div>
+      <HelpPopup isOpen={showHelpPopup} onClose={() => setShowHelpPopup(false)} />
+    </>
   );
 }

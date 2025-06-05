@@ -120,7 +120,7 @@ export default function Employees(): ReactElement {
               className="employee-card bg-white p-4 rounded shadow relative"
             >
               {/* Action Buttons */}
-              <div className="absolute top-2 right-2 flex gap-2">
+              <div className="absolute top-2 right-2 flex gap-4">
                 <button
                   className="edit-button"
                   onClick={() => router.push(`/employees/${employee.id}`)}

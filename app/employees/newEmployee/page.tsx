@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState, ReactElement, ChangeEvent, FormEvent } from "react";
+import React, { useState, ReactElement, ChangeEvent, FormEvent, useRef } from "react";
 import { EmployeeFormData, Coordinates } from "@/app/types";
-import AddressForm from "@/app/components/AddressForm";
+import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
+import HelpPopup from "@/app/components/HelpPopup";
+import { useTutorial } from "@/app/tutorial";
+import { useRouter } from "next/navigation";
 
 export default function CreateEmployee(): ReactElement {
+  const router = useRouter();
   const [formData, setFormData] = useState<EmployeeFormData>({
     name: "",
     address: "",
@@ -20,6 +24,23 @@ export default function CreateEmployee(): ReactElement {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showHelpPopup, setShowHelpPopup] = useState(false);
+  const { startTutorial } = useTutorial();
+  const addressFormRef = useRef<AddressFormRef>(null);
+
+  // Show help popup when tutorial starts
+  React.useEffect(() => {
+    const handleTutorialStart = () => {
+      setShowHelpPopup(true);
+    };
+
+    // Add event listener for tutorial start
+    window.addEventListener('tutorial:start', handleTutorialStart);
+
+    return () => {
+      window.removeEventListener('tutorial:start', handleTutorialStart);
+    };
+  }, []);
 
   const daysOfWeek = [
     "Monday",
@@ -162,7 +183,7 @@ export default function CreateEmployee(): ReactElement {
       alert('Employee created successfully!');
       
       // Redirect to employees list
-      window.location.href = '/employees';
+      router.push('/employees');
     } catch (error) {
       console.error('Error saving employee:', error);
       alert('Failed to create employee. Please try again.');
@@ -172,216 +193,178 @@ export default function CreateEmployee(): ReactElement {
   };
 
   return (
-    <div className="create-employee-page">
-      <h1 className="form-header">Create Employee</h1>
-      <form onSubmit={handleSubmit} className="employee-form">
-        <div className="input-group">
-          <label htmlFor="name" className="input-label">
-            Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="address" className="input-label">
-            Address
-          </label>
-          <AddressForm
-            value={formData.address}
-            onChange={handleAddressChange}
-            placeholder="Enter employee address"
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="role" className="input-label">
-            Role
-          </label>
-          <select
-            id="role"
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select Role</option>
-            <option value="Driver">Driver</option>
-            <option value="Server">Server</option>
-            <option value="Admin">Admin</option>
-          </select>
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="email" className="input-label">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="phone" className="input-label">
-            Phone
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="wage" className="input-label">
-            Wage
-          </label>
-          <input
-            type="number"
-            id="wage"
-            name="wage"
-            value={formData.wage}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="isAvailable" className="input-label">
+    <>
+      <div className="create-employee-page">
+        <h1 className="form-header">Create Employee</h1>
+        <form onSubmit={handleSubmit} className="employee-form">
+          <div className="input-group">
+            <label htmlFor="name" className="input-label">
+              Name
+            </label>
             <input
-              type="checkbox"
-              id="isAvailable"
-              name="isAvailable"
-              checked={formData.isAvailable}
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
               onChange={handleChange}
+              required
             />
-            Is Available
-          </label>
-        </div>
+          </div>
 
-        {/* Availability Selection */}
-        <div className="input-group">
-          <label className="input-label">Availability (Days of the Week)</label>
-          <div className="availability-options">
-            <label className="availability-label">
+          <div className="input-group">
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="address" className="input-label">
+                Address
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowHelpPopup(true)}
+                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Help
+              </button>
+            </div>
+            <AddressForm
+              ref={addressFormRef}
+              value={formData.address}
+              onChange={handleAddressChange}
+              placeholder="Enter employee address"
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="role" className="input-label">
+              Role
+            </label>
+            <select
+              id="role"
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select Role</option>
+              <option value="Driver">Driver</option>
+              <option value="Server">Server</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="email" className="input-label">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="phone" className="input-label">
+              Phone
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="wage" className="input-label">
+              Wage
+            </label>
+            <input
+              type="number"
+              id="wage"
+              name="wage"
+              value={formData.wage}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="isAvailable" className="input-label">
               <input
                 type="checkbox"
-                checked={formData.availability.length === daysOfWeek.length}
-                onChange={handleSelectAll}
+                id="isAvailable"
+                name="isAvailable"
+                checked={formData.isAvailable}
+                onChange={handleChange}
               />
-              Select All
+              Is Available
             </label>
-            {daysOfWeek.map((day) => (
-              <label key={day} className="availability-label">
+          </div>
+
+          {/* Availability Selection */}
+          <div className="input-group">
+            <label className="input-label">Availability (Days of the Week)</label>
+            <div className="availability-options">
+              <label className="availability-label">
                 <input
                   type="checkbox"
-                  checked={formData.availability.includes(day)}
-                  onChange={() => handleDaySelection(day)}
+                  checked={formData.availability.length === daysOfWeek.length}
+                  onChange={handleSelectAll}
                 />
-                {day}
+                Select All
               </label>
-            ))}
+              {daysOfWeek.map((day) => (
+                <label key={day} className="availability-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.availability.includes(day)}
+                    onChange={() => handleDaySelection(day)}
+                  />
+                  {day}
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <button type="submit" className="button" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <span className="flex items-center justify-center">
-              <span
-                style={{
-                  display: 'inline-block',
-                  height: '1.5rem',
-                  width: '1.5rem',
-                  marginRight: '0.5rem',
-                  verticalAlign: 'middle',
-                  border: '3px solid #22c55e', // Tailwind green-500
-                  borderTop: '3px solid transparent',
-                  borderRadius: '50%',
-                  background: 'white',
-                  animation: 'spin 1s linear infinite',
-                }}
-              />
-              Creating...
-              <style>{`
-                @keyframes spin {
-                  to { transform: rotate(360deg); }
-                }
-              `}</style>
-            </span>
-          ) : (
-            'Create Employee'
-          )}
-        </button>
-      </form>
-      {showErrorModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.4)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '1.5rem',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-            padding: '2.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            maxWidth: 400,
-            border: '4px solid #22c55e',
-            fontFamily: 'sans-serif',
-          }}>
-            <span style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>��</span>
-            <p style={{ color: '#15803d', fontWeight: 800, fontSize: '1.25rem', marginBottom: '1rem', textAlign: 'center', letterSpacing: '0.03em' }}>
-              Please fix the following errors:
-            </p>
-            <ul style={{ textAlign: 'left', marginBottom: '1.5rem', color: '#b91c1c', fontSize: '1rem', listStyle: 'disc inside', width: '100%' }}>
-              {formErrors.map((err, idx) => <li key={idx}>{err}</li>)}
-            </ul>
-            <button
-              style={{
-                padding: '0.5rem 1.5rem',
-                background: '#22c55e',
-                color: 'white',
-                fontWeight: 700,
-                borderRadius: '0.5rem',
-                border: 'none',
-                boxShadow: '0 2px 8px rgba(34,197,94,0.15)',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                transition: 'background 0.2s',
-              }}
-              onClick={() => setShowErrorModal(false)}
-              onMouseOver={e => (e.currentTarget.style.background = '#16a34a')}
-              onMouseOut={e => (e.currentTarget.style.background = '#22c55e')}
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+          <button type="submit" className="button" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <span className="flex items-center justify-center">
+                <span
+                  style={{
+                    display: 'inline-block',
+                    height: '1.5rem',
+                    width: '1.5rem',
+                    marginRight: '0.5rem',
+                    verticalAlign: 'middle',
+                    border: '3px solid #22c55e', // Tailwind green-500
+                    borderTop: '3px solid transparent',
+                    borderRadius: '50%',
+                    background: 'white',
+                    animation: 'spin 1s linear infinite',
+                  }}
+                />
+                Creating...
+                <style>{`
+                  @keyframes spin {
+                    to { transform: rotate(360deg); }
+                  }
+                `}</style>
+              </span>
+            ) : (
+              'Create Employee'
+            )}
+          </button>
+        </form>
+      </div>
+      <HelpPopup isOpen={showHelpPopup} onClose={() => setShowHelpPopup(false)} />
+    </>
   );
 }

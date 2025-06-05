@@ -2,6 +2,7 @@
 import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
 import { Event, TimeOffRequest, NavLink } from "./types";
+import { TutorialOverlay } from "./tutorial";
 
 export default function Home(): ReactElement {
   const [hoveredLink, setHoveredLink] = useState<number | null>(null);
@@ -54,6 +55,7 @@ export default function Home(): ReactElement {
 
   return (
     <div className="landing-container">
+      <TutorialOverlay />
       <main className="landing-main">
         <h1 className="landing-title">YYC Food Trucks</h1>
         <p className="landing-subtitle">
