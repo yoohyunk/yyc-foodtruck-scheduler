@@ -26,7 +26,7 @@ const employeeCoordinatesCache = new Map<number, Coordinates>();
 
 // Rate limiting
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 500; // Reduced to 500ms between requests
+const MIN_REQUEST_INTERVAL = 500; // 500ms between requests
 
 async function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -48,7 +48,7 @@ function formatAddress(address: string): string {
     const match = formattedAddress.match(/^(\d+\s+\d+[a-z]?\s+[a-z]+)/i);
     if (match) {
       const streetPart = match[1];
-      // Add T2P postal code for downtown addresses
+      // Add T2P postal code for downtown addresses for default fallback
       if (streetPart.toLowerCase().includes('avenue') || 
           streetPart.toLowerCase().includes('street')) {
         formattedAddress = `${streetPart}, Calgary, Alberta T2P, Canada`;
