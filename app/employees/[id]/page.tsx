@@ -52,7 +52,7 @@ export default function EditEmployeePage(): ReactElement {
             role: employeeData.role || "",
             email: employeeData.email || "",
             phone: employeeData.phone || "",
-            wage: employeeData.wage || "",
+            wage: employeeData.wage !== undefined ? String(employeeData.wage) : "",
             isAvailable: employeeData.isAvailable || false,
             availability: employeeData.availability || [],
           });

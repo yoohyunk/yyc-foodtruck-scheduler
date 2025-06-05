@@ -318,5 +318,57 @@
     "contactName": "Rachel Leona Motyer",
     "contactEmail": "rlmotyer@gmail.com",
     "contactPhone": "2502581143"
+  },
+  {
+    "id": "17",
+    "title": "Rachel Leona Motyer",
+    "startTime": "2025-06-10T14:15",
+    "endTime": "2025-06-10T14:45",
+    "location": "4908 23 Avenue NW, Calgary, T3B 0Z7",
+    "coordinates": {
+      "latitude": 51.079724,
+      "longitude": -114.160812
+    },
+    "trucks": [
+      "5"
+    ],
+    "assignedStaff": [
+      "4",
+      "5",
+      "7",
+      "9",
+      "6"
+    ],
+    "requiredServers": 5,
+    "status": "Scheduled",
+    "contactName": "Rachel Leona Motyer",
+    "contactEmail": "rlmotyer@gmail.com",
+    "contactPhone": "2502581143"
+  },
+  {
+    "id": "18",
+    "title": "Rachel Leona Motyer",
+    "startTime": "2025-06-10T14:15",
+    "endTime": "2025-06-10T14:45",
+    "location": "4908 23 Avenue NW, Calgary, ",
+    "coordinates": {
+      "latitude": 51.0758004,
+      "longitude": -114.1555514
+    },
+    "trucks": [
+      "1"
+    ],
+    "assignedStaff": [
+      "4",
+      "5",
+      "7",
+      "9",
+      "6"
+    ],
+    "requiredServers": 5,
+    "status": "Scheduled",
+    "contactName": "Rachel Leona Motyer",
+    "contactEmail": "rlmotyer@gmail.com",
+    "contactPhone": "2502581143"
   }
 ]
