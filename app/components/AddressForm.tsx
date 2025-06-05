@@ -55,6 +55,21 @@ const ALBERTA_CITIES = [
 
 const DIRECTION_OPTIONS = ["NW", "NE", "SW", "SE"];
 
+// Add abbreviation expansion function at the top
+function expandAbbreviations(streetName: string): string {
+  return streetName
+    .replace(/\bAve\b/gi, "Avenue")
+    .replace(/\bSt\b/gi, "Street")
+    .replace(/\bRd\b/gi, "Road")
+    .replace(/\bDr\b/gi, "Drive")
+    .replace(/\bBlvd\b/gi, "Boulevard")
+    .replace(/\bCres\b/gi, "Crescent")
+    .replace(/\bPl\b/gi, "Place")
+    .replace(/\bCt\b/gi, "Court")
+    .replace(/\bLn\b/gi, "Lane")
+    .replace(/\bTer\b/gi, "Terrace");
+}
+
 const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   value,
   onChange,
@@ -261,7 +276,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
     setIsChecking(true);
     setCheckStatus(null);
     setCheckMessage("");
-    const fullAddress = `${formData.streetNumber} ${formData.streetName} ${formData.direction}, ${formData.city}, ${formData.postalCode}`;
+    const fullAddress = `${formData.streetNumber} ${expandAbbreviations(formData.streetName)} ${formData.direction}, ${formData.city}, ${formData.postalCode}`;
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`;
       const response = await fetch(url, {
