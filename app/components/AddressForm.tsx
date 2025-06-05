@@ -290,10 +290,17 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
           latitude: parseFloat(data[0].lat),
           longitude: parseFloat(data[0].lon),
         };
-        setCheckStatus('success');
-        setCheckMessage('Address found and validated!');
-        setLastCoords(coords);
-        onChange(fullAddress, coords);
+        if (!coords || coords.latitude === undefined || coords.longitude === undefined) {
+          setCheckStatus('error');
+          setCheckMessage('Please check address.');
+          setLastCoords(undefined);
+          onChange(fullAddress, undefined);
+        } else {
+          setCheckStatus('success');
+          setCheckMessage('Address found and validated!');
+          setLastCoords(coords);
+          onChange(fullAddress, coords);
+        }
       } else {
         setCheckStatus('error');
         setCheckMessage('Address not found. Please check your input.');
@@ -302,7 +309,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
       }
     } catch (error) {
       setCheckStatus('error');
-      setCheckMessage('Error validating address. Please try again.');
+      setCheckMessage('Please check address.');
       setLastCoords(undefined);
       onChange(fullAddress, undefined);
     } finally {

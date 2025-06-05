@@ -32,7 +32,8 @@ export default function AddEventPage(): ReactElement {
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
   const [trucks, setTrucks] = useState<Truck[]>([]); // State to store truck data
   const [employees, setEmployees] = useState<any[]>([]); // State to store employee data
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const addressFormRef = useRef<AddressFormRef>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -115,54 +116,23 @@ export default function AddEventPage(): ReactElement {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Event name is required";
-    }
-
-    if (!selectedDate) {
-      newErrors.date = "Date is required";
-    }
-
-    if (!selectedTime) {
-      newErrors.time = "Time is required";
-    }
-
-    // Validate address using the ref
+    const errorList: string[] = [];
+    if (!formData.name.trim()) errorList.push('Event name is required.');
+    if (!selectedDate) errorList.push('Date is required.');
+    if (!selectedTime) errorList.push('Time is required.');
     const isAddressValid = addressFormRef.current?.validate() ?? false;
-    if (!isAddressValid) {
-      newErrors.location = "Please enter a valid address";
-    }
-
-    if (!formData.requiredServers) {
-      newErrors.requiredServers = "Number of required servers is required";
-    } else if (parseInt(formData.requiredServers) <= 0) {
-      newErrors.requiredServers = "Number of servers must be greater than 0";
-    }
-
-    if (!formData.contactName.trim()) {
-      newErrors.contactName = "Contact name is required";
-    }
-
-    if (!formData.contactEmail.trim()) {
-      newErrors.contactEmail = "Contact email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) {
-      newErrors.contactEmail = "Please enter a valid email address";
-    }
-
-    if (!formData.contactPhone.trim()) {
-      newErrors.contactPhone = "Contact phone is required";
-    } else if (!/^\+?[\d\s-]{10,}$/.test(formData.contactPhone.replace(/\s/g, ''))) {
-      newErrors.contactPhone = "Please enter a valid phone number";
-    }
-
-    if (formData.trucks.length === 0) {
-      newErrors.trucks = "Please select at least one truck";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (!isAddressValid) errorList.push('Please enter a valid address.');
+    if (!formData.requiredServers) errorList.push('Number of required servers is required.');
+    else if (parseInt(formData.requiredServers) <= 0) errorList.push('Number of servers must be greater than 0.');
+    if (!formData.contactName.trim()) errorList.push('Contact name is required.');
+    if (!formData.contactEmail.trim()) errorList.push('Contact email is required.');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) errorList.push('Please enter a valid email address.');
+    if (!formData.contactPhone.trim()) errorList.push('Contact phone is required.');
+    else if (!/^\+?[\d\s-]{10,}$/.test(formData.contactPhone.replace(/\s/g, ''))) errorList.push('Please enter a valid phone number.');
+    if (formData.trucks.length === 0) errorList.push('Please select at least one truck.');
+    setFormErrors(errorList);
+    setShowErrorModal(errorList.length > 0);
+    return errorList.length === 0;
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -176,7 +146,17 @@ export default function AddEventPage(): ReactElement {
     try {
       // Validate required fields
       if (!formData.name || !formData.date || !formData.time || !formData.location || !formData.requiredServers) {
-        alert('Please fill in all required fields');
+        setFormErrors(['Please fill in all required fields.']);
+        setShowErrorModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check for valid coordinates before proceeding
+      if (!coordinates || coordinates.latitude === undefined || coordinates.longitude === undefined) {
+        setFormErrors(['Please check address.']);
+        setShowErrorModal(true);
+        setIsSubmitting(false);
         return;
       }
 
@@ -252,9 +232,8 @@ export default function AddEventPage(): ReactElement {
       // Redirect to the specific event page
       window.location.href = `/events/${newEvent.id}`;
     } catch (error) {
-      console.error('Error saving event:', error);
-      alert(`Failed to create event: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
+      setFormErrors(['Please check address.']);
+      setShowErrorModal(true);
       setIsSubmitting(false);
     }
   };
@@ -265,7 +244,7 @@ export default function AddEventPage(): ReactElement {
       <form onSubmit={handleSubmit} className="event-form">
         <div className="input-group">
           <label htmlFor="name" className="input-label">
-            Event Name
+            Event Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -273,31 +252,29 @@ export default function AddEventPage(): ReactElement {
             name="name"
             value={formData.name}
             onChange={handleChange}
-            className={errors.name ? "border-red-500" : ""}
+            className={formErrors.includes('Event name is required.') ? "border-red-500" : ""}
             required
           />
-          {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
         </div>
 
         <div className="input-group">
           <label htmlFor="date" className="input-label">
-            Date
+            Date <span className="text-red-500">*</span>
           </label>
           <DatePicker
             selected={selectedDate}
             onChange={handleDateChange}
             dateFormat="MMMM d, yyyy"
             minDate={new Date()}
-            className={`w-full px-3 py-2 border ${errors.date ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            className={`w-full px-3 py-2 border ${formErrors.includes('Date is required.') ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
             placeholderText="Select date"
             required
           />
-          {errors.date && <p className="text-red-500 text-sm mt-1">{errors.date}</p>}
         </div>
 
         <div className="input-group">
           <label htmlFor="time" className="input-label">
-            Time
+            Time <span className="text-red-500">*</span>
           </label>
           <DatePicker
             selected={selectedTime}
@@ -307,19 +284,18 @@ export default function AddEventPage(): ReactElement {
             timeIntervals={15}
             timeCaption="Time"
             dateFormat="h:mm aa"
-            className={`w-full px-3 py-2 border ${errors.time ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            className={`w-full px-3 py-2 border ${formErrors.includes('Time is required.') ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
             placeholderText="Select time"
             required
             openToDate={new Date()}
             minTime={new Date(0, 0, 0, 0, 0, 0)}
             maxTime={new Date(0, 0, 0, 23, 59, 59)}
           />
-          {errors.time && <p className="text-red-500 text-sm mt-1">{errors.time}</p>}
         </div>
 
         <div className="input-group">
           <label htmlFor="location" className="input-label">
-            Location
+            Location <span className="text-red-500">*</span>
           </label>
           <AddressForm
             ref={addressFormRef}
@@ -327,14 +303,13 @@ export default function AddEventPage(): ReactElement {
             onChange={handleLocationChange}
             placeholder="Enter event location"
             required
-            className={errors.location ? "border-red-500" : ""}
+            className={formErrors.includes('Please enter a valid address.') ? "border-red-500" : ""}
           />
-          {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
         </div>
 
         <div className="input-group">
           <label htmlFor="requiredServers" className="input-label">
-            Required Servers
+            Required Servers <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
@@ -342,15 +317,14 @@ export default function AddEventPage(): ReactElement {
             name="requiredServers"
             value={formData.requiredServers}
             onChange={handleChange}
-            className={errors.requiredServers ? "border-red-500" : ""}
+            className={formErrors.includes('Number of required servers is required.') || formErrors.includes('Number of servers must be greater than 0.') ? "border-red-500" : ""}
             required
           />
-          {errors.requiredServers && <p className="text-red-500 text-sm mt-1">{errors.requiredServers}</p>}
         </div>
 
         <div className="input-group">
           <label htmlFor="contactName" className="input-label">
-            Contact Name
+            Contact Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -358,15 +332,14 @@ export default function AddEventPage(): ReactElement {
             name="contactName"
             value={formData.contactName}
             onChange={handleChange}
-            className={errors.contactName ? "border-red-500" : ""}
+            className={formErrors.includes('Contact name is required.') ? "border-red-500" : ""}
             required
           />
-          {errors.contactName && <p className="text-red-500 text-sm mt-1">{errors.contactName}</p>}
         </div>
 
         <div className="input-group">
           <label htmlFor="contactEmail" className="input-label">
-            Contact Email
+            Contact Email <span className="text-red-500">*</span>
           </label>
           <input
             type="email"
@@ -374,15 +347,14 @@ export default function AddEventPage(): ReactElement {
             name="contactEmail"
             value={formData.contactEmail}
             onChange={handleChange}
-            className={errors.contactEmail ? "border-red-500" : ""}
+            className={formErrors.includes('Contact email is required.') || formErrors.includes('Please enter a valid email address.') ? "border-red-500" : ""}
             required
           />
-          {errors.contactEmail && <p className="text-red-500 text-sm mt-1">{errors.contactEmail}</p>}
         </div>
 
         <div className="input-group">
           <label htmlFor="contactPhone" className="input-label">
-            Contact Phone
+            Contact Phone <span className="text-red-500">*</span>
           </label>
           <input
             type="tel"
@@ -390,16 +362,15 @@ export default function AddEventPage(): ReactElement {
             name="contactPhone"
             value={formData.contactPhone}
             onChange={handleChange}
-            className={errors.contactPhone ? "border-red-500" : ""}
+            className={formErrors.includes('Contact phone is required.') || formErrors.includes('Please enter a valid phone number.') ? "border-red-500" : ""}
             required
           />
-          {errors.contactPhone && <p className="text-red-500 text-sm mt-1">{errors.contactPhone}</p>}
         </div>
 
         {/* Truck Selection Section */}
         <div className="input-group">
-          <label className="input-label">Select Trucks</label>
-          <div className={`truck-list grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 ${errors.trucks ? "border-red-500" : ""}`}>
+          <label className="input-label">Select Trucks <span className="text-red-500">*</span></label>
+          <div className={`truck-list grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 ${formErrors.includes('Please select at least one truck.') ? "border-red-500" : ""}`}>
             {trucks.map((truck) => {
               const truckIdStr = truck.id.toString();
               return (
@@ -427,7 +398,6 @@ export default function AddEventPage(): ReactElement {
               );
             })}
           </div>
-          {errors.trucks && <p className="text-red-500 text-sm mt-1">{errors.trucks}</p>}
         </div>
 
         <button type="submit" className="button" disabled={isSubmitting}>
@@ -440,7 +410,7 @@ export default function AddEventPage(): ReactElement {
                   width: '1.5rem',
                   marginRight: '0.5rem',
                   verticalAlign: 'middle',
-                  border: '3px solid #22c55e', // Tailwind green-500
+                  border: '3px solid #22c55e',
                   borderTop: '3px solid transparent',
                   borderRadius: '50%',
                   background: 'white',
@@ -459,6 +429,60 @@ export default function AddEventPage(): ReactElement {
           )}
         </button>
       </form>
+      {showErrorModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.4)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '1.5rem',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            padding: '2.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            maxWidth: 400,
+            border: '4px solid #22c55e',
+            fontFamily: 'sans-serif',
+          }}>
+            <span style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🛑</span>
+            <p style={{ color: '#15803d', fontWeight: 800, fontSize: '1.25rem', marginBottom: '1rem', textAlign: 'center', letterSpacing: '0.03em' }}>
+              Please fix the following errors:
+            </p>
+            <ul style={{ textAlign: 'left', marginBottom: '1.5rem', color: '#b91c1c', fontSize: '1rem', listStyle: 'disc inside', width: '100%' }}>
+              {formErrors.map((err, idx) => <li key={idx}>{err}</li>)}
+            </ul>
+            <button
+              style={{
+                padding: '0.5rem 1.5rem',
+                background: '#22c55e',
+                color: 'white',
+                fontWeight: 700,
+                borderRadius: '0.5rem',
+                border: 'none',
+                boxShadow: '0 2px 8px rgba(34,197,94,0.15)',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                transition: 'background 0.2s',
+              }}
+              onClick={() => setShowErrorModal(false)}
+              onMouseOver={e => (e.currentTarget.style.background = '#16a34a')}
+              onMouseOut={e => (e.currentTarget.style.background = '#22c55e')}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

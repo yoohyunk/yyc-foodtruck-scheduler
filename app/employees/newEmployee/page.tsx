@@ -18,6 +18,8 @@ export default function CreateEmployee(): ReactElement {
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const daysOfWeek = [
     "Monday",
@@ -83,8 +85,22 @@ export default function CreateEmployee(): ReactElement {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
-    if (!coordinates) {
-      alert('Please enter a valid address');
+    const errorList: string[] = [];
+    if (!formData.name.trim()) errorList.push('Name is required.');
+    if (!formData.address.trim()) errorList.push('Address is required.');
+    if (!coordinates) errorList.push('Please check address.');
+    if (!formData.role.trim()) errorList.push('Role is required.');
+    if (!formData.email.trim()) errorList.push('Email is required.');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errorList.push('Please enter a valid email address.');
+    if (!formData.phone.trim()) errorList.push('Phone is required.');
+    else if (!/^\+?[\d\s-]{10,}$/.test(formData.phone.replace(/\s/g, ''))) errorList.push('Please enter a valid phone number.');
+    if (!formData.wage) errorList.push('Wage is required.');
+    else if (Number(formData.wage) <= 0) errorList.push('Wage must be greater than 0.');
+    if (formData.availability.length === 0) errorList.push('Please select at least one day of availability.');
+    if (errorList.length > 0) {
+      setFormErrors(errorList);
+      setShowErrorModal(true);
+      setIsSubmitting(false);
       return;
     }
 
@@ -92,10 +108,10 @@ export default function CreateEmployee(): ReactElement {
     try {
       const employeeData = {
         ...formData,
-        coordinates: {
+        coordinates: coordinates ? {
           latitude: coordinates.latitude,
           longitude: coordinates.longitude
-        }
+        } : undefined
       };
 
       // Get existing employees
@@ -312,6 +328,60 @@ export default function CreateEmployee(): ReactElement {
           )}
         </button>
       </form>
+      {showErrorModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.4)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '1.5rem',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            padding: '2.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            maxWidth: 400,
+            border: '4px solid #22c55e',
+            fontFamily: 'sans-serif',
+          }}>
+            <span style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>��</span>
+            <p style={{ color: '#15803d', fontWeight: 800, fontSize: '1.25rem', marginBottom: '1rem', textAlign: 'center', letterSpacing: '0.03em' }}>
+              Please fix the following errors:
+            </p>
+            <ul style={{ textAlign: 'left', marginBottom: '1.5rem', color: '#b91c1c', fontSize: '1rem', listStyle: 'disc inside', width: '100%' }}>
+              {formErrors.map((err, idx) => <li key={idx}>{err}</li>)}
+            </ul>
+            <button
+              style={{
+                padding: '0.5rem 1.5rem',
+                background: '#22c55e',
+                color: 'white',
+                fontWeight: 700,
+                borderRadius: '0.5rem',
+                border: 'none',
+                boxShadow: '0 2px 8px rgba(34,197,94,0.15)',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                transition: 'background 0.2s',
+              }}
+              onClick={() => setShowErrorModal(false)}
+              onMouseOver={e => (e.currentTarget.style.background = '#16a34a')}
+              onMouseOut={e => (e.currentTarget.style.background = '#22c55e')}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
