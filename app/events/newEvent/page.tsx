@@ -8,8 +8,10 @@ import React, {
   FormEvent,
 } from "react";
 import { EventFormData, Truck, Coordinates } from "@/app/types";
-import AddressAutocomplete from "@/app/components/AddressAutocomplete";
+import AddressForm from "@/app/components/AddressForm";
 import { findClosestEmployees } from "@/app/AlgApi/distance";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -24,7 +26,8 @@ export default function AddEventPage(): ReactElement {
     trucks: [], // Array to store selected trucks
   });
 
-  const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [trucks, setTrucks] = useState<Truck[]>([]); // State to store truck data
   const [employees, setEmployees] = useState<any[]>([]); // State to store employee data
 
@@ -61,12 +64,31 @@ export default function AddEventPage(): ReactElement {
     });
   };
 
+  const handleDateChange = (date: Date | null) => {
+    setSelectedDate(date);
+    if (date) {
+      setFormData({
+        ...formData,
+        date: date.toISOString().split('T')[0],
+      });
+    }
+  };
+
+  const handleTimeChange = (time: Date | null) => {
+    setSelectedTime(time);
+    if (time) {
+      setFormData({
+        ...formData,
+        time: time.toTimeString().slice(0, 5),
+      });
+    }
+  };
+
   const handleLocationChange = (address: string, coords?: Coordinates) => {
     setFormData({
       ...formData,
       location: address,
     });
-    setCoordinates(coords);
   };
 
   const handleTruckSelection = (truckId: string): void => {
@@ -87,11 +109,6 @@ export default function AddEventPage(): ReactElement {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    
-    if (!coordinates) {
-      alert('Please select a valid address from the suggestions');
-      return;
-    }
 
     try {
       // Get the required number of servers
@@ -100,8 +117,7 @@ export default function AddEventPage(): ReactElement {
       // Find the closest available servers
       const closestEmployees = await findClosestEmployees(
         formData.location,
-        employees.filter(emp => emp.role === "Server" && emp.isAvailable),
-        coordinates
+        employees.filter(emp => emp.role === "Server" && emp.isAvailable)
       );
 
       // Take only the required number of servers
@@ -115,10 +131,6 @@ export default function AddEventPage(): ReactElement {
         startTime: `${formData.date}T${formData.time}`,
         endTime: `${formData.date}T${formData.time}`, // You might want to add end time input
         location: formData.location,
-        coordinates: {
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude
-        },
         trucks: formData.trucks,
         assignedStaff: assignedStaff,
         requiredServers: requiredServers,
@@ -190,13 +202,13 @@ export default function AddEventPage(): ReactElement {
           <label htmlFor="date" className="input-label">
             Date
           </label>
-          <input
-            type="date"
-            id="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            className="w-full p-2 border border-gray-300 rounded-md cursor-pointer hover:border-primary-medium focus:border-primary-dark focus:ring-1 focus:ring-primary-dark"
+          <DatePicker
+            selected={selectedDate}
+            onChange={handleDateChange}
+            dateFormat="MMMM d, yyyy"
+            minDate={new Date()}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholderText="Select date"
             required
           />
         </div>
@@ -205,14 +217,16 @@ export default function AddEventPage(): ReactElement {
           <label htmlFor="time" className="input-label">
             Time
           </label>
-          <input
-            type="time"
-            id="time"
-            name="time"
-            value={formData.time}
-            onChange={handleChange}
-            step="900"
-            className="w-full p-2 border border-gray-300 rounded-md cursor-pointer hover:border-primary-medium focus:border-primary-dark focus:ring-1 focus:ring-primary-dark"
+          <DatePicker
+            selected={selectedTime}
+            onChange={handleTimeChange}
+            showTimeSelect
+            showTimeSelectOnly
+            timeIntervals={15}
+            timeCaption="Time"
+            dateFormat="h:mm aa"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholderText="Select time"
             required
           />
         </div>
@@ -221,7 +235,7 @@ export default function AddEventPage(): ReactElement {
           <label htmlFor="location" className="input-label">
             Location
           </label>
-          <AddressAutocomplete
+          <AddressForm
             value={formData.location}
             onChange={handleLocationChange}
             placeholder="Enter event location"

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, ReactElement, ChangeEvent, FormEvent } from "react";
-import { FormData, Coordinates } from "@/app/types";
-import AddressAutocomplete from "@/app/components/AddressAutocomplete";
+import { FormData, Coordinates, EmployeeFormData } from "@/app/types";
+import AddressForm from "@/app/components/AddressForm";
 
 export default function CreateEmployee(): ReactElement {
   const [formData, setFormData] = useState<FormData>({
@@ -81,18 +81,9 @@ export default function CreateEmployee(): ReactElement {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    
-    if (!coordinates) {
-      alert('Please select a valid address from the suggestions');
-      return;
-    }
 
     const employeeData = {
-      ...formData,
-      coordinates: {
-        latitude: coordinates.lat,
-        longitude: coordinates.lng
-      }
+      ...formData
     };
 
     try {
@@ -138,7 +129,6 @@ export default function CreateEmployee(): ReactElement {
         isAvailable: false,
         availability: [],
       });
-      setCoordinates(undefined);
 
       // Show success message
       alert('Employee created successfully!');
@@ -173,7 +163,7 @@ export default function CreateEmployee(): ReactElement {
           <label htmlFor="address" className="input-label">
             Address
           </label>
-          <AddressAutocomplete
+          <AddressForm
             value={formData.address}
             onChange={handleAddressChange}
             placeholder="Enter employee address"
