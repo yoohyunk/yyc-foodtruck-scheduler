@@ -154,7 +154,10 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
 
 export async function calculateDistance(coord1: Coordinates, coord2: Coordinates): Promise<number> {
   // If coordinates are exactly the same, return 0
-  if (coord1.lat === coord2.lat && coord1.lng === coord2.lng) {
+  if (
+    (coord1.lat === coord2.lat && coord1.lng === coord2.lng) ||
+    (Number(coord1.lat) === Number(coord2.lat) && Number(coord1.lng) === Number(coord2.lng))
+  ) {
     return 0;
   }
 

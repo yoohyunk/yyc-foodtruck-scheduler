@@ -190,12 +190,12 @@
   },
   {
     "id": 11,
-    "name": "Leona Motyer",
-    "address": "4908 23 Avenue Northwest, Calgary, T3B0Z7",
+    "name": "Rachel Leona Motyer",
+    "address": "4908 23 Avenue NW, Calgary, T3B 0Z7",
     "role": "Server",
     "email": "leona.motyer@edu.sait.ca",
     "phone": "2502581143",
-    "wage": 15,
+    "wage": 12,
     "isAvailable": true,
     "availability": [
       "Monday",
@@ -205,6 +205,33 @@
       "Friday",
       "Saturday",
       "Sunday"
-    ]
+    ],
+    "coordinates": {
+      "latitude": 51.079724,
+      "longitude": -114.160812
+    }
+  },
+  {
+    "id": 12,
+    "name": "Rachel Leona Motyer",
+    "address": "4908 23 Avenue NW, Calgary, T3B 0Z7",
+    "role": "Server",
+    "email": "leona.motyer@edu.sait.ca",
+    "phone": "2502581143",
+    "wage": 12,
+    "isAvailable": true,
+    "availability": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ],
+    "coordinates": {
+      "latitude": 51.079724,
+      "longitude": -114.160812
+    }
   }
 ]

@@ -292,5 +292,31 @@
     "contactName": "test algo",
     "contactEmail": "leona.motyer@edu.sait.ca",
     "contactPhone": "2502581143"
+  },
+  {
+    "id": "16",
+    "title": "demo",
+    "startTime": "2025-06-11T11:00",
+    "endTime": "2025-06-11T12:00",
+    "location": "4908 23 Avenue NW, Calgary, ",
+    "coordinates": {
+      "latitude": 51.0758004,
+      "longitude": -114.1555514
+    },
+    "trucks": [
+      "3"
+    ],
+    "assignedStaff": [
+      "4",
+      "5",
+      "7",
+      "9",
+      "6"
+    ],
+    "requiredServers": 5,
+    "status": "Scheduled",
+    "contactName": "Rachel Leona Motyer",
+    "contactEmail": "rlmotyer@gmail.com",
+    "contactPhone": "2502581143"
   }
 ]

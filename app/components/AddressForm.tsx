@@ -37,20 +37,20 @@ export interface AddressFormRef {
 
 const ALBERTA_CITIES = [
   'Calgary',
-  'Edmonton',
-  'Red Deer',
-  'Lethbridge',
-  'St. Albert',
-  'Medicine Hat',
-  'Grande Prairie',
   'Airdrie',
-  'Spruce Grove',
-  'Leduc',
-  'Fort McMurray',
-  'Cochrane',
-  'Okotoks',
+  'Banff',
   'Canmore',
-  'Banff'
+  'Cochrane',
+  'Edmonton',
+  'Fort McMurray',
+  'Grande Prairie',
+  'Leduc',
+  'Lethbridge',
+  'Medicine Hat',
+  'Okotoks',
+  'Red Deer',
+  'Spruce Grove',
+  'St. Albert'
 ];
 
 const DIRECTION_OPTIONS = ["None", "NW", "NE", "SW", "SE"];
@@ -180,6 +180,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
 
   // Validate postal code format
   const validatePostalCode = (code: string): boolean => {
+    if (!code || code.trim() === "") return true; // Optional: empty is valid
     // Remove spaces for validation
     const cleanCode = code.replace(/\s/g, "");
     // Canadian postal code format: A1A1A1
@@ -189,14 +190,14 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
 
   // Validate street number
   const validateStreetNumber = (number: string): boolean => {
-    // Allow numbers and common street number formats
-    return /^[0-9]+[A-Za-z]?$/.test(number);
+    // Just ensure it starts with a number
+    return /^\d/.test(number);
   };
 
   // Validate street name
   const validateStreetName = (name: string): boolean => {
-    // Allow letters, numbers, spaces, and common street name characters
-    return /^[A-Za-z0-9\s\-\.]+$/.test(name) && name.trim().length > 0;
+    // Just ensure it's not empty
+    return name.trim().length > 0;
   };
 
   // Validate direction
@@ -211,45 +212,98 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   // Handle individual field changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    let newValue = value;
+
+    // Update form data immediately
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Validate after state update
     let isValid = true;
     let errorMessage = "";
 
     if (name === "postalCode") {
-      newValue = formatPostalCode(value);
-      isValid = validatePostalCode(newValue);
+      const formattedValue = formatPostalCode(value);
+      isValid = validatePostalCode(formattedValue);
       errorMessage = isValid ? "" : "Please enter a valid postal code (e.g., T2N 1N4)";
     } else if (name === "streetNumber") {
       isValid = validateStreetNumber(value);
-      errorMessage = isValid ? "" : "Please enter a valid street number (e.g., 123 or 123A)";
+      errorMessage = isValid ? "" : "Please enter a valid street number";
     } else if (name === "streetName") {
-      isValid = validateStreetName(value);
-      errorMessage = isValid ? "" : "Please enter a valid street name";
+      isValid = value.trim().length > 0;
+      errorMessage = isValid ? "" : "Please enter a street name";
     } else if (name === "direction") {
       isValid = validateDirection(value);
       errorMessage = isValid ? "" : "Please select a direction";
     }
 
-    const newFormData = {
-      ...formData,
-      [name]: newValue,
-    };
-
-    setFormData(newFormData);
-    
-    // Only update parent if we have both street number and name
-    if (newFormData.streetNumber && newFormData.streetName && newFormData.direction) {
-      updateParentAddress(newFormData);
-    }
-
-    setValidation((prev) => ({
+    setValidation(prev => ({
       ...prev,
-      [name]: isValid,
+      [name]: isValid
     }));
 
-    setErrorMessages((prev) => ({
+    setErrorMessages(prev => ({
       ...prev,
-      [name]: errorMessage,
+      [name]: errorMessage
+    }));
+
+    // Update parent component if we have both street number and name
+    if (name === "streetNumber" || name === "streetName") {
+      const newData = {
+        ...formData,
+        [name]: value
+      };
+      if (newData.streetNumber && newData.streetName) {
+        updateParentAddress(newData);
+      }
+    }
+  };
+
+  // Add a specific handler for street name
+  const handleStreetNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only update the local state while typing
+    setFormData(prev => ({
+      ...prev,
+      streetName: value
+    }));
+  };
+
+  // Add a blur handler for street name
+  const handleStreetNameBlur = () => {
+    setShowErrors(true);
+    const value = formData.streetName;
+    const isValid = value.trim().length > 0;
+    
+    setValidation(prev => ({
+      ...prev,
+      streetName: isValid
+    }));
+
+    setErrorMessages(prev => ({
+      ...prev,
+      streetName: isValid ? "" : "Please enter a street name"
+    }));
+
+    // Update parent only on blur if we have both street number and name
+    if (formData.streetNumber && value) {
+      updateParentAddress({
+        ...formData,
+        streetName: value
+      });
+    }
+  };
+
+  // Add a handler for postal code formatting
+  const handlePostalCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (value.length > 3) {
+      value = value.slice(0, 3) + ' ' + value.slice(3, 6);
+    }
+    setFormData(prev => ({
+      ...prev,
+      postalCode: value
     }));
   };
 
@@ -354,8 +408,8 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
             type="text"
             name="streetName"
             value={formData.streetName}
-            onChange={handleChange}
-            onBlur={() => setShowErrors(true)}
+            onChange={handleStreetNameChange}
+            onBlur={handleStreetNameBlur}
             placeholder="Street Name"
             required={required}
             className={`w-full px-3 py-2 border ${
@@ -385,13 +439,16 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
         </div>
       </div>
 
-      <input
-        type="text"
+      <select
         name="city"
         value={formData.city}
-        readOnly
-        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
-      />
+        onChange={handleChange}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        {ALBERTA_CITIES.map((city) => (
+          <option key={city} value={city}>{city}</option>
+        ))}
+      </select>
 
       <div>
         <input
@@ -399,10 +456,10 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
           type="text"
           name="postalCode"
           value={formData.postalCode}
-          onChange={handleChange}
+          onChange={handlePostalCodeChange}
           onBlur={() => setShowErrors(true)}
-          placeholder="Postal Code (e.g., T2N 1N4)"
-          required={required}
+          placeholder="Postal Code"
+          required={false}
           maxLength={7}
           className={`w-full px-3 py-2 border ${
             showErrors && !validation.postalCode ? "border-red-500" : "border-gray-300"

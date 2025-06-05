@@ -135,8 +135,7 @@ export default function AddEventPage(): ReactElement {
     if (!selectedEndTime) errorList.push('End time is required.');
     const isAddressValid = addressFormRef.current?.validate() ?? false;
     if (!isAddressValid) errorList.push('Please enter a valid address.');
-    if (!formData.requiredServers) errorList.push('Number of required servers is required.');
-    else if (parseInt(formData.requiredServers) <= 0) errorList.push('Number of servers must be greater than 0.');
+    if (formData.requiredServers === "") errorList.push('Number of servers is required.');
     if (!formData.contactName.trim()) errorList.push('Contact name is required.');
     if (!formData.contactEmail.trim()) errorList.push('Contact email is required.');
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) errorList.push('Please enter a valid email address.');
@@ -246,9 +245,6 @@ export default function AddEventPage(): ReactElement {
         throw new Error('Failed to save event data');
       }
 
-      // Show success message
-      alert('Event created successfully with auto-assigned staff!');
-      
       // Redirect to the specific event page
       window.location.href = `/events/${newEvent.id}`;
     } catch (error) {
@@ -358,7 +354,9 @@ export default function AddEventPage(): ReactElement {
             name="requiredServers"
             value={formData.requiredServers}
             onChange={handleChange}
-            className={formErrors.includes('Number of required servers is required.') || formErrors.includes('Number of servers must be greater than 0.') ? "border-red-500" : ""}
+            min="0"
+            onWheel={e => (e.target as HTMLInputElement).blur()}
+            className={formErrors.includes('Number of required servers is required.') ? "border-red-500" : ""}
             required
           />
         </div>

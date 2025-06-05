@@ -38,7 +38,7 @@ export default function EditEmployeePage(): ReactElement {
   useEffect(() => {
     if (!id) return;
 
-    fetch("/employee.json")
+    fetch("/employees.json")
       .then((response) => response.json())
       .then((data: Employee[]) => {
         const employeeData = data.find(
