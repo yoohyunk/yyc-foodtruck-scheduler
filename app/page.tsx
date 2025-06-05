@@ -1,34 +1,10 @@
 "use client";
 import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
-
-interface Event {
-  id: string;
-  name: string;
-  date: string;
-  time: string;
-  location: string;
-  trucks: string[];
-  assignedStaff: string[];
-  requiredServers: number;
-}
-
-interface TimeOffRequest {
-  employeeName: string;
-  startDate: string;
-  endDate: string;
-  reason: string;
-}
-
-interface Link {
-  name: string;
-  href: string;
-  icon: string;
-}
+import { Event, TimeOffRequest, NavLink } from "./types";
 
 export default function Home(): ReactElement {
   const [hoveredLink, setHoveredLink] = useState<number | null>(null);
-
   const [events, setEvents] = useState<Event[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
 
@@ -39,7 +15,7 @@ export default function Home(): ReactElement {
       .then((data: Event[]) => {
         if (Array.isArray(data)) {
           const upcomingEvents = data.filter(
-            (event) => new Date(event.date) >= new Date()
+            (event) => new Date(event.startTime) >= new Date()
           );
           setEvents(upcomingEvents.slice(0, 5)); // Show only the next 5 events
         } else {
@@ -59,7 +35,7 @@ export default function Home(): ReactElement {
       .then((response) => response.json())
       .then((data: TimeOffRequest[]) => {
         const upcomingRequests = data.filter(
-          (request) => new Date(request.startDate) >= new Date()
+          (request) => new Date(request.date) >= new Date()
         );
         setTimeOffRequests(upcomingRequests.slice(0, 3)); // Show only the next 3 requests
       })
@@ -68,7 +44,7 @@ export default function Home(): ReactElement {
       );
   }, []);
 
-  const links: Link[] = [
+  const links: NavLink[] = [
     { name: "Schedule", href: "/schedule", icon: "📅" },
     { name: "Employees", href: "/employees", icon: "👥" },
     { name: "Events", href: "/events", icon: "🎉" },
@@ -109,9 +85,9 @@ export default function Home(): ReactElement {
             {events.length > 0 ? (
               events.map((event, index) => (
                 <div key={index} className="section-card">
-                  <h3 className="section-card-title">{event.name}</h3>
+                  <h3 className="section-card-title">{event.title}</h3>
                   <p className="section-card-text">
-                    <strong>Date:</strong> {event.date}
+                    <strong>Date:</strong> {event.startTime}
                   </p>
                   <p className="section-card-text">
                     <strong>Location:</strong> {event.location}
@@ -131,12 +107,12 @@ export default function Home(): ReactElement {
             {timeOffRequests.length > 0 ? (
               timeOffRequests.map((request, index) => (
                 <div key={index} className="section-card">
-                  <h3 className="section-card-title">{request.employeeName}</h3>
+                  <h3 className="section-card-title">{request.type}</h3>
                   <p className="section-card-text">
-                    <strong>Start Date:</strong> {request.startDate}
+                    <strong>Start Date:</strong> {request.date}
                   </p>
                   <p className="section-card-text">
-                    <strong>End Date:</strong> {request.endDate}
+                    <strong>Duration:</strong> {request.duration}
                   </p>
                   <p className="section-card-text">
                     <strong>Reason:</strong> {request.reason}

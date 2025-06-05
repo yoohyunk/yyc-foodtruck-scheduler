@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
+import { NavLink } from "./types";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -15,6 +16,21 @@ export const metadata: Metadata = {
   description:
     "A scheduling and workforce-management platform for YYC food truck operations",
 };
+
+const mainNavLinks: NavLink[] = [
+  { name: "Employees", href: "/employees/", icon: "👥" },
+  { name: "Events", href: "/events/", icon: "📅" },
+  { name: "Schedule", href: "/schedule/", icon: "📊" },
+  { name: "New Employee", href: "/employees/newEmployee/", icon: "➕" },
+  { name: "New Event", href: "/events/newEvent/", icon: "➕" },
+  { name: "Login", href: "/login", icon: "🔑" },
+];
+
+const quickActionLinks: NavLink[] = [
+  { name: "New Shift", href: "/schedule/new", icon: "+" },
+  { name: "Add Staff", href: "/employees/newEmployee", icon: "+" },
+  { name: "Create Event", href: "/events/newEvent", icon: "+" },
+];
 
 interface RootLayoutProps {
   children: ReactNode;
@@ -40,30 +56,12 @@ export default function RootLayout({
                 <span className="logo-text">YYC Food Trucks</span>
               </Link>
               <div className="nav-links">
-                <Link href="/employees/" className="nav-link">
-                  <span className="nav-icon">👥</span>
-                  Employees
-                </Link>
-                <Link href="/events/" className="nav-link">
-                  <span className="nav-icon">📅</span>
-                  Events
-                </Link>
-                <Link href="/schedule/" className="nav-link">
-                  <span className="nav-icon">📊</span>
-                  Schedule
-                </Link>
-                <Link href="/employees/newEmployee/" className="nav-link">
-                  <span className="nav-icon">➕</span>
-                  New Employee
-                </Link>
-                <Link href="/events/newEvent/" className="nav-link">
-                  <span className="nav-icon">➕</span>
-                  New Event
-                </Link>
-                <Link href="/login" className="nav-link">
-                  <span className="nav-icon">🔑</span>
-                  Login
-                </Link>
+                {mainNavLinks.map((link, index) => (
+                  <Link key={index} href={link.href} className="nav-link">
+                    <span className="nav-icon">{link.icon}</span>
+                    {link.name}
+                  </Link>
+                ))}
               </div>
             </nav>
           </header>
@@ -72,24 +70,15 @@ export default function RootLayout({
             <aside className="sidebar bg-gray-100 p-3 shadow-md">
               <h3 className="text-md font-semibold mb-6">Quick Actions</h3>
               <nav>
-                <Link
-                  href="/schedule/new"
-                  className="button"
-                >
-                  <span>+</span> New Shift
-                </Link>
-                <Link
-                  href="/employees/newEmployee"
-                  className="button"
-                >
-                  <span>+</span> Add Staff
-                </Link>
-                <Link
-                  href="/events/newEvent"
-                  className="button"
-                >
-                  <span>+</span> Create Event
-                </Link>
+                {quickActionLinks.map((link, index) => (
+                  <Link
+                    key={index}
+                    href={link.href}
+                    className="button"
+                  >
+                    <span>{link.icon}</span> {link.name}
+                  </Link>
+                ))}
               </nav>
 
               <div className="mt-4 pt-3 border-t border-gray-300">
