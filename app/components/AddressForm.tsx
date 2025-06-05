@@ -401,7 +401,11 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
         onClick={geocodeAddress}
         disabled={isChecking}
       >
-        {isChecking ? 'Checking...' : 'Check Address'}
+        {isChecking ? (
+          <span className="inline-block h-5 w-5 mr-2 align-middle border-2 border-white border-t-transparent rounded-full" style={{
+            animation: 'spin 1s linear infinite'
+          }}></span>
+        ) : 'Check Address'}
       </button>
       {checkStatus === 'success' && (
         <p className="text-green-600 text-sm mt-1">{checkMessage}</p>
@@ -409,6 +413,11 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
       {checkStatus === 'error' && (
         <p className="text-red-500 text-sm mt-1">{checkMessage}</p>
       )}
+      <style jsx>{`
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      `}</style>
     </div>
   );
 });

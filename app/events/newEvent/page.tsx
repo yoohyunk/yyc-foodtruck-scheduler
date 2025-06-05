@@ -34,6 +34,7 @@ export default function AddEventPage(): ReactElement {
   const [employees, setEmployees] = useState<any[]>([]); // State to store employee data
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const addressFormRef = useRef<AddressFormRef>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch truck and employee data
   useEffect(() => {
@@ -171,6 +172,7 @@ export default function AddEventPage(): ReactElement {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       // Validate required fields
       if (!formData.name || !formData.date || !formData.time || !formData.location || !formData.requiredServers) {
@@ -252,6 +254,8 @@ export default function AddEventPage(): ReactElement {
     } catch (error) {
       console.error('Error saving event:', error);
       alert(`Failed to create event: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -426,8 +430,33 @@ export default function AddEventPage(): ReactElement {
           {errors.trucks && <p className="text-red-500 text-sm mt-1">{errors.trucks}</p>}
         </div>
 
-        <button type="submit" className="button">
-          Create Event
+        <button type="submit" className="button" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <span className="flex items-center justify-center">
+              <span
+                style={{
+                  display: 'inline-block',
+                  height: '1.5rem',
+                  width: '1.5rem',
+                  marginRight: '0.5rem',
+                  verticalAlign: 'middle',
+                  border: '3px solid #22c55e', // Tailwind green-500
+                  borderTop: '3px solid transparent',
+                  borderRadius: '50%',
+                  background: 'white',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+              Creating...
+              <style>{`
+                @keyframes spin {
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
+            </span>
+          ) : (
+            'Create Event'
+          )}
         </button>
       </form>
     </div>

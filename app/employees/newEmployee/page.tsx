@@ -17,6 +17,7 @@ export default function CreateEmployee(): ReactElement {
   });
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const daysOfWeek = [
     "Monday",
@@ -87,15 +88,16 @@ export default function CreateEmployee(): ReactElement {
       return;
     }
 
-    const employeeData = {
-      ...formData,
-      coordinates: {
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude
-      }
-    };
-
+    setIsSubmitting(true);
     try {
+      const employeeData = {
+        ...formData,
+        coordinates: {
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude
+        }
+      };
+
       // Get existing employees
       const response = await fetch('/employees.json');
       const employees = await response.json();
@@ -148,6 +150,8 @@ export default function CreateEmployee(): ReactElement {
     } catch (error) {
       console.error('Error saving employee:', error);
       alert('Failed to create employee. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -279,8 +283,33 @@ export default function CreateEmployee(): ReactElement {
           </div>
         </div>
 
-        <button type="submit" className="button">
-          Create Employee
+        <button type="submit" className="button" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <span className="flex items-center justify-center">
+              <span
+                style={{
+                  display: 'inline-block',
+                  height: '1.5rem',
+                  width: '1.5rem',
+                  marginRight: '0.5rem',
+                  verticalAlign: 'middle',
+                  border: '3px solid #22c55e', // Tailwind green-500
+                  borderTop: '3px solid transparent',
+                  borderRadius: '50%',
+                  background: 'white',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+              Creating...
+              <style>{`
+                @keyframes spin {
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
+            </span>
+          ) : (
+            'Create Employee'
+          )}
         </button>
       </form>
     </div>

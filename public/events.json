@@ -238,5 +238,59 @@
     "contactName": "Rachel Leona Motyer",
     "contactEmail": "leona.motyer@edu.sait.ca",
     "contactPhone": "2502581143"
+  },
+  {
+    "id": "14",
+    "title": "Rachel Leona Motyer",
+    "startTime": "2025-06-11T20:15",
+    "endTime": "2025-06-11T20:15",
+    "location": "4908 23 Street NW, Calgary, T3B 0Z7",
+    "coordinates": {
+      "latitude": 51.0836357,
+      "longitude": -114.1144677
+    },
+    "trucks": [
+      "5"
+    ],
+    "assignedStaff": [
+      "4",
+      "5",
+      "10",
+      "9",
+      "7",
+      "6"
+    ],
+    "requiredServers": 6,
+    "status": "Scheduled",
+    "contactName": "Rachel Leona Motyer",
+    "contactEmail": "leona.motyer@edu.sait.ca",
+    "contactPhone": "2502581143"
+  },
+  {
+    "id": "15",
+    "title": "Rachel Leona Motyer",
+    "startTime": "2025-06-12T10:15",
+    "endTime": "2025-06-12T10:15",
+    "location": "4908 23 Avenue NW, Calgary, T3B 0Z7",
+    "coordinates": {
+      "latitude": 51.079724,
+      "longitude": -114.160812
+    },
+    "trucks": [
+      "11"
+    ],
+    "assignedStaff": [
+      "4",
+      "5",
+      "7",
+      "9",
+      "6",
+      "8"
+    ],
+    "requiredServers": 6,
+    "status": "Scheduled",
+    "contactName": "test algo",
+    "contactEmail": "leona.motyer@edu.sait.ca",
+    "contactPhone": "2502581143"
   }
 ]
