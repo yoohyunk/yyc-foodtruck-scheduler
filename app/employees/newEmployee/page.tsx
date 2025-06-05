@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, ReactElement, ChangeEvent, FormEvent } from "react";
-import { FormData, Coordinates } from "@/app/types";
+import { EmployeeFormData, Coordinates } from "@/app/types";
 import AddressForm from "@/app/components/AddressForm";
 
 export default function CreateEmployee(): ReactElement {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<EmployeeFormData>({
     name: "",
     address: "",
     role: "",
@@ -55,7 +55,7 @@ export default function CreateEmployee(): ReactElement {
       // Remove day if already selected
       setFormData({
         ...formData,
-        availability: formData.availability.filter((d) => d !== day),
+        availability: formData.availability.filter((d: string) => d !== day),
       });
     } else {
       // Add day if not already selected
