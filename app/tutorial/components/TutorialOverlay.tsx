@@ -13,21 +13,26 @@ export function TutorialOverlay() {
       const targetElement = document.querySelector(currentStepData.target);
       
       if (targetElement) {
-        const rect = targetElement.getBoundingClientRect();
-        const overlay = overlayRef.current;
-        
-        // Position the overlay
-        overlay.style.top = `${rect.top}px`;
-        overlay.style.left = `${rect.left}px`;
-        overlay.style.width = `${rect.width}px`;
-        overlay.style.height = `${rect.height}px`;
-
-        // Scroll the target element into view with smooth behavior
+        // First scroll the target element into view
         targetElement.scrollIntoView({
           behavior: 'smooth',
           block: 'center',
           inline: 'center'
         });
+
+        // Wait for scroll to complete before positioning overlay
+        setTimeout(() => {
+          const rect = targetElement.getBoundingClientRect();
+          const overlay = overlayRef.current;
+          
+          if (overlay) {
+            // Position the overlay
+            overlay.style.top = `${rect.top}px`;
+            overlay.style.left = `${rect.left}px`;
+            overlay.style.width = `${rect.width}px`;
+            overlay.style.height = `${rect.height}px`;
+          }
+        }, 300); // 300ms delay to allow scroll to complete
       }
     }
   }, [isActive, currentStep, steps]);

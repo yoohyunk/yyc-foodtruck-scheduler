@@ -81,7 +81,7 @@ export default function Home(): ReactElement {
         </div>
 
         {/* Upcoming Events Section */}
-        <section>
+        <section data-section="upcoming-events">
           <h2 className="section-title">Upcoming Events</h2>
           <div className="grid gap-4">
             {events.length > 0 ? (
@@ -103,7 +103,7 @@ export default function Home(): ReactElement {
         </section>
 
         {/* Time-Off Requests Section */}
-        <section>
+        <section data-section="timeoff-requests">
           <h2 className="section-title">Time-Off Requests</h2>
           <div className="grid gap-4">
             {timeOffRequests.length > 0 ? (

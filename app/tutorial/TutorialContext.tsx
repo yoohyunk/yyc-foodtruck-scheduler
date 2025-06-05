@@ -36,6 +36,78 @@ const commonSteps: TutorialStep[] = [
 
 // Page-specific tutorial steps
 export const pageTutorials: Record<string, TutorialStep[]> = {
+  '/': [
+    {
+      id: 'home-welcome',
+      title: 'Welcome to Your Dashboard 🏠',
+      content: 'This is your main control center. From here, you can access all the important features of the system. Let\'s take a tour of what you can do!',
+      target: '.landing-main',
+      position: 'bottom'
+    },
+    {
+      id: 'main-navigation',
+      title: 'Main Navigation Buttons 🧭',
+      content: 'These are your main navigation buttons. Each one takes you to a different part of the system. Let\'s go through each one!',
+      target: '.landing-links',
+      position: 'bottom'
+    },
+    {
+      id: 'schedule-button',
+      title: 'Schedule Button 📅',
+      content: 'Click this button to view and manage your team\'s work schedule. Here you can see who\'s working when and create new shifts.',
+      target: '.landing-link[href="/schedule"]',
+      position: 'right'
+    },
+    {
+      id: 'employees-button',
+      title: 'Employees Button 👥',
+      content: 'This button takes you to your employee management page. Here you can add new staff, view employee details, and manage their information.',
+      target: '.landing-link[href="/employees"]',
+      position: 'right'
+    },
+    {
+      id: 'events-button',
+      title: 'Events Button 🎉',
+      content: 'Click here to manage your food truck events. You can create new events, view upcoming events, and assign staff to events.',
+      target: '.landing-link[href="/events"]',
+      position: 'right'
+    },
+    {
+      id: 'trucks-button',
+      title: 'Trucks Button 🚚',
+      content: 'This button takes you to your truck management page. Here you can add new trucks, view your fleet, and manage truck details.',
+      target: '.landing-link[href="/trucks"]',
+      position: 'right'
+    },
+    {
+      id: 'timeoff-button',
+      title: 'Time-Off Button 🌴',
+      content: 'Click here to manage time-off requests from your staff. You can approve or deny requests and view upcoming time off.',
+      target: '.landing-link[href="/requests"]',
+      position: 'right'
+    },
+    {
+      id: 'upcoming-events',
+      title: 'Upcoming Events Section 📅',
+      content: 'This section shows your next 5 upcoming events. Each card shows the event name, date, and location. Click on an event to see more details.',
+      target: '[data-section="upcoming-events"]',
+      position: 'bottom'
+    },
+    {
+      id: 'timeoff-requests',
+      title: 'Time-Off Requests Section 🌴',
+      content: 'Here you can see the next 3 time-off requests from your staff. Each card shows the type of request, dates, and reason. Click to approve or deny requests.',
+      target: '[data-section="timeoff-requests"]',
+      position: 'bottom'
+    },
+    {
+      id: 'navigation-tips',
+      title: 'Quick Tips 💡',
+      content: 'Hover over any button to see it highlight. The help button in the footer can restart this tutorial anytime you need it. Each section updates automatically with the latest information.',
+      target: '.landing-container',
+      position: 'bottom'
+    }
+  ],
   '/employees': [
     {
       id: 'employee-list',
