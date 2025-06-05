@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { EventFormData, Truck, Coordinates } from "@/app/types";
 import AddressAutocomplete from "@/app/components/AddressAutocomplete";
+import { findClosestEmployees } from "@/app/AlgApi/distance";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -25,9 +26,11 @@ export default function AddEventPage(): ReactElement {
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
   const [trucks, setTrucks] = useState<Truck[]>([]); // State to store truck data
+  const [employees, setEmployees] = useState<any[]>([]); // State to store employee data
 
-  // Fetch truck data from trucks.json
+  // Fetch truck and employee data
   useEffect(() => {
+    // Fetch truck data
     fetch("/trucks.json")
       .then((response) => {
         if (!response.ok)
@@ -36,6 +39,16 @@ export default function AddEventPage(): ReactElement {
       })
       .then((data: Truck[]) => setTrucks(data))
       .catch((error) => console.error("Error fetching trucks:", error));
+
+    // Fetch employee data
+    fetch("/employees.json")
+      .then((response) => {
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
+      .then((data) => setEmployees(data))
+      .catch((error) => console.error("Error fetching employees:", error));
   }, []);
 
   const handleChange = (
@@ -72,14 +85,87 @@ export default function AddEventPage(): ReactElement {
     }
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    const eventData = {
-      ...formData,
-      coordinates,
-    };
-    console.log("Event Created:", eventData);
-    // Add logic to save the event data (e.g., POST request to an API)
+    
+    if (!coordinates) {
+      alert('Please select a valid address from the suggestions');
+      return;
+    }
+
+    try {
+      // Get the required number of servers
+      const requiredServers = parseInt(formData.requiredServers);
+      
+      // Find the closest available servers
+      const closestEmployees = await findClosestEmployees(
+        formData.location,
+        employees.filter(emp => emp.role === "Server" && emp.isAvailable),
+        coordinates
+      );
+
+      // Take only the required number of servers
+      const assignedStaff = closestEmployees
+        .slice(0, requiredServers)
+        .map(emp => emp.employeeId.toString());
+
+      // Create event data
+      const eventData = {
+        title: formData.name,
+        startTime: `${formData.date}T${formData.time}`,
+        endTime: `${formData.date}T${formData.time}`, // You might want to add end time input
+        location: formData.location,
+        coordinates: {
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude
+        },
+        trucks: formData.trucks,
+        assignedStaff: assignedStaff,
+        requiredServers: requiredServers,
+        status: "Scheduled",
+        contactName: formData.contactName,
+        contactEmail: formData.contactEmail,
+        contactPhone: formData.contactPhone
+      };
+
+      // Get existing events
+      const response = await fetch('/events.json');
+      const events = await response.json();
+      
+      // Generate new ID (max existing ID + 1)
+      const newId = Math.max(...events.map((evt: any) => parseInt(evt.id))) + 1;
+      
+      // Create new event with ID
+      const newEvent = {
+        id: newId.toString(),
+        ...eventData
+      };
+
+      // Add new event to the list
+      const updatedEvents = [...events, newEvent];
+
+      // Save updated list
+      const saveResponse = await fetch('/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedEvents),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error('Failed to save event data');
+      }
+
+      // Show success message
+      alert('Event created successfully with auto-assigned staff!');
+      
+      // Redirect to events list
+      window.location.href = '/events';
+    } catch (error) {
+      console.error('Error saving event:', error);
+      alert('Failed to create event. Please try again.');
+    }
   };
 
   return (
@@ -110,6 +196,7 @@ export default function AddEventPage(): ReactElement {
             name="date"
             value={formData.date}
             onChange={handleChange}
+            className="w-full p-2 border border-gray-300 rounded-md cursor-pointer hover:border-primary-medium focus:border-primary-dark focus:ring-1 focus:ring-primary-dark"
             required
           />
         </div>
@@ -124,6 +211,8 @@ export default function AddEventPage(): ReactElement {
             name="time"
             value={formData.time}
             onChange={handleChange}
+            step="900"
+            className="w-full p-2 border border-gray-300 rounded-md cursor-pointer hover:border-primary-medium focus:border-primary-dark focus:ring-1 focus:ring-primary-dark"
             required
           />
         </div>
