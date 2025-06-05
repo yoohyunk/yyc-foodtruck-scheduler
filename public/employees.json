@@ -12,7 +12,11 @@
     "phone": "555-1234",
     "wage": 40,
     "isAvailable": true,
-    "availability": ["Monday", "Wednesday", "Friday"]
+    "availability": [
+      "Monday",
+      "Wednesday",
+      "Friday"
+    ]
   },
   {
     "id": 2,
@@ -20,14 +24,22 @@
     "address": "2427 Woodview Drive Southwest, Calgary, Alberta T2W 4Z9, Canada",
     "coordinates": {
       "latitude": 50.9409,
-      "longitude": -114.1170
+      "longitude": -114.117
     },
     "role": "Server",
     "email": "leona@example.com",
     "phone": "555-5678",
     "wage": 40,
     "isAvailable": true,
-    "availability": ["Monday","Tuesday", "Wednesday","Thursday", "Friday","Saturday","Sunday"]
+    "availability": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
   },
   {
     "id": 3,
@@ -42,7 +54,10 @@
     "phone": "555-9876",
     "wage": 30,
     "isAvailable": true,
-    "availability": ["Tuesday", "Thursday"]
+    "availability": [
+      "Tuesday",
+      "Thursday"
+    ]
   },
   {
     "id": 4,
@@ -57,7 +72,10 @@
     "phone": "555-4321",
     "wage": 30,
     "isAvailable": true,
-    "availability": ["Tuesday", "Thursday"]
+    "availability": [
+      "Tuesday",
+      "Thursday"
+    ]
   },
   {
     "id": 5,
@@ -72,14 +90,17 @@
     "phone": "555-8765",
     "wage": 15,
     "isAvailable": true,
-    "availability": ["Tuesday", "Thursday"]
+    "availability": [
+      "Tuesday",
+      "Thursday"
+    ]
   },
   {
     "id": 6,
     "name": "Tehjib Singh",
     "address": "1200 1st Street Southeast, Calgary, Alberta T2G 2H3, Canada",
     "coordinates": {
-      "latitude": 51.0490,
+      "latitude": 51.049,
       "longitude": -114.0663
     },
     "role": "Server",
@@ -87,7 +108,11 @@
     "phone": "555-8765",
     "wage": 15,
     "isAvailable": true,
-    "availability": ["Monday", "Wednesday", "Friday"]
+    "availability": [
+      "Monday",
+      "Wednesday",
+      "Friday"
+    ]
   },
   {
     "id": 7,
@@ -102,7 +127,11 @@
     "phone": "555-1234",
     "wage": 25,
     "isAvailable": true,
-    "availability": ["Monday", "Wednesday", "Friday"]
+    "availability": [
+      "Monday",
+      "Wednesday",
+      "Friday"
+    ]
   },
   {
     "id": 8,
@@ -117,7 +146,10 @@
     "phone": "555-1234",
     "wage": 35,
     "isAvailable": true,
-    "availability": ["Tuesday", "Thursday"]
+    "availability": [
+      "Tuesday",
+      "Thursday"
+    ]
   },
   {
     "id": 9,
@@ -132,7 +164,11 @@
     "phone": "555-1234",
     "wage": 40,
     "isAvailable": true,
-    "availability": ["Monday", "Wednesday", "Friday"]
+    "availability": [
+      "Monday",
+      "Wednesday",
+      "Friday"
+    ]
   },
   {
     "id": 10,
@@ -147,6 +183,9 @@
     "phone": "555-1234",
     "wage": 39,
     "isAvailable": true,
-    "availability": ["Tuesday", "Thursday"]
+    "availability": [
+      "Tuesday",
+      "Thursday"
+    ]
   }
 ]

@@ -106,6 +106,26 @@ export default function EventDetailsPage(): ReactElement {
     fetchData();
   }, []);
 
+  // Update assigned employees when event or employees change
+  useEffect(() => {
+    if (event && employees.length > 0) {
+      const assigned = employees.filter(emp => 
+        event.assignedStaff.includes(emp.id.toString())
+      );
+      setAssignedEmployees(assigned);
+    }
+  }, [event, employees]);
+
+  // Update assigned trucks when event or trucks change
+  useEffect(() => {
+    if (event && trucks.length > 0) {
+      const assigned = trucks.filter(truck => 
+        event.trucks.includes(truck.id)
+      );
+      setAssignedTrucks(assigned);
+    }
+  }, [event, trucks]);
+
   const handleEmployeeSelection = (employee: Employee) => {
     if (assignedEmployees.some((e) => e.id === employee.id)) {
       setAssignedEmployees(
@@ -175,6 +195,46 @@ export default function EventDetailsPage(): ReactElement {
           onClick={() => setTruckModalOpen(true)}
         >
           Select Trucks
+        </button>
+        <button
+          className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
+          onClick={async () => {
+            if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+              try {
+                // Get current events
+                const response = await fetch('/events.json');
+                if (!response.ok) {
+                  throw new Error('Failed to fetch events');
+                }
+                const events = await response.json();
+
+                // Remove the event
+                const updatedEvents = events.filter((evt: Event) => evt.id !== id);
+
+                // Save updated events
+                const saveResponse = await fetch('/api/events', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(updatedEvents),
+                });
+
+                if (!saveResponse.ok) {
+                  throw new Error('Failed to delete event');
+                }
+
+                // Show success message and redirect
+                alert('Event deleted successfully');
+                router.push('/events');
+              } catch (error) {
+                console.error('Error deleting event:', error);
+                alert('Failed to delete event. Please try again.');
+              }
+            }
+          }}
+        >
+          Delete Event
         </button>
       </div>
 

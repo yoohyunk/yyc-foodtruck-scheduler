@@ -23,6 +23,7 @@ export default function EditTruckPage(): ReactElement {
     status: "",
     driver: "",
     location: "",
+    isAvailable: false,
   });
 
   // Fetch truck details
@@ -40,6 +41,7 @@ export default function EditTruckPage(): ReactElement {
             status: truckData.status || "",
             driver: truckData.driver ? truckData.driver.name : "",
             location: truckData.location || "",
+            isAvailable: truckData.status === "Available",
           });
         } else {
           console.error("Truck not found");

@@ -7,9 +7,12 @@
     "location": "4908 23 Ave NW, Calgary, Alberta T3B 0Z7, Canada",
     "coordinates": {
       "latitude": 51.0787,
-      "longitude": -114.1590
+      "longitude": -114.159
     },
-    "trucks": ["Truck 1", "Truck 2"],
+    "trucks": [
+      "Truck 1",
+      "Truck 2"
+    ],
     "assignedStaff": [],
     "requiredServers": 4,
     "status": "Scheduled"
@@ -24,7 +27,9 @@
       "latitude": 51.0512,
       "longitude": -114.0723
     },
-    "trucks": ["Truck 3"],
+    "trucks": [
+      "Truck 3"
+    ],
     "assignedStaff": [],
     "requiredServers": 2,
     "status": "Scheduled"
@@ -39,7 +44,10 @@
       "latitude": 51.0482,
       "longitude": -114.0671
     },
-    "trucks": ["Truck 1", "Truck 4"],
+    "trucks": [
+      "Truck 1",
+      "Truck 4"
+    ],
     "assignedStaff": [],
     "requiredServers": 3,
     "status": "Scheduled"
@@ -54,7 +62,10 @@
       "latitude": 51.0478,
       "longitude": -114.0675
     },
-    "trucks": ["Truck 2", "Truck 3"],
+    "trucks": [
+      "Truck 2",
+      "Truck 3"
+    ],
     "assignedStaff": [],
     "requiredServers": 5,
     "status": "Scheduled"
@@ -69,7 +80,10 @@
       "latitude": 51.0516,
       "longitude": -114.0719
     },
-    "trucks": ["Truck 1", "Truck 4"],
+    "trucks": [
+      "Truck 1",
+      "Truck 4"
+    ],
     "assignedStaff": [],
     "requiredServers": 3,
     "status": "Scheduled"
@@ -84,7 +98,11 @@
       "latitude": 51.0474,
       "longitude": -114.0679
     },
-    "trucks": ["Truck 1", "Truck 2", "Truck 3"],
+    "trucks": [
+      "Truck 1",
+      "Truck 2",
+      "Truck 3"
+    ],
     "assignedStaff": [],
     "requiredServers": 6,
     "status": "Scheduled"
@@ -99,7 +117,10 @@
       "latitude": 51.0482,
       "longitude": -114.0671
     },
-    "trucks": ["Truck 1", "Truck 4"],
+    "trucks": [
+      "Truck 1",
+      "Truck 4"
+    ],
     "assignedStaff": [],
     "requiredServers": 4,
     "status": "Scheduled"
@@ -114,7 +135,10 @@
       "latitude": 51.0512,
       "longitude": -114.0723
     },
-    "trucks": ["Truck 2", "Truck 3"],
+    "trucks": [
+      "Truck 2",
+      "Truck 3"
+    ],
     "assignedStaff": [],
     "requiredServers": 5,
     "status": "Scheduled"
@@ -129,7 +153,12 @@
       "latitude": 51.0478,
       "longitude": -114.0675
     },
-    "trucks": ["Truck 1", "Truck 2", "Truck 3", "Truck 4"],
+    "trucks": [
+      "Truck 1",
+      "Truck 2",
+      "Truck 3",
+      "Truck 4"
+    ],
     "assignedStaff": [],
     "requiredServers": 8,
     "status": "Scheduled"
@@ -144,7 +173,10 @@
       "latitude": 51.0516,
       "longitude": -114.0719
     },
-    "trucks": ["Truck 1", "Truck 3"],
+    "trucks": [
+      "Truck 1",
+      "Truck 3"
+    ],
     "assignedStaff": [],
     "requiredServers": 3,
     "status": "Scheduled"
@@ -159,7 +191,10 @@
       "latitude": 51.0482,
       "longitude": -114.0671
     },
-    "trucks": ["Truck 2", "Truck 4"],
+    "trucks": [
+      "Truck 2",
+      "Truck 4"
+    ],
     "assignedStaff": [],
     "requiredServers": 4,
     "status": "Scheduled"
@@ -174,7 +209,12 @@
       "latitude": 51.0474,
       "longitude": -114.0679
     },
-    "trucks": ["Truck 1", "Truck 2", "Truck 3", "Truck 4"],
+    "trucks": [
+      "Truck 1",
+      "Truck 2",
+      "Truck 3",
+      "Truck 4"
+    ],
     "assignedStaff": [],
     "requiredServers": 8,
     "status": "Scheduled"

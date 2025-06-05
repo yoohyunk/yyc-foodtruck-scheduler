@@ -7,13 +7,14 @@ import {
   ChangeEvent,
   ReactElement,
 } from "react";
-import { Employee, FormData } from "@/app/types";
+import { Employee, EmployeeFormData } from "@/app/types";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [formData, setFormData] = useState<FormData>({
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [formData, setFormData] = useState<EmployeeFormData>({
     name: "",
     address: "",
     role: "",
@@ -38,7 +39,7 @@ export default function EditEmployeePage(): ReactElement {
   useEffect(() => {
     if (!id) return;
 
-    fetch("/employee.json")
+    fetch("/employees.json")
       .then((response) => response.json())
       .then((data: Employee[]) => {
         const employeeData = data.find(
@@ -51,7 +52,7 @@ export default function EditEmployeePage(): ReactElement {
             role: employeeData.role || "",
             email: employeeData.email || "",
             phone: employeeData.phone || "",
-            wage: employeeData.wage || "",
+            wage: employeeData.wage !== undefined ? String(employeeData.wage) : "",
             isAvailable: employeeData.isAvailable || false,
             availability: employeeData.availability || [],
           });
@@ -135,6 +136,38 @@ export default function EditEmployeePage(): ReactElement {
       });
   };
 
+  const handleDelete = async () => {
+    try {
+      // Get current employees
+      const response = await fetch('/employees.json');
+      const currentEmployees = await response.json();
+      
+      // Filter out the employee to delete
+      const updatedEmployees = currentEmployees.filter(
+        (emp: Employee) => emp.id !== parseInt(id as string)
+      );
+
+      // Save updated list
+      const saveResponse = await fetch('/api/employees', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedEmployees),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error('Failed to delete employee');
+      }
+
+      // Navigate back to employees list
+      router.push('/employees');
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      alert('Failed to delete employee. Please try again.');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -145,9 +178,11 @@ export default function EditEmployeePage(): ReactElement {
 
   return (
     <div className="edit-employee-page">
-      <button className="button" onClick={() => router.back()}>
-        &larr; Back
-      </button>
+      <div className="flex justify-between items-center mb-4">
+        <button className="button" onClick={() => router.back()}>
+          &larr; Back
+        </button>
+      </div>
 
       <h1 className="text-2xl font-bold mb-4">Edit Employee</h1>
 
@@ -293,13 +328,98 @@ export default function EditEmployeePage(): ReactElement {
           </div>
         </div>
 
-        <button
-          type="submit"
-          className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
-        >
-          Save Changes
-        </button>
+        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e5e7eb' }}>
+          <div style={{ display: 'flex', gap: '2rem', marginLeft: '1rem' }}>
+            <button type="submit" className="button">
+              Save Changes
+            </button>
+            <button
+              type="button"
+              className="button bg-red-500 hover:bg-red-600 text-white"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              Delete Employee
+            </button>
+          </div>
+        </div>
       </form>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.4)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '1.5rem',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            padding: '2.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            maxWidth: 400,
+            border: '4px solid #ef4444',
+            fontFamily: 'sans-serif',
+          }}>
+            <span style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>⚠️</span>
+            <p style={{ color: '#b91c1c', fontWeight: 800, fontSize: '1.25rem', marginBottom: '1rem', textAlign: 'center', letterSpacing: '0.03em' }}>
+              Confirm Delete
+            </p>
+            <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#4b5563', fontSize: '1rem' }}>
+              Are you sure you want to delete {formData.name}? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                style={{
+                  padding: '0.5rem 1.5rem',
+                  background: '#e5e7eb',
+                  color: '#4b5563',
+                  fontWeight: 700,
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  transition: 'background 0.2s',
+                }}
+                onClick={() => setShowDeleteModal(false)}
+                onMouseOver={e => (e.currentTarget.style.background = '#d1d5db')}
+                onMouseOut={e => (e.currentTarget.style.background = '#e5e7eb')}
+              >
+                Cancel
+              </button>
+              <button
+                style={{
+                  padding: '0.5rem 1.5rem',
+                  background: '#ef4444',
+                  color: 'white',
+                  fontWeight: 700,
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  boxShadow: '0 2px 8px rgba(239,68,68,0.15)',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  transition: 'background 0.2s',
+                }}
+                onClick={handleDelete}
+                onMouseOver={e => (e.currentTarget.style.background = '#dc2626')}
+                onMouseOut={e => (e.currentTarget.style.background = '#ef4444')}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
