@@ -43,6 +43,7 @@ export interface EventFormData {
   name: string;
   date: string;
   time: string;
+  endTime?: string;
   location: string;
   requiredServers: string;
   contactName: string;

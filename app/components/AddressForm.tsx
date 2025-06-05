@@ -53,7 +53,7 @@ const ALBERTA_CITIES = [
   'Banff'
 ];
 
-const DIRECTION_OPTIONS = ["NW", "NE", "SW", "SE"];
+const DIRECTION_OPTIONS = ["None", "NW", "NE", "SW", "SE"];
 
 // Add abbreviation expansion function at the top
 function expandAbbreviations(streetName: string): string {
@@ -70,6 +70,16 @@ function expandAbbreviations(streetName: string): string {
     .replace(/\bTer\b/gi, "Terrace");
 }
 
+// Add getFullAddress function before it is used
+const getFullAddress = (data: {
+  streetNumber: string;
+  streetName: string;
+  direction: string;
+  city: string;
+  postalCode: string;
+}) =>
+  `${data.streetNumber} ${expandAbbreviations(data.streetName)}${data.direction && data.direction !== 'None' ? ' ' + data.direction : ''}, ${data.city}, ${data.postalCode}`;
+
 const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   value,
   onChange,
@@ -80,7 +90,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   const [formData, setFormData] = useState<AddressFormData>({
     streetNumber: '',
     streetName: '',
-    direction: 'NW',
+    direction: 'None',
     city: 'Calgary',
     postalCode: '',
   });
@@ -194,7 +204,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
 
   // Update parent component with full address
   const updateParentAddress = (newData: typeof formData) => {
-    const fullAddress = `${newData.streetNumber} ${newData.streetName} ${newData.direction}, ${newData.city}, ${newData.postalCode}`;
+    const fullAddress = getFullAddress(newData);
     onChange(fullAddress);
   };
 
@@ -252,8 +262,8 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
           const streetParts = parts[0].split(' ');
           const streetNumber = streetParts[0] || '';
           // Assume direction is always the last part of streetParts
-          const direction = DIRECTION_OPTIONS.includes(streetParts[streetParts.length - 1]) ? streetParts[streetParts.length - 1] : 'NW';
-          const streetName = streetParts.slice(1, direction === 'NW' || direction === 'NE' || direction === 'SW' || direction === 'SE' ? -1 : undefined).join(' ') || '';
+          const direction = DIRECTION_OPTIONS.includes(streetParts[streetParts.length - 1]) ? streetParts[streetParts.length - 1] : 'None';
+          const streetName = streetParts.slice(1, direction === 'None' ? undefined : -1).join(' ') || '';
           
           const newData = {
             streetNumber,
@@ -276,7 +286,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
     setIsChecking(true);
     setCheckStatus(null);
     setCheckMessage("");
-    const fullAddress = `${formData.streetNumber} ${expandAbbreviations(formData.streetName)} ${formData.direction}, ${formData.city}, ${formData.postalCode}`;
+    const fullAddress = getFullAddress(formData);
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`;
       const response = await fetch(url, {
@@ -366,7 +376,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
             className={`w-full px-3 py-2 border ${showErrors && !validation.direction ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
           >
             {DIRECTION_OPTIONS.map((dir) => (
-              <option key={dir} value={dir}>{dir}</option>
+              <option key={dir} value={dir}>{dir === 'None' ? 'None' : dir}</option>
             ))}
           </select>
           {showErrors && !validation.direction && (

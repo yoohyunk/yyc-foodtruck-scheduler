@@ -19,6 +19,7 @@ export default function AddEventPage(): ReactElement {
     name: "",
     date: "",
     time: "",
+    endTime: "",
     location: "",
     requiredServers: "",
     contactName: "",
@@ -29,6 +30,7 @@ export default function AddEventPage(): ReactElement {
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
+  const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
   const [trucks, setTrucks] = useState<Truck[]>([]); // State to store truck data
   const [employees, setEmployees] = useState<any[]>([]); // State to store employee data
@@ -90,6 +92,16 @@ export default function AddEventPage(): ReactElement {
     }
   };
 
+  const handleEndTimeChange = (time: Date | null) => {
+    setSelectedEndTime(time);
+    if (time) {
+      setFormData({
+        ...formData,
+        endTime: time.toTimeString().slice(0, 5),
+      });
+    }
+  };
+
   const handleLocationChange = (address: string, coords?: Coordinates) => {
     setFormData({
       ...formData,
@@ -120,6 +132,7 @@ export default function AddEventPage(): ReactElement {
     if (!formData.name.trim()) errorList.push('Event name is required.');
     if (!selectedDate) errorList.push('Date is required.');
     if (!selectedTime) errorList.push('Time is required.');
+    if (!selectedEndTime) errorList.push('End time is required.');
     const isAddressValid = addressFormRef.current?.validate() ?? false;
     if (!isAddressValid) errorList.push('Please enter a valid address.');
     if (!formData.requiredServers) errorList.push('Number of required servers is required.');
@@ -130,6 +143,13 @@ export default function AddEventPage(): ReactElement {
     if (!formData.contactPhone.trim()) errorList.push('Contact phone is required.');
     else if (!/^\+?[\d\s-]{10,}$/.test(formData.contactPhone.replace(/\s/g, ''))) errorList.push('Please enter a valid phone number.');
     if (formData.trucks.length === 0) errorList.push('Please select at least one truck.');
+    if (selectedDate && selectedTime && selectedEndTime) {
+      const start = new Date(selectedDate);
+      start.setHours(selectedTime.getHours(), selectedTime.getMinutes());
+      const end = new Date(selectedDate);
+      end.setHours(selectedEndTime.getHours(), selectedEndTime.getMinutes());
+      if (end <= start) errorList.push('End time must be after start time.');
+    }
     setFormErrors(errorList);
     setShowErrorModal(errorList.length > 0);
     return errorList.length === 0;
@@ -179,7 +199,7 @@ export default function AddEventPage(): ReactElement {
       const eventData = {
         title: formData.name,
         startTime: `${formData.date}T${formData.time}`,
-        endTime: `${formData.date}T${formData.time}`,
+        endTime: `${formData.date}T${formData.endTime}`,
         location: formData.location,
         coordinates: {
           latitude: (coordinates as { latitude: number; longitude: number }).latitude,
@@ -274,7 +294,7 @@ export default function AddEventPage(): ReactElement {
 
         <div className="input-group">
           <label htmlFor="time" className="input-label">
-            Time <span className="text-red-500">*</span>
+            Start Time <span className="text-red-500">*</span>
           </label>
           <DatePicker
             selected={selectedTime}
@@ -286,6 +306,27 @@ export default function AddEventPage(): ReactElement {
             dateFormat="h:mm aa"
             className={`w-full px-3 py-2 border ${formErrors.includes('Time is required.') ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
             placeholderText="Select time"
+            required
+            openToDate={new Date()}
+            minTime={new Date(0, 0, 0, 0, 0, 0)}
+            maxTime={new Date(0, 0, 0, 23, 59, 59)}
+          />
+        </div>
+
+        <div className="input-group">
+          <label htmlFor="endTime" className="input-label">
+            End Time <span className="text-red-500">*</span>
+          </label>
+          <DatePicker
+            selected={selectedEndTime}
+            onChange={handleEndTimeChange}
+            showTimeSelect
+            showTimeSelectOnly
+            timeIntervals={15}
+            timeCaption="End Time"
+            dateFormat="h:mm aa"
+            className={`w-full px-3 py-2 border ${formErrors.includes('End time is required.') || formErrors.includes('End time must be after start time.') ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            placeholderText="Select end time"
             required
             openToDate={new Date()}
             minTime={new Date(0, 0, 0, 0, 0, 0)}
