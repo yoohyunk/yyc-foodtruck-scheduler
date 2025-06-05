@@ -70,25 +70,25 @@ export default function RootLayout({
 
           <main className="container dashboard-grid">
             <aside className="sidebar bg-gray-100 p-3 shadow-md">
-              <h3 className="text-md font-semibold mb-3">Quick Actions</h3>
-              <nav className="space-y-2">
+              <h3 className="text-md font-semibold mb-6">Quick Actions</h3>
+              <nav>
                 <Link
                   href="/schedule/new"
-                  className="button w-full text-center bg-blue-500 text-white py-1 rounded-lg hover:bg-blue-600"
+                  className="button"
                 >
-                  + New Shift
+                  <span>+</span> New Shift
                 </Link>
                 <Link
                   href="/employees/newEmployee"
-                  className="button w-full text-center bg-blue-500 text-white py-1 rounded-lg hover:bg-blue-600"
+                  className="button"
                 >
-                  + Add Staff
+                  <span>+</span> Add Staff
                 </Link>
                 <Link
                   href="/events/newEvent"
-                  className="button w-full text-center bg-blue-500 text-white py-1 rounded-lg hover:bg-blue-600"
+                  className="button"
                 >
-                  + Create Event
+                  <span>+</span> Create Event
                 </Link>
               </nav>
 

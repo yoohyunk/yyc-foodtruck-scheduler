@@ -1589,3 +1589,37 @@ button[title="Edit Employee"]:hover {
   color: var(--primary-dark);
 }
 
+/* Quick Action Buttons */
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.sidebar nav .button {
+  padding: 1.25rem;
+  margin: 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  background-color: var(--primary-medium);
+  color: var(--white);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.sidebar nav .button:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px var(--shadow);
+}
+
+.sidebar nav .button span {
+  font-size: 1.5rem;
+}
+
