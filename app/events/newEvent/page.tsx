@@ -395,31 +395,33 @@ export default function AddEventPage(): ReactElement {
         {/* Truck Selection Section */}
         <div className="input-group">
           <label className="input-label">Select Trucks</label>
-          <div className={`truck-list ${errors.trucks ? "border-red-500" : ""}`}>
-            {trucks.map((truck) => (
-              <label
-                key={truck.id}
-                className="truck-item flex items-center gap-2"
-              >
-                <input
-                  type="checkbox"
-                  checked={formData.trucks.includes(truck.id)}
-                  onChange={() => handleTruckSelection(truck.id)}
-                />
-                <span>
-                  {truck.name} ({truck.type}) -{" "}
-                  <span
-                    className={
+          <div className={`truck-list grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 ${errors.trucks ? "border-red-500" : ""}`}>
+            {trucks.map((truck) => {
+              const truckIdStr = truck.id.toString();
+              return (
+                <label
+                  key={truckIdStr}
+                  className="truck-item flex items-center gap-2 p-2 border rounded-md bg-white shadow-sm"
+                  style={{ minWidth: 0 }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.trucks.includes(truckIdStr)}
+                    onChange={() => handleTruckSelection(truckIdStr)}
+                  />
+                  <span className="truncate">
+                    {truck.name} ({truck.type}) -{' '}
+                    <span className={
                       truck.isAvailable
-                        ? "status-available"
-                        : "status-unavailable"
-                    }
-                  >
-                    {truck.isAvailable ? "Available" : "Unavailable"}
+                        ? "status-available text-green-600"
+                        : "status-unavailable text-red-500"
+                    }>
+                      {truck.isAvailable ? "Available" : "Unavailable"}
+                    </span>
                   </span>
-                </span>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </div>
           {errors.trucks && <p className="text-red-500 text-sm mt-1">{errors.trucks}</p>}
         </div>

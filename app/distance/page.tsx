@@ -256,31 +256,18 @@ export default function DistancePage() {
       setError(null);
       setClosestEmployees([]);
 
-      // Validate event location
-      if (!validateAddress(selectedEvent.location)) {
-        setError("Invalid event location format. Please correct the address below.");
-        setInvalidAddressType('event');
-        setInvalidAddressData({
-          id: selectedEvent.id,
-          name: selectedEvent.title,
-          address: selectedEvent.location
-        });
-        setAddressFormData(parseAddress(selectedEvent.location));
-        setShowAddressForm(true);
-        return;
-      }
-
-      // Format the event location
-      const formattedLocation = formatAddress(selectedEvent.location);
+      // Use event coordinates if available, otherwise fallback to address
+      const eventCoords = selectedEvent.coordinates;
+      const eventLocation = selectedEvent.location;
 
       // Use the existing findClosestEmployees function with coordinates
       const closest = await findClosestEmployees(
-        formattedLocation, 
+        eventLocation, 
         employees.map(emp => ({
           ...emp,
           coordinates: emp.coordinates
         })),
-        selectedEvent.coordinates
+        eventCoords // Pass coordinates directly
       );
       setClosestEmployees(closest);
     } catch (error) {
