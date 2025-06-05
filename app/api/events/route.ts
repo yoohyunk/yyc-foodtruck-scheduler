@@ -1,3 +1,4 @@
+//saving event to json can be removed after database connectivity
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
