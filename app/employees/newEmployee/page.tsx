@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, ReactElement, ChangeEvent, FormEvent } from "react";
-import { FormData, Coordinates, EmployeeFormData } from "@/app/types";
+import { FormData, Coordinates } from "@/app/types";
 import AddressForm from "@/app/components/AddressForm";
 
 export default function CreateEmployee(): ReactElement {
@@ -82,8 +82,17 @@ export default function CreateEmployee(): ReactElement {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
+    if (!coordinates) {
+      alert('Please enter a valid address');
+      return;
+    }
+
     const employeeData = {
-      ...formData
+      ...formData,
+      coordinates: {
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude
+      }
     };
 
     try {
@@ -129,6 +138,7 @@ export default function CreateEmployee(): ReactElement {
         isAvailable: false,
         availability: [],
       });
+      setCoordinates(undefined);
 
       // Show success message
       alert('Employee created successfully!');

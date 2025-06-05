@@ -6,8 +6,21 @@ export async function POST(request: Request) {
   try {
     const events = await request.json();
     
+    // Ensure the public directory exists
+    const publicDir = path.join(process.cwd(), 'public');
+    if (!fs.existsSync(publicDir)) {
+      fs.mkdirSync(publicDir, { recursive: true });
+    }
+    
     // Write to events.json
-    const filePath = path.join(process.cwd(), 'public', 'events.json');
+    const filePath = path.join(publicDir, 'events.json');
+    
+    // If file doesn't exist, create it with an empty array
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify([], null, 2));
+    }
+    
+    // Write the updated events
     fs.writeFileSync(filePath, JSON.stringify(events, null, 2));
     
     return NextResponse.json({ success: true });

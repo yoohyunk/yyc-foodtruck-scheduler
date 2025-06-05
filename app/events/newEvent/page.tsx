@@ -6,9 +6,10 @@ import React, {
   ReactElement,
   ChangeEvent,
   FormEvent,
+  useRef,
 } from "react";
 import { EventFormData, Truck, Coordinates } from "@/app/types";
-import AddressForm from "@/app/components/AddressForm";
+import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import { findClosestEmployees } from "@/app/AlgApi/distance";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -28,8 +29,11 @@ export default function AddEventPage(): ReactElement {
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
+  const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
   const [trucks, setTrucks] = useState<Truck[]>([]); // State to store truck data
   const [employees, setEmployees] = useState<any[]>([]); // State to store employee data
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const addressFormRef = useRef<AddressFormRef>(null);
 
   // Fetch truck and employee data
   useEffect(() => {
@@ -89,48 +93,116 @@ export default function AddEventPage(): ReactElement {
       ...formData,
       location: address,
     });
+    setCoordinates(coords);
   };
 
-  const handleTruckSelection = (truckId: string): void => {
-    if (formData.trucks.includes(truckId)) {
+  const handleTruckSelection = (truckId: string | number): void => {
+    const truckIdStr = truckId.toString();
+    if (formData.trucks.includes(truckIdStr)) {
       // Remove truck if already selected
       setFormData({
         ...formData,
-        trucks: formData.trucks.filter((id) => id !== truckId),
+        trucks: formData.trucks.filter((id) => id !== truckIdStr),
       });
     } else {
       // Add truck if not already selected
       setFormData({
         ...formData,
-        trucks: [...formData.trucks, truckId],
+        trucks: [...formData.trucks, truckIdStr],
       });
     }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Event name is required";
+    }
+
+    if (!selectedDate) {
+      newErrors.date = "Date is required";
+    }
+
+    if (!selectedTime) {
+      newErrors.time = "Time is required";
+    }
+
+    // Validate address using the ref
+    const isAddressValid = addressFormRef.current?.validate() ?? false;
+    if (!isAddressValid) {
+      newErrors.location = "Please enter a valid address";
+    }
+
+    if (!formData.requiredServers) {
+      newErrors.requiredServers = "Number of required servers is required";
+    } else if (parseInt(formData.requiredServers) <= 0) {
+      newErrors.requiredServers = "Number of servers must be greater than 0";
+    }
+
+    if (!formData.contactName.trim()) {
+      newErrors.contactName = "Contact name is required";
+    }
+
+    if (!formData.contactEmail.trim()) {
+      newErrors.contactEmail = "Contact email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) {
+      newErrors.contactEmail = "Please enter a valid email address";
+    }
+
+    if (!formData.contactPhone.trim()) {
+      newErrors.contactPhone = "Contact phone is required";
+    } else if (!/^\+?[\d\s-]{10,}$/.test(formData.contactPhone.replace(/\s/g, ''))) {
+      newErrors.contactPhone = "Please enter a valid phone number";
+    }
+
+    if (formData.trucks.length === 0) {
+      newErrors.trucks = "Please select at least one truck";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
+    if (!validateForm()) {
+      return;
+    }
+
     try {
+      // Validate required fields
+      if (!formData.name || !formData.date || !formData.time || !formData.location || !formData.requiredServers) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
       // Get the required number of servers
       const requiredServers = parseInt(formData.requiredServers);
       
       // Find the closest available servers
       const closestEmployees = await findClosestEmployees(
         formData.location,
-        employees.filter(emp => emp.role === "Server" && emp.isAvailable)
+        employees.filter(emp => emp.role === "Server" && emp.isAvailable),
+        coordinates as { latitude: number; longitude: number } // Type assertion since we validated coordinates exist
       );
 
       // Take only the required number of servers
       const assignedStaff = closestEmployees
         .slice(0, requiredServers)
-        .map(emp => emp.employeeId.toString());
+        .map(emp => emp.id.toString());
 
       // Create event data
       const eventData = {
         title: formData.name,
         startTime: `${formData.date}T${formData.time}`,
-        endTime: `${formData.date}T${formData.time}`, // You might want to add end time input
+        endTime: `${formData.date}T${formData.time}`,
         location: formData.location,
+        coordinates: {
+          latitude: (coordinates as { latitude: number; longitude: number }).latitude,
+          longitude: (coordinates as { latitude: number; longitude: number }).longitude
+        },
         trucks: formData.trucks,
         assignedStaff: assignedStaff,
         requiredServers: requiredServers,
@@ -142,10 +214,13 @@ export default function AddEventPage(): ReactElement {
 
       // Get existing events
       const response = await fetch('/events.json');
+      if (!response.ok) {
+        throw new Error('Failed to fetch existing events');
+      }
       const events = await response.json();
       
       // Generate new ID (max existing ID + 1)
-      const newId = Math.max(...events.map((evt: any) => parseInt(evt.id))) + 1;
+      const newId = Math.max(...events.map((evt: any) => parseInt(evt.id) || 0)) + 1;
       
       // Create new event with ID
       const newEvent = {
@@ -172,11 +247,11 @@ export default function AddEventPage(): ReactElement {
       // Show success message
       alert('Event created successfully with auto-assigned staff!');
       
-      // Redirect to events list
-      window.location.href = '/events';
+      // Redirect to the specific event page
+      window.location.href = `/events/${newEvent.id}`;
     } catch (error) {
       console.error('Error saving event:', error);
-      alert('Failed to create event. Please try again.');
+      alert(`Failed to create event: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -194,8 +269,10 @@ export default function AddEventPage(): ReactElement {
             name="name"
             value={formData.name}
             onChange={handleChange}
+            className={errors.name ? "border-red-500" : ""}
             required
           />
+          {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
         </div>
 
         <div className="input-group">
@@ -207,10 +284,11 @@ export default function AddEventPage(): ReactElement {
             onChange={handleDateChange}
             dateFormat="MMMM d, yyyy"
             minDate={new Date()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border ${errors.date ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
             placeholderText="Select date"
             required
           />
+          {errors.date && <p className="text-red-500 text-sm mt-1">{errors.date}</p>}
         </div>
 
         <div className="input-group">
@@ -225,10 +303,14 @@ export default function AddEventPage(): ReactElement {
             timeIntervals={15}
             timeCaption="Time"
             dateFormat="h:mm aa"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border ${errors.time ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
             placeholderText="Select time"
             required
+            openToDate={new Date()}
+            minTime={new Date(0, 0, 0, 0, 0, 0)}
+            maxTime={new Date(0, 0, 0, 23, 59, 59)}
           />
+          {errors.time && <p className="text-red-500 text-sm mt-1">{errors.time}</p>}
         </div>
 
         <div className="input-group">
@@ -236,11 +318,14 @@ export default function AddEventPage(): ReactElement {
             Location
           </label>
           <AddressForm
+            ref={addressFormRef}
             value={formData.location}
             onChange={handleLocationChange}
             placeholder="Enter event location"
             required
+            className={errors.location ? "border-red-500" : ""}
           />
+          {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
         </div>
 
         <div className="input-group">
@@ -253,8 +338,10 @@ export default function AddEventPage(): ReactElement {
             name="requiredServers"
             value={formData.requiredServers}
             onChange={handleChange}
+            className={errors.requiredServers ? "border-red-500" : ""}
             required
           />
+          {errors.requiredServers && <p className="text-red-500 text-sm mt-1">{errors.requiredServers}</p>}
         </div>
 
         <div className="input-group">
@@ -267,8 +354,10 @@ export default function AddEventPage(): ReactElement {
             name="contactName"
             value={formData.contactName}
             onChange={handleChange}
+            className={errors.contactName ? "border-red-500" : ""}
             required
           />
+          {errors.contactName && <p className="text-red-500 text-sm mt-1">{errors.contactName}</p>}
         </div>
 
         <div className="input-group">
@@ -281,8 +370,10 @@ export default function AddEventPage(): ReactElement {
             name="contactEmail"
             value={formData.contactEmail}
             onChange={handleChange}
+            className={errors.contactEmail ? "border-red-500" : ""}
             required
           />
+          {errors.contactEmail && <p className="text-red-500 text-sm mt-1">{errors.contactEmail}</p>}
         </div>
 
         <div className="input-group">
@@ -295,14 +386,16 @@ export default function AddEventPage(): ReactElement {
             name="contactPhone"
             value={formData.contactPhone}
             onChange={handleChange}
+            className={errors.contactPhone ? "border-red-500" : ""}
             required
           />
+          {errors.contactPhone && <p className="text-red-500 text-sm mt-1">{errors.contactPhone}</p>}
         </div>
 
         {/* Truck Selection Section */}
         <div className="input-group">
           <label className="input-label">Select Trucks</label>
-          <div className="truck-list">
+          <div className={`truck-list ${errors.trucks ? "border-red-500" : ""}`}>
             {trucks.map((truck) => (
               <label
                 key={truck.id}
@@ -328,6 +421,7 @@ export default function AddEventPage(): ReactElement {
               </label>
             ))}
           </div>
+          {errors.trucks && <p className="text-red-500 text-sm mt-1">{errors.trucks}</p>}
         </div>
 
         <button type="submit" className="button">

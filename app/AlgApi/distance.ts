@@ -22,10 +22,11 @@ interface OSRMResponse {
 
 // Improved approach: Use a more efficient caching system
 const coordinatesCache = new Map<string, Coordinates>();
+const employeeCoordinatesCache = new Map<number, Coordinates>();
 
 // Rate limiting
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 1000; // 1 second between requests
+const MIN_REQUEST_INTERVAL = 500; // Reduced to 500ms between requests
 
 async function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -152,6 +153,18 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
 }
 
 export async function calculateDistance(coord1: Coordinates, coord2: Coordinates): Promise<number> {
+  // If coordinates are exactly the same, return 0
+  if (coord1.lat === coord2.lat && coord1.lng === coord2.lng) {
+    return 0;
+  }
+
+  // If coordinates are very close (within ~10 meters), return a small distance
+  const latDiff = Math.abs(coord1.lat - coord2.lat);
+  const lngDiff = Math.abs(coord1.lng - coord2.lng);
+  if (latDiff < 0.0001 && lngDiff < 0.0001) {
+    return 0.01; // Return 10 meters
+  }
+
   const maxRetries = 3;
   let retryCount = 0;
 
@@ -227,6 +240,7 @@ function toRad(degrees: number): number {
 }
 
 export interface EmployeeWithDistance {
+  id: number;
   employeeId: number;
   name: string;
   wage: number;
@@ -245,39 +259,53 @@ export async function findClosestEmployees(
   eventCoordinates?: { latitude: number; longitude: number }
 ): Promise<EmployeeWithDistance[]> {
   try {
-    // Use stored event coordinates if available, otherwise get them
+    // Get event coordinates
     const eventCoords = eventCoordinates 
       ? { lat: eventCoordinates.latitude, lng: eventCoordinates.longitude }
       : await getCoordinates(eventAddress);
-    
-    console.log('Event coordinates:', eventCoords);
-    
-    const employeesWithDistance = await Promise.all(
-      employees.map(async (employee) => {
-        // Use stored coordinates if available, otherwise get them
-        const employeeCoords = employee.coordinates 
-          ? { lat: employee.coordinates.latitude, lng: employee.coordinates.longitude }
-          : await getCoordinates(employee.address);
-        
-        console.log(`Employee ${employee.name} coordinates:`, employeeCoords);
-        
-        const distance = await calculateDistance(eventCoords, employeeCoords);
-        console.log(`Distance for ${employee.name}:`, distance);
-        
+
+    // Process all employees at once using their stored coordinates
+    const results = await Promise.all(employees.map(async (employee) => {
+      if (!employee.coordinates) {
+        console.warn(`No coordinates found for employee ${employee.name}, skipping distance calculation`);
         return {
+          id: employee.id,
           employeeId: employee.id,
           name: employee.name,
           wage: employee.wage,
-          distance
+          distance: Infinity // Put employees without coordinates at the end
         };
-      })
-    );
-    
-    // Sort employees by distance
-    return employeesWithDistance.sort((a, b) => a.distance - b.distance);
+      }
+
+      const employeeCoords = {
+        lat: employee.coordinates.latitude,
+        lng: employee.coordinates.longitude
+      };
+
+      // Calculate distance
+      const distance = await calculateDistance(eventCoords, employeeCoords);
+
+      return {
+        id: employee.id,
+        employeeId: employee.id,
+        name: employee.name,
+        wage: employee.wage,
+        distance
+      };
+    }));
+
+    // Sort by distance and return
+    return results.sort((a, b) => a.distance - b.distance);
   } catch (error) {
     console.error('Error finding closest employees:', error);
-    return [];
+    // Return employees in original order if there's an error
+    return employees.map(emp => ({
+      id: emp.id,
+      employeeId: emp.id,
+      name: emp.name,
+      wage: emp.wage,
+      distance: 0
+    }));
   }
 }
 

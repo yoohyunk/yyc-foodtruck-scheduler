@@ -1,18 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { Coordinates } from '../types';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import { Coordinates } from "@/app/types";
 
 interface AddressFormProps {
   value: string;
   onChange: (address: string, coordinates?: Coordinates) => void;
   placeholder?: string;
-  className?: string;
   required?: boolean;
+  className?: string;
 }
 
 interface AddressFormData {
-  streetAddress: string;
+  streetNumber: string;
+  streetName: string;
   city: string;
   postalCode: string;
+}
+
+interface AddressValidation {
+  streetNumber: boolean;
+  streetName: boolean;
+  postalCode: boolean;
+}
+
+interface AddressErrorMessages {
+  streetNumber: string;
+  streetName: string;
+  postalCode: string;
+}
+
+export interface AddressFormRef {
+  validate: () => boolean;
 }
 
 const ALBERTA_CITIES = [
@@ -33,89 +50,314 @@ const ALBERTA_CITIES = [
   'Banff'
 ];
 
-export default function AddressForm({
+const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   value,
   onChange,
-  placeholder = 'Enter address',
-  className = '',
+  placeholder = "Enter address",
   required = false,
-}: AddressFormProps) {
+  className = "",
+}, ref) => {
   const [formData, setFormData] = useState<AddressFormData>({
-    streetAddress: '',
+    streetNumber: '',
+    streetName: '',
     city: 'Calgary',
     postalCode: '',
   });
 
-  // Update form when value changes
+  const [validation, setValidation] = useState<AddressValidation>({
+    streetNumber: true,
+    streetName: true,
+    postalCode: true,
+  });
+
+  const [errorMessages, setErrorMessages] = useState<AddressErrorMessages>({
+    streetNumber: '',
+    streetName: '',
+    postalCode: '',
+  });
+
+  const [showErrors, setShowErrors] = useState(false);
+
+  const [checkStatus, setCheckStatus] = useState<null | 'success' | 'error'>(null);
+  const [checkMessage, setCheckMessage] = useState<string>("");
+  const [isChecking, setIsChecking] = useState(false);
+  const [lastCoords, setLastCoords] = useState<Coordinates | undefined>();
+
+  const streetNumberRef = useRef<HTMLInputElement>(null);
+  const streetNameRef = useRef<HTMLInputElement>(null);
+  const postalCodeRef = useRef<HTMLInputElement>(null);
+
+  // Expose validate method to parent
+  useImperativeHandle(ref, () => ({
+    validate: () => {
+      const newValidation = {
+        streetNumber: validateStreetNumber(formData.streetNumber),
+        streetName: validateStreetName(formData.streetName),
+        postalCode: validatePostalCode(formData.postalCode),
+      };
+
+      const newErrorMessages = {
+        streetNumber: newValidation.streetNumber ? "" : "Please enter a valid street number (e.g., 123 or 123A)",
+        streetName: newValidation.streetName ? "" : "Please enter a valid street name",
+        postalCode: newValidation.postalCode ? "" : "Please enter a valid postal code (e.g., T2N 1N4)",
+      };
+
+      setValidation(newValidation);
+      setErrorMessages(newErrorMessages);
+      setShowErrors(true);
+
+      // Find first error and scroll to it
+      if (!newValidation.streetNumber) {
+        streetNumberRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        streetNumberRef.current?.focus();
+      } else if (!newValidation.streetName) {
+        streetNameRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        streetNameRef.current?.focus();
+      } else if (!newValidation.postalCode) {
+        postalCodeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        postalCodeRef.current?.focus();
+      }
+
+      return Object.values(newValidation).every(Boolean);
+    }
+  }));
+
+  // Format postal code as user types
+  const formatPostalCode = (input: string): string => {
+    // Remove all non-alphanumeric characters
+    const cleaned = input.replace(/[^A-Za-z0-9]/g, "");
+    
+    // Convert to uppercase
+    const upper = cleaned.toUpperCase();
+    
+    // Format as A1A 1A1
+    if (upper.length > 3) {
+      return `${upper.slice(0, 3)} ${upper.slice(3, 6)}`;
+    }
+    return upper;
+  };
+
+  // Validate postal code format
+  const validatePostalCode = (code: string): boolean => {
+    // Remove spaces for validation
+    const cleanCode = code.replace(/\s/g, "");
+    // Canadian postal code format: A1A1A1
+    const postalCodeRegex = /^[A-Z]\d[A-Z]\d[A-Z]\d$/;
+    return postalCodeRegex.test(cleanCode);
+  };
+
+  // Validate street number
+  const validateStreetNumber = (number: string): boolean => {
+    // Allow numbers and common street number formats
+    return /^[0-9]+[A-Za-z]?$/.test(number);
+  };
+
+  // Validate street name
+  const validateStreetName = (name: string): boolean => {
+    // Allow letters, numbers, spaces, and common street name characters
+    return /^[A-Za-z0-9\s\-\.]+$/.test(name) && name.trim().length > 0;
+  };
+
+  // Update parent component with full address
+  const updateParentAddress = (newData: typeof formData) => {
+    const fullAddress = `${newData.streetNumber} ${newData.streetName}, ${newData.city}, ${newData.postalCode}`;
+    onChange(fullAddress);
+  };
+
+  // Handle individual field changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    let newValue = value;
+    let isValid = true;
+    let errorMessage = "";
+
+    if (name === "postalCode") {
+      newValue = formatPostalCode(value);
+      isValid = validatePostalCode(newValue);
+      errorMessage = isValid ? "" : "Please enter a valid postal code (e.g., T2N 1N4)";
+    } else if (name === "streetNumber") {
+      // Allow empty street number initially
+      isValid = value === "" || validateStreetNumber(value);
+      errorMessage = isValid ? "" : "Please enter a valid street number (e.g., 123 or 123A)";
+    } else if (name === "streetName") {
+      // Allow empty street name initially
+      isValid = value === "" || validateStreetName(value);
+      errorMessage = isValid ? "" : "Please enter a valid street name";
+    }
+
+    const newFormData = {
+      ...formData,
+      [name]: newValue,
+    };
+
+    setFormData(newFormData);
+    
+    // Only update parent if we have both street number and name
+    if (newFormData.streetNumber && newFormData.streetName) {
+      updateParentAddress(newFormData);
+    }
+
+    setValidation((prev) => ({
+      ...prev,
+      [name]: isValid,
+    }));
+
+    setErrorMessages((prev) => ({
+      ...prev,
+      [name]: errorMessage,
+    }));
+  };
+
+  // Parse initial value if provided
   useEffect(() => {
     if (value) {
-      const parts = value.split(',');
-      if (parts.length >= 3) {
-        setFormData({
-          streetAddress: parts[0].trim(),
-          city: parts[1].trim(),
-          postalCode: parts[2].trim(),
-        });
+      try {
+        const parts = value.split(',').map(part => part.trim());
+        if (parts.length >= 2) {
+          const streetParts = parts[0].split(' ');
+          const streetNumber = streetParts[0] || '';
+          const streetName = streetParts.slice(1).join(' ') || '';
+          
+          const newData = {
+            streetNumber,
+            streetName,
+            city: parts[1] || 'Calgary',
+            postalCode: parts[2] || '',
+          };
+          
+          setFormData(newData);
+        }
+      } catch (error) {
+        console.error('Error parsing address:', error);
       }
     }
   }, [value]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    // Format and update the full address whenever any field changes
-    const newFormData = {
-      ...formData,
-      [name]: value
-    };
-    const formattedAddress = `${newFormData.streetAddress}, ${newFormData.city}, ${newFormData.postalCode}`;
-    onChange(formattedAddress);
+  // Geocode address using Nominatim
+  const geocodeAddress = async () => {
+    setIsChecking(true);
+    setCheckStatus(null);
+    setCheckMessage("");
+    const fullAddress = `${formData.streetNumber} ${formData.streetName}, ${formData.city}, ${formData.postalCode}`;
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`;
+      const response = await fetch(url, {
+        headers: {
+          'Accept-Language': 'en',
+        }
+      });
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const coords = {
+          latitude: parseFloat(data[0].lat),
+          longitude: parseFloat(data[0].lon),
+        };
+        setCheckStatus('success');
+        setCheckMessage('Address found and validated!');
+        setLastCoords(coords);
+        onChange(fullAddress, coords);
+      } else {
+        setCheckStatus('error');
+        setCheckMessage('Address not found. Please check your input.');
+        setLastCoords(undefined);
+        onChange(fullAddress, undefined);
+      }
+    } catch (error) {
+      setCheckStatus('error');
+      setCheckMessage('Error validating address. Please try again.');
+      setLastCoords(undefined);
+      onChange(fullAddress, undefined);
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   return (
-    <div className="space-y-2">
-      <div>
-        <input
-          type="text"
-          name="streetAddress"
-          value={formData.streetAddress}
-          onChange={handleChange}
-          placeholder="Street Address"
-          className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
-          required={required}
-        />
+    <div className="address-form space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <input
+            ref={streetNumberRef}
+            type="text"
+            name="streetNumber"
+            value={formData.streetNumber}
+            onChange={handleChange}
+            onBlur={() => setShowErrors(true)}
+            placeholder="Street Number"
+            required={required}
+            className={`w-full px-3 py-2 border ${
+              showErrors && !validation.streetNumber ? "border-red-500" : "border-gray-300"
+            } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+          />
+          {showErrors && !validation.streetNumber && (
+            <p className="text-red-500 text-sm mt-1">{errorMessages.streetNumber}</p>
+          )}
+        </div>
+        <div>
+          <input
+            ref={streetNameRef}
+            type="text"
+            name="streetName"
+            value={formData.streetName}
+            onChange={handleChange}
+            onBlur={() => setShowErrors(true)}
+            placeholder="Street Name"
+            required={required}
+            className={`w-full px-3 py-2 border ${
+              showErrors && !validation.streetName ? "border-red-500" : "border-gray-300"
+            } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+          />
+          {showErrors && !validation.streetName && (
+            <p className="text-red-500 text-sm mt-1">{errorMessages.streetName}</p>
+          )}
+        </div>
       </div>
 
-      <div>
-        <select
-          name="city"
-          value={formData.city}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {ALBERTA_CITIES.map((city) => (
-            <option key={city} value={city}>
-              {city}
-            </option>
-          ))}
-        </select>
-      </div>
+      <input
+        type="text"
+        name="city"
+        value={formData.city}
+        readOnly
+        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+      />
 
       <div>
         <input
+          ref={postalCodeRef}
           type="text"
           name="postalCode"
           value={formData.postalCode}
           onChange={handleChange}
+          onBlur={() => setShowErrors(true)}
           placeholder="Postal Code (e.g., T2N 1N4)"
-          className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
           required={required}
+          maxLength={7}
+          className={`w-full px-3 py-2 border ${
+            showErrors && !validation.postalCode ? "border-red-500" : "border-gray-300"
+          } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
         />
+        {showErrors && !validation.postalCode && (
+          <p className="text-red-500 text-sm mt-1">{errorMessages.postalCode}</p>
+        )}
       </div>
+      <button
+        type="button"
+        className="button mt-2"
+        onClick={geocodeAddress}
+        disabled={isChecking}
+      >
+        {isChecking ? 'Checking...' : 'Check Address'}
+      </button>
+      {checkStatus === 'success' && (
+        <p className="text-green-600 text-sm mt-1">{checkMessage}</p>
+      )}
+      {checkStatus === 'error' && (
+        <p className="text-red-500 text-sm mt-1">{checkMessage}</p>
+      )}
     </div>
   );
-} 
+});
+
+AddressForm.displayName = 'AddressForm';
+
+export default AddressForm; 
