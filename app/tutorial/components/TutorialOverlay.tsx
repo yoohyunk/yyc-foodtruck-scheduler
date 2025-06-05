@@ -13,7 +13,7 @@ export function TutorialOverlay() {
       const targetElement = document.querySelector(currentStepData.target);
       
       if (targetElement) {
-        // First scroll the target element into view
+        // First scroll the target element into view with a longer delay for navigation buttons
         targetElement.scrollIntoView({
           behavior: 'smooth',
           block: 'center',
@@ -21,6 +21,9 @@ export function TutorialOverlay() {
         });
 
         // Wait for scroll to complete before positioning overlay
+        // Use a longer delay for navigation buttons to ensure proper scrolling
+        const delay = currentStepData.id.includes('button') ? 800 : 500;
+        
         setTimeout(() => {
           const rect = targetElement.getBoundingClientRect();
           const overlay = overlayRef.current;
@@ -31,8 +34,9 @@ export function TutorialOverlay() {
             overlay.style.left = `${rect.left}px`;
             overlay.style.width = `${rect.width}px`;
             overlay.style.height = `${rect.height}px`;
+            overlay.style.opacity = '1';
           }
-        }, 300); // 300ms delay to allow scroll to complete
+        }, delay);
       }
     }
   }, [isActive, currentStep, steps]);
@@ -45,7 +49,7 @@ export function TutorialOverlay() {
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
       <div
         ref={overlayRef}
-        className="absolute border-2 border-primary-light rounded-lg"
+        className="absolute border-2 border-primary-light rounded-lg transition-opacity duration-300 opacity-0"
       />
       <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow-lg max-w-md">
         <h3 className="text-lg font-semibold mb-2">{currentStepData.title}</h3>

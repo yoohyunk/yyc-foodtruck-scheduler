@@ -126,7 +126,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
     {
       id: 'add-employee',
       title: 'Add New Employee ➕',
-      content: 'To add a new employee, click the "New Employee" button in the sidebar. Important tips for the form: 1) Don\'t add "rd" to 23rd Ave addresses, 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      content: 'To add a new employee, click the "New Employee" button in the sidebar. Important tips for the form: 1) Don\'t add number suffixes to numbered streets, 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
       target: '.sidebar',
       position: 'right'
     },
@@ -177,6 +177,62 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       position: 'bottom'
     },
     {
+      id: 'navigation-buttons',
+      title: 'Navigation Buttons 🔄',
+      content: 'Use these buttons to navigate through your schedule. The arrows let you move forward or backward, and the Today button quickly takes you to the current date.',
+      target: '.navigation-container',
+      position: 'bottom'
+    },
+    {
+      id: 'previous-button',
+      title: 'Previous Button ⬅️',
+      content: 'Click this button to go back to the previous day, week, or month depending on your current view.',
+      target: '.navigation-container button:first-child',
+      position: 'bottom'
+    },
+    {
+      id: 'today-button',
+      title: 'Today Button 📍',
+      content: 'Click this button to quickly jump to today\'s date in your current view.',
+      target: '.navigation-container button:nth-child(2)',
+      position: 'bottom'
+    },
+    {
+      id: 'next-button',
+      title: 'Next Button ➡️',
+      content: 'Click this button to advance to the next day, week, or month depending on your current view.',
+      target: '.navigation-container button:last-child',
+      position: 'bottom'
+    },
+    {
+      id: 'view-options',
+      title: 'View Options 👁️',
+      content: 'You can switch between different views: Daily (shows detailed schedule for one day), Weekly (shows a week at a glance), and Monthly (shows the entire month). Use these buttons to switch between views.',
+      target: '.view-toggle-container',
+      position: 'bottom'
+    },
+    {
+      id: 'daily-view-button',
+      title: 'Daily View Button 📆',
+      content: 'Click this button to see a detailed timeline of all events and shifts for a specific day.',
+      target: '.view-toggle-button:nth-child(1)',
+      position: 'bottom'
+    },
+    {
+      id: 'weekly-view-button',
+      title: 'Weekly View Button 📅',
+      content: 'Click this button to see all events and shifts for the entire week.',
+      target: '.view-toggle-button:nth-child(2)',
+      position: 'bottom'
+    },
+    {
+      id: 'monthly-view-button',
+      title: 'Monthly View Button 📊',
+      content: 'Click this button to see a high-level overview of your entire month.',
+      target: '.view-toggle-button:nth-child(3)',
+      position: 'bottom'
+    },
+    {
       id: 'create-shift',
       title: 'Create Shift ➕',
       content: 'To create a new shift, click the "New Shift" button. You\'ll need to select: the date, time, location, and which employees will work. The system will help you find available staff.',
@@ -186,7 +242,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
     {
       id: 'shift-management',
       title: 'Manage Shifts 👥',
-      content: 'You can view and edit shifts by clicking on them in the calendar. This lets you: change the time, add or remove staff, or cancel the shift if needed.',
+      content: 'You can view and edit shifts by clicking on them in any view. This lets you: change the time, add or remove staff, or cancel the shift if needed. The changes will be reflected across all views.',
       target: '.shift-list',
       position: 'bottom'
     }
