@@ -50,11 +50,11 @@ export default function Events(): ReactElement {
     }
 
     // Apply distance filter
-    if (maxDistance) {
-      filtered = filtered.filter(
-        (event) => event.distance <= parseFloat(maxDistance)
-      );
-    }
+    // if (maxDistance) {
+    //   filtered = filtered.filter(
+    //     (event) => event.distance <= parseFloat(maxDistance)
+    //   );
+    // }
 
     setFilteredEvents(filtered);
   }, [activeFilter, selectedDate, maxDistance, events]);
@@ -103,9 +103,8 @@ export default function Events(): ReactElement {
             className="input-field w-full"
           />
         </div>
-
         {/* Distance Filter */}
-        <div>
+        {/* <div>
           <label
             htmlFor="distance-filter"
             className="block text-primary-dark font-medium mb-2"
@@ -120,7 +119,7 @@ export default function Events(): ReactElement {
             className="input-field w-full"
             placeholder="Enter max distance"
           />
-        </div>
+        </div> */}
       </div>
 
       {/* Event List */}
@@ -143,9 +142,9 @@ export default function Events(): ReactElement {
               <p>
                 <strong>Location:</strong> {event.location}
               </p>
-              <p>
+              {/* <p>
                 <strong>Distance:</strong> {event.distance} km
-              </p>
+              </p> */}
               <p>
                 <strong>Required Servers:</strong> {event.requiredServers}
               </p>
