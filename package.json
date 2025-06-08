@@ -28,8 +28,8 @@
     "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.19",
-    "@types/react": "^18.2.57",
+    "@types/node": "^20.19.0",
+    "@types/react": "^18.3.23",
     "@types/react-dom": "^18.2.19",
     "autoprefixer": "^10.4.21",
     "eslint": "^8.56.0",
@@ -39,6 +39,6 @@
     "postcss": "^8.5.4",
     "prettier": "^3.2.5",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.3.3"
+    "typescript": "^5.8.3"
   }
 }

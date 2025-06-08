@@ -70,6 +70,16 @@ export const Calendar = ({
           right: "",
         }}
         dayHeaderFormat={{ weekday: "long", day: "numeric" }}
+        dayHeaderContent={({ date }) => {
+          const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+          const dayNum = date.getDate();
+          return (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div>{dayNum}</div>
+              <div>{dayName}</div>
+            </div>
+          );
+        }}
         dayCellClassNames="custom-day-cell"
         eventClassNames="custom-event-wrapper"
         slotMinTime="00:00:00"
@@ -89,6 +99,7 @@ export const Calendar = ({
         dayMaxEventRows={viewMode === "monthly" ? false : 3}
         eventDisplay="block"
         eventOverlap={false}
+        firstDay={1}
         eventConstraint={{
           startTime: "00:00:00",
           endTime: "24:00:00",
