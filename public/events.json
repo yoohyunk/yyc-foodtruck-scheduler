@@ -10,8 +10,7 @@
       "longitude": -114.159
     },
     "trucks": [
-      "Truck 1",
-      "Truck 2"
+      1
     ],
     "assignedStaff": [],
     "requiredServers": 4,
