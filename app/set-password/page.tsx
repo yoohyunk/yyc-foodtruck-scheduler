@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, ReactElement } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
 export default function SetPasswordPage(): ReactElement {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
@@ -13,30 +13,39 @@ export default function SetPasswordPage(): ReactElement {
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
 
+  // Parse hash fragment, set session, and verify
   useEffect(() => {
-    const token = searchParams.get("token");
-    const email = searchParams.get("email");
-    if (!token || !email) {
-      setError("Missing token or email in URL.");
+    const hash = window.location.hash;
+    if (!hash) {
+      setError("Invalid invite link.");
       setLoading(false);
       return;
     }
-    // Verify invite token with email
-    supabase.auth
-      .verifyOtp({ type: "invite", token, email })
-      .then(({ data, error: verifyError }) => {
-        if (verifyError) {
-          setError(verifyError.message);
-        } else {
-          setVerified(true);
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [searchParams, supabase]);
+    const params = new URLSearchParams(hash.substring(1));
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
+    if (access_token && refresh_token) {
+      supabase.auth
+        .setSession({ access_token, refresh_token })
+        .then(({ data, error: sessionError }) => {
+          if (sessionError || !data.session) {
+            setError("Failed to verify invitation.");
+          } else {
+            setVerified(true);
+          }
+        })
+        .catch(() => {
+          setError("Error setting session.");
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setError("Missing tokens in URL.");
+      setLoading(false);
+    }
+  }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");
       return;
@@ -50,13 +59,13 @@ export default function SetPasswordPage(): ReactElement {
   };
 
   if (loading) {
-    return <p>Verifying invite…</p>;
+    return <p>Verifying invitation...</p>;
   }
   if (error) {
     return <p className="text-red-600">{error}</p>;
   }
   if (!verified) {
-    return <p className="text-red-600">Invite not verified.</p>;
+    return <p className="text-red-600">Unable to set password.</p>;
   }
 
   return (
