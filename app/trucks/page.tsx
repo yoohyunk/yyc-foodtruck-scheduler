@@ -19,10 +19,14 @@ export default function Trucks(): ReactElement {
         return response.json();
       })
       .then((data: Truck[]) => {
+        console.log("Fetched trucks:", data); // Debug log
         setTrucks(data);
         setFilteredTrucks(data);
       })
-      .catch((error) => console.error("Error fetching trucks:", error));
+      .catch((error) => {
+        console.error("Error fetching trucks:", error);
+        alert("Error loading trucks. Please try again.");
+      });
   }, []);
 
   // Filter trucks based on the active filter
@@ -35,16 +39,16 @@ export default function Trucks(): ReactElement {
   }, [activeFilter, trucks]);
 
   return (
-    <div className="trucks-page">
-      <h2 className="text-2xl mb-4">Truck Management</h2>
+    <div className="trucks-page p-4">
+      <h2 className="text-2xl font-bold mb-6">Truck Management</h2>
 
       {/* Filter Buttons */}
-      <div className="filter-buttons grid">
+      <div className="filter-buttons grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <button
           className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
           onClick={() => setActiveFilter("All")}
         >
-          All
+          All Trucks
         </button>
         <button
           className={`button ${activeFilter === "Food Truck" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
@@ -67,12 +71,12 @@ export default function Trucks(): ReactElement {
       </div>
 
       {/* Truck List */}
-      <div className="truck-list grid gap-4">
+      <div className="truck-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTrucks.length > 0 ? (
           filteredTrucks.map((truck) => (
             <div
               key={truck.id}
-              className="truck-card bg-white p-4 rounded shadow relative"
+              className="truck-card bg-white p-4 rounded-lg shadow-md relative hover:shadow-lg transition-shadow"
             >
               {/* Edit Button */}
               <button
@@ -83,36 +87,44 @@ export default function Trucks(): ReactElement {
                 ✏️
               </button>
 
-              <h3 className="text-lg font-semibold">{truck.name}</h3>
-              <p>
-                <strong>Type:</strong> {truck.type}
-              </p>
-              <p>
-                <strong>Capacity:</strong> {truck.capacity}
-              </p>
-              <p>
-                <strong>Status:</strong>{" "}
-                <span
-                  className={
-                    truck.status === "Available"
-                      ? "text-green-500"
-                      : "text-red-500"
-                  }
-                >
-                  {truck.status}
-                </span>
-              </p>
-              <p>
-                <strong>Driver:</strong>{" "}
-                {truck.driver ? truck.driver.name : "No driver assigned"}
-              </p>
-              <p>
-                <strong>Location:</strong> {truck.location}
-              </p>
+              <h3 className="text-lg font-semibold mb-2">{truck.name}</h3>
+              <div className="space-y-2">
+                <p>
+                  <strong>Type:</strong> {truck.type}
+                </p>
+                <p>
+                  <strong>Capacity:</strong> {truck.capacity}
+                </p>
+                <p>
+                  <strong>Status:</strong>{" "}
+                  <span
+                    className={
+                      truck.status === "Available"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }
+                  >
+                    {truck.status}
+                  </span>
+                </p>
+                <p>
+                  <strong>Driver:</strong>{" "}
+                  {truck.driver ? truck.driver.name : "No driver assigned"}
+                </p>
+                <p>
+                  <strong>Default Driver:</strong>{" "}
+                  {truck.defaultDriver ? truck.defaultDriver.name : "Not set"}
+                </p>
+                <p>
+                  <strong>Location:</strong> {truck.location}
+                </p>
+              </div>
             </div>
           ))
         ) : (
-          <p className="text-gray-500">No trucks found.</p>
+          <p className="text-gray-500 col-span-full text-center py-4">
+            No trucks found.
+          </p>
         )}
       </div>
     </div>

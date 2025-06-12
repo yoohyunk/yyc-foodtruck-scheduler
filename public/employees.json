@@ -187,5 +187,110 @@
       "Tuesday",
       "Thursday"
     ]
+  },
+  {
+    "id": 11,
+    "name": "Raj Patel",
+    "address": "2500 12th Avenue Southwest, Calgary, Alberta T2T 0C8, Canada",
+    "coordinates": {
+      "latitude": 51.0510,
+      "longitude": -114.0643
+    },
+    "role": "Driver",
+    "email": "raj@example.com",
+    "phone": "555-2345",
+    "wage": 42,
+    "isAvailable": true,
+    "availability": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Sarah Chen",
+    "address": "2800 14th Avenue Southwest, Calgary, Alberta T2T 0C8, Canada",
+    "coordinates": {
+      "latitude": 51.0514,
+      "longitude": -114.0639
+    },
+    "role": "Driver",
+    "email": "sarah@example.com",
+    "phone": "555-3456",
+    "wage": 41,
+    "isAvailable": true,
+    "availability": [
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Michael O'Brien",
+    "address": "3000 16th Avenue Southwest, Calgary, Alberta T2T 0C8, Canada",
+    "coordinates": {
+      "latitude": 51.0518,
+      "longitude": -114.0635
+    },
+    "role": "Driver",
+    "email": "michael@example.com",
+    "phone": "555-4567",
+    "wage": 43,
+    "isAvailable": true,
+    "availability": [
+      "Monday",
+      "Wednesday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
+  },
+  {
+    "id": 14,
+    "name": "Priya Sharma",
+    "address": "3200 18th Avenue Southwest, Calgary, Alberta T2T 0C8, Canada",
+    "coordinates": {
+      "latitude": 51.0522,
+      "longitude": -114.0631
+    },
+    "role": "Driver",
+    "email": "priya@example.com",
+    "phone": "555-5678",
+    "wage": 40,
+    "isAvailable": true,
+    "availability": [
+      "Monday",
+      "Tuesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ]
+  },
+  {
+    "id": 15,
+    "name": "David Kim",
+    "address": "3400 20th Avenue Southwest, Calgary, Alberta T2T 0C8, Canada",
+    "coordinates": {
+      "latitude": 51.0526,
+      "longitude": -114.0627
+    },
+    "role": "Driver",
+    "email": "david@example.com",
+    "phone": "555-6789",
+    "wage": 41,
+    "isAvailable": true,
+    "availability": [
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ]
   }
 ]

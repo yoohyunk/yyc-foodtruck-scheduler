@@ -8,7 +8,7 @@ import {
   ReactElement,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Truck, Event, TruckFormData } from "@/app/types";
+import { Truck, Event, TruckFormData, Employee } from "@/app/types";
 import { extractDate, extractTime } from "@/app/events/utils";
 
 export default function EditTruckPage(): ReactElement {
@@ -16,15 +16,27 @@ export default function EditTruckPage(): ReactElement {
   const router = useRouter();
   const [truck, setTruck] = useState<Truck | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [formData, setFormData] = useState<TruckFormData>({
     name: "",
     type: "",
     capacity: "",
     status: "",
     driver: "",
+    defaultDriver: "",
     location: "",
     isAvailable: false,
   });
+
+  // Fetch employees
+  useEffect(() => {
+    fetch("/employees.json")
+      .then((response) => response.json())
+      .then((data: Employee[]) => {
+        setEmployees(data);
+      })
+      .catch((error) => console.error("Error fetching employees:", error));
+  }, []);
 
   // Fetch truck details
   useEffect(() => {
@@ -40,6 +52,7 @@ export default function EditTruckPage(): ReactElement {
             capacity: truckData.capacity || "",
             status: truckData.status || "",
             driver: truckData.driver ? truckData.driver.name : "",
+            defaultDriver: truckData.defaultDriver ? truckData.defaultDriver.name : "",
             location: truckData.location || "",
             isAvailable: truckData.status === "Available",
           });
@@ -79,8 +92,27 @@ export default function EditTruckPage(): ReactElement {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    // Find the selected default driver
+    const selectedDriver = employees.find(emp => emp.name === formData.defaultDriver);
+    
+    // Prepare the updated truck data
+    const updatedTruck = {
+      ...truck,
+      name: formData.name,
+      type: formData.type,
+      capacity: formData.capacity,
+      status: formData.status,
+      driver: formData.driver ? { name: formData.driver } : null,
+      defaultDriver: selectedDriver ? {
+        id: selectedDriver.id.toString(),
+        name: selectedDriver.name
+      } : null,
+      location: formData.location,
+      isAvailable: formData.status === "Available"
+    };
+
     // Simulate saving the updated truck data
-    console.log("Updated Truck Data:", formData);
+    console.log("Updated Truck Data:", updatedTruck);
     alert("Truck information updated successfully!");
     router.push("/trucks");
   };
@@ -94,7 +126,7 @@ export default function EditTruckPage(): ReactElement {
   }
 
   return (
-    <div className="edit-truck-page">
+    <div className="edit-truck-page p-4">
       <button className="button mb-4" onClick={() => router.back()}>
         &larr; Back
       </button>
@@ -177,7 +209,7 @@ export default function EditTruckPage(): ReactElement {
         {/* Driver */}
         <div>
           <label htmlFor="driver" className="block font-medium">
-            Driver
+            Current Driver
           </label>
           <input
             type="text"
@@ -188,6 +220,32 @@ export default function EditTruckPage(): ReactElement {
             className="input-field"
             placeholder="Enter driver name"
           />
+        </div>
+
+        {/* Default Driver */}
+        <div>
+          <label htmlFor="defaultDriver" className="block font-medium">
+            Default Driver
+          </label>
+          <select
+            id="defaultDriver"
+            name="defaultDriver"
+            value={formData.defaultDriver}
+            onChange={handleInputChange}
+            className="input-field"
+          >
+            <option value="">Select Default Driver</option>
+            {employees
+              .filter(emp => emp.role === "Driver")
+              .map(driver => (
+                <option key={driver.id} value={driver.name}>
+                  {driver.name}
+                </option>
+              ))}
+          </select>
+          <p className="text-sm text-gray-500 mt-1">
+            The default driver will be automatically assigned to events when available
+          </p>
         </div>
 
         {/* Location */}

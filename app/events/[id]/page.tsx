@@ -17,6 +17,17 @@ export default function EventDetailsPage(): ReactElement {
   const [isTruckModalOpen, setTruckModalOpen] = useState<boolean>(false);
   const [isLoadingEmployees, setIsLoadingEmployees] = useState<boolean>(true);
   const [isLoadingTrucks, setIsLoadingTrucks] = useState<boolean>(true);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+
+  // Fetch all events
+  useEffect(() => {
+    fetch("/events.json")
+      .then((response) => response.json())
+      .then((data: Event[]) => {
+        setAllEvents(data);
+      })
+      .catch((error) => console.error("Error fetching events:", error));
+  }, []);
 
   // Fetch event details
   useEffect(() => {
@@ -138,10 +149,110 @@ export default function EventDetailsPage(): ReactElement {
 
   const handleTruckSelection = (truck: Truck) => {
     if (assignedTrucks.some((t) => t.id === truck.id)) {
+      // If truck is already assigned, remove it and its driver
       setAssignedTrucks(assignedTrucks.filter((t) => t.id !== truck.id));
+      // Remove the driver if they were assigned with this truck
+      if (truck.driver) {
+        setAssignedEmployees(assignedEmployees.filter(e => e.id.toString() !== truck.driver?.id));
+      }
     } else {
+      // Check if the truck has a default driver
+      if (truck.defaultDriver && event) {
+        const defaultDriver = employees.find(emp => emp.id.toString() === truck.defaultDriver?.id);
+        if (defaultDriver) {
+          // Check if default driver is available
+          const isAvailable = checkDriverAvailability(defaultDriver, event);
+          if (isAvailable) {
+            // If available, automatically assign the default driver
+            if (!assignedEmployees.some(e => e.id === defaultDriver.id)) {
+              setAssignedEmployees([...assignedEmployees, defaultDriver]);
+              alert(`Default driver ${defaultDriver.name} is available and has been assigned.`);
+            }
+          } else {
+            // If not available, find an alternative driver with less work hours
+            const alternativeDriver = findAlternativeDriver(employees, event);
+            if (alternativeDriver) {
+              if (!assignedEmployees.some(e => e.id === alternativeDriver.id)) {
+                setAssignedEmployees([...assignedEmployees, alternativeDriver]);
+                alert(`Default driver ${defaultDriver.name} is not available. Alternative driver ${alternativeDriver.name} has been assigned instead.`);
+              }
+            } else {
+              alert('No available drivers found for this event. Please check driver availability.');
+            }
+          }
+        }
+      }
       setAssignedTrucks([...assignedTrucks, truck]);
     }
+  };
+
+  // Helper function to check driver availability
+  const checkDriverAvailability = (driver: Employee, event: Event): boolean => {
+    if (!driver.isAvailable) {
+      console.log(`Driver ${driver.name} is not available (isAvailable flag is false)`);
+      return false;
+    }
+    
+    // Check if driver is available on the event day
+    const eventDate = new Date(event.startTime);
+    const dayOfWeek = eventDate.toLocaleDateString('en-US', { weekday: 'long' });
+    if (!driver.availability.includes(dayOfWeek)) {
+      console.log(`Driver ${driver.name} is not available on ${dayOfWeek}`);
+      return false;
+    }
+
+    // Check if driver is already assigned to another event at the same time
+    const hasOverlap = allEvents.some(e => {
+      if (e.id === event.id) return false;
+      const otherStart = new Date(e.startTime);
+      const otherEnd = new Date(e.endTime);
+      const eventStart = new Date(event.startTime);
+      const eventEnd = new Date(event.endTime);
+      
+      const overlap = (
+        (eventStart >= otherStart && eventStart < otherEnd) ||
+        (eventEnd > otherStart && eventEnd <= otherEnd) ||
+        (eventStart <= otherStart && eventEnd >= otherEnd)
+      );
+
+      if (overlap && e.assignedStaff.includes(driver.id.toString())) {
+        console.log(`Driver ${driver.name} has an overlap with event ${e.title}`);
+        return true;
+      }
+      return false;
+    });
+
+    return !hasOverlap;
+  };
+
+  // Helper function to find alternative driver with less work hours
+  const findAlternativeDriver = (employees: Employee[], event: Event): Employee | null => {
+    // Filter for available drivers
+    const availableDrivers = employees.filter(emp => 
+      emp.role === "Driver" && 
+      emp.isAvailable && 
+      emp.availability.includes(new Date(event.startTime).toLocaleDateString('en-US', { weekday: 'long' }))
+    );
+
+    if (availableDrivers.length === 0) {
+      console.log('No available drivers found');
+      return null;
+    }
+
+    // Count current assignments for each driver
+    const driverAssignments = availableDrivers.map(driver => {
+      const assignments = allEvents.filter(e => 
+        e.assignedStaff.includes(driver.id.toString())
+      ).length;
+      console.log(`Driver ${driver.name} has ${assignments} current assignments`);
+      return { driver, assignments };
+    });
+
+    // Sort by number of assignments and return the driver with least assignments
+    driverAssignments.sort((a, b) => a.assignments - b.assignments);
+    const selectedDriver = driverAssignments[0].driver;
+    console.log(`Selected alternative driver: ${selectedDriver.name} with ${driverAssignments[0].assignments} assignments`);
+    return selectedDriver;
   };
 
   if (!event) {
@@ -333,13 +444,54 @@ export default function EventDetailsPage(): ReactElement {
                 className="btn-secondary"
                 onClick={() => setTruckModalOpen(false)}
               >
-                Close
+                Cancel
               </button>
               <button
                 className="btn-primary"
-                onClick={() => setTruckModalOpen(false)}
+                onClick={async () => {
+                  try {
+                    // Get current events
+                    const response = await fetch('/events.json');
+                    if (!response.ok) {
+                      throw new Error('Failed to fetch events');
+                    }
+                    const events = await response.json();
+
+                    // Find and update the current event
+                    const updatedEvents = events.map((evt: Event) => {
+                      if (evt.id === id) {
+                        return {
+                          ...evt,
+                          trucks: assignedTrucks.map(truck => truck.id),
+                          assignedStaff: assignedEmployees.map(emp => emp.id.toString())
+                        };
+                      }
+                      return evt;
+                    });
+
+                    // Save updated events
+                    const saveResponse = await fetch('/api/events', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify(updatedEvents),
+                    });
+
+                    if (!saveResponse.ok) {
+                      throw new Error('Failed to save event');
+                    }
+
+                    // Show success message and close modal
+                    alert('Truck assignments saved successfully');
+                    setTruckModalOpen(false);
+                  } catch (error) {
+                    console.error('Error saving truck assignments:', error);
+                    alert('Failed to save truck assignments. Please try again.');
+                  }
+                }}
               >
-                Save
+                Save Assignments
               </button>
             </div>
           </div>
@@ -370,6 +522,12 @@ export default function EventDetailsPage(): ReactElement {
               <div key={truck.id} className="truck-card">
                 <h3 className="truck-title">{truck.name}</h3>
                 <p className="truck-info">Type: {truck.type}</p>
+                <p className="truck-info">
+                  Driver: {truck.driver ? truck.driver.name : 'Not assigned'}
+                </p>
+                <p className="truck-info">
+                  Default Driver: {truck.defaultDriver ? truck.defaultDriver.name : 'Not set'}
+                </p>
               </div>
             ))}
           </div>
