@@ -1,48 +1,63 @@
 "use client";
-import { createContext, useContext, useState, ReactNode } from "react";
 
-type User = {
-  name: string;
-  role: string;
-};
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Session, User } from "@supabase/supabase-js";
 
-type Credentials = {
-  email: string;
-  password: string;
-};
-
-type AuthContextType = {
+interface AuthContextType {
   user: User | null;
-  login: (credentials: Credentials) => void;
-  logout: () => void;
-};
+  session: Session | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+}
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  loading: true,
+  signOut: async () => {},
+});
 
-type AuthProviderProps = {
-  children: ReactNode;
-};
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const supabase = createClient();
+  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (credentials: Credentials) => {
-    setUser({ name: credentials.email, role: "manager" });
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
   };
 
-  const logout = () => setUser(null);
-
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, session, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
 };
+
+export const useAuth = () => useContext(AuthContext);
