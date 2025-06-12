@@ -62,6 +62,7 @@ export interface Truck {
   };
   location: string;
   isAvailable: boolean;
+  downForService: false
 }
 
 export interface TruckFormData extends Omit<Truck, 'id' | 'driver'> {

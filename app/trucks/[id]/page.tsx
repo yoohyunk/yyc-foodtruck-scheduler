@@ -24,6 +24,7 @@ export default function EditTruckPage(): ReactElement {
     driver: "",
     location: "",
     isAvailable: false,
+    downForService: false,
   });
 
   // Fetch truck details
@@ -42,6 +43,7 @@ export default function EditTruckPage(): ReactElement {
             driver: truckData.driver ? truckData.driver.name : "",
             location: truckData.location || "",
             isAvailable: truckData.status === "Available",
+            downForService: truckData.downForService ?? false,
           });
         } else {
           console.error("Truck not found");
@@ -50,7 +52,7 @@ export default function EditTruckPage(): ReactElement {
       .catch((error) => console.error("Error fetching truck:", error));
   }, [id]);
 
-  // Fetch events associated with the truck
+  // Fetch events for this truck
   useEffect(() => {
     fetch("/events.json")
       .then((response) => response.json())
@@ -64,25 +66,33 @@ export default function EditTruckPage(): ReactElement {
       .catch((error) => console.error("Error fetching events:", error));
   }, [id]);
 
-  // Handle form input changes
+  // Handle form input
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const target = e.target as HTMLInputElement | HTMLSelectElement;
+    const { name, value, type } = target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? (target as HTMLInputElement).checked : value,
     }));
   };
 
-  // Handle form submission
+  // Submit handler
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Simulate saving the updated truck data
     console.log("Updated Truck Data:", formData);
     alert("Truck information updated successfully!");
     router.push("/trucks");
+  };
+
+  // 🧠 Get filtered events if truck is marked down
+  const getVisibleEvents = (): Event[] => {
+    if (!formData.downForService) return events;
+    return events.filter((event) => {
+      if (!event.trucks) return true;
+      return !event.trucks.includes(id as string);
+    });
   };
 
   if (!truck) {
@@ -104,9 +114,7 @@ export default function EditTruckPage(): ReactElement {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Name */}
         <div>
-          <label htmlFor="name" className="block font-medium">
-            Name
-          </label>
+          <label htmlFor="name" className="block font-medium">Name</label>
           <input
             type="text"
             id="name"
@@ -120,9 +128,7 @@ export default function EditTruckPage(): ReactElement {
 
         {/* Type */}
         <div>
-          <label htmlFor="type" className="block font-medium">
-            Type
-          </label>
+          <label htmlFor="type" className="block font-medium">Type</label>
           <select
             id="type"
             name="type"
@@ -141,9 +147,7 @@ export default function EditTruckPage(): ReactElement {
 
         {/* Capacity */}
         <div>
-          <label htmlFor="capacity" className="block font-medium">
-            Capacity
-          </label>
+          <label htmlFor="capacity" className="block font-medium">Capacity</label>
           <input
             type="number"
             id="capacity"
@@ -157,9 +161,7 @@ export default function EditTruckPage(): ReactElement {
 
         {/* Status */}
         <div>
-          <label htmlFor="status" className="block font-medium">
-            Status
-          </label>
+          <label htmlFor="status" className="block font-medium">Status</label>
           <select
             id="status"
             name="status"
@@ -176,9 +178,7 @@ export default function EditTruckPage(): ReactElement {
 
         {/* Driver */}
         <div>
-          <label htmlFor="driver" className="block font-medium">
-            Driver
-          </label>
+          <label htmlFor="driver" className="block font-medium">Driver</label>
           <input
             type="text"
             id="driver"
@@ -192,9 +192,7 @@ export default function EditTruckPage(): ReactElement {
 
         {/* Location */}
         <div>
-          <label htmlFor="location" className="block font-medium">
-            Location
-          </label>
+          <label htmlFor="location" className="block font-medium">Location</label>
           <select
             id="location"
             name="location"
@@ -209,6 +207,27 @@ export default function EditTruckPage(): ReactElement {
           </select>
         </div>
 
+        {/* ✅ Down for Service Checkbox */}
+        <div>
+          <label className="inline-flex items-center gap-2 font-medium">
+            <input
+              type="checkbox"
+              id="downForService"
+              name="downForService"
+              checked={formData.downForService}
+              onChange={handleInputChange}
+            />
+            Down for Service
+          </label>
+        </div>
+
+        {/* ✅ Warning if down */}
+        {formData.downForService && (
+          <div className="mt-2 p-3 bg-red-100 text-red-700 border border-red-300 rounded-md">
+            🚫 This truck is currently marked as <strong>Down for Service</strong>.
+          </div>
+        )}
+
         <button
           type="submit"
           className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
@@ -220,24 +239,19 @@ export default function EditTruckPage(): ReactElement {
       {/* Upcoming Events */}
       <section className="mt-8">
         <h2 className="text-xl font-bold mb-4">Upcoming Events</h2>
-        {events.length > 0 ? (
+        {getVisibleEvents().length > 0 ? (
           <div className="grid gap-4">
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className="event-card bg-white p-4 rounded shadow"
-              >
+            {getVisibleEvents().map((event) => (
+              <div key={event.id} className="event-card bg-white p-4 rounded shadow">
                 <h3 className="text-lg font-semibold">{event.title}</h3>
                 <p>
-                  <strong>Date:</strong>{" "}
-                  {extractDate(event.startTime, event.endTime)}
+                  <strong>Date:</strong> {extractDate(event.startTime, event.endTime)}
                 </p>
                 <p>
                   <strong>Location:</strong> {event.location}
                 </p>
                 <p>
-                  <strong>Time:</strong> {extractTime(event.startTime)} -{" "}
-                  {extractTime(event.endTime)}
+                  <strong>Time:</strong> {extractTime(event.startTime)} - {extractTime(event.endTime)}
                 </p>
               </div>
             ))}
