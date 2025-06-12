@@ -43,7 +43,7 @@ export const Calendar = ({
     viewMode === "daily"
       ? "timeGridDay"
       : viewMode === "weekly"
-        ? "timeGridWeek"
+        ? "dayGridWeek" 
         : "dayGridMonth";
 
   return (
