@@ -1,11 +1,36 @@
 {
-  "eslint.codeActionsOnSave.mode": "all",
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "deno.enablePaths": [
+    "supabase/functions"
+  ],
+  "deno.lint": true,
+  "deno.unstable": [
+    "bare-node-builtins",
+    "byonm",
+    "sloppy-imports",
+    "unsafe-proto",
+    "webgpu",
+    "broadcast-channel",
+    "worker-options",
+    "cron",
+    "kv",
+    "ffi",
+    "fs",
+    "http",
+    "net"
+  ],
   "editor.codeActionsOnSave": {
     "source.fixAll": "explicit",
     "source.fixAll.eslint": "explicit"
   },
-  "editor.formatOnSave": true,
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "editor.formatOnSave": true,
+  "eslint.codeActionsOnSave.mode": "all",
   "eslint.format.enable": true,
   "eslint.validate": [
     "javascript",
@@ -13,11 +38,5 @@
     "typescript",
     "typescriptreact"
   ],
-  "[github-actions-workflow]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
   "typescript.tsdk": "node_modules/typescript/lib"
-  // "[typescriptreact]": {
-  //   "editor.defaultFormatter": "vscode.typescript-language-features"
-  // }
 }
