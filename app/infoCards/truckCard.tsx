@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactElement } from "react";
+import React, { ReactElement, useState } from "react";
 
 interface Driver {
   id: string | number;
@@ -17,6 +17,7 @@ interface Truck {
   location: string;
   status: "Available" | "In Use";
   driver: Driver | null;
+  downForService?: boolean; // ✅ new optional flag
 }
 
 interface TruckCardProps {
@@ -29,22 +30,42 @@ interface TruckListProps {
   viewMode: "compact" | "detailed";
 }
 
-// TruckCard component with two display modes: compact and detailed
 export default function TruckCard({
   truck,
   viewMode,
 }: TruckCardProps): ReactElement {
+  const [isDown, setIsDown] = useState<boolean>(truck.downForService ?? false);
+
+  const handleToggle = () => {
+    setIsDown((prev) => !prev);
+    // You can add API/supabase update logic here if needed
+  };
+
   return (
     <div
       className={`truck-card ${
         viewMode === "compact" ? "p-2 text-sm" : "p-4 text-base"
-      } border rounded-lg shadow-md`}
+      } border rounded-lg shadow-md relative`}
     >
       <h3
         className={`font-bold ${viewMode === "compact" ? "text-sm" : "text-xl"} mb-2`}
       >
         {truck.name}
       </h3>
+
+      {/* ✅ Toggle */}
+      <label className="inline-flex items-center gap-2 text-sm mb-2">
+        <input type="checkbox" checked={isDown} onChange={handleToggle} />
+        <span>Down for Service</span>
+      </label>
+
+      {/* ✅ Red Badge */}
+      {isDown && (
+        <p className="text-red-600 font-semibold text-sm mb-2">
+          🚫 Truck is currently down for service.
+        </p>
+      )}
+
       {viewMode === "detailed" && (
         <>
           <p>
@@ -57,6 +78,7 @@ export default function TruckCard({
           <p className="text-primary-medium mb-2">Location: {truck.location}</p>
         </>
       )}
+
       <div className="mt-2">
         <span
           className={`badge ${
@@ -66,6 +88,7 @@ export default function TruckCard({
           {truck.status}
         </span>
       </div>
+
       <div className="mt-4">
         <h4 className="font-bold text-md">Assigned Driver:</h4>
         {truck.driver ? (
@@ -90,7 +113,7 @@ export default function TruckCard({
   );
 }
 
-// Example usage of TruckCard
+// ✅ TruckList stays the same
 export function TruckList({ trucks, viewMode }: TruckListProps): ReactElement {
   return (
     <div
@@ -106,5 +129,3 @@ export function TruckList({ trucks, viewMode }: TruckListProps): ReactElement {
     </div>
   );
 }
-
-// Example data for testing
