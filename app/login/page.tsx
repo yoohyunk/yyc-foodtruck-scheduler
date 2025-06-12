@@ -4,6 +4,7 @@ import { useState, FormEvent, ChangeEvent, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 type Role = "Admin" | "Employee";
 
@@ -14,24 +15,54 @@ export default function LoginPage(): ReactElement {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [role, setRole] = useState<Role>("Admin");
   const [error, setError] = useState<string>("");
+  const supabase = createClient();
 
-  const handleLogin = (e: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
 
-    const validUsername = "admin";
-    const validPassword = "1234";
+    // 1) Supabase 로그인
+    const { data: sessionData, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email: username,
+        password,
+      });
+    if (signInError || !sessionData.session) {
+      setError(signInError?.message || "Login failed");
+      return;
+    }
 
-    if (username === validUsername && password === validPassword) {
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("role", role);
+    const userId = sessionData.user.id;
+    const { data: emp, error: empError } = await supabase
+      .from("employees")
+      .select("employee_type")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (empError) {
+      setError(empError.message);
+      return;
+    }
 
-      if (role === "Admin") {
-        router.push("/admin-dashboard");
-      } else {
-        router.push("/mainpage");
+    if (!emp) {
+      const { error: insertError } = await supabase.from("employees").insert({
+        user_id: userId,
+        employee_type: "Admin",
+        last_name: "김",
+        first_name: "유현",
+      });
+      if (insertError) {
+        setError(insertError.message);
+        return;
       }
+
+      router.push("/admin-dashboard");
+      return;
+    }
+
+    if (emp.employee_type === "Admin") {
+      router.push("/admin-dashboard");
     } else {
-      setError("Invalid username or password");
+      router.push("/mainpage");
     }
   };
 
