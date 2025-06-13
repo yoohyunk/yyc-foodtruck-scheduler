@@ -356,7 +356,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
         };
         if (!coords || coords.latitude === undefined || coords.longitude === undefined) {
           setCheckStatus('error');
-          setCheckMessage('Please check address.');
+          setCheckMessage('Could not validate coordinates. Please check your address details.');
           setLastCoords(undefined);
           onChange(fullAddress, undefined);
         } else {
@@ -367,13 +367,13 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
         }
       } else {
         setCheckStatus('error');
-        setCheckMessage('Address not found. Please check your input.');
+        setCheckMessage('Address not found. Please check your street name and number.');
         setLastCoords(undefined);
         onChange(fullAddress, undefined);
       }
     } catch (error) {
       setCheckStatus('error');
-      setCheckMessage('Please check address.');
+      setCheckMessage('Error validating address. Please try again.');
       setLastCoords(undefined);
       onChange(fullAddress, undefined);
     } finally {

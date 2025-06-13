@@ -58,8 +58,11 @@ export default function AssignStaffPage() {
       const event = events.find((e) => e.id === selectedEvent);
       if (!event) throw new Error("Event not found");
 
+      // Filter for available employees first
+      const availableEmployees = employees.filter(emp => emp.isAvailable);
+
       // Get closest employees within 5km
-      const closestEmployees = await findClosestEmployees(event.location, employees);
+      const closestEmployees = await findClosestEmployees(event.location, availableEmployees);
       
       // Sort by distance first, then by wage for employees within 5km
       const sortedEmployees = closestEmployees.sort((a, b) => {

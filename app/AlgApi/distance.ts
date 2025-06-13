@@ -152,12 +152,28 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
   }
 }
 
+// Cache for distance calculations
+const distanceCache = new Map<string, number>();
+
+// Generate a cache key for coordinates
+function getCacheKey(coord1: Coordinates, coord2: Coordinates): string {
+  return `${coord1.lat},${coord1.lng}-${coord2.lat},${coord2.lng}`;
+}
+
 export async function calculateDistance(coord1: Coordinates, coord2: Coordinates): Promise<number> {
+  // Check cache first
+  const cacheKey = getCacheKey(coord1, coord2);
+  const cachedDistance = distanceCache.get(cacheKey);
+  if (cachedDistance !== undefined) {
+    return cachedDistance;
+  }
+
   // If coordinates are exactly the same, return 0
   if (
     (coord1.lat === coord2.lat && coord1.lng === coord2.lng) ||
     (Number(coord1.lat) === Number(coord2.lat) && Number(coord1.lng) === Number(coord2.lng))
   ) {
+    distanceCache.set(cacheKey, 0);
     return 0;
   }
 
@@ -165,7 +181,9 @@ export async function calculateDistance(coord1: Coordinates, coord2: Coordinates
   const latDiff = Math.abs(coord1.lat - coord2.lat);
   const lngDiff = Math.abs(coord1.lng - coord2.lng);
   if (latDiff < 0.0001 && lngDiff < 0.0001) {
-    return 0.01; // Return 10 meters
+    const smallDistance = 0.01; // 10 meters
+    distanceCache.set(cacheKey, smallDistance);
+    return smallDistance;
   }
 
   const maxRetries = 3;
@@ -182,9 +200,7 @@ export async function calculateDistance(coord1: Coordinates, coord2: Coordinates
       lastRequestTime = Date.now();
 
       // Use OSRM public API for driving distance
-      // Format coordinates with 6 decimal places for precision
       const url = `https://router.project-osrm.org/route/v1/driving/${coord1.lng.toFixed(6)},${coord1.lat.toFixed(6)};${coord2.lng.toFixed(6)},${coord2.lat.toFixed(6)}?overview=false&alternatives=false`;
-      console.log('Requesting OSRM route:', url);
       
       const response = await fetch(url, {
         headers: {
@@ -197,23 +213,21 @@ export async function calculateDistance(coord1: Coordinates, coord2: Coordinates
       }
 
       const data: OSRMResponse = await response.json();
-      console.log('OSRM response:', data);
 
       if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
         // Convert meters to kilometers
         const distance = data.routes[0].distance / 1000;
-        console.log('Calculated driving distance:', distance, 'km');
+        // Cache the result
+        distanceCache.set(cacheKey, distance);
         return distance;
       }
 
-      // If we get here, the response was ok but no route was found
       throw new Error('OSRM: No route found between the given coordinates.');
     } catch (error) {
       console.error(`Error calculating driving distance (attempt ${retryCount + 1}/${maxRetries}):`, error);
       retryCount++;
       
       if (retryCount === maxRetries) {
-        console.warn('All retries failed, falling back to straight-line distance');
         // Calculate straight-line distance as a fallback
         const R = 6371; // Earth's radius in kilometers
         const dLat = toRad(coord2.lat - coord1.lat);
@@ -225,16 +239,15 @@ export async function calculateDistance(coord1: Coordinates, coord2: Coordinates
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         const straightLineDistance = R * c;
         
-        console.warn('Using straight-line distance as fallback:', straightLineDistance, 'km');
+        // Cache the fallback result
+        distanceCache.set(cacheKey, straightLineDistance);
         return straightLineDistance;
       }
       
-      // Wait before retrying
       await delay(1000 * retryCount);
     }
   }
 
-  // This should never be reached due to the fallback in the catch block
   throw new Error('Failed to calculate distance after all retries');
 }
 
@@ -250,6 +263,28 @@ export interface EmployeeWithDistance {
   distance: number;
 }
 
+// Simple distance calculation for initial filtering
+function quickDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+interface EmployeeWithQuickDistance {
+  id: number;
+  name: string;
+  wage: number;
+  address: string;
+  coordinates: { latitude: number; longitude: number };
+  quickDistance: number;
+}
+
 export async function findClosestEmployees(
   eventAddress: string,
   employees: Array<{ 
@@ -259,7 +294,8 @@ export async function findClosestEmployees(
     address: string;
     coordinates?: { latitude: number; longitude: number };
   }>,
-  eventCoordinates?: { latitude: number; longitude: number }
+  eventCoordinates?: { latitude: number; longitude: number },
+  requiredServers: number = 1
 ): Promise<EmployeeWithDistance[]> {
   try {
     // Get event coordinates
@@ -267,41 +303,69 @@ export async function findClosestEmployees(
       ? { lat: eventCoordinates.latitude, lng: eventCoordinates.longitude }
       : await getCoordinates(eventAddress);
 
-    // Process all employees at once using their stored coordinates
-    const results = await Promise.all(employees.map(async (employee) => {
-      if (!employee.coordinates) {
-        console.warn(`No coordinates found for employee ${employee.name}, skipping distance calculation`);
+    // Start with 20km radius and increase if needed
+    let searchRadius = 20;
+    let initialFiltered: EmployeeWithQuickDistance[] = [];
+    
+    // Keep expanding radius until we find enough employees or reach max radius
+    while (initialFiltered.length < requiredServers && searchRadius <= 100) {
+      initialFiltered = employees
+        .filter(emp => emp.coordinates) // Remove employees without coordinates
+        .map(emp => ({
+          ...emp,
+          coordinates: emp.coordinates!,
+          quickDistance: quickDistance(
+            eventCoords.lat,
+            eventCoords.lng,
+            emp.coordinates!.latitude,
+            emp.coordinates!.longitude
+          )
+        }))
+        .filter(emp => emp.quickDistance <= searchRadius);
+
+      if (initialFiltered.length < requiredServers) {
+        searchRadius += 20; // Increase radius by 20km
+        console.log(`Not enough employees found within ${searchRadius - 20}km, expanding search to ${searchRadius}km`);
+      }
+    }
+
+    // Sort by distance before taking the required number
+    initialFiltered.sort((a, b) => a.quickDistance - b.quickDistance);
+
+    // Only calculate precise distances for the filtered set
+    const results = await Promise.all(
+      initialFiltered.map(async (employee) => {
+        const employeeCoords = {
+          lat: employee.coordinates.latitude,
+          lng: employee.coordinates.longitude
+        };
+
+        // Check cache first
+        const cacheKey = getCacheKey(eventCoords, employeeCoords);
+        let distance = distanceCache.get(cacheKey);
+
+        if (distance === undefined) {
+          // If not in cache, calculate and store
+          distance = await calculateDistance(eventCoords, employeeCoords);
+          distanceCache.set(cacheKey, distance);
+        }
+
         return {
           id: employee.id,
           employeeId: employee.id,
           name: employee.name,
           wage: employee.wage,
-          distance: Infinity // Put employees without coordinates at the end
+          distance
         };
-      }
+      })
+    );
 
-      const employeeCoords = {
-        lat: employee.coordinates.latitude,
-        lng: employee.coordinates.longitude
-      };
-
-      // Calculate distance
-      const distance = await calculateDistance(eventCoords, employeeCoords);
-
-      return {
-        id: employee.id,
-        employeeId: employee.id,
-        name: employee.name,
-        wage: employee.wage,
-        distance
-      };
-    }));
-
-    // Sort by distance and return
-    return results.sort((a, b) => a.distance - b.distance);
+    // Sort by distance and take only the required number
+    return results
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, requiredServers);
   } catch (error) {
     console.error('Error finding closest employees:', error);
-    // Return employees in original order if there's an error
     return employees.map(emp => ({
       id: emp.id,
       employeeId: emp.id,

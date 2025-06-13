@@ -188,7 +188,8 @@ export default function AddEventPage(): ReactElement {
       const closestEmployees = await findClosestEmployees(
         formData.location,
         employees.filter(emp => emp.role === "Server" && emp.isAvailable),
-        coordinates as { latitude: number; longitude: number } // Type assertion since we validated coordinates exist
+        coordinates as { latitude: number; longitude: number }, // Type assertion since we validated coordinates exist
+        requiredServers // Pass the required number of servers
       );
 
       // Take only the required number of servers
