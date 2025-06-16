@@ -1,15 +1,9 @@
 "use client";
 
-import React, {
-  useEffect,
-  useState,
-  FormEvent,
-  ChangeEvent,
-  ReactElement,
-} from "react";
+import React, { useEffect, useState, ChangeEvent, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { Tables, TablesInsert, TablesUpdate } from "../../database.types";
+import type { Tables } from "../../database.types";
 
 // Use Supabase types
 
@@ -248,9 +242,11 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             employee_id: wageData.employee_id || "",
           });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Fetch error:", err);
-        setError(`Failed to fetch data: ${err.message}`);
+        setError(
+          `Failed to fetch data: ${err instanceof Error ? err.message : "Unknown error"}`
+        );
       } finally {
         setLoading(false);
       }

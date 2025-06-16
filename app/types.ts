@@ -79,8 +79,7 @@ export interface TimeOffRequest {
   reason: string;
 }
 
-// export interface TimeOffRequestFormData
-//   extends Omit<TimeOffRequest, "status"> {}
+export type TimeOffRequestFormData = Omit<TimeOffRequest, "status">;
 
 // Common types
 export interface Coordinates {

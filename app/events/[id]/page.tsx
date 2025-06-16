@@ -109,7 +109,7 @@ export default function EventDetailsPage(): ReactElement {
   // Update assigned employees when event or employees change
   useEffect(() => {
     if (event && employees.length > 0) {
-      const assigned = employees.filter(emp => 
+      const assigned = employees.filter((emp) =>
         event.assignedStaff.includes(emp.id.toString())
       );
       setAssignedEmployees(assigned);
@@ -119,7 +119,7 @@ export default function EventDetailsPage(): ReactElement {
   // Update assigned trucks when event or trucks change
   useEffect(() => {
     if (event && trucks.length > 0) {
-      const assigned = trucks.filter(truck => 
+      const assigned = trucks.filter((truck) =>
         event.trucks.includes(truck.id)
       );
       setAssignedTrucks(assigned);
@@ -199,37 +199,43 @@ export default function EventDetailsPage(): ReactElement {
         <button
           className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
           onClick={async () => {
-            if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+            if (
+              window.confirm(
+                "Are you sure you want to delete this event? This action cannot be undone."
+              )
+            ) {
               try {
                 // Get current events
-                const response = await fetch('/events.json');
+                const response = await fetch("/events.json");
                 if (!response.ok) {
-                  throw new Error('Failed to fetch events');
+                  throw new Error("Failed to fetch events");
                 }
                 const events = await response.json();
 
                 // Remove the event
-                const updatedEvents = events.filter((evt: Event) => evt.id !== id);
+                const updatedEvents = events.filter(
+                  (evt: Event) => evt.id !== id
+                );
 
                 // Save updated events
-                const saveResponse = await fetch('/api/events', {
-                  method: 'POST',
+                const saveResponse = await fetch("/api/events", {
+                  method: "POST",
                   headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                   },
                   body: JSON.stringify(updatedEvents),
                 });
 
                 if (!saveResponse.ok) {
-                  throw new Error('Failed to delete event');
+                  throw new Error("Failed to delete event");
                 }
 
                 // Show success message and redirect
-                alert('Event deleted successfully');
-                router.push('/events');
+                alert("Event deleted successfully");
+                router.push("/events");
               } catch (error) {
-                console.error('Error deleting event:', error);
-                alert('Failed to delete event. Please try again.');
+                console.error("Error deleting event:", error);
+                alert("Failed to delete event. Please try again.");
               }
             }
           }}
@@ -269,7 +275,8 @@ export default function EventDetailsPage(): ReactElement {
                       }
                     />
                     <span className="employee-name">
-                      {employee.name} ({employee.role})
+                      {employee.first_name} {employee.last_name} (
+                      {employee.role})
                     </span>
                   </label>
                 ))
@@ -353,7 +360,9 @@ export default function EventDetailsPage(): ReactElement {
           <div className="assigned-grid">
             {assignedEmployees.map((employee) => (
               <div key={employee.id} className="employee-card">
-                <h3 className="employee-name">{employee.name}</h3>
+                <h3 className="employee-name">
+                  {employee.first_name} {employee.last_name}
+                </h3>
                 <p className="employee-role">Role: {employee.role}</p>
               </div>
             ))}

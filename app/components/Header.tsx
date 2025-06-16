@@ -15,7 +15,7 @@ const mainNavLinks: NavLink[] = [
   { name: "New Event", href: "/events/newEvent", icon: "➕" },
 ];
 
-export default function Header(): JSX.Element {
+export default function Header(): React.ReactElement {
   const { user, signOut } = useAuth();
 
   return (
