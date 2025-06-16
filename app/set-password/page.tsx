@@ -54,7 +54,7 @@ export default function SetPasswordPage(): ReactElement {
     if (updateError) {
       setError(updateError.message);
     } else {
-      router.push("/login");
+      router.push("/set-up-employee-info");
     }
   };
 
