@@ -139,7 +139,10 @@ export default function Employees(): ReactElement {
                 </button>
               </div>
 
-              <h3 className="text-lg font-semibold">{employee.name}</h3>
+              <h3 className="text-lg font-semibold">
+                {employee.first_name}
+                {employee.last_name}
+              </h3>
               <p>
                 <strong>Role:</strong> {employee.role}
               </p>
@@ -238,8 +241,8 @@ export default function Employees(): ReactElement {
                 fontSize: "1rem",
               }}
             >
-              Are you sure you want to delete {employeeToDelete.name}? This
-              action cannot be undone.
+              Are you sure you want to delete {employeeToDelete.first_name}
+              {employeeToDelete.last_name}? This action cannot be undone.
             </p>
             <div style={{ display: "flex", gap: "1rem" }}>
               <button
