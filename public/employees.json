@@ -1,7 +1,8 @@
 [
   {
     "id": 1,
-    "name": "Mamta Verma",
+    "first_name": "Mamta",
+    "last_name": "Verma",
     "address": "220 8th Avenue Southwest, Calgary, Alberta T2P 1B5, Canada",
     "coordinates": {
       "latitude": 51.0474,
@@ -12,15 +13,12 @@
     "phone": "555-1234",
     "wage": 40,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Wednesday",
-      "Friday"
-    ]
+    "availability": ["Monday", "Wednesday", "Friday"]
   },
   {
     "id": 2,
-    "name": "Leona Motyer",
+    "first_name": "Leona",
+    "last_name": "Motyer",
     "address": "2427 Woodview Drive Southwest, Calgary, Alberta T2W 4Z9, Canada",
     "coordinates": {
       "latitude": 50.9409,
@@ -43,7 +41,8 @@
   },
   {
     "id": 3,
-    "name": "Yoohyun Kim",
+    "first_name": "Yoohyun",
+    "last_name": "Kim",
     "address": "700 4th Street Southwest, Calgary, Alberta T2P 3J8, Canada",
     "coordinates": {
       "latitude": 51.0478,
@@ -54,14 +53,12 @@
     "phone": "555-9876",
     "wage": 30,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   },
   {
     "id": 4,
-    "name": "Chester Laraya",
+    "first_name": "Chester",
+    "last_name": "Laraya",
     "address": "850 6th Street Southwest, Calgary, Alberta T2P 3J8, Canada",
     "coordinates": {
       "latitude": 51.0482,
@@ -72,14 +69,12 @@
     "phone": "555-4321",
     "wage": 30,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   },
   {
     "id": 5,
-    "name": "Rudra Pratap",
+    "first_name": "Rudra",
+    "last_name": "Pratap",
     "address": "1000 9th Avenue Southwest, Calgary, Alberta T2P 1J9, Canada",
     "coordinates": {
       "latitude": 51.0486,
@@ -90,14 +85,12 @@
     "phone": "555-8765",
     "wage": 15,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   },
   {
     "id": 6,
-    "name": "Tehjib Singh",
+    "first_name": "Tehjib",
+    "last_name": "Singh",
     "address": "1200 1st Street Southeast, Calgary, Alberta T2G 2H3, Canada",
     "coordinates": {
       "latitude": 51.049,
@@ -108,15 +101,12 @@
     "phone": "555-8765",
     "wage": 15,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Wednesday",
-      "Friday"
-    ]
+    "availability": ["Monday", "Wednesday", "Friday"]
   },
   {
     "id": 7,
-    "name": "Alysha Krell",
+    "first_name": "Alysha",
+    "last_name": "Krell",
     "address": "1500 4th Street Southeast, Calgary, Alberta T2G 2H3, Canada",
     "coordinates": {
       "latitude": 51.0494,
@@ -127,15 +117,12 @@
     "phone": "555-1234",
     "wage": 25,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Wednesday",
-      "Friday"
-    ]
+    "availability": ["Monday", "Wednesday", "Friday"]
   },
   {
     "id": 8,
-    "name": "Jeremy Andrews",
+    "first_name": "Jeremy",
+    "last_name": "Andrews",
     "address": "1800 7th Avenue Southwest, Calgary, Alberta T2P 2T3, Canada",
     "coordinates": {
       "latitude": 51.0498,
@@ -146,14 +133,12 @@
     "phone": "555-1234",
     "wage": 35,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   },
   {
     "id": 9,
-    "name": "Ali Moussa",
+    "first_name": "Ali",
+    "last_name": "Moussa",
     "address": "2000 9th Avenue Southwest, Calgary, Alberta T2P 1J9, Canada",
     "coordinates": {
       "latitude": 51.0502,
@@ -164,15 +149,12 @@
     "phone": "555-1234",
     "wage": 40,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Wednesday",
-      "Friday"
-    ]
+    "availability": ["Monday", "Wednesday", "Friday"]
   },
   {
     "id": 10,
-    "name": "Jennifer Andrews",
+    "first_name": "Jennifer",
+    "last_name": "Andrews",
     "address": "2200 11th Avenue Southwest, Calgary, Alberta T2T 0C8, Canada",
     "coordinates": {
       "latitude": 51.0506,
@@ -183,9 +165,6 @@
     "phone": "555-1234",
     "wage": 39,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   }
 ]

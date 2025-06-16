@@ -10,7 +10,7 @@ export default function Events(): ReactElement {
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("All"); // Default filter is "All"
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
-  const [maxDistance, setMaxDistance] = useState<string>(""); // For distance filtering
+  // const [maxDistance, setMaxDistance] = useState<string>(""); // For distance filtering
   const router = useRouter();
 
   // Fetch events from events.json
@@ -57,7 +57,7 @@ export default function Events(): ReactElement {
     // }
 
     setFilteredEvents(filtered);
-  }, [activeFilter, selectedDate, maxDistance, events]);
+  }, [activeFilter, selectedDate, events]);
 
   return (
     <div className="events-page">

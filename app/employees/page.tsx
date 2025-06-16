@@ -8,7 +8,9 @@ export default function Employees(): ReactElement {
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(
+    null
+  );
   const router = useRouter();
 
   // Fetch employees from employee.json
@@ -47,25 +49,25 @@ export default function Employees(): ReactElement {
 
     try {
       // Get current employees
-      const response = await fetch('/employees.json');
+      const response = await fetch("/employees.json");
       const currentEmployees = await response.json();
-      
+
       // Filter out the employee to delete
       const updatedEmployees = currentEmployees.filter(
         (emp: Employee) => emp.id !== employeeToDelete.id
       );
 
       // Save updated list
-      const saveResponse = await fetch('/api/employees', {
-        method: 'POST',
+      const saveResponse = await fetch("/api/employees", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(updatedEmployees),
       });
 
       if (!saveResponse.ok) {
-        throw new Error('Failed to delete employee');
+        throw new Error("Failed to delete employee");
       }
 
       // Update local state
@@ -74,8 +76,8 @@ export default function Employees(): ReactElement {
       setShowDeleteModal(false);
       setEmployeeToDelete(null);
     } catch (error) {
-      console.error('Error deleting employee:', error);
-      alert('Failed to delete employee. Please try again.');
+      console.error("Error deleting employee:", error);
+      alert("Failed to delete employee. Please try again.");
     }
   };
 
@@ -137,7 +139,10 @@ export default function Employees(): ReactElement {
                 </button>
               </div>
 
-              <h3 className="text-lg font-semibold">{employee.name}</h3>
+              <h3 className="text-lg font-semibold">
+                {employee.first_name}
+                {employee.last_name}
+              </h3>
               <p>
                 <strong>Role:</strong> {employee.role}
               </p>
@@ -185,76 +190,107 @@ export default function Employees(): ReactElement {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && employeeToDelete && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.4)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '1.5rem',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-            padding: '2.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            maxWidth: 400,
-            border: '4px solid #ef4444',
-            fontFamily: 'sans-serif',
-          }}>
-            <span style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>⚠️</span>
-            <p style={{ color: '#b91c1c', fontWeight: 800, fontSize: '1.25rem', marginBottom: '1rem', textAlign: 'center', letterSpacing: '0.03em' }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.4)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "1.5rem",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+              padding: "2.5rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              maxWidth: 400,
+              border: "4px solid #ef4444",
+              fontFamily: "sans-serif",
+            }}
+          >
+            <span style={{ fontSize: "3rem", marginBottom: "0.75rem" }}>
+              ⚠️
+            </span>
+            <p
+              style={{
+                color: "#b91c1c",
+                fontWeight: 800,
+                fontSize: "1.25rem",
+                marginBottom: "1rem",
+                textAlign: "center",
+                letterSpacing: "0.03em",
+              }}
+            >
               Confirm Delete
             </p>
-            <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#4b5563', fontSize: '1rem' }}>
-              Are you sure you want to delete {employeeToDelete.name}? This action cannot be undone.
+            <p
+              style={{
+                textAlign: "center",
+                marginBottom: "1.5rem",
+                color: "#4b5563",
+                fontSize: "1rem",
+              }}
+            >
+              Are you sure you want to delete {employeeToDelete.first_name}
+              {employeeToDelete.last_name}? This action cannot be undone.
             </p>
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: "flex", gap: "1rem" }}>
               <button
                 style={{
-                  padding: '0.5rem 1.5rem',
-                  background: '#e5e7eb',
-                  color: '#4b5563',
+                  padding: "0.5rem 1.5rem",
+                  background: "#e5e7eb",
+                  color: "#4b5563",
                   fontWeight: 700,
-                  borderRadius: '0.5rem',
-                  border: 'none',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  cursor: 'pointer',
-                  fontSize: '1rem',
-                  transition: 'background 0.2s',
+                  borderRadius: "0.5rem",
+                  border: "none",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                  transition: "background 0.2s",
                 }}
                 onClick={() => {
                   setShowDeleteModal(false);
                   setEmployeeToDelete(null);
                 }}
-                onMouseOver={e => (e.currentTarget.style.background = '#d1d5db')}
-                onMouseOut={e => (e.currentTarget.style.background = '#e5e7eb')}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "#d1d5db")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "#e5e7eb")
+                }
               >
                 Cancel
               </button>
               <button
                 style={{
-                  padding: '0.5rem 1.5rem',
-                  background: '#ef4444',
-                  color: 'white',
+                  padding: "0.5rem 1.5rem",
+                  background: "#ef4444",
+                  color: "white",
                   fontWeight: 700,
-                  borderRadius: '0.5rem',
-                  border: 'none',
-                  boxShadow: '0 2px 8px rgba(239,68,68,0.15)',
-                  cursor: 'pointer',
-                  fontSize: '1rem',
-                  transition: 'background 0.2s',
+                  borderRadius: "0.5rem",
+                  border: "none",
+                  boxShadow: "0 2px 8px rgba(239,68,68,0.15)",
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                  transition: "background 0.2s",
                 }}
                 onClick={handleDeleteConfirm}
-                onMouseOver={e => (e.currentTarget.style.background = '#dc2626')}
-                onMouseOut={e => (e.currentTarget.style.background = '#ef4444')}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "#dc2626")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "#ef4444")
+                }
               >
                 Delete
               </button>
