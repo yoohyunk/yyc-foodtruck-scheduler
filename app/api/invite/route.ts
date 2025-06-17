@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     employee_type: "pending",
     last_name: lastName,
     first_name: firstName,
+    user_email: email,
   });
 
   return NextResponse.json({ user: data.user });
