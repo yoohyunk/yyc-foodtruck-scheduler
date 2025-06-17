@@ -4,7 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTutorial } from "../TutorialContext";
 
 export function TutorialOverlay() {
-  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial } = useTutorial();
+  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial } =
+    useTutorial();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
@@ -14,7 +15,13 @@ export function TutorialOverlay() {
   useEffect(() => {
     if (!isActive || !currentStepData) return;
     // Skip scrolling for overview steps that should scroll to top
-    if (currentStepData.id.includes('welcome') || currentStepData.id === 'calendar-view' || currentStepData.id === 'event-list' || currentStepData.id === 'employee-list' || currentStepData.id === 'navigation-tips') {
+    if (
+      currentStepData.id.includes("welcome") ||
+      currentStepData.id === "calendar-view" ||
+      currentStepData.id === "event-list" ||
+      currentStepData.id === "employee-list" ||
+      currentStepData.id === "navigation-tips"
+    ) {
       setTimeout(() => {
         setTargetRect(new DOMRect(0, 0, window.innerWidth, 100));
       }, 1000);
@@ -22,8 +29,12 @@ export function TutorialOverlay() {
     }
     const targetElement = document.querySelector(currentStepData.target);
     if (targetElement) {
-      targetElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-      const scrollDelay = currentStepData.id.includes('button') ? 800 : 600;
+      targetElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "center",
+      });
+      const scrollDelay = currentStepData.id.includes("button") ? 800 : 600;
       setTimeout(() => {
         const rect = targetElement.getBoundingClientRect();
         setTargetRect(rect);
@@ -33,7 +44,7 @@ export function TutorialOverlay() {
           overlay.style.left = `${rect.left}px`;
           overlay.style.width = `${rect.width}px`;
           overlay.style.height = `${rect.height}px`;
-          overlay.style.opacity = '1';
+          overlay.style.opacity = "1";
         }
       }, scrollDelay);
     }
@@ -47,10 +58,32 @@ export function TutorialOverlay() {
       {/* Overlay sections */}
       {targetRect && (
         <>
-          <div className="tutorial-overlay-section" style={{ top: 0, left: 0, right: 0, height: targetRect.top }} />
-          <div className="tutorial-overlay-section" style={{ top: targetRect.top, left: 0, width: targetRect.left, height: targetRect.height }} />
-          <div className="tutorial-overlay-section" style={{ top: targetRect.top, left: targetRect.right, right: 0, height: targetRect.height }} />
-          <div className="tutorial-overlay-section" style={{ top: targetRect.bottom, left: 0, right: 0, bottom: 0 }} />
+          <div
+            className="tutorial-overlay-section"
+            style={{ top: 0, left: 0, right: 0, height: targetRect.top }}
+          />
+          <div
+            className="tutorial-overlay-section"
+            style={{
+              top: targetRect.top,
+              left: 0,
+              width: targetRect.left,
+              height: targetRect.height,
+            }}
+          />
+          <div
+            className="tutorial-overlay-section"
+            style={{
+              top: targetRect.top,
+              left: targetRect.right,
+              right: 0,
+              height: targetRect.height,
+            }}
+          />
+          <div
+            className="tutorial-overlay-section"
+            style={{ top: targetRect.bottom, left: 0, right: 0, bottom: 0 }}
+          />
         </>
       )}
       <div ref={overlayRef} className="tutorial-highlight-border" />
@@ -64,13 +97,32 @@ export function TutorialOverlay() {
           </div>
           <div className="tutorial-progress">
             {steps.map((_, index) => (
-              <div key={index} className={`tutorial-progress-dot ${index === currentStep ? 'tutorial-progress-dot-active' : index < currentStep ? 'tutorial-progress-dot-completed' : 'tutorial-progress-dot-inactive'}`} />
+              <div
+                key={index}
+                className={`tutorial-progress-dot ${index === currentStep ? "tutorial-progress-dot-active" : index < currentStep ? "tutorial-progress-dot-completed" : "tutorial-progress-dot-inactive"}`}
+              />
             ))}
           </div>
           <div className="tutorial-actions">
-            <button onClick={previousStep} disabled={currentStep === 0} className="tutorial-button tutorial-button-secondary">← Previous</button>
-            <button onClick={skipTutorial} className="tutorial-button tutorial-button-skip">Skip</button>
-            <button onClick={nextStep} className="tutorial-button tutorial-button-primary">{currentStep === steps.length - 1 ? 'Finish ✨' : 'Next →'}</button>
+            <button
+              onClick={previousStep}
+              disabled={currentStep === 0}
+              className="tutorial-button tutorial-button-secondary"
+            >
+              ← Previous
+            </button>
+            <button
+              onClick={skipTutorial}
+              className="tutorial-button tutorial-button-skip"
+            >
+              Skip
+            </button>
+            <button
+              onClick={nextStep}
+              className="tutorial-button tutorial-button-primary"
+            >
+              {currentStep === steps.length - 1 ? "Finish ✨" : "Next →"}
+            </button>
           </div>
         </div>
         <div className="tutorial-corner-accent tutorial-corner-accent-top" />

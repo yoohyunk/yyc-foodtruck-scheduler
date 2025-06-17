@@ -3,14 +3,6 @@ interface Coordinates {
   lng: number;
 }
 
-// interface Employee {
-//   id: number;
-//   name: string;
-//   wage: number;
-//   address: string;
-//   coordinates?: { latitude: number; longitude: number };
-// }
-
 interface OSRMResponse {
   code: string;
   routes: Array<{
@@ -22,7 +14,6 @@ interface OSRMResponse {
 
 // Improved approach: Use a more efficient caching system
 const coordinatesCache = new Map<string, Coordinates>();
-// const employeeCoordinatesCache = new Map<number, Coordinates>();
 
 // Rate limiting
 let lastRequestTime = 0;
@@ -165,11 +156,7 @@ export async function calculateDistance(
   coord2: Coordinates
 ): Promise<number> {
   // If coordinates are exactly the same, return 0
-  if (
-    (coord1.lat === coord2.lat && coord1.lng === coord2.lng) ||
-    (Number(coord1.lat) === Number(coord2.lat) &&
-      Number(coord1.lng) === Number(coord2.lng))
-  ) {
+  if (coord1.lat === coord2.lat && coord1.lng === coord2.lng) {
     return 0;
   }
 
@@ -338,50 +325,3 @@ export async function findClosestEmployees(
     }));
   }
 }
-
-// Current approach: Sequential processing
-// Improved approach: Parallel processing with chunking
-// async function parallelProcessEmployees(
-//   employees: Employee[],
-//   eventCoords: Coordinates
-// ) {
-//   // Split employees into chunks of 10
-//   const chunkSize = 10;
-//   const chunks = [];
-
-//   for (let i = 0; i < employees.length; i += chunkSize) {
-//     chunks.push(employees.slice(i, i + chunkSize));
-//   }
-
-//   // Process chunks in parallel
-//   const results = await Promise.all(
-//     chunks.map((chunk) => processEmployeeChunk(chunk, eventCoords))
-//   );
-
-//   return results.flat();
-// }
-
-// Current approach: Makes API calls for every address
-// Improved approach: Batch geocoding requests
-// async function batchGeocode(addresses: string[]) {
-//   // Instead of making separate API calls for each address
-//   // Make one API call with multiple addresses
-//   const coordinates = await Promise.all(
-//     addresses.map((address) => getCoordinates(address))
-//   );
-//   return coordinates;
-// }
-
-// function processEmployeeChunk(
-//   chunk: Employee[],
-//   eventCoords: Coordinates
-// ): any {
-//   throw new Error("Function not implemented.");
-// }
-
-// // Add a maximum distance threshold to filter out employees who are too far
-// const MAX_DISTANCE = 50; // 50 kilometers
-
-// function filterByDistance(employees: EmployeeWithDistance[]) {
-//   return employees.filter((emp) => emp.distance <= MAX_DISTANCE);
-// }

@@ -39,7 +39,9 @@ export default function ContactPage() {
                       d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
                     />
                   </svg>
-                  <span className="text-gray-700">jeremy.andrews@yycfoodtrucks.com</span>
+                  <span className="text-gray-700">
+                    jeremy.andrews@yycfoodtrucks.com
+                  </span>
                 </div>
                 <div className="flex items-center">
                   <svg
@@ -71,7 +73,9 @@ export default function ContactPage() {
                       d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                     />
                   </svg>
-                  <span className="text-gray-700">Jeremy Andrews - Co-Owner</span>
+                  <span className="text-gray-700">
+                    Jeremy Andrews - Co-Owner
+                  </span>
                 </div>
               </div>
             </div>
@@ -84,8 +88,12 @@ export default function ContactPage() {
               <div className="space-y-6">
                 {/* Jen Andrews */}
                 <div className="border-b border-purple-200 pb-4">
-                  <h3 className="font-semibold text-purple-900 mb-2">Jen Andrews</h3>
-                  <p className="text-sm text-purple-700 mb-3">Co-Owner & Operations Director</p>
+                  <h3 className="font-semibold text-purple-900 mb-2">
+                    Jen Andrews
+                  </h3>
+                  <p className="text-sm text-purple-700 mb-3">
+                    Co-Owner & Operations Director
+                  </p>
                   <div className="space-y-2">
                     <div className="flex items-center">
                       <svg
@@ -101,7 +109,9 @@ export default function ContactPage() {
                           d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         />
                       </svg>
-                      <span className="text-gray-700 text-sm">jen.andrews@yycfoodtrucks.com</span>
+                      <span className="text-gray-700 text-sm">
+                        jen.andrews@yycfoodtrucks.com
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <svg
@@ -117,7 +127,9 @@ export default function ContactPage() {
                           d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
                         />
                       </svg>
-                      <span className="text-gray-700 text-sm">(403) 555-0127</span>
+                      <span className="text-gray-700 text-sm">
+                        (403) 555-0127
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <svg
@@ -143,11 +155,15 @@ export default function ContactPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Jeremy Andrews */}
                 <div>
-                  <h3 className="font-semibold text-purple-900 mb-2">Jeremy Andrews</h3>
-                  <p className="text-sm text-purple-700 mb-3">Co-Owner & Business Development</p>
+                  <h3 className="font-semibold text-purple-900 mb-2">
+                    Jeremy Andrews
+                  </h3>
+                  <p className="text-sm text-purple-700 mb-3">
+                    Co-Owner & Business Development
+                  </p>
                   <div className="space-y-2">
                     <div className="flex items-center">
                       <svg
@@ -163,7 +179,9 @@ export default function ContactPage() {
                           d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         />
                       </svg>
-                      <span className="text-gray-700 text-sm">jeremy.andrews@yycfoodtrucks.com</span>
+                      <span className="text-gray-700 text-sm">
+                        jeremy.andrews@yycfoodtrucks.com
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <svg
@@ -179,7 +197,9 @@ export default function ContactPage() {
                           d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
                         />
                       </svg>
-                      <span className="text-gray-700 text-sm">(403) 555-0128</span>
+                      <span className="text-gray-700 text-sm">
+                        (403) 555-0128
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <svg
@@ -216,7 +236,9 @@ export default function ContactPage() {
               <div className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-orange-900 mb-2">Kelly</h3>
-                  <p className="text-sm text-orange-700 mb-3">Senior Accountant</p>
+                  <p className="text-sm text-orange-700 mb-3">
+                    Senior Accountant
+                  </p>
                   <div className="space-y-2">
                     <div className="flex items-center">
                       <svg
@@ -232,7 +254,9 @@ export default function ContactPage() {
                           d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         />
                       </svg>
-                      <span className="text-gray-700 text-sm">kelly@yycfoodtrucks.com</span>
+                      <span className="text-gray-700 text-sm">
+                        kelly@yycfoodtrucks.com
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <svg
@@ -248,7 +272,9 @@ export default function ContactPage() {
                           d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
                         />
                       </svg>
-                      <span className="text-gray-700 text-sm">(403) 555-0129</span>
+                      <span className="text-gray-700 text-sm">
+                        (403) 555-0129
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <svg
@@ -295,13 +321,18 @@ export default function ContactPage() {
           </div>
 
           {/* Office Hours */}
-          <div className="bg-gray-50 rounded-lg p-6" style={{ marginTop: '3rem' }}>
+          <div
+            className="bg-gray-50 rounded-lg p-6"
+            style={{ marginTop: "3rem" }}
+          >
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Office Hours
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <h3 className="font-medium text-gray-900 mb-2">Monday - Friday</h3>
+                <h3 className="font-medium text-gray-900 mb-2">
+                  Monday - Friday
+                </h3>
                 <p className="text-gray-600">8:00 AM - 6:00 PM MST</p>
               </div>
               <div>
@@ -340,4 +371,4 @@ export default function ContactPage() {
       </div>
     </div>
   );
-} 
+}

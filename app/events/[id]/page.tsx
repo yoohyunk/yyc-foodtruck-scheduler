@@ -352,9 +352,15 @@ export default function EventDetailsPage(): ReactElement {
           <div className="modal-container">
             <h3 className="modal-title text-red-700">Delete Event</h3>
             <div className="modal-body">
-              <div className="text-4xl mb-4 text-red-600 text-center">&#10060;</div>
-              <p className="text-lg font-bold mb-2 text-gray-900 text-center">Are you sure you want to delete this event?</p>
-              <p className="mb-6 text-gray-700 text-center">This action cannot be undone.</p>
+              <div className="text-4xl mb-4 text-red-600 text-center">
+                &#10060;
+              </div>
+              <p className="text-lg font-bold mb-2 text-gray-900 text-center">
+                Are you sure you want to delete this event?
+              </p>
+              <p className="mb-6 text-gray-700 text-center">
+                This action cannot be undone.
+              </p>
             </div>
             <div className="modal-footer flex justify-center gap-4">
               <button
@@ -374,7 +380,9 @@ export default function EventDetailsPage(): ReactElement {
                     }
                     const events = await response.json();
                     // Remove the event
-                    const updatedEvents = events.filter((evt: Event) => evt.id !== id);
+                    const updatedEvents = events.filter(
+                      (evt: Event) => evt.id !== id
+                    );
                     // Save updated events
                     const saveResponse = await fetch("/api/events", {
                       method: "POST",

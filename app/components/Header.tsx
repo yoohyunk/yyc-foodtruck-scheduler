@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
-import { FiLogOut, FiUsers, FiCalendar, FiPlus, FiTruck, FiHome } from "react-icons/fi";
+import { FiLogOut, FiUsers, FiCalendar, FiPlus, FiHome } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { NavLink } from "../types";
 

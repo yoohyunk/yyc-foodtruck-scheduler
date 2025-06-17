@@ -87,16 +87,7 @@ const getFullAddress = (data: {
   `${data.streetNumber} ${expandAbbreviations(data.streetName)}${data.direction && data.direction !== "None" ? " " + data.direction : ""}, ${data.city}, ${data.postalCode}`;
 
 const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
-  (
-    {
-      value,
-      onChange,
-      // placeholder = "Enter address",
-      required = false,
-      className = "",
-    },
-    ref
-  ) => {
+  ({ value, onChange, required = false, className = "" }, ref) => {
     const [formData, setFormData] = useState<AddressFormData>({
       streetNumber: "",
       streetName: "",
@@ -126,7 +117,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     );
     const [checkMessage, setCheckMessage] = useState<string>("");
     const [isChecking, setIsChecking] = useState(false);
-    // const [lastCoords, setLastCoords] = useState<Coordinates | undefined>();
 
     const streetNumberRef = useRef<HTMLInputElement>(null);
     const streetNameRef = useRef<HTMLInputElement>(null);
@@ -139,7 +129,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           streetNumber: validateStreetNumber(formData.streetNumber),
           streetName: validateStreetName(formData.streetName),
           postalCode: validatePostalCode(formData.postalCode),
-          direction: validateDirection(formData.direction),
+          direction: true, // Direction is always valid since it's a select with predefined options
         };
 
         const newErrorMessages = {
@@ -152,7 +142,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           postalCode: newValidation.postalCode
             ? ""
             : "Please enter a valid postal code (e.g., T2N 1N4)",
-          direction: newValidation.direction ? "" : "Please select a direction",
+          direction: "", // Direction is always valid
         };
 
         setValidation(newValidation);
@@ -173,15 +163,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           });
           streetNameRef.current?.focus();
         } else if (!newValidation.postalCode) {
-          postalCodeRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-          postalCodeRef.current?.focus();
-        } else if (!newValidation.direction) {
-          // Assuming the direction input is the last in the grid
-          // This is a simplification, as the direction input is not the last in the grid
-          // You might want to adjust this logic based on your actual layout
           postalCodeRef.current?.scrollIntoView({
             behavior: "smooth",
             block: "center",
@@ -230,10 +211,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       return name.trim().length > 0;
     };
 
-    // Validate direction
-    const validateDirection = (dir: string): boolean =>
-      DIRECTION_OPTIONS.includes(dir);
-
     // Update parent component with full address
     const updateParentAddress = (newData: typeof formData) => {
       const fullAddress = getFullAddress(newData);
@@ -268,9 +245,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       } else if (name === "streetName") {
         isValid = value.trim().length > 0;
         errorMessage = isValid ? "" : "Please enter a street name";
-      } else if (name === "direction") {
-        isValid = validateDirection(value);
-        errorMessage = isValid ? "" : "Please select a direction";
       }
 
       setValidation((prev) => ({
@@ -485,11 +459,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
                 </option>
               ))}
             </select>
-            {showErrors && !validation.direction && (
-              <p className="text-red-500 text-sm mt-1">
-                {errorMessages.direction}
-              </p>
-            )}
           </div>
         </div>
 

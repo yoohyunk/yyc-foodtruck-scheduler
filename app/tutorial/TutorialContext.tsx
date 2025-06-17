@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from "react";
 
 interface TutorialStep {
   id: string;
@@ -759,7 +766,11 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
   ],
 };
 
-function forceScrollToElement(selector: string, headerHeight = 80, extraSpacing = 20) {
+function forceScrollToElement(
+  selector: string,
+  headerHeight = 80,
+  extraSpacing = 20
+) {
   const el = document.querySelector(selector) as HTMLElement;
   if (!el) {
     console.warn("Tutorial: Element not found for selector:", selector);
@@ -770,13 +781,12 @@ function forceScrollToElement(selector: string, headerHeight = 80, extraSpacing 
   const rect = el.getBoundingClientRect();
   const windowHeight = window.innerHeight;
   const windowWidth = window.innerWidth;
-  
-  const isInViewport = (
+
+  const isInViewport =
     rect.top >= 0 &&
     rect.left >= 0 &&
     rect.bottom <= windowHeight &&
-    rect.right <= windowWidth
-  );
+    rect.right <= windowWidth;
 
   // If element is already in viewport, don't scroll
   if (isInViewport) {
@@ -784,7 +794,12 @@ function forceScrollToElement(selector: string, headerHeight = 80, extraSpacing 
     return;
   }
 
-  console.log("Tutorial: Scrolling to element:", selector, "Header height:", headerHeight);
+  console.log(
+    "Tutorial: Scrolling to element:",
+    selector,
+    "Header height:",
+    headerHeight
+  );
 
   try {
     // Step 1: Smooth scroll the element to the top of the viewport
@@ -799,9 +814,12 @@ function forceScrollToElement(selector: string, headerHeight = 80, extraSpacing 
       try {
         window.scrollBy({
           top: headerHeight + extraSpacing,
-          behavior: "smooth" // Changed from 'auto' to 'smooth'
+          behavior: "smooth", // Changed from 'auto' to 'smooth'
         });
-        console.log("Tutorial: Applied header offset:", headerHeight + extraSpacing);
+        console.log(
+          "Tutorial: Applied header offset:",
+          headerHeight + extraSpacing
+        );
       } catch (scrollError) {
         console.error("Tutorial: Error applying header offset:", scrollError);
       }
@@ -823,15 +841,19 @@ function normalizePath(path: string): string {
 export function TutorialProvider({ children }: { children: ReactNode }) {
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [currentPath, setCurrentPath] = useState(typeof window !== 'undefined' ? normalizePath(window.location.pathname) : "/");
+  const [currentPath, setCurrentPath] = useState(
+    typeof window !== "undefined"
+      ? normalizePath(window.location.pathname)
+      : "/"
+  );
   const [pendingStep, setPendingStep] = useState<number | null>(null);
   const [previousStepId, setPreviousStepId] = useState<string | null>(null);
 
   // Get the appropriate tutorial steps for the current page
-  const getCurrentSteps = () => {
+  const getCurrentSteps = useCallback(() => {
     const pageSteps = pageTutorials[normalizePath(currentPath)] || [];
     return [...commonSteps, ...pageSteps];
-  };
+  }, [currentPath]);
 
   const startTutorial = () => {
     setCurrentPath(normalizePath(window.location.pathname));
@@ -843,9 +865,18 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     setIsActive(false);
     setCurrentStep(0);
     setPendingStep(null);
-    document.querySelectorAll(".tutorial-highlight-packing-item, .tutorial-highlight-button, .tutorial-expanded-truck, .tutorial-highlight").forEach(el => {
-      el.classList.remove("tutorial-highlight-packing-item", "tutorial-highlight-button", "tutorial-expanded-truck", "tutorial-highlight");
-    });
+    document
+      .querySelectorAll(
+        ".tutorial-highlight-packing-item, .tutorial-highlight-button, .tutorial-expanded-truck, .tutorial-highlight"
+      )
+      .forEach((el) => {
+        el.classList.remove(
+          "tutorial-highlight-packing-item",
+          "tutorial-highlight-button",
+          "tutorial-expanded-truck",
+          "tutorial-highlight"
+        );
+      });
   };
 
   // Watch for path changes and resume tutorial if needed
@@ -856,20 +887,61 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     }
   }, [currentPath, isActive, pendingStep]);
 
+  // Watch for route changes and end tutorial if user navigates to a different page
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleRouteChange = () => {
+      const newPath = normalizePath(window.location.pathname);
+      if (isActive && newPath !== currentPath) {
+        console.log("Tutorial: Route changed, ending tutorial", {
+          from: currentPath,
+          to: newPath,
+        });
+        endTutorial();
+      }
+      setCurrentPath(newPath);
+    };
+
+    // Listen for popstate events (back/forward navigation)
+    window.addEventListener("popstate", handleRouteChange);
+
+    // Listen for pushstate/replacestate events (programmatic navigation)
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function (...args) {
+      originalPushState.apply(history, args);
+      setTimeout(handleRouteChange, 0);
+    };
+
+    history.replaceState = function (...args) {
+      originalReplaceState.apply(history, args);
+      setTimeout(handleRouteChange, 0);
+    };
+
+    return () => {
+      window.removeEventListener("popstate", handleRouteChange);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  }, [isActive, currentPath]);
+
   // Watch for step changes and apply highlighting
   useEffect(() => {
     if (!isActive) return;
-    
     const steps = getCurrentSteps();
     const currentStepData = steps[currentStep];
-    
+
     // Add highlighting for create event form fields
     if (currentPath === "/events/newEvent") {
       // Highlight start time field - use more specific selector
       if (currentStepData?.id === "start-time-field") {
         setTimeout(() => {
           // Find the second DatePicker wrapper (start time)
-          const datePickerWrappers = document.querySelectorAll(".react-datepicker-wrapper");
+          const datePickerWrappers = document.querySelectorAll(
+            ".react-datepicker-wrapper"
+          );
           if (datePickerWrappers.length >= 2) {
             const startTimeWrapper = datePickerWrappers[1] as HTMLElement;
             startTimeWrapper.classList.add("tutorial-highlight");
@@ -877,12 +949,14 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           }
         }, 600);
       }
-      
+
       // Highlight end time field - use more specific selector
       if (currentStepData?.id === "end-time-field") {
         setTimeout(() => {
           // Find the third DatePicker wrapper (end time)
-          const datePickerWrappers = document.querySelectorAll(".react-datepicker-wrapper");
+          const datePickerWrappers = document.querySelectorAll(
+            ".react-datepicker-wrapper"
+          );
           if (datePickerWrappers.length >= 3) {
             const endTimeWrapper = datePickerWrappers[2] as HTMLElement;
             endTimeWrapper.classList.add("tutorial-highlight");
@@ -890,50 +964,66 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           }
         }, 600);
       }
-      
+
       // Highlight check address button
       if (currentStepData?.id === "check-address-button") {
         setTimeout(() => {
-          const targetElement = document.querySelector(currentStepData.target) as HTMLElement;
+          const targetElement = document.querySelector(
+            currentStepData.target
+          ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight-button");
             console.log("Tutorial: Highlighted check address button");
           }
         }, 600);
       }
-      
+
       // Highlight other form fields (but not time fields)
-      if (currentStepData?.id.includes("field") && 
-          !currentStepData.id.includes("time") && 
-          currentStepData.id !== "start-time-field" && 
-          currentStepData.id !== "end-time-field") {
+      if (
+        currentStepData?.id.includes("field") &&
+        !currentStepData.id.includes("time") &&
+        currentStepData.id !== "start-time-field" &&
+        currentStepData.id !== "end-time-field"
+      ) {
         setTimeout(() => {
-          const targetElement = document.querySelector(currentStepData.target) as HTMLElement;
+          const targetElement = document.querySelector(
+            currentStepData.target
+          ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight");
-            console.log("Tutorial: Highlighted form field:", currentStepData.id);
+            console.log(
+              "Tutorial: Highlighted form field:",
+              currentStepData.id
+            );
           }
         }, 600);
       }
     }
-    
+
     // Add highlighting for create employee form fields
     if (currentPath === "/employees/newEmployee") {
       // Highlight form fields
       if (currentStepData?.id.includes("field")) {
         setTimeout(() => {
-          const targetElement = document.querySelector(currentStepData.target) as HTMLElement;
+          const targetElement = document.querySelector(
+            currentStepData.target
+          ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight");
-            console.log("Tutorial: Highlighted employee form field:", currentStepData.id);
+            console.log(
+              "Tutorial: Highlighted employee form field:",
+              currentStepData.id
+            );
           }
         }, 600);
       }
-      
+
       // Highlight submit button
       if (currentStepData?.id === "send-invite-button") {
         setTimeout(() => {
-          const targetElement = document.querySelector(currentStepData.target) as HTMLElement;
+          const targetElement = document.querySelector(
+            currentStepData.target
+          ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight-button");
             console.log("Tutorial: Highlighted send invite button");
@@ -941,73 +1031,113 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         }, 600);
       }
     }
-  }, [currentStep, isActive, currentPath]);
+  }, [currentStep, isActive, currentPath, getCurrentSteps]);
 
   const nextStep = () => {
     // Remove all highlights before advancing
-    document.querySelectorAll(".tutorial-highlight-packing-item, .tutorial-highlight-button, .tutorial-expanded-truck, .tutorial-highlight").forEach(el => {
-      el.classList.remove("tutorial-highlight-packing-item", "tutorial-highlight-button", "tutorial-expanded-truck", "tutorial-highlight");
-    });
+    document
+      .querySelectorAll(
+        ".tutorial-highlight-packing-item, .tutorial-highlight-button, .tutorial-expanded-truck, .tutorial-highlight"
+      )
+      .forEach((el) => {
+        el.classList.remove(
+          "tutorial-highlight-packing-item",
+          "tutorial-highlight-button",
+          "tutorial-expanded-truck",
+          "tutorial-highlight"
+        );
+      });
     const steps = getCurrentSteps();
     const prevStepData = steps[currentStep];
     if (currentStep < steps.length - 1) {
       const nextStepData = steps[currentStep + 1];
-      console.log("Tutorial: All step IDs:", steps.map(s => s.id));
+      console.log(
+        "Tutorial: All step IDs:",
+        steps.map((s) => s.id)
+      );
       console.log("Tutorial: Current step index:", currentStep);
       console.log("Tutorial: Total steps:", steps.length);
-      
-      if (nextStepData.id.includes("welcome") || nextStepData.id === "calendar-view" || nextStepData.id === "event-list" || nextStepData.id === "employee-list" || nextStepData.id === "navigation-tips") {
-        console.log("Tutorial: MATCHED - Scrolling to top for overview step:", nextStepData.id);
-        console.log("Tutorial: Current scroll position before:", window.scrollY);
-        
+
+      if (
+        nextStepData.id.includes("welcome") ||
+        nextStepData.id === "calendar-view" ||
+        nextStepData.id === "event-list" ||
+        nextStepData.id === "employee-list" ||
+        nextStepData.id === "navigation-tips"
+      ) {
+        console.log(
+          "Tutorial: MATCHED - Scrolling to top for overview step:",
+          nextStepData.id
+        );
+        console.log(
+          "Tutorial: Current scroll position before:",
+          window.scrollY
+        );
+
         // Multiple scroll attempts to ensure it works
         // Force scroll to top immediately
         window.scrollTo(0, 0);
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-        console.log("Tutorial: Forced scroll to top, new position:", window.scrollY);
-        
+        console.log(
+          "Tutorial: Forced scroll to top, new position:",
+          window.scrollY
+        );
+
         // Second attempt after a short delay
         setTimeout(() => {
           window.scrollTo(0, 0);
           document.documentElement.scrollTop = 0;
           document.body.scrollTop = 0;
-          console.log("Tutorial: Second scroll attempt, position:", window.scrollY);
+          console.log(
+            "Tutorial: Second scroll attempt, position:",
+            window.scrollY
+          );
         }, 100);
-        
+
         // Then smooth scroll to top
         setTimeout(() => {
           window.scrollTo({
             top: 0,
-            behavior: "smooth"
+            behavior: "smooth",
           });
           console.log("Tutorial: Applied smooth scroll to top");
         }, 200);
-        
+
         // Final check and scroll
         setTimeout(() => {
           if (window.scrollY > 0) {
             window.scrollTo(0, 0);
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
-            console.log("Tutorial: Final scroll attempt, position:", window.scrollY);
+            console.log(
+              "Tutorial: Final scroll attempt, position:",
+              window.scrollY
+            );
           }
         }, 500);
       } else {
-        console.log("Tutorial: NO MATCH - Using targeted scroll for:", nextStepData.id);
-      forceScrollToElement(nextStepData.target);
+        console.log(
+          "Tutorial: NO MATCH - Using targeted scroll for:",
+          nextStepData.id
+        );
+        forceScrollToElement(nextStepData.target);
       }
-      
+
       // Special handling for dropdown button step
       if (currentPath === "/about" && nextStepData.id === "dropdown-button") {
-      setTimeout(() => {
-          const firstTruckButton = document.querySelector(".truck-card:first-child button[class*='bg-green-800']") as HTMLButtonElement;
+        setTimeout(() => {
+          const firstTruckButton = document.querySelector(
+            ".truck-card:first-child button[class*='bg-green-800']"
+          ) as HTMLButtonElement;
           if (firstTruckButton) {
             firstTruckButton.click();
             console.log("Tutorial: Automatically expanded first truck");
-            
+
             setTimeout(() => {
-              const firstTruckCard = document.querySelector(".truck-card:first-child") as HTMLElement;
+              const firstTruckCard = document.querySelector(
+                ".truck-card:first-child"
+              ) as HTMLElement;
               if (firstTruckCard) {
                 firstTruckCard.classList.add("tutorial-expanded-truck");
               }
@@ -1015,68 +1145,80 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           }
         }, 500);
       }
-      
+
       // Special handling for schedule tutorial view changes
       if (currentPath === "/schedule") {
         // Change to daily view when explaining daily view
         if (nextStepData.id === "daily-view-button") {
           setTimeout(() => {
-            const dailyViewButton = document.querySelector(".view-toggle-button:nth-child(1)") as HTMLButtonElement;
+            const dailyViewButton = document.querySelector(
+              ".view-toggle-button:nth-child(1)"
+            ) as HTMLButtonElement;
             if (dailyViewButton) {
               dailyViewButton.click();
               console.log("Tutorial: Automatically switched to daily view");
             }
           }, 500);
         }
-        
+
         // Change to weekly view when explaining weekly view
         if (nextStepData.id === "weekly-view-button") {
           setTimeout(() => {
-            const weeklyViewButton = document.querySelector(".view-toggle-button:nth-child(2)") as HTMLButtonElement;
+            const weeklyViewButton = document.querySelector(
+              ".view-toggle-button:nth-child(2)"
+            ) as HTMLButtonElement;
             if (weeklyViewButton) {
               weeklyViewButton.click();
               console.log("Tutorial: Automatically switched to weekly view");
             }
           }, 500);
         }
-        
+
         // Change to monthly view when explaining monthly view
         if (nextStepData.id === "monthly-view-button") {
           setTimeout(() => {
-            const monthlyViewButton = document.querySelector(".view-toggle-button:nth-child(3)") as HTMLButtonElement;
+            const monthlyViewButton = document.querySelector(
+              ".view-toggle-button:nth-child(3)"
+            ) as HTMLButtonElement;
             if (monthlyViewButton) {
               monthlyViewButton.click();
               console.log("Tutorial: Automatically switched to monthly view");
             }
           }, 500);
         }
-        
+
         // Navigate to previous day/week/month when explaining previous button
         if (nextStepData.id === "previous-button") {
           setTimeout(() => {
-            const previousButton = document.querySelector(".navigation-container button:first-child") as HTMLButtonElement;
+            const previousButton = document.querySelector(
+              ".navigation-container button:first-child"
+            ) as HTMLButtonElement;
             if (previousButton) {
               previousButton.click();
               console.log("Tutorial: Automatically clicked previous button");
             }
           }, 500);
         }
-        
+
         // Navigate to next day/week/month when explaining next button
         if (nextStepData.id === "next-button") {
           setTimeout(() => {
-            const nextButton = document.querySelector(".navigation-container button:last-child") as HTMLButtonElement;
+            const nextButton = document.querySelector(
+              ".navigation-container button:last-child"
+            ) as HTMLButtonElement;
             if (nextButton) {
               nextButton.click();
               console.log("Tutorial: Automatically clicked next button");
             }
           }, 500);
         }
-        
+
         // Go to today when explaining today button
         if (nextStepData.id === "today-button") {
           setTimeout(() => {
-            const todayButton = document.querySelector(".navigation-container button:nth-child(2)") as HTMLButtonElement;
+            const todayButton = document.querySelector(
+              ".navigation-container button:nth-child(2)"
+            ) as HTMLButtonElement;
             if (todayButton) {
               todayButton.click();
               console.log("Tutorial: Automatically clicked today button");
@@ -1084,12 +1226,17 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           }, 500);
         }
       }
-      
+
       // Special handling for events tutorial - click View Details button
-      if (currentPath === "/events" && nextStepData.id === "view-details-button") {
+      if (
+        currentPath === "/events" &&
+        nextStepData.id === "view-details-button"
+      ) {
         // Highlight the button first
         setTimeout(() => {
-          const viewDetailsButton = document.querySelector(".event-card:first-child .button") as HTMLButtonElement;
+          const viewDetailsButton = document.querySelector(
+            ".event-card:first-child .button"
+          ) as HTMLButtonElement;
           if (viewDetailsButton) {
             viewDetailsButton.classList.add("tutorial-highlight-button");
           }
@@ -1097,7 +1244,9 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         // Wait 1 second after highlight, then click
         setTimeout(() => {
           try {
-            const viewDetailsButton = document.querySelector(".event-card:first-child .button") as HTMLButtonElement;
+            const viewDetailsButton = document.querySelector(
+              ".event-card:first-child .button"
+            ) as HTMLButtonElement;
             if (viewDetailsButton) {
               viewDetailsButton.click();
               setTimeout(() => {
@@ -1107,7 +1256,8 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
                   // Find the first relevant step for the event details page
                   const eventDetailSteps = pageTutorials["/events/[id]"] || [];
                   let firstDetailStepIdx = eventDetailSteps.findIndex(
-                    s => s.id === "event-details-welcome" || s.id === "event-info"
+                    (s) =>
+                      s.id === "event-details-welcome" || s.id === "event-info"
                   );
                   if (firstDetailStepIdx === -1) firstDetailStepIdx = 0;
                   // Add commonSteps length to get the correct index in getCurrentSteps()
@@ -1115,7 +1265,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
                 }
               }, 1500);
             } else {
-        setCurrentStep(currentStep + 1);
+              setCurrentStep(currentStep + 1);
             }
           } catch {
             setCurrentStep(currentStep + 1);
@@ -1123,17 +1273,25 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         }, 1600); // 600ms for highlight + 1000ms delay
         return;
       }
-      
+
       // Special handling for employees tutorial - click Edit button
-      if (currentPath === "/employees" && nextStepData.id === "edit-employee-button") {
+      if (
+        currentPath === "/employees" &&
+        nextStepData.id === "edit-employee-button"
+      ) {
         setTimeout(() => {
           try {
-            const editEmployeeButton = document.querySelector(".employee-card:first-child button[title='Edit Employee']") as HTMLButtonElement;
+            const editEmployeeButton = document.querySelector(
+              ".employee-card:first-child button[title='Edit Employee']"
+            ) as HTMLButtonElement;
             if (editEmployeeButton) {
               editEmployeeButton.click();
               setTimeout(() => {
                 const newPath = window.location.pathname;
-                if (newPath.includes("/employees/") && newPath !== "/employees") {
+                if (
+                  newPath.includes("/employees/") &&
+                  newPath !== "/employees"
+                ) {
                   setCurrentPath(newPath);
                   setPendingStep(currentStep + 2);
                 }
@@ -1147,28 +1305,36 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         }, 500);
         return;
       }
-      
+
       // Special handling for event details tutorial - click management buttons
       if (currentPath.includes("/events/") && currentPath !== "/events") {
         // Click Select Employees button
         if (nextStepData.id === "select-employees-button") {
           setTimeout(() => {
-            const selectEmployeesButton = document.querySelector(".mt-6.flex.gap-4 button:first-child") as HTMLButtonElement;
+            const selectEmployeesButton = document.querySelector(
+              ".mt-6.flex.gap-4 button:first-child"
+            ) as HTMLButtonElement;
             if (selectEmployeesButton) {
               selectEmployeesButton.click();
-              console.log("Tutorial: Automatically clicked Select Employees button");
+              console.log(
+                "Tutorial: Automatically clicked Select Employees button"
+              );
             }
           }, 2500);
         }
         // Select first employee in modal and close
         if (nextStepData.id === "select-employee-in-modal") {
           setTimeout(() => {
-            const firstEmployeeCheckbox = document.querySelector(".modal-body .employee-checkbox:first-child") as HTMLInputElement;
+            const firstEmployeeCheckbox = document.querySelector(
+              ".modal-body .employee-checkbox:first-child"
+            ) as HTMLInputElement;
             if (firstEmployeeCheckbox) {
               firstEmployeeCheckbox.click();
               console.log("Tutorial: Automatically selected first employee");
               setTimeout(() => {
-                const closeButton = document.querySelector(".modal-footer .btn-secondary") as HTMLButtonElement;
+                const closeButton = document.querySelector(
+                  ".modal-footer .btn-secondary"
+                ) as HTMLButtonElement;
                 if (closeButton) {
                   closeButton.click();
                   console.log("Tutorial: Automatically closed employee modal");
@@ -1180,22 +1346,30 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         // Click Select Trucks button
         if (nextStepData.id === "select-trucks-button") {
           setTimeout(() => {
-            const selectTrucksButton = document.querySelector(".mt-6.flex.gap-4 button:nth-child(2)") as HTMLButtonElement;
+            const selectTrucksButton = document.querySelector(
+              ".mt-6.flex.gap-4 button:nth-child(2)"
+            ) as HTMLButtonElement;
             if (selectTrucksButton) {
               selectTrucksButton.click();
-              console.log("Tutorial: Automatically clicked Select Trucks button");
+              console.log(
+                "Tutorial: Automatically clicked Select Trucks button"
+              );
             }
           }, 2500);
         }
         // Select first truck in modal and close
         if (nextStepData.id === "select-truck-in-modal") {
           setTimeout(() => {
-            const firstTruckCheckbox = document.querySelector(".modal-body .employee-checkbox:first-child") as HTMLInputElement;
+            const firstTruckCheckbox = document.querySelector(
+              ".modal-body .employee-checkbox:first-child"
+            ) as HTMLInputElement;
             if (firstTruckCheckbox) {
               firstTruckCheckbox.click();
               console.log("Tutorial: Automatically selected first truck");
               setTimeout(() => {
-                const closeButton = document.querySelector(".modal-footer .btn-secondary") as HTMLButtonElement;
+                const closeButton = document.querySelector(
+                  ".modal-footer .btn-secondary"
+                ) as HTMLButtonElement;
                 if (closeButton) {
                   closeButton.click();
                   console.log("Tutorial: Automatically closed truck modal");
@@ -1204,104 +1378,146 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             }
           }, 2500);
         }
-        
+
         // Click Delete Event button (but don't confirm)
         if (nextStepData.id === "delete-event-button") {
           setTimeout(() => {
-            const deleteEventButton = document.querySelector(".mt-6.flex.gap-4 button:last-child") as HTMLButtonElement;
+            const deleteEventButton = document.querySelector(
+              ".mt-6.flex.gap-4 button:last-child"
+            ) as HTMLButtonElement;
             if (deleteEventButton) {
               deleteEventButton.click();
-              console.log("Tutorial: Automatically clicked Delete Event button");
-              
+              console.log(
+                "Tutorial: Automatically clicked Delete Event button"
+              );
+
               // Close the confirmation dialog after a short delay
               setTimeout(() => {
                 // Find the cancel button in the modal by class and text
-                const cancelButton = Array.from(document.querySelectorAll(".modal-footer .btn-secondary")).find(
-                  (btn) => btn.textContent && btn.textContent.trim().toLowerCase() === "cancel"
+                const cancelButton = Array.from(
+                  document.querySelectorAll(".modal-footer .btn-secondary")
+                ).find(
+                  (btn) =>
+                    btn.textContent &&
+                    btn.textContent.trim().toLowerCase() === "cancel"
                 ) as HTMLButtonElement | undefined;
                 if (cancelButton) {
                   cancelButton.click();
-                  console.log("Tutorial: Automatically cancelled delete confirmation after next");
+                  console.log(
+                    "Tutorial: Automatically cancelled delete confirmation after next"
+                  );
                 }
               }, 2500);
             }
           }, 2500);
         }
       }
-      
+
       // Add highlighting for packing list overview
-      if (currentPath === "/about" && nextStepData.id === "packing-list-overview") {
+      if (
+        currentPath === "/about" &&
+        nextStepData.id === "packing-list-overview"
+      ) {
         setTimeout(() => {
-          const targetElement = document.querySelector(nextStepData.target) as HTMLElement;
+          const targetElement = document.querySelector(
+            nextStepData.target
+          ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight-packing-item");
           }
         }, 600);
       }
-      
+
       // Add highlighting for buttons
-      if (currentPath === "/about" && (nextStepData.id.includes("button") || nextStepData.id.includes("arrow"))) {
+      if (
+        currentPath === "/about" &&
+        (nextStepData.id.includes("button") ||
+          nextStepData.id.includes("arrow"))
+      ) {
         setTimeout(() => {
-          const targetElement = document.querySelector(nextStepData.target) as HTMLElement;
+          const targetElement = document.querySelector(
+            nextStepData.target
+          ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight-button");
           }
         }, 600);
       }
-      
+
       // Add highlighting for schedule tutorial elements
       if (currentPath === "/schedule") {
         // Highlight view toggle buttons
         if (nextStepData.id.includes("view-button")) {
           setTimeout(() => {
-            const targetElement = document.querySelector(nextStepData.target) as HTMLElement;
+            const targetElement = document.querySelector(
+              nextStepData.target
+            ) as HTMLElement;
             if (targetElement) {
               targetElement.classList.add("tutorial-highlight-button");
             }
           }, 600);
         }
-        
+
         // Highlight navigation buttons
-        if (nextStepData.id.includes("button") && !nextStepData.id.includes("view")) {
+        if (
+          nextStepData.id.includes("button") &&
+          !nextStepData.id.includes("view")
+        ) {
           setTimeout(() => {
-            const targetElement = document.querySelector(nextStepData.target) as HTMLElement;
+            const targetElement = document.querySelector(
+              nextStepData.target
+            ) as HTMLElement;
             if (targetElement) {
               targetElement.classList.add("tutorial-highlight-button");
             }
           }, 600);
         }
-        
+
         // Highlight calendar view
         if (nextStepData.id === "calendar-view") {
           setTimeout(() => {
-            const targetElement = document.querySelector(nextStepData.target) as HTMLElement;
+            const targetElement = document.querySelector(
+              nextStepData.target
+            ) as HTMLElement;
             if (targetElement) {
               targetElement.classList.add("tutorial-highlight");
             }
           }, 600);
         }
       }
-      
+
       // Add highlighting for assigned staff section
-      if (currentPath.includes("/events/") && currentPath !== "/events" && nextStepData.id === "assigned-staff-section") {
+      if (
+        currentPath.includes("/events/") &&
+        currentPath !== "/events" &&
+        nextStepData.id === "assigned-staff-section"
+      ) {
         setTimeout(() => {
-          const targetElement = document.querySelector(nextStepData.target) as HTMLElement;
+          const targetElement = document.querySelector(
+            nextStepData.target
+          ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight");
           }
         }, 600);
       }
-      
+
       // Add highlighting for assigned trucks section
-      if (currentPath.includes("/events/") && currentPath !== "/events" && nextStepData.id === "assigned-trucks-section") {
+      if (
+        currentPath.includes("/events/") &&
+        currentPath !== "/events" &&
+        nextStepData.id === "assigned-trucks-section"
+      ) {
         setTimeout(() => {
-          const targetElement = document.querySelector(nextStepData.target) as HTMLElement;
+          const targetElement = document.querySelector(
+            nextStepData.target
+          ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight");
           }
         }, 600);
       }
-      
+
       setTimeout(() => {
         setPreviousStepId(prevStepData?.id || null);
         setCurrentStep(currentStep + 1);
@@ -1316,12 +1532,17 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     if (previousStepId === "delete-event-button") {
       setTimeout(() => {
         // Find the cancel button in the modal by class and text
-        const cancelButton = Array.from(document.querySelectorAll(".modal-footer .btn-secondary")).find(
-          (btn) => btn.textContent && btn.textContent.trim().toLowerCase() === "cancel"
+        const cancelButton = Array.from(
+          document.querySelectorAll(".modal-footer .btn-secondary")
+        ).find(
+          (btn) =>
+            btn.textContent && btn.textContent.trim().toLowerCase() === "cancel"
         ) as HTMLButtonElement | undefined;
         if (cancelButton) {
           cancelButton.click();
-          console.log("Tutorial: Automatically cancelled delete confirmation after next");
+          console.log(
+            "Tutorial: Automatically cancelled delete confirmation after next"
+          );
         }
       }, 2500);
     }
@@ -1329,9 +1550,18 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
   const previousStep = () => {
     // Remove all highlights before going back
-    document.querySelectorAll(".tutorial-highlight-packing-item, .tutorial-highlight-button, .tutorial-expanded-truck, .tutorial-highlight").forEach(el => {
-      el.classList.remove("tutorial-highlight-packing-item", "tutorial-highlight-button", "tutorial-expanded-truck", "tutorial-highlight");
-    });
+    document
+      .querySelectorAll(
+        ".tutorial-highlight-packing-item, .tutorial-highlight-button, .tutorial-expanded-truck, .tutorial-highlight"
+      )
+      .forEach((el) => {
+        el.classList.remove(
+          "tutorial-highlight-packing-item",
+          "tutorial-highlight-button",
+          "tutorial-expanded-truck",
+          "tutorial-highlight"
+        );
+      });
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }

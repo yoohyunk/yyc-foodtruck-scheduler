@@ -72,22 +72,22 @@ export default function InviteEmployee(): ReactElement {
   };
 
   const handleWageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/[^0-9.]/g, ''); // Remove all non-numeric characters except decimal
+    let value = e.target.value.replace(/[^0-9.]/g, ""); // Remove all non-numeric characters except decimal
     // Ensure only one decimal point
-    const parts = value.split('.');
+    const parts = value.split(".");
     if (parts.length > 2) {
-      value = parts[0] + '.' + parts.slice(1).join('');
+      value = parts[0] + "." + parts.slice(1).join("");
     }
     // Limit to 2 decimal places while typing, but don't force
     if (parts.length === 2 && parts[1].length > 2) {
-      value = parts[0] + '.' + parts[1].substring(0, 2);
+      value = parts[0] + "." + parts[1].substring(0, 2);
     }
-    setWage(value ? `$${value}` : '$');
+    setWage(value ? `$${value}` : "$");
   };
 
   const handleWageBlur = () => {
     // Remove $ and format to two decimals if valid
-    let value = wage.replace(/[^0-9.]/g, '');
+    const value = wage.replace(/[^0-9.]/g, "");
     if (value && !isNaN(parseFloat(value))) {
       const num = parseFloat(value);
       if (num <= 100) {

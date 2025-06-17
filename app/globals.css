@@ -39,15 +39,31 @@ body {
 /* =========================
    Utility Classes
 ========================= */
-.text-primary-dark { color: var(--primary-dark); }
-.text-primary-medium { color: var(--primary-medium); }
-.text-primary-light { color: var(--primary-light); }
-.text-secondary-dark { color: var(--secondary-dark); }
-.text-gray-500 { color: #6b7280; }
+.text-primary-dark {
+  color: var(--primary-dark);
+}
+.text-primary-medium {
+  color: var(--primary-medium);
+}
+.text-primary-light {
+  color: var(--primary-light);
+}
+.text-secondary-dark {
+  color: var(--secondary-dark);
+}
+.text-gray-500 {
+  color: #6b7280;
+}
 
-.bg-secondary-dark { background-color: var(--secondary-dark); }
-.bg-primary-medium { background-color: var(--primary-medium); }
-.bg-white { background-color: var(--white); }
+.bg-secondary-dark {
+  background-color: var(--secondary-dark);
+}
+.bg-primary-medium {
+  background-color: var(--primary-medium);
+}
+.bg-white {
+  background-color: var(--white);
+}
 
 /* =========================
    Reusable Components
@@ -260,7 +276,9 @@ body {
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 4px 6px var(--shadow);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .section-card:hover {
@@ -1172,7 +1190,9 @@ button[title="Delete Employee"]:hover {
   border-radius: 8px;
   transition: opacity 0.3s;
   opacity: 0;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3), 0 0 20px rgba(34, 197, 94, 0.5);
+  box-shadow:
+    0 0 0 4px rgba(34, 197, 94, 0.3),
+    0 0 20px rgba(34, 197, 94, 0.5);
   background: transparent;
   z-index: 9999;
   pointer-events: none;
@@ -1411,7 +1431,9 @@ button[title="Delete Employee"]:hover {
   position: relative;
   z-index: 10;
   animation: tutorial-pulse 2s ease-in-out infinite;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3), 0 0 20px rgba(34, 197, 94, 0.2);
+  box-shadow:
+    0 0 0 4px rgba(34, 197, 94, 0.3),
+    0 0 20px rgba(34, 197, 94, 0.2);
   border-radius: 8px;
   transition: all 0.3s ease;
 }
@@ -1435,11 +1457,16 @@ button[title="Delete Employee"]:hover {
 }
 
 @keyframes tutorial-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3), 0 0 20px rgba(34, 197, 94, 0.2);
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgba(34, 197, 94, 0.3),
+      0 0 20px rgba(34, 197, 94, 0.2);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.5), 0 0 30px rgba(34, 197, 94, 0.4);
+    box-shadow:
+      0 0 0 6px rgba(34, 197, 94, 0.5),
+      0 0 30px rgba(34, 197, 94, 0.4);
   }
 }
 

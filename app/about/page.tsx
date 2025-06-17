@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 
 interface Truck {
   id: number;
@@ -23,9 +22,16 @@ export default function TruckManagementPage() {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [expandedTrucks, setExpandedTrucks] = useState<Set<number>>(new Set());
   const [newItem, setNewItem] = useState<{ [truckId: number]: string }>({});
-  const [showAddInput, setShowAddInput] = useState<{ [truckId: number]: boolean }>({});
-  const [checkedItems, setCheckedItems] = useState<{ [truckId: number]: Set<number> }>({});
-  const [deleteConfirm, setDeleteConfirm] = useState<{ truckId: number; idx: number } | null>(null);
+  const [showAddInput, setShowAddInput] = useState<{
+    [truckId: number]: boolean;
+  }>({});
+  const [checkedItems, setCheckedItems] = useState<{
+    [truckId: number]: Set<number>;
+  }>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    truckId: number;
+    idx: number;
+  } | null>(null);
 
   useEffect(() => {
     // Load trucks data
@@ -34,7 +40,7 @@ export default function TruckManagementPage() {
       .then((data) => {
         // Ensure each truck has a packingList array
         setTrucks(
-          data.map((truck: any) => ({
+          data.map((truck: Truck) => ({
             ...truck,
             packingList: Array.isArray(truck.packingList)
               ? truck.packingList
@@ -85,12 +91,14 @@ export default function TruckManagementPage() {
 
   // Add item handler
   const handleAddItem = async (truckId: number) => {
-    const item = (newItem[truckId] || '').trim();
+    const item = (newItem[truckId] || "").trim();
     if (!item) return;
     const updatedTrucks = trucks.map((truck) => {
       if (truck.id === truckId) {
         // Avoid duplicates
-        const packingList = Array.isArray(truck.packingList) ? truck.packingList : [];
+        const packingList = Array.isArray(truck.packingList)
+          ? truck.packingList
+          : [];
         if (packingList.includes(item)) return truck;
         return {
           ...truck,
@@ -100,16 +108,16 @@ export default function TruckManagementPage() {
       return truck;
     });
     setTrucks(updatedTrucks);
-    setNewItem((prev) => ({ ...prev, [truckId]: '' }));
+    setNewItem((prev) => ({ ...prev, [truckId]: "" }));
     // Persist to API
     try {
-      await fetch('/api/trucks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/trucks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedTrucks),
       });
     } catch (err) {
-      console.error('Failed to save updated trucks:', err);
+      console.error("Failed to save updated trucks:", err);
     }
   };
 
@@ -121,21 +129,26 @@ export default function TruckManagementPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
               Truck Management
             </h1>
-            <p className="text-lg text-gray-600">
-              Manage your food trucks
-            </p>
+            <p className="text-lg text-gray-600">Manage your food trucks</p>
           </div>
 
           <div className="grid gap-6 truck-management">
             {trucks.map((truck) => (
-              <div key={truck.id} className="border border-gray-200 rounded-lg overflow-hidden truck-card">
+              <div
+                key={truck.id}
+                className="border border-gray-200 rounded-lg overflow-hidden truck-card"
+              >
                 {/* Truck Header */}
                 <div className="bg-gray-50 px-6 py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">{truck.name}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {truck.name}
+                      </h3>
                       <div className="flex items-center mt-1">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(truck.type)}`}>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(truck.type)}`}
+                        >
                           {truck.type}
                         </span>
                         <span className="text-sm text-gray-500 ml-2">
@@ -153,12 +166,12 @@ export default function TruckManagementPage() {
                       )}
                     </div>
                     {/* Arrow Button */}
-                    <button 
+                    <button
                       onClick={() => toggleTruckExpansion(truck.id)}
                       className="ml-4 bg-green-800 hover:bg-green-900 text-white p-3 rounded-full transition-colors duration-200 shadow-md"
                     >
                       <svg
-                        className={`w-5 h-5 transition-transform duration-200 ${expandedTrucks.has(truck.id) ? 'rotate-180' : ''}`}
+                        className={`w-5 h-5 transition-transform duration-200 ${expandedTrucks.has(truck.id) ? "rotate-180" : ""}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -177,18 +190,28 @@ export default function TruckManagementPage() {
                 {/* Dropdown Content */}
                 {expandedTrucks.has(truck.id) && (
                   <div className="px-6 py-4 border-t border-gray-200">
-                    <h4 className="font-medium text-gray-900 mb-3">Items to Pack</h4>
+                    <h4 className="font-medium text-gray-900 mb-3">
+                      Items to Pack
+                    </h4>
                     <div className="flex flex-col gap-2 w-full">
-                      {(Array.isArray(truck.packingList) ? truck.packingList : []).map((item: string, idx: number) => (
-                        <div key={idx} className="flex flex-row items-center w-full">
+                      {(Array.isArray(truck.packingList)
+                        ? truck.packingList
+                        : []
+                      ).map((item: string, idx: number) => (
+                        <div
+                          key={idx}
+                          className="flex flex-row items-center w-full"
+                        >
                           <input
                             type="checkbox"
                             id={`item-${truck.id}-${idx}`}
                             className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                             checked={checkedItems[truck.id]?.has(idx) || false}
                             onChange={() => {
-                              setCheckedItems(prev => {
-                                const prevSet = prev[truck.id] ? new Set<number>(Array.from(prev[truck.id])) : new Set<number>();
+                              setCheckedItems((prev) => {
+                                const prevSet = prev[truck.id]
+                                  ? new Set<number>(Array.from(prev[truck.id]))
+                                  : new Set<number>();
                                 if (prevSet.has(idx)) {
                                   prevSet.delete(idx);
                                 } else {
@@ -198,13 +221,18 @@ export default function TruckManagementPage() {
                               });
                             }}
                           />
-                          <label htmlFor={`item-${truck.id}-${idx}`} className="ml-2 text-sm text-gray-800 cursor-pointer select-none w-full text-left">
+                          <label
+                            htmlFor={`item-${truck.id}-${idx}`}
+                            className="ml-2 text-sm text-gray-800 cursor-pointer select-none w-full text-left"
+                          >
                             {item}
                           </label>
                           <button
                             className="ml-2 text-red-600 hover:text-red-800 text-lg font-bold focus:outline-none"
                             title="Delete item"
-                            onClick={() => setDeleteConfirm({ truckId: truck.id, idx })}
+                            onClick={() =>
+                              setDeleteConfirm({ truckId: truck.id, idx })
+                            }
                             type="button"
                           >
                             ×
@@ -216,10 +244,14 @@ export default function TruckManagementPage() {
                       <button
                         className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
                         onClick={() => {
-                          const packingList = Array.isArray(truck.packingList) ? truck.packingList : [];
-                          setCheckedItems(prev => ({
+                          const packingList = Array.isArray(truck.packingList)
+                            ? truck.packingList
+                            : [];
+                          setCheckedItems((prev) => ({
                             ...prev,
-                            [truck.id]: new Set(packingList.map((_, idx) => idx)),
+                            [truck.id]: new Set(
+                              packingList.map((_, idx) => idx)
+                            ),
                           }));
                         }}
                         type="button"
@@ -230,8 +262,13 @@ export default function TruckManagementPage() {
                         <>
                           <input
                             type="text"
-                            value={newItem[truck.id] || ''}
-                            onChange={e => setNewItem(prev => ({ ...prev, [truck.id]: e.target.value }))}
+                            value={newItem[truck.id] || ""}
+                            onChange={(e) =>
+                              setNewItem((prev) => ({
+                                ...prev,
+                                [truck.id]: e.target.value,
+                              }))
+                            }
                             placeholder="Add item..."
                             className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                             style={{ minWidth: 0, flex: 1 }}
@@ -240,7 +277,10 @@ export default function TruckManagementPage() {
                             className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
                             onClick={async () => {
                               await handleAddItem(truck.id);
-                              setShowAddInput(prev => ({ ...prev, [truck.id]: false }));
+                              setShowAddInput((prev) => ({
+                                ...prev,
+                                [truck.id]: false,
+                              }));
                             }}
                             type="button"
                           >
@@ -249,9 +289,14 @@ export default function TruckManagementPage() {
                         </>
                       ) : (
                         <button
-                          style={{ backgroundColor: 'var(--primary-dark)' }}
+                          style={{ backgroundColor: "var(--primary-dark)" }}
                           className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
-                          onClick={() => setShowAddInput(prev => ({ ...prev, [truck.id]: true }))}
+                          onClick={() =>
+                            setShowAddInput((prev) => ({
+                              ...prev,
+                              [truck.id]: true,
+                            }))
+                          }
                           type="button"
                         >
                           Add Item
@@ -269,8 +314,13 @@ export default function TruckManagementPage() {
             <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
                 <div className="text-4xl mb-4 text-red-600">&#10060;</div>
-                <h2 className="text-lg font-bold mb-2 text-gray-900">Delete Item</h2>
-                <p className="mb-6 text-gray-700">Are you sure you want to delete this item? This action cannot be undone.</p>
+                <h2 className="text-lg font-bold mb-2 text-gray-900">
+                  Delete Item
+                </h2>
+                <p className="mb-6 text-gray-700">
+                  Are you sure you want to delete this item? This action cannot
+                  be undone.
+                </p>
                 <div className="flex justify-center gap-4">
                   <button
                     className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
@@ -283,31 +333,37 @@ export default function TruckManagementPage() {
                     onClick={async () => {
                       const { truckId, idx } = deleteConfirm;
                       setDeleteConfirm(null);
-                      setTrucks(prevTrucks => {
-                        const updated = prevTrucks.map(truck => {
+                      setTrucks((prevTrucks) => {
+                        const updated = prevTrucks.map((truck) => {
                           if (truck.id === truckId) {
-                            const packingList = Array.isArray(truck.packingList) ? truck.packingList : [];
+                            const packingList = Array.isArray(truck.packingList)
+                              ? truck.packingList
+                              : [];
                             return {
                               ...truck,
-                              packingList: packingList.filter((_, i) => i !== idx),
+                              packingList: packingList.filter(
+                                (_, i) => i !== idx
+                              ),
                             };
                           }
                           return truck;
                         });
                         // Persist to API
-                        fetch('/api/trucks', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                        fetch("/api/trucks", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
                           body: JSON.stringify(updated),
                         });
                         return updated;
                       });
-                      setCheckedItems(prev => {
-                        const prevSet = prev[truckId] ? new Set<number>(Array.from(prev[truckId])) : new Set<number>();
+                      setCheckedItems((prev) => {
+                        const prevSet = prev[truckId]
+                          ? new Set<number>(Array.from(prev[truckId]))
+                          : new Set<number>();
                         prevSet.delete(idx);
                         // Shift checked indices after the deleted one
                         const newSet = new Set<number>();
-                        Array.from(prevSet).forEach(i => {
+                        Array.from(prevSet).forEach((i) => {
                           newSet.add(i > idx ? i - 1 : i);
                         });
                         return { ...prev, [truckId]: newSet };
@@ -324,4 +380,4 @@ export default function TruckManagementPage() {
       </div>
     </div>
   );
-} 
+}
