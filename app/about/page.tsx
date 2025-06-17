@@ -16,122 +16,47 @@ interface Truck {
     phone: string;
   } | null;
   location: string;
+  packingList?: string[];
 }
-
-interface PackingItem {
-  id: string;
-  name: string;
-  category: string;
-  checked: boolean;
-}
-
-const defaultPackingLists: Record<string, PackingItem[]> = {
-  "Food Truck": [
-    { id: "1", name: "Cooking utensils", category: "Kitchen", checked: false },
-    { id: "2", name: "Food containers", category: "Storage", checked: false },
-    { id: "3", name: "Napkins", category: "Service", checked: false },
-    { id: "4", name: "Plates", category: "Service", checked: false },
-    { id: "5", name: "Cooking oil", category: "Ingredients", checked: false },
-    { id: "6", name: "Spices", category: "Ingredients", checked: false },
-    { id: "7", name: "Cleaning supplies", category: "Maintenance", checked: false },
-    { id: "8", name: "First aid kit", category: "Safety", checked: false },
-  ],
-  "Beverage Truck": [
-    { id: "1", name: "Cups", category: "Service", checked: false },
-    { id: "2", name: "Straws", category: "Service", checked: false },
-    { id: "3", name: "Ice", category: "Ingredients", checked: false },
-    { id: "4", name: "Syrups", category: "Ingredients", checked: false },
-    { id: "5", name: "Beverage dispensers", category: "Equipment", checked: false },
-    { id: "6", name: "Cleaning supplies", category: "Maintenance", checked: false },
-    { id: "7", name: "First aid kit", category: "Safety", checked: false },
-  ],
-  "Dessert Truck": [
-    { id: "1", name: "Dessert containers", category: "Storage", checked: false },
-    { id: "2", name: "Spoons", category: "Service", checked: false },
-    { id: "3", name: "Napkins", category: "Service", checked: false },
-    { id: "4", name: "Toppings", category: "Ingredients", checked: false },
-    { id: "5", name: "Freezer packs", category: "Storage", checked: false },
-    { id: "6", name: "Cleaning supplies", category: "Maintenance", checked: false },
-    { id: "7", name: "First aid kit", category: "Safety", checked: false },
-  ],
-  "Holiday Truck": [
-    { id: "1", name: "Holiday decorations", category: "Display", checked: false },
-    { id: "2", name: "Specialty containers", category: "Storage", checked: false },
-    { id: "3", name: "Themed napkins", category: "Service", checked: false },
-    { id: "4", name: "Holiday ingredients", category: "Ingredients", checked: false },
-    { id: "5", name: "Cleaning supplies", category: "Maintenance", checked: false },
-    { id: "6", name: "First aid kit", category: "Safety", checked: false },
-  ],
-};
 
 export default function TruckManagementPage() {
   const [trucks, setTrucks] = useState<Truck[]>([]);
-  const [packingLists, setPackingLists] = useState<Record<number, PackingItem[]>>({});
-  const [editMode, setEditMode] = useState<Record<number, boolean>>({});
+  const [expandedTrucks, setExpandedTrucks] = useState<Set<number>>(new Set());
+  const [newItem, setNewItem] = useState<{ [truckId: number]: string }>({});
+  const [showAddInput, setShowAddInput] = useState<{ [truckId: number]: boolean }>({});
+  const [checkedItems, setCheckedItems] = useState<{ [truckId: number]: Set<number> }>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<{ truckId: number; idx: number } | null>(null);
 
   useEffect(() => {
     // Load trucks data
     fetch("/trucks.json")
       .then((res) => res.json())
       .then((data) => {
-        setTrucks(data);
-        // Initialize packing lists for each truck
-        const initialPackingLists: Record<number, PackingItem[]> = {};
-        data.forEach((truck: Truck) => {
-          const defaultList = defaultPackingLists[truck.type] || defaultPackingLists["Food Truck"];
-          initialPackingLists[truck.id] = JSON.parse(JSON.stringify(defaultList));
-        });
-        setPackingLists(initialPackingLists);
+        // Ensure each truck has a packingList array
+        setTrucks(
+          data.map((truck: any) => ({
+            ...truck,
+            packingList: Array.isArray(truck.packingList)
+              ? truck.packingList
+              : [
+                  "Food preparation equipment",
+                  "Cooking utensils and tools",
+                  "Food storage containers",
+                  "Cleaning supplies",
+                  "Safety equipment",
+                  "Cash register and payment system",
+                  "Menu boards and signage",
+                  "First aid kit",
+                  "Fire extinguisher",
+                  "Generator and fuel",
+                ],
+          }))
+        );
       })
       .catch((error) => {
         console.error("Error loading trucks:", error);
       });
   }, []);
-
-  const toggleEditMode = (truckId: number) => {
-    setEditMode(prev => ({
-      ...prev,
-      [truckId]: !prev[truckId]
-    }));
-  };
-
-  const toggleItemCheck = (truckId: number, itemId: string) => {
-    setPackingLists((prev) => ({
-      ...prev,
-      [truckId]: prev[truckId].map((item) =>
-        item.id === itemId ? { ...item, checked: !item.checked } : item
-      ),
-    }));
-  };
-
-  const addPackingItem = (truckId: number) => {
-    const newItem: PackingItem = {
-      id: Date.now().toString(),
-      name: "",
-      category: "Other",
-      checked: false,
-    };
-    setPackingLists((prev) => ({
-      ...prev,
-      [truckId]: [...prev[truckId], newItem],
-    }));
-  };
-
-  const updatePackingItem = (truckId: number, itemId: string, field: keyof PackingItem, value: any) => {
-    setPackingLists((prev) => ({
-      ...prev,
-      [truckId]: prev[truckId].map((item) =>
-        item.id === itemId ? { ...item, [field]: value } : item
-      ),
-    }));
-  };
-
-  const removePackingItem = (truckId: number, itemId: string) => {
-    setPackingLists((prev) => ({
-      ...prev,
-      [truckId]: prev[truckId].filter((item) => item.id !== itemId),
-    }));
-  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -148,26 +73,43 @@ export default function TruckManagementPage() {
     }
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Kitchen":
-        return "bg-orange-100 text-orange-700";
-      case "Storage":
-        return "bg-blue-100 text-blue-700";
-      case "Service":
-        return "bg-green-100 text-green-700";
-      case "Ingredients":
-        return "bg-yellow-100 text-yellow-700";
-      case "Equipment":
-        return "bg-purple-100 text-purple-700";
-      case "Maintenance":
-        return "bg-gray-100 text-gray-700";
-      case "Safety":
-        return "bg-red-100 text-red-700";
-      case "Display":
-        return "bg-pink-100 text-pink-700";
-      default:
-        return "bg-gray-100 text-gray-700";
+  const toggleTruckExpansion = (truckId: number) => {
+    const newExpandedTrucks = new Set(expandedTrucks);
+    if (newExpandedTrucks.has(truckId)) {
+      newExpandedTrucks.delete(truckId);
+    } else {
+      newExpandedTrucks.add(truckId);
+    }
+    setExpandedTrucks(newExpandedTrucks);
+  };
+
+  // Add item handler
+  const handleAddItem = async (truckId: number) => {
+    const item = (newItem[truckId] || '').trim();
+    if (!item) return;
+    const updatedTrucks = trucks.map((truck) => {
+      if (truck.id === truckId) {
+        // Avoid duplicates
+        const packingList = Array.isArray(truck.packingList) ? truck.packingList : [];
+        if (packingList.includes(item)) return truck;
+        return {
+          ...truck,
+          packingList: [...packingList, item],
+        };
+      }
+      return truck;
+    });
+    setTrucks(updatedTrucks);
+    setNewItem((prev) => ({ ...prev, [truckId]: '' }));
+    // Persist to API
+    try {
+      await fetch('/api/trucks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTrucks),
+      });
+    } catch (err) {
+      console.error('Failed to save updated trucks:', err);
     }
   };
 
@@ -177,10 +119,10 @@ export default function TruckManagementPage() {
         <div className="bg-white rounded-lg shadow-md p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Truck Management & Packing Lists
+              Truck Management
             </h1>
             <p className="text-lg text-gray-600">
-              Manage your food trucks and their packing requirements
+              Manage your food trucks
             </p>
           </div>
 
@@ -188,8 +130,8 @@ export default function TruckManagementPage() {
             {trucks.map((truck) => (
               <div key={truck.id} className="border border-gray-200 rounded-lg overflow-hidden truck-card">
                 {/* Truck Header */}
-                <div className="bg-gray-50 px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                <div className="bg-gray-50 px-6 py-4">
+                  <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">{truck.name}</h3>
                       <div className="flex items-center mt-1">
@@ -210,8 +152,114 @@ export default function TruckManagementPage() {
                         </p>
                       )}
                     </div>
+                    {/* Arrow Button */}
+                    <button 
+                      onClick={() => toggleTruckExpansion(truck.id)}
+                      className="ml-4 bg-green-800 hover:bg-green-900 text-white p-3 rounded-full transition-colors duration-200 shadow-md"
+                    >
+                      <svg
+                        className={`w-5 h-5 transition-transform duration-200 ${expandedTrucks.has(truck.id) ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 5v14m0 0l-7-7m7 7l7-7"
+                        />
+                      </svg>
+                    </button>
                   </div>
                 </div>
+
+                {/* Dropdown Content */}
+                {expandedTrucks.has(truck.id) && (
+                  <div className="px-6 py-4 border-t border-gray-200">
+                    <h4 className="font-medium text-gray-900 mb-3">Items to Pack</h4>
+                    <div className="flex flex-col gap-2 w-full">
+                      {(Array.isArray(truck.packingList) ? truck.packingList : []).map((item: string, idx: number) => (
+                        <div key={idx} className="flex flex-row items-center w-full">
+                          <input
+                            type="checkbox"
+                            id={`item-${truck.id}-${idx}`}
+                            className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                            checked={checkedItems[truck.id]?.has(idx) || false}
+                            onChange={() => {
+                              setCheckedItems(prev => {
+                                const prevSet = prev[truck.id] ? new Set<number>(Array.from(prev[truck.id])) : new Set<number>();
+                                if (prevSet.has(idx)) {
+                                  prevSet.delete(idx);
+                                } else {
+                                  prevSet.add(idx);
+                                }
+                                return { ...prev, [truck.id]: prevSet };
+                              });
+                            }}
+                          />
+                          <label htmlFor={`item-${truck.id}-${idx}`} className="ml-2 text-sm text-gray-800 cursor-pointer select-none w-full text-left">
+                            {item}
+                          </label>
+                          <button
+                            className="ml-2 text-red-600 hover:text-red-800 text-lg font-bold focus:outline-none"
+                            title="Delete item"
+                            onClick={() => setDeleteConfirm({ truckId: truck.id, idx })}
+                            type="button"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-4 flex gap-2 items-center">
+                      <button
+                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                        onClick={() => {
+                          const packingList = Array.isArray(truck.packingList) ? truck.packingList : [];
+                          setCheckedItems(prev => ({
+                            ...prev,
+                            [truck.id]: new Set(packingList.map((_, idx) => idx)),
+                          }));
+                        }}
+                        type="button"
+                      >
+                        Mark All Packed
+                      </button>
+                      {showAddInput[truck.id] ? (
+                        <>
+                          <input
+                            type="text"
+                            value={newItem[truck.id] || ''}
+                            onChange={e => setNewItem(prev => ({ ...prev, [truck.id]: e.target.value }))}
+                            placeholder="Add item..."
+                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                            style={{ minWidth: 0, flex: 1 }}
+                          />
+                          <button
+                            className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
+                            onClick={async () => {
+                              await handleAddItem(truck.id);
+                              setShowAddInput(prev => ({ ...prev, [truck.id]: false }));
+                            }}
+                            type="button"
+                          >
+                            Save
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          style={{ backgroundColor: 'var(--primary-dark)' }}
+                          className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
+                          onClick={() => setShowAddInput(prev => ({ ...prev, [truck.id]: true }))}
+                          type="button"
+                        >
+                          Add Item
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -238,6 +286,63 @@ export default function TruckManagementPage() {
               Back to Dashboard
             </Link>
           </div>
+
+          {/* Delete Confirmation Modal */}
+          {deleteConfirm && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
+                <div className="text-4xl mb-4 text-red-600">&#10060;</div>
+                <h2 className="text-lg font-bold mb-2 text-gray-900">Delete Item</h2>
+                <p className="mb-6 text-gray-700">Are you sure you want to delete this item? This action cannot be undone.</p>
+                <div className="flex justify-center gap-4">
+                  <button
+                    className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                    onClick={() => setDeleteConfirm(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    onClick={async () => {
+                      const { truckId, idx } = deleteConfirm;
+                      setDeleteConfirm(null);
+                      setTrucks(prevTrucks => {
+                        const updated = prevTrucks.map(truck => {
+                          if (truck.id === truckId) {
+                            const packingList = Array.isArray(truck.packingList) ? truck.packingList : [];
+                            return {
+                              ...truck,
+                              packingList: packingList.filter((_, i) => i !== idx),
+                            };
+                          }
+                          return truck;
+                        });
+                        // Persist to API
+                        fetch('/api/trucks', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(updated),
+                        });
+                        return updated;
+                      });
+                      setCheckedItems(prev => {
+                        const prevSet = prev[truckId] ? new Set<number>(Array.from(prev[truckId])) : new Set<number>();
+                        prevSet.delete(idx);
+                        // Shift checked indices after the deleted one
+                        const newSet = new Set<number>();
+                        Array.from(prevSet).forEach(i => {
+                          newSet.add(i > idx ? i - 1 : i);
+                        });
+                        return { ...prev, [truckId]: newSet };
+                      });
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
