@@ -141,8 +141,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           created_at: employees.created_at,
           is_available: employees.is_available ?? false,
           user_id: employees.user_id,
-          phone: employees.phone,
-          email: employees.email,
+          phone: employees.user_phone,
+          email: employees.user_email,
         });
 
         // Set address data if available
@@ -374,8 +374,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           address_id: addressId,
           availability: employee.availability,
           is_available: employee.is_available,
-          phone: employee.phone,
-          email: employee.email,
+          user_phone: employee.phone,
+          user_email: employee.email,
         },
       });
 
@@ -389,8 +389,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             address_id: addressId,
             availability: employee.availability,
             is_available: employee.is_available,
-            phone: employee.phone,
-            email: employee.email,
+            user_phone: employee.phone,
+            user_email: employee.email,
           })
           .eq("employee_id", existingEmployee.employee_id)
           .select();
@@ -445,9 +445,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             .from("wage")
             .insert({
               employee_id: existingEmployee.employee_id,
-              hourly_wage: 15,
+              hourly_wage: 15.0,
+              start_date: new Date().toISOString(),
+              end_date: null,
               created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
             });
 
           if (createWageError) {
@@ -504,8 +505,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
         className="w-full p-2 border rounded"
       >
         <option value="">Select Type</option>
-        <option value="driver">Driver</option>
-        <option value="server">Server</option>
+        <option value="Driver">Driver</option>
+        <option value="Server">Server</option>
       </select>
 
       <h2 className="text-xl font-semibold">Address</h2>
