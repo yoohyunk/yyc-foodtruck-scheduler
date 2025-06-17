@@ -313,7 +313,68 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       position: "bottom",
     },
   ],
+  "/about": [
+    {
+      id: "about-welcome",
+      title: "About Trucks Page 🚚",
+      content:
+        "This page shows information about your food trucks. You can see details like truck type, capacity, location, and assigned drivers. This helps you understand your fleet and manage truck assignments.",
+      target: ".truck-management",
+      position: "bottom",
+    },
+    {
+      id: "truck-list",
+      title: "Truck Information 📋",
+      content:
+        "Each truck card displays the truck name, type (Food, Beverage, Dessert, or Holiday), capacity, location, and driver information. This gives you a complete overview of your fleet.",
+      target: ".truck-card",
+      position: "bottom",
+    },
+    {
+      id: "back-to-dashboard-button",
+      title: "Back to Dashboard Button 🏠",
+      content:
+        "Click this 'Back to Dashboard' button to return to your main control center. This button is available on most pages and will take you back to the home page where you can access all the main features.",
+      target: 'a[href="/"]',
+      position: "top",
+    },
+  ],
 };
+
+function forceScrollToElement(selector: string, headerHeight = 80, extraSpacing = 20) {
+  const el = document.querySelector(selector) as HTMLElement;
+  if (!el) {
+    console.warn("Tutorial: Element not found for selector:", selector);
+    return;
+  }
+
+  console.log("Tutorial: Scrolling to element:", selector, "Header height:", headerHeight);
+
+  try {
+    // Step 1: Force scroll the element to the top of the viewport
+    el.scrollIntoView({
+      behavior: "auto", // Use 'auto' for instant scroll, 'smooth' for animation
+      block: "start",
+      inline: "nearest",
+    });
+
+    // Step 2: Scroll down by header height and extra spacing
+    // Use a slightly longer delay to ensure scrollIntoView completes
+    setTimeout(() => {
+      try {
+        window.scrollBy({
+          top: headerHeight + extraSpacing,
+          behavior: "auto"
+        });
+        console.log("Tutorial: Applied header offset:", headerHeight + extraSpacing);
+      } catch (scrollError) {
+        console.error("Tutorial: Error applying header offset:", scrollError);
+      }
+    }, 50); // Increased from 25ms to 50ms for more reliable timing
+  } catch (error) {
+    console.error("Tutorial: Error scrolling to element:", error);
+  }
+}
 
 export function TutorialProvider({ children }: { children: ReactNode }) {
   const [isActive, setIsActive] = useState(false);
@@ -340,7 +401,12 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const nextStep = () => {
     const steps = getCurrentSteps();
     if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+      const nextStepData = steps[currentStep + 1];
+      console.log("Tutorial: Scrolling to", nextStepData.target);
+      forceScrollToElement(nextStepData.target);
+      setTimeout(() => {
+        setCurrentStep(currentStep + 1);
+      }, 100); // Reduced from 200ms to 100ms for faster step transition
     } else {
       endTutorial();
     }

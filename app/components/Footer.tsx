@@ -15,7 +15,7 @@ export function Footer() {
           href="/about"
           className="hover:text-primary-light transition-colors"
         >
-          About
+          About Trucks
         </Link>
         <Link
           href="/contact"

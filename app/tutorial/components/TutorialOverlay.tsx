@@ -4,8 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { useTutorial } from "../TutorialContext";
 
 export function TutorialOverlay() {
-  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial } =
-    useTutorial();
+  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial } = useTutorial();
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -16,14 +15,14 @@ export function TutorialOverlay() {
       if (targetElement) {
         // First scroll the target element into view with a longer delay for navigation buttons
         targetElement.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-          inline: "center",
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'center'
         });
 
         // Wait for scroll to complete before positioning overlay
         // Use a longer delay for navigation buttons to ensure proper scrolling
-        const delay = currentStepData.id.includes("button") ? 800 : 500;
+        const delay = currentStepData.id.includes('button') ? 800 : 500;
 
         setTimeout(() => {
           const rect = targetElement.getBoundingClientRect();
@@ -35,7 +34,7 @@ export function TutorialOverlay() {
             overlay.style.left = `${rect.left}px`;
             overlay.style.width = `${rect.width}px`;
             overlay.style.height = `${rect.height}px`;
-            overlay.style.opacity = "1";
+            overlay.style.opacity = '1';
           }
         }, delay);
       }
@@ -47,7 +46,7 @@ export function TutorialOverlay() {
   const currentStepData = steps[currentStep];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+    <div className="fixed inset-0 bg-yellow-100 bg-opacity-30 z-50">
       <div
         ref={overlayRef}
         className="absolute border-2 border-primary-light rounded-lg transition-opacity duration-300 opacity-0"
@@ -73,7 +72,7 @@ export function TutorialOverlay() {
             onClick={nextStep}
             className="px-4 py-2 bg-primary-medium text-white rounded"
           >
-            {currentStep === steps.length - 1 ? "Finish" : "Next"}
+            {currentStep === steps.length - 1 ? 'Finish' : 'Next'}
           </button>
         </div>
       </div>
