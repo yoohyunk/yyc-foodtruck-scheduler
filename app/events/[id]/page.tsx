@@ -173,9 +173,6 @@ export default function EventDetailsPage(): ReactElement {
           <p className="event-detail-info">
             <span className="info-label">Location:</span> {event.location}
           </p>
-          {/* <p className="event-detail-info">
-            <span className="info-label">Time:</span> {event.time}
-          </p> */}
           <p className="event-detail-info">
             <span className="info-label">Required Servers:</span>{" "}
             {event.requiredServers}

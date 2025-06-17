@@ -790,16 +790,8 @@ function forceScrollToElement(
 
   // If element is already in viewport, don't scroll
   if (isInViewport) {
-    console.log("Tutorial: Element already in viewport, skipping scroll");
     return;
   }
-
-  console.log(
-    "Tutorial: Scrolling to element:",
-    selector,
-    "Header height:",
-    headerHeight
-  );
 
   try {
     // Step 1: Smooth scroll the element to the top of the viewport
@@ -816,10 +808,6 @@ function forceScrollToElement(
           top: headerHeight + extraSpacing,
           behavior: "smooth", // Changed from 'auto' to 'smooth'
         });
-        console.log(
-          "Tutorial: Applied header offset:",
-          headerHeight + extraSpacing
-        );
       } catch (scrollError) {
         console.error("Tutorial: Error applying header offset:", scrollError);
       }
@@ -894,10 +882,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     const handleRouteChange = () => {
       const newPath = normalizePath(window.location.pathname);
       if (isActive && newPath !== currentPath) {
-        console.log("Tutorial: Route changed, ending tutorial", {
-          from: currentPath,
-          to: newPath,
-        });
         endTutorial();
       }
       setCurrentPath(newPath);
@@ -945,7 +929,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           if (datePickerWrappers.length >= 2) {
             const startTimeWrapper = datePickerWrappers[1] as HTMLElement;
             startTimeWrapper.classList.add("tutorial-highlight");
-            console.log("Tutorial: Highlighted start time field");
           }
         }, 600);
       }
@@ -960,7 +943,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           if (datePickerWrappers.length >= 3) {
             const endTimeWrapper = datePickerWrappers[2] as HTMLElement;
             endTimeWrapper.classList.add("tutorial-highlight");
-            console.log("Tutorial: Highlighted end time field");
           }
         }, 600);
       }
@@ -973,7 +955,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight-button");
-            console.log("Tutorial: Highlighted check address button");
           }
         }, 600);
       }
@@ -991,10 +972,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight");
-            console.log(
-              "Tutorial: Highlighted form field:",
-              currentStepData.id
-            );
           }
         }, 600);
       }
@@ -1010,10 +987,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight");
-            console.log(
-              "Tutorial: Highlighted employee form field:",
-              currentStepData.id
-            );
           }
         }, 600);
       }
@@ -1026,7 +999,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           ) as HTMLElement;
           if (targetElement) {
             targetElement.classList.add("tutorial-highlight-button");
-            console.log("Tutorial: Highlighted send invite button");
           }
         }, 600);
       }
@@ -1051,12 +1023,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     const prevStepData = steps[currentStep];
     if (currentStep < steps.length - 1) {
       const nextStepData = steps[currentStep + 1];
-      console.log(
-        "Tutorial: All step IDs:",
-        steps.map((s) => s.id)
-      );
-      console.log("Tutorial: Current step index:", currentStep);
-      console.log("Tutorial: Total steps:", steps.length);
 
       if (
         nextStepData.id.includes("welcome") ||
@@ -1065,34 +1031,17 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         nextStepData.id === "employee-list" ||
         nextStepData.id === "navigation-tips"
       ) {
-        console.log(
-          "Tutorial: MATCHED - Scrolling to top for overview step:",
-          nextStepData.id
-        );
-        console.log(
-          "Tutorial: Current scroll position before:",
-          window.scrollY
-        );
-
         // Multiple scroll attempts to ensure it works
         // Force scroll to top immediately
         window.scrollTo(0, 0);
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-        console.log(
-          "Tutorial: Forced scroll to top, new position:",
-          window.scrollY
-        );
 
         // Second attempt after a short delay
         setTimeout(() => {
           window.scrollTo(0, 0);
           document.documentElement.scrollTop = 0;
           document.body.scrollTop = 0;
-          console.log(
-            "Tutorial: Second scroll attempt, position:",
-            window.scrollY
-          );
         }, 100);
 
         // Then smooth scroll to top
@@ -1101,7 +1050,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             top: 0,
             behavior: "smooth",
           });
-          console.log("Tutorial: Applied smooth scroll to top");
         }, 200);
 
         // Final check and scroll
@@ -1110,17 +1058,9 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             window.scrollTo(0, 0);
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
-            console.log(
-              "Tutorial: Final scroll attempt, position:",
-              window.scrollY
-            );
           }
         }, 500);
       } else {
-        console.log(
-          "Tutorial: NO MATCH - Using targeted scroll for:",
-          nextStepData.id
-        );
         forceScrollToElement(nextStepData.target);
       }
 
@@ -1132,7 +1072,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           ) as HTMLButtonElement;
           if (firstTruckButton) {
             firstTruckButton.click();
-            console.log("Tutorial: Automatically expanded first truck");
 
             setTimeout(() => {
               const firstTruckCard = document.querySelector(
@@ -1156,7 +1095,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLButtonElement;
             if (dailyViewButton) {
               dailyViewButton.click();
-              console.log("Tutorial: Automatically switched to daily view");
             }
           }, 500);
         }
@@ -1169,7 +1107,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLButtonElement;
             if (weeklyViewButton) {
               weeklyViewButton.click();
-              console.log("Tutorial: Automatically switched to weekly view");
             }
           }, 500);
         }
@@ -1182,7 +1119,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLButtonElement;
             if (monthlyViewButton) {
               monthlyViewButton.click();
-              console.log("Tutorial: Automatically switched to monthly view");
             }
           }, 500);
         }
@@ -1195,7 +1131,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLButtonElement;
             if (previousButton) {
               previousButton.click();
-              console.log("Tutorial: Automatically clicked previous button");
             }
           }, 500);
         }
@@ -1208,7 +1143,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLButtonElement;
             if (nextButton) {
               nextButton.click();
-              console.log("Tutorial: Automatically clicked next button");
             }
           }, 500);
         }
@@ -1221,7 +1155,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLButtonElement;
             if (todayButton) {
               todayButton.click();
-              console.log("Tutorial: Automatically clicked today button");
             }
           }, 500);
         }
@@ -1316,9 +1249,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLButtonElement;
             if (selectEmployeesButton) {
               selectEmployeesButton.click();
-              console.log(
-                "Tutorial: Automatically clicked Select Employees button"
-              );
             }
           }, 2500);
         }
@@ -1330,14 +1260,12 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLInputElement;
             if (firstEmployeeCheckbox) {
               firstEmployeeCheckbox.click();
-              console.log("Tutorial: Automatically selected first employee");
               setTimeout(() => {
                 const closeButton = document.querySelector(
                   ".modal-footer .btn-secondary"
                 ) as HTMLButtonElement;
                 if (closeButton) {
                   closeButton.click();
-                  console.log("Tutorial: Automatically closed employee modal");
                 }
               }, 2500);
             }
@@ -1351,9 +1279,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLButtonElement;
             if (selectTrucksButton) {
               selectTrucksButton.click();
-              console.log(
-                "Tutorial: Automatically clicked Select Trucks button"
-              );
             }
           }, 2500);
         }
@@ -1365,14 +1290,12 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLInputElement;
             if (firstTruckCheckbox) {
               firstTruckCheckbox.click();
-              console.log("Tutorial: Automatically selected first truck");
               setTimeout(() => {
                 const closeButton = document.querySelector(
                   ".modal-footer .btn-secondary"
                 ) as HTMLButtonElement;
                 if (closeButton) {
                   closeButton.click();
-                  console.log("Tutorial: Automatically closed truck modal");
                 }
               }, 2500);
             }
@@ -1387,9 +1310,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             ) as HTMLButtonElement;
             if (deleteEventButton) {
               deleteEventButton.click();
-              console.log(
-                "Tutorial: Automatically clicked Delete Event button"
-              );
 
               // Close the confirmation dialog after a short delay
               setTimeout(() => {
@@ -1403,9 +1323,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
                 ) as HTMLButtonElement | undefined;
                 if (cancelButton) {
                   cancelButton.click();
-                  console.log(
-                    "Tutorial: Automatically cancelled delete confirmation after next"
-                  );
                 }
               }, 2500);
             }
@@ -1540,9 +1457,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         ) as HTMLButtonElement | undefined;
         if (cancelButton) {
           cancelButton.click();
-          console.log(
-            "Tutorial: Automatically cancelled delete confirmation after next"
-          );
         }
       }, 2500);
     }

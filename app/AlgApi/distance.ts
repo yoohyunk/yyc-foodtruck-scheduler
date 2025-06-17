@@ -183,7 +183,6 @@ export async function calculateDistance(
       // Use OSRM public API for driving distance
       // Format coordinates with 6 decimal places for precision
       const url = `https://router.project-osrm.org/route/v1/driving/${coord1.lng.toFixed(6)},${coord1.lat.toFixed(6)};${coord2.lng.toFixed(6)},${coord2.lat.toFixed(6)}?overview=false&alternatives=false`;
-      console.log("Requesting OSRM route:", url);
 
       const response = await fetch(url, {
         headers: {
@@ -196,12 +195,10 @@ export async function calculateDistance(
       }
 
       const data: OSRMResponse = await response.json();
-      console.log("OSRM response:", data);
 
       if (data.code === "Ok" && data.routes && data.routes.length > 0) {
         // Convert meters to kilometers
         const distance = data.routes[0].distance / 1000;
-        console.log("Calculated driving distance:", distance, "km");
         return distance;
       }
 
