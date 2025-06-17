@@ -2,6 +2,7 @@
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { Employee } from "@/app/types";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Employees(): ReactElement {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -12,20 +13,87 @@ export default function Employees(): ReactElement {
     null
   );
   const router = useRouter();
+  const supabase = createClient();
 
   // Fetch employees from employee.json
   useEffect(() => {
-    fetch("/employees.json")
-      .then((response) => {
-        if (!response.ok)
-          throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-      })
-      .then((data: Employee[]) => {
-        setEmployees(data);
-        setFilteredEmployees(data);
-      })
-      .catch((error) => console.error("Error fetching employees:", error));
+    const fetchEmployees = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("employees")
+          .select(
+            `
+            employee_id,
+            first_name,
+            last_name,
+            employee_type,
+            is_available,
+            availability,
+            address_id,
+            user_id,
+            user_email,
+            user_phone
+          `
+          )
+          .neq("employee_type", "pending")
+          .neq("employee_type", "admin");
+
+        if (error) {
+          console.error("Error fetching employees:", error);
+          return;
+        }
+
+        if (!data) {
+          console.log("No data returned");
+          return;
+        }
+
+        // Get addresses for the employees
+        const addressIds = data.map((emp) => emp.address_id).filter(Boolean);
+        const { data: addressesData } = await supabase
+          .from("addresses")
+          .select("*")
+          .in("id", addressIds);
+
+        // Get wage information
+        const { data: wageData } = await supabase
+          .from("wage")
+          .select("*")
+          .in(
+            "employee_id",
+            data.map((emp) => emp.employee_id)
+          );
+
+        const formattedEmployees = data.map((emp) => {
+          const address = addressesData?.find(
+            (addr) => addr.id === emp.address_id
+          );
+          const wage = wageData?.find((w) => w.employee_id === emp.employee_id);
+
+          return {
+            id: emp.employee_id,
+            first_name: emp.first_name || "",
+            last_name: emp.last_name || "",
+            address: address
+              ? `${address.street}, ${address.city}, ${address.province}`
+              : "",
+            role: emp.employee_type || "",
+            email: emp.user_email || "",
+            phone: emp.user_phone || "",
+            wage: wage?.hourly_wage || 0,
+            isAvailable: emp.is_available || false,
+            availability: emp.availability || [],
+          };
+        });
+
+        setEmployees(formattedEmployees);
+        setFilteredEmployees(formattedEmployees);
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      }
+    };
+
+    fetchEmployees();
   }, []);
 
   // Filter employees based on the active filter
