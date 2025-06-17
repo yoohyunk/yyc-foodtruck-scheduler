@@ -40,7 +40,7 @@ const commonSteps: TutorialStep[] = [
     title: "Back to Dashboard 🏠",
     content:
       "To return to the main dashboard from any page, click the 'YYC Food Trucks' logo in the top-left corner of the page. This will take you back to your main control center where you can access all features.",
-    target: ".header-logo, .logo, header a[href='/']",
+    target: ".logo",
     position: "bottom",
   },
 ];
@@ -335,7 +335,25 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Back to Dashboard Button 🏠",
       content:
         "Click this 'Back to Dashboard' button to return to your main control center. This button is available on most pages and will take you back to the home page where you can access all the main features.",
-      target: 'a[href="/"]',
+      target: '.mt-8 a[href="/"]',
+      position: "top",
+    },
+  ],
+  "/contact": [
+    {
+      id: "contact-welcome",
+      title: "Contact Page 📞",
+      content:
+        "This page contains all the contact information for YYC Food Trucks. You can find emergency contacts, owner information, and office hours here.",
+      target: ".min-h-screen",
+      position: "bottom",
+    },
+    {
+      id: "back-to-dashboard-button",
+      title: "Back to Dashboard Button 🏠",
+      content:
+        "Click this 'Back to Dashboard' button to return to your main control center. This button is available on most pages and will take you back to the home page where you can access all the main features.",
+      target: '.mt-8 a[href="/"]',
       position: "top",
     },
   ],
@@ -348,29 +366,46 @@ function forceScrollToElement(selector: string, headerHeight = 80, extraSpacing 
     return;
   }
 
+  // Check if element is already in viewport
+  const rect = el.getBoundingClientRect();
+  const windowHeight = window.innerHeight;
+  const windowWidth = window.innerWidth;
+  
+  const isInViewport = (
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <= windowHeight &&
+    rect.right <= windowWidth
+  );
+
+  // If element is already in viewport, don't scroll
+  if (isInViewport) {
+    console.log("Tutorial: Element already in viewport, skipping scroll");
+    return;
+  }
+
   console.log("Tutorial: Scrolling to element:", selector, "Header height:", headerHeight);
 
   try {
-    // Step 1: Force scroll the element to the top of the viewport
+    // Step 1: Smooth scroll the element to the top of the viewport
     el.scrollIntoView({
-      behavior: "auto", // Use 'auto' for instant scroll, 'smooth' for animation
-      block: "start",
+      behavior: "smooth", // Changed from 'auto' to 'smooth' for better UX
+      block: "center", // Changed from 'start' to 'center' for better positioning
       inline: "nearest",
     });
 
-    // Step 2: Scroll down by header height and extra spacing
-    // Use a slightly longer delay to ensure scrollIntoView completes
+    // Step 2: Apply header offset with smooth behavior
     setTimeout(() => {
       try {
         window.scrollBy({
           top: headerHeight + extraSpacing,
-          behavior: "auto"
+          behavior: "smooth" // Changed from 'auto' to 'smooth'
         });
         console.log("Tutorial: Applied header offset:", headerHeight + extraSpacing);
       } catch (scrollError) {
         console.error("Tutorial: Error applying header offset:", scrollError);
       }
-    }, 50); // Increased from 25ms to 50ms for more reliable timing
+    }, 300); // Increased delay to allow smooth scroll to complete
   } catch (error) {
     console.error("Tutorial: Error scrolling to element:", error);
   }

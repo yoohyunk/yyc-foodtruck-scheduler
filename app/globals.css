@@ -32,38 +32,22 @@ body {
   overflow-x: hidden;
   height: 100%;
   font-family: "Arial", sans-serif;
-  background-color: #f9fafb;
+  background-color: var(--background);
   color: #333;
 }
 
 /* =========================
    Utility Classes
 ========================= */
-.text-primary-dark {
-  color: var(--primary-dark);
-}
-.text-primary-medium {
-  color: var(--primary-medium);
-}
-.text-primary-light {
-  color: var(--primary-light);
-}
-.text-secondary-dark {
-  color: var(--secondary-dark);
-}
-.text-gray-500 {
-  color: #6b7280;
-}
+.text-primary-dark { color: var(--primary-dark); }
+.text-primary-medium { color: var(--primary-medium); }
+.text-primary-light { color: var(--primary-light); }
+.text-secondary-dark { color: var(--secondary-dark); }
+.text-gray-500 { color: #6b7280; }
 
-.bg-secondary-dark {
-  background-color: var(--secondary-dark);
-}
-.bg-primary-medium {
-  background-color: var(--primary-medium);
-}
-.bg-white {
-  background-color: var(--white);
-}
+.bg-secondary-dark { background-color: var(--secondary-dark); }
+.bg-primary-medium { background-color: var(--primary-medium); }
+.bg-white { background-color: var(--white); }
 
 /* =========================
    Reusable Components
@@ -84,9 +68,7 @@ body {
 /* Header Styling */
 .header {
   background: var(--primary-dark);
-  background: var(--primary-dark);
   padding: 1rem 2rem;
-  box-shadow: 0 1px 3px var(--shadow);
   box-shadow: 0 1px 3px var(--shadow);
   position: sticky;
   top: 0;
@@ -174,13 +156,9 @@ body {
 }
 
 /* =========================
-   Section Styling & Pages
+   Landing Page
 ========================= */
-
-/* ========== Landing Page ========== */
-/* Landing Page Styling */
 .landing-container {
-  background: var(--background);
   background: var(--background);
   min-height: 100vh;
   display: flex;
@@ -251,11 +229,30 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* =========================
+   Common Components
+========================= */
 .section-title {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: bold;
   color: var(--primary-dark);
   margin-bottom: 1rem;
+  text-align: center;
+}
+
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px var(--shadow);
+  transition: var(--hover-transition);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px var(--shadow);
+  border-color: var(--primary-light);
 }
 
 .section-card {
@@ -263,9 +260,7 @@ body {
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 4px 6px var(--shadow);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .section-card:hover {
@@ -285,469 +280,9 @@ body {
   color: var(--primary-medium);
 }
 
-/* Section Titles */
-.section-title {
-  font-size: 1.75rem;
-  font-weight: bold;
-  color: var(--primary-dark);
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-/* Cards */
-.card {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px var(--shadow);
-  transition: var(--hover-transition);
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px var(--shadow);
-  border-color: var(--primary-light);
-}
-
-/* Nav Links */
-.nav-links {
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-}
-
-.nav-link {
-  text-decoration: none;
-  color: var(--white);
-  font-weight: 500;
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.75rem;
-  transition: var(--hover-transition);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.nav-link:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-}
-
-.nav-link::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 2px;
-  background: var(--white);
-  transition: var(--hover-transition);
-  transform: translateX(-50%);
-}
-
-.nav-link:hover::after {
-  width: 80%;
-}
-
-/* Footer Styling */
-footer {
-  background-color: var(--primary-dark); /* Dark background for contrast */
-  color: var(--primary-light); /* Light text color */
-  padding: 1.5rem 0; /* Add padding to the top and bottom */
-  text-align: center;
-  font-size: 0.875rem; /* Slightly smaller font size */
-  border-top: 1px solid #e5e7eb; /* Subtle border at the top */
-}
-
-footer p {
-  margin: 0; /* Remove default margin */
-}
-
-footer a {
-  color: var(--primary-light); /* Footer links inherit light color */
-  text-decoration: none; /* Remove underline */
-  font-weight: 600; /* Make links bold */
-  transition: color 0.3s ease; /* Smooth color transition */
-}
-
-footer a:hover {
-  color: var(--primary-medium); /* Change color on hover */
-}
-
 /* =========================
-   Base Styles
+   Buttons
 ========================= */
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-  height: 100%;
-  font-family: "Arial", sans-serif;
-  background-color: #f9fafb;
-  color: #333;
-}
-
-/* =========================
-   Utility Classes
-========================= */
-.text-primary-dark {
-  color: var(--primary-dark);
-}
-.text-primary-medium {
-  color: var(--primary-medium);
-}
-.text-primary-light {
-  color: var(--primary-light);
-}
-.text-secondary-dark {
-  color: var(--secondary-dark);
-}
-.text-gray-500 {
-  color: #6b7280;
-}
-
-.bg-secondary-dark {
-  background-color: var(--secondary-dark);
-}
-.bg-primary-medium {
-  background-color: var(--primary-medium);
-}
-.bg-white {
-  background-color: var(--white);
-}
-
-/* =========================
-   Reusable Components
-========================= */
-.badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-/* =========================
-   Layout & Navigation
-========================= */
-/* Header Styling */
-.header {
-  background: var(--primary-dark);
-  background: var(--primary-dark);
-  padding: 1rem 2rem;
-  box-shadow: 0 1px 3px var(--shadow);
-  box-shadow: 0 1px 3px var(--shadow);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  text-decoration: none;
-}
-
-.logo-img {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  box-shadow: 0 4px 6px var(--shadow);
-}
-
-.logo-text {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--white);
-}
-
-.logo-text span {
-  color: var(--secondary-dark);
-}
-
-/* Navigation Links */
-.nav-links {
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-}
-
-.nav-link {
-  text-decoration: none;
-  color: var(--white);
-  font-weight: 500;
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.75rem;
-  transition: var(--hover-transition);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.nav-link:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-}
-
-.nav-link::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 2px;
-  background: var(--white);
-  transition: var(--hover-transition);
-  transform: translateX(-50%);
-}
-
-.nav-link:hover::after {
-  width: 80%;
-}
-
-.nav-icon {
-  font-size: 1.25rem;
-}
-
-/* =========================
-   Section Styling & Pages
-========================= */
-
-/* ========== Landing Page ========== */
-/* Landing Page Styling */
-.landing-container {
-  background: var(--background);
-  background: var(--background);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-.landing-main {
-  max-width: 800px;
-  width: 100%;
-  text-align: center;
-  background: var(--surface);
-  border-radius: 1.5rem;
-  box-shadow: 0 4px 6px var(--shadow);
-  padding: 2.5rem;
-  border: 1px solid var(--border);
-  transition: var(--hover-transition);
-}
-
-.landing-title {
-  font-size: 3rem;
-  font-weight: bold;
-  color: var(--primary-dark);
-  margin-bottom: 1rem;
-}
-
-.landing-subtitle {
-  font-size: 1.25rem;
-  color: var(--primary-medium);
-  margin-bottom: 2rem;
-}
-
-.landing-links {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.landing-link {
-  background: var(--surface);
-  color: var(--primary-dark);
-  padding: 1.5rem;
-  border-radius: 1rem;
-  border: 1px solid var(--border);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: var(--hover-transition);
-}
-
-.landing-link:hover {
-  background: var(--primary-medium);
-  color: var(--white);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px var(--shadow);
-  border-color: var(--primary-medium);
-}
-
-.landing-link-icon {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.section-title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: var(--primary-dark);
-  margin-bottom: 1rem;
-}
-
-.section-card {
-  background: var(--white);
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 4px 6px var(--shadow);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.section-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 12px var(--shadow);
-}
-
-.section-card-title {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: var(--primary-dark);
-  margin-bottom: 0.5rem;
-}
-
-.section-card-text {
-  font-size: 1rem;
-  color: var(--primary-medium);
-}
-
-/* Section Titles */
-.section-title {
-  font-size: 1.75rem;
-  font-weight: bold;
-  color: var(--primary-dark);
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-/* Cards */
-.card {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px var(--shadow);
-  transition: var(--hover-transition);
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px var(--shadow);
-  border-color: var(--primary-light);
-}
-
-/* Nav Links */
-.nav-links {
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-}
-
-.nav-link {
-  text-decoration: none;
-  color: var(--white);
-  font-weight: 500;
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.75rem;
-  transition: var(--hover-transition);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.nav-link:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-}
-
-.nav-link::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 2px;
-  background: var(--white);
-  transition: var(--hover-transition);
-  transform: translateX(-50%);
-}
-
-.nav-link:hover::after {
-  width: 80%;
-}
-
-/* Footer Styling */
-footer {
-  background-color: var(--primary-dark); /* Dark background for contrast */
-  color: var(--primary-light); /* Light text color */
-  padding: 1.5rem 0; /* Add padding to the top and bottom */
-  text-align: center;
-  font-size: 0.875rem; /* Slightly smaller font size */
-  border-top: 1px solid #e5e7eb; /* Subtle border at the top */
-}
-
-footer p {
-  margin: 0; /* Remove default margin */
-}
-
-footer a {
-  color: var(--primary-light); /* Footer links inherit light color */
-  text-decoration: none; /* Remove underline */
-  font-weight: 600; /* Make links bold */
-  transition: color 0.3s ease; /* Smooth color transition */
-}
-
-footer a:hover {
-  color: var(--primary-medium); /* Change color on hover */
-}
-
-/* Grid Layout for Sections */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(300px, 1fr)
-  ); /* Responsive grid */
-  gap: 1.5rem; /* Space between grid items */
-}
-
-/* Buttons */
 .button {
   background-color: var(--primary-medium);
   color: var(--white);
@@ -769,23 +304,59 @@ footer a:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 4px var(--shadow);
 }
-.edit-button {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: none;
-  border: none; /* Remove default border */
-  color: var(--gray-500);
-  font-size: 1.25rem;
+
+.btn-primary {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: var(--primary-medium);
+  color: var(--white);
   cursor: pointer;
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  background-color: #e5e7eb;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+/* =========================
+   Footer
+========================= */
+footer {
+  background-color: var(--primary-dark);
+  color: var(--primary-light);
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.875rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+footer p {
+  margin: 0;
+}
+
+footer a {
+  color: var(--primary-light);
+  text-decoration: none;
+  font-weight: 600;
   transition: color 0.3s ease;
 }
 
-.edit-button:hover {
+footer a:hover {
   color: var(--primary-medium);
 }
 
-/* ========== Dashboard Layout ========== */
+/* =========================
+   Grid Layout
+========================= */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
 .dashboard-grid {
   display: grid;
   gap: 2rem;
@@ -795,6 +366,9 @@ footer a:hover {
   margin: 0 auto;
 }
 
+/* =========================
+   Sidebar
+========================= */
 .sidebar {
   background: var(--white);
   border-radius: 12px;
@@ -803,27 +377,42 @@ footer a:hover {
   height: fit-content;
 }
 
-/* ========== Data Components ========== */
-.data-card {
-  background: var(--white);
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px var(--shadow);
-  transition: transform 0.3s ease;
-  margin-bottom: 1.5rem;
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
 }
 
-.data-card:hover {
-  transform: translateY(-4px);
+.sidebar nav .button {
+  padding: 1.25rem;
+  margin: 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  background-color: var(--primary-medium);
+  color: var(--white);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.form-header {
-  border-bottom: 2px solid var(--primary-medium);
-  padding-bottom: 1rem;
-  margin-bottom: 2rem;
+.sidebar nav .button:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px var(--shadow);
 }
 
-/* ========== Form Elements ========== */
+.sidebar nav .button span {
+  font-size: 1.5rem;
+}
+
+/* =========================
+   Forms
+========================= */
 .input-group {
   margin-bottom: 1.5rem;
 }
@@ -855,30 +444,46 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(34, 139, 34, 0.1);
 }
 
-/* ========== Schedule View ========== */
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
-  margin-top: 1rem;
+.input-field {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 1rem;
+  margin-top: 0.5rem;
 }
 
-.day-column {
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary-medium);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+/* =========================
+   Data Cards
+========================= */
+.data-card {
   background: var(--white);
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 1px 3px var(--shadow);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: transform 0.3s ease;
+  margin-bottom: 1.5rem;
 }
 
-.shift-card {
-  background: var(--secondary-light);
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  border-left: 4px solid var(--primary-medium);
+.data-card:hover {
+  transform: translateY(-4px);
 }
 
-/* ========== Table Styles ========== */
+.form-header {
+  border-bottom: 2px solid var(--primary-medium);
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* =========================
+   Tables
+========================= */
 table {
   width: 100%;
   border-collapse: separate;
@@ -907,31 +512,113 @@ tr:hover td {
   background-color: rgba(103, 184, 138, 0.05);
 }
 
-/* ========== Responsive Design ========== */
-@media (max-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-    padding: 1rem;
-  }
-
-  .calendar-grid {
-    grid-template-columns: 1fr;
-  }
-
-  table {
-    display: block;
-    overflow-x: auto;
-  }
+/* =========================
+   Employee Components
+========================= */
+.employees-page {
+  padding: 1.5rem;
 }
 
-@media (min-width: 1024px) {
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
+.employee-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-/* Event Card Styles */
+.employee-card {
+  border: 1px solid #e5e7eb;
+  background-color: var(--white);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.employee-card h3 {
+  margin-bottom: 0.5rem;
+}
+
+.employee-card p {
+  margin-bottom: 0.25rem;
+}
+
+.edit-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--gray-500);
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.edit-button:hover {
+  color: var(--primary-medium);
+}
+
+button[title="Edit Employee"],
+button[title="Delete Employee"] {
+  position: absolute;
+  top: 0.5rem;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: transform 0.2s ease;
+}
+
+button[title="Edit Employee"] {
+  right: 2.5rem;
+}
+
+button[title="Delete Employee"] {
+  right: 0.5rem;
+}
+
+button[title="Edit Employee"]:hover,
+button[title="Delete Employee"]:hover {
+  transform: scale(1.1);
+  color: var(--primary-medium);
+}
+
+/* Filter Buttons */
+.filter-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.filter-buttons .button {
+  padding: 1rem;
+  text-align: center;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-buttons .button.bg-primary-dark {
+  background-color: var(--primary-dark);
+  color: var(--white);
+}
+
+.filter-buttons .button.bg-secondary-dark {
+  background-color: #e5e7eb;
+  color: var(--primary-dark);
+}
+
+.filter-buttons .button:hover {
+  background-color: var(--primary-medium);
+  color: var(--white);
+}
+
+/* =========================
+   Event Components
+========================= */
 .event-card {
   border: 1px solid black;
   border-radius: 0.5rem;
@@ -965,24 +652,9 @@ tr:hover td {
   color: var(--primary-medium);
 }
 
-/* Button Styles */
-.btn-primary {
-  padding: 0.5rem 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  background-color: var(--primary-medium);
-  color: var(--white);
-  cursor: pointer;
-}
-
-.btn-secondary {
-  padding: 0.5rem 1rem;
-  background-color: #e5e7eb;
-  border-radius: 0.5rem;
-  cursor: pointer;
-}
-
-/* Modal Styles */
+/* =========================
+   Modal Components
+========================= */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1025,123 +697,9 @@ tr:hover td {
   gap: 0.5rem;
 }
 
-/* Employee Selection Styles */
-.employee-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-}
-
-.employee-label-selected {
-  background-color: var(--secondary-light);
-}
-
-.employee-checkbox {
-  accent-color: var(--primary-medium);
-}
-
-.employee-name {
-  font-size: 0.875rem;
-}
-.employee-card {
-  position: relative;
-}
-
-button[title="Edit Employee"],
-button[title="Delete Employee"] {
-  position: absolute;
-  top: 0.5rem;
-  background: none;
-  border: none;
-  font-size: 1.25rem;
-  cursor: pointer;
-  padding: 0.25rem;
-  transition: transform 0.2s ease;
-}
-
-button[title="Edit Employee"] {
-  right: 2.5rem;
-}
-
-button[title="Delete Employee"] {
-  right: 0.5rem;
-}
-
-button[title="Edit Employee"]:hover,
-button[title="Delete Employee"]:hover {
-  transform: scale(1.1);
-  color: var(--primary-medium);
-}
-
-/* Filter Buttons */
-.filter-buttons {
-  display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(300px, 1fr)
-  ); /* Match employee card size */
-  gap: 1.5rem; /* Space between buttons */
-  margin-bottom: 2rem; /* Add spacing below buttons */
-}
-
-.filter-buttons .button {
-  padding: 1rem; /* Add padding for better spacing */
-  text-align: center;
-  font-weight: 600;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.filter-buttons .button.bg-primary-dark {
-  background-color: var(--primary-dark); /* Dark green for active button */
-  color: var(--white);
-}
-
-.filter-buttons .button.bg-secondary-dark {
-  background-color: #e5e7eb; /* Light gray for inactive buttons */
-  color: var(--primary-dark);
-}
-
-.filter-buttons .button:hover {
-  background-color: var(--primary-medium); /* Medium green on hover */
-  color: var(--white);
-}
-
-/* Assigned Employee Styles */
-.assigned-employees-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
-
-.assigned-employee-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  background-color: var(--secondary-light);
-}
-
-.assigned-employee-name {
-  font-size: 1.125rem;
-  font-weight: bold;
-  color: var(--primary-dark);
-}
-
-.assigned-employee-role {
-  color: var(--primary-light);
-}
-
-/* Utility Classes */
-.text-gray-500 {
-  color: #6b7280;
-}
-
-/* ========== Schedule Page Styles ========== */
+/* =========================
+   Schedule Components
+========================= */
 .schedule-container {
   padding: 2rem;
   max-width: 1400px;
@@ -1163,6 +721,8 @@ button[title="Delete Employee"]:hover {
 
 .schedule-subtitle {
   font-size: 1.1rem;
+  color: var(--primary-dark);
+  font-weight: 500;
 }
 
 .view-toggle-container {
@@ -1195,7 +755,51 @@ button[title="Delete Employee"]:hover {
   cursor: pointer;
 }
 
-/* Calendar Event Styles */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.day-column {
+  background: var(--white);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+.shift-card {
+  background: var(--secondary-light);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-left: 4px solid var(--primary-medium);
+}
+
+.day-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background-color: var(--secondary-dark);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  color: var(--primary-dark);
+}
+
+/* =========================
+   Calendar Components
+========================= */
+.daily-schedule,
+.weekly-schedule,
+.monthly-schedule {
+  background-color: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px var(--shadow);
+  padding: 1rem;
+}
+
 .custom-event {
   padding: 0.5rem;
   border-radius: 6px;
@@ -1216,17 +820,9 @@ button[title="Delete Employee"]:hover {
   margin-bottom: 0.25rem;
 }
 
-/* Calendar View Styles */
-.daily-schedule,
-.weekly-schedule,
-.monthly-schedule {
-  background-color: var(--white);
-  border-radius: 12px;
-  box-shadow: 0 4px 6px var(--shadow);
-  padding: 1rem;
-}
-
-/* FullCalendar Customization */
+/* =========================
+   FullCalendar Customization
+========================= */
 .fc {
   font-family: inherit;
 }
@@ -1336,35 +932,97 @@ button[title="Delete Employee"]:hover {
   text-decoration: none;
 }
 
-/* Responsive Styles */
-@media (max-width: 768px) {
-  .schedule-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  .view-toggle-container {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .view-toggle-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-  }
-
-  .navigation-container {
-    flex-wrap: wrap;
-  }
-
-  .navigation-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-  }
+/* =========================
+   DayPilot Calendar Styles
+========================= */
+.monthly-schedule .dp-cal-root {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
 }
 
-/* ========== Event Details Page Styles ========== */
+.monthly-schedule .dp-cal-header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem;
+}
+
+.monthly-schedule .dp-cal-header-cell {
+  font-weight: 500;
+  color: #374151;
+}
+
+.monthly-schedule .dp-cal-cell {
+  border: 1px solid #e5e7eb;
+  background-color: white;
+}
+
+.monthly-schedule .dp-cal-cell-today {
+  background-color: #f3f4f6;
+}
+
+.monthly-schedule .dp-cal-event {
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.monthly-schedule .dp-cal-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.monthly-schedule .dp-cal-cell-other {
+  background-color: #f9fafb;
+  color: #9ca3af;
+}
+
+/* =========================
+   Truck Components
+========================= */
+.truck-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  position: relative;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.truck-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.truck-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin-bottom: 0.5rem;
+}
+
+.truck-info {
+  margin-bottom: 0.5rem;
+  color: #4b5563;
+}
+
+.truck-info-label {
+  font-weight: 600;
+}
+
+.status-available {
+  color: #10b981;
+}
+
+.status-unavailable {
+  color: #ef4444;
+}
+
+/* =========================
+   Event Details Components
+========================= */
 .event-details-page {
   padding: 1.5rem;
   background: var(--secondary-light);
@@ -1450,185 +1108,298 @@ button[title="Delete Employee"]:hover {
   gap: 1.5rem;
 }
 
+.assigned-employees-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.assigned-employee-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background-color: var(--secondary-light);
+}
+
+.assigned-employee-name {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: var(--primary-dark);
+}
+
+.assigned-employee-role {
+  color: var(--primary-light);
+}
+
+/* =========================
+   Employee Selection Components
+========================= */
+.employee-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.employee-label-selected {
+  background-color: var(--secondary-light);
+}
+
+.employee-checkbox {
+  accent-color: var(--primary-medium);
+}
+
+.employee-name {
+  font-size: 0.875rem;
+}
+
+/* =========================
+   Tutorial Overlay Styles
+========================= */
+.tutorial-overlay-section {
+  position: fixed;
+  background-color: rgba(245, 230, 200, 0.15);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.tutorial-highlight-border {
+  position: fixed;
+  border: 4px solid #166534;
+  border-radius: 8px;
+  transition: opacity 0.3s;
+  opacity: 0;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3), 0 0 20px rgba(34, 197, 94, 0.5);
+  background: transparent;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.tutorial-popup {
+  position: fixed;
+  bottom: 40px;
+  left: 20px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 350px;
+  border: 2px solid #166534;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.tutorial-accent-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to right, #166534, #15803d, #166534);
+  border-radius: 12px 12px 0 0;
+}
+
+.tutorial-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tutorial-header {
+  text-align: center;
+}
+
+.tutorial-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #111827;
+  letter-spacing: -0.025em;
+}
+
+.tutorial-divider {
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(to right, #166534, #15803d);
+  margin: 0 auto 8px;
+}
+
+.tutorial-description {
+  color: #374151;
+  line-height: 1.4;
+  font-size: 0.875rem;
+}
+
+.tutorial-progress {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.tutorial-progress-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.tutorial-progress-dot-active {
+  background-color: #166534;
+  transform: scale(1.2);
+}
+
+.tutorial-progress-dot-completed {
+  background-color: #16a34a;
+}
+
+.tutorial-progress-dot-inactive {
+  background-color: #d1d5db;
+}
+
+.tutorial-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.tutorial-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+  border: 1px solid;
+  cursor: pointer;
+  min-width: 70px;
+}
+
+.tutorial-button-secondary {
+  background-color: #f8fafc;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+.tutorial-button-secondary:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.tutorial-button-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tutorial-button-skip {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.tutorial-button-skip:hover {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  transform: translateY(-1px);
+}
+
+.tutorial-button-primary {
+  background: linear-gradient(to right, #166534, #15803d);
+  color: white;
+  border-color: #166534;
+  font-weight: 700;
+}
+
+.tutorial-button-primary:hover {
+  background: linear-gradient(to right, #14532d, #166534);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.3);
+}
+
+.tutorial-corner-accent {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.tutorial-corner-accent-top {
+  top: 12px;
+  right: 12px;
+  width: 6px;
+  height: 6px;
+  background-color: #166534;
+  opacity: 0.6;
+}
+
+.tutorial-corner-accent-bottom {
+  bottom: 12px;
+  left: 12px;
+  width: 4px;
+  height: 4px;
+  background-color: #15803d;
+  opacity: 0.4;
+}
+
+/* =========================
+   Responsive Design
+========================= */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .calendar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .schedule-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .view-toggle-container {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .view-toggle-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .navigation-container {
+    flex-wrap: wrap;
+  }
+
+  .navigation-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
 @media (min-width: 768px) {
   .assigned-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-.truck-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-  position: relative;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  background-color: white;
-  transition: all 0.2s ease;
-}
-
-.truck-card:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-.truck-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--primary-dark);
-  margin-bottom: 0.5rem;
-}
-
-.truck-info {
-  margin-bottom: 0.5rem;
-  color: #4b5563;
-}
-
-.truck-info-label {
-  font-weight: 600;
-}
-
-.status-available {
-  color: #10b981;
-}
-
-.status-unavailable {
-  color: #ef4444;
-}
-
-.schedule-subtitle {
-  color: var(--primary-dark);
-  font-size: 1.1rem;
-  font-weight: 500;
-}
-
-/* Employee Page Styles */
-.employees-page {
-  padding: 1.5rem;
-}
-
-.employee-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.employee-card {
-  border: 1px solid #e5e7eb;
-  background-color: var(--white);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.employee-card h3 {
-  margin-bottom: 0.5rem;
-}
-
-.employee-card p {
-  margin-bottom: 0.25rem;
-}
-
-/* Employee edit page*/
-.input-field {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  font-size: 1rem;
-  margin-top: 0.5rem;
-}
-
-.input-field:focus {
-  outline: none;
-  border-color: var(--primary-medium);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-}
-
-/* DayPilot Calendar Styles */
-.monthly-schedule .dp-cal-root {
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-.monthly-schedule .dp-cal-header {
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 1rem;
-}
-
-.monthly-schedule .dp-cal-header-cell {
-  font-weight: 500;
-  color: #374151;
-}
-
-.monthly-schedule .dp-cal-cell {
-  border: 1px solid #e5e7eb;
-  background-color: white;
-}
-
-.monthly-schedule .dp-cal-cell-today {
-  background-color: #f3f4f6;
-}
-
-.monthly-schedule .dp-cal-event {
-  border-radius: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.monthly-schedule .dp-cal-event:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.monthly-schedule .dp-cal-cell-other {
-  background-color: #f9fafb;
-  color: #9ca3af;
-}
-
-.day-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  background-color: var(--secondary-dark);
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  text-align: center;
-  margin-bottom: 1rem;
-  color: var(--primary-dark);
-}
-
-/* Quick Action Buttons */
-.sidebar nav {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 1rem;
-}
-
-.sidebar nav .button {
-  padding: 1.25rem;
-  margin: 0.75rem 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  text-align: center;
-  background-color: var(--primary-medium);
-  color: var(--white);
-  border-radius: 0.75rem;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.sidebar nav .button:hover {
-  background-color: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px var(--shadow);
-}
-
-.sidebar nav .button span {
-  font-size: 1.5rem;
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
 }
