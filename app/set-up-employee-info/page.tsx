@@ -9,7 +9,6 @@ import type { Tables } from "../../database.types";
 
 type EmployeeInfo = Tables<"employees">;
 type AddressInfo = Tables<"addresses">;
-type WageInfo = Tables<"wage">;
 
 export default function SetUpEmployeeInfoPage(): ReactElement {
   const router = useRouter();
@@ -29,6 +28,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     created_at: "",
     is_available: false,
     user_id: null,
+    phone: null,
+    email: null,
   });
   const [address, setAddress] = useState<AddressInfo>({
     id: "",
@@ -40,14 +41,6 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     latitude: "",
     longitude: "",
     created_at: "",
-  });
-  const [wage, setWage] = useState<WageInfo>({
-    id: 0,
-    hourly_wage: 0,
-    start_date: "",
-    end_date: "",
-    created_at: "",
-    employee_id: "",
   });
 
   const daysOfWeek = [
@@ -125,6 +118,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             created_at: "",
             is_available: false,
             user_id: user.id,
+            phone: null,
+            email: null,
           });
           setLoading(false);
           return;
@@ -146,6 +141,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           created_at: employees.created_at,
           is_available: employees.is_available ?? false,
           user_id: employees.user_id,
+          phone: employees.phone,
+          email: employees.email,
         });
 
         // Set address data if available
@@ -222,26 +219,6 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             created_at: "",
           });
         }
-
-        // Fetch wage data
-        const { data: wageData, error: wageError } = await supabase
-          .from("wage")
-          .select("*")
-          .eq("employee_id", employees.employee_id)
-          .maybeSingle();
-
-        console.log("Wage fetch result:", { wageData, error: wageError });
-
-        if (!wageError && wageData) {
-          setWage({
-            id: wageData.id,
-            hourly_wage: wageData.hourly_wage || 0,
-            start_date: wageData.start_date || "",
-            end_date: wageData.end_date || "",
-            created_at: wageData.created_at,
-            employee_id: wageData.employee_id || "",
-          });
-        }
       } catch (err: unknown) {
         console.error("Fetch error:", err);
         setError(
@@ -254,7 +231,9 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     fetchData();
   }, [supabase]);
 
-  const handleEmployeeChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleEmployeeChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setEmployee((prev) => ({ ...prev, [name]: value }));
   };
@@ -263,13 +242,6 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     setAddress((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-  const handleWageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setWage((prev) => ({
-      ...prev,
-      [name]: name === "hourly_wage" ? Number(value) : value,
     }));
   };
   const handleDaySelection = (day: string) => {
@@ -402,6 +374,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           address_id: addressId,
           availability: employee.availability,
           is_available: employee.is_available,
+          phone: employee.phone,
+          email: employee.email,
         },
       });
 
@@ -415,6 +389,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             address_id: addressId,
             availability: employee.availability,
             is_available: employee.is_available,
+            phone: employee.phone,
+            email: employee.email,
           })
           .eq("employee_id", existingEmployee.employee_id)
           .select();
@@ -446,8 +422,11 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
       console.log("Employee updated successfully:", updatedEmployee[0]);
 
-      // Update wage information
-      if (employee.employee_type === "employee") {
+      // Update wage information for non-admin and non-pending employees
+      if (
+        employee.employee_type !== "admin" &&
+        employee.employee_type !== "pending"
+      ) {
         const { data: existingWage, error: wageError } = await supabase
           .from("wage")
           .select("*")
@@ -460,28 +439,13 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           return;
         }
 
-        if (existingWage) {
-          // Update existing wage
-          const { error: updateWageError } = await supabase
-            .from("wage")
-            .update({
-              hourly_wage: wage.hourly_wage,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("employee_id", existingEmployee.employee_id);
-
-          if (updateWageError) {
-            console.error("Error updating wage:", updateWageError);
-            setError("Failed to update wage information");
-            return;
-          }
-        } else {
-          // Create new wage
+        if (!existingWage) {
+          // Create new wage only if it doesn't exist
           const { error: createWageError } = await supabase
             .from("wage")
             .insert({
               employee_id: existingEmployee.employee_id,
-              hourly_wage: wage.hourly_wage,
+              hourly_wage: 15,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             });
@@ -522,11 +486,27 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
         placeholder="Last Name"
       />
       <input
+        name="phone"
+        value={employee.phone ?? ""}
+        onChange={handleEmployeeChange}
+        placeholder="Phone Number"
+      />
+      <input
+        name="email"
+        value={employee.email ?? ""}
+        onChange={handleEmployeeChange}
+        placeholder="Email"
+      />
+      <select
         name="employee_type"
         value={employee.employee_type ?? ""}
         onChange={handleEmployeeChange}
-        placeholder="Type"
-      />
+        className="w-full p-2 border rounded"
+      >
+        <option value="">Select Type</option>
+        <option value="driver">Driver</option>
+        <option value="server">Server</option>
+      </select>
 
       <h2 className="text-xl font-semibold">Address</h2>
       <input
@@ -600,27 +580,6 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           ))}
         </div>
       </div>
-
-      <h2 className="text-xl font-semibold">Wage</h2>
-      <input
-        type="number"
-        name="hourly_wage"
-        value={wage.hourly_wage ?? 0}
-        onChange={handleWageChange}
-        placeholder="Hourly Wage"
-      />
-      <input
-        type="date"
-        name="start_date"
-        value={wage.start_date ?? ""}
-        onChange={handleWageChange}
-      />
-      <input
-        type="time"
-        name="end_date"
-        value={wage.end_date ?? ""}
-        onChange={handleWageChange}
-      />
 
       <button type="submit" className="button">
         Save Changes
