@@ -8,10 +8,7 @@ export function Footer() {
   return (
     <footer className="bg-primary-dark text-white py-4 w-full mt-auto">
       <div className="flex flex-row flex-wrap justify-center items-center gap-6">
-        <Link
-          href="/"
-          className="hover:text-primary-light transition-colors"
-        >
+        <Link href="/" className="hover:text-primary-light transition-colors">
           Home
         </Link>
         <Link
