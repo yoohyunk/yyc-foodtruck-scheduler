@@ -3,6 +3,8 @@ import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
 import { Event, TimeOffRequest, NavLink } from "./types";
 import { TutorialOverlay } from "./tutorial";
+import { FiUsers, FiCalendar, FiTruck, FiClock } from "react-icons/fi";
+import { FaRegCalendarAlt } from "react-icons/fa";
 
 export default function Home(): ReactElement {
   const [hoveredLink, setHoveredLink] = useState<number | null>(null);
@@ -46,11 +48,11 @@ export default function Home(): ReactElement {
   }, []);
 
   const links: NavLink[] = [
-    { name: "Schedule", href: "/schedule", icon: "📅" },
-    { name: "Employees", href: "/employees", icon: "👥" },
-    { name: "Events", href: "/events", icon: "🎉" },
-    { name: "Trucks", href: "/trucks", icon: "🚚" },
-    { name: "Time-Off", href: "/requests", icon: "🌴" },
+    { name: "Schedule", href: "/schedule", icon: <FiCalendar /> },
+    { name: "Employees", href: "/employees", icon: <FiUsers /> },
+    { name: "Events", href: "/events", icon: <FaRegCalendarAlt /> },
+    { name: "Trucks", href: "/trucks", icon: <FiTruck /> },
+    { name: "Time-Off", href: "/requests", icon: <FiClock /> },
   ];
 
   return (

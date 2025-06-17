@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 // Employee types
 export interface Employee {
   id: number;
@@ -91,5 +93,5 @@ export interface Coordinates {
 export interface NavLink {
   name: string;
   href: string;
-  icon: string;
+  icon: ReactNode;
 }
