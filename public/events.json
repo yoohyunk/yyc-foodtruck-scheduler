@@ -178,5 +178,23 @@
     "assignedStaff": [],
     "requiredServers": 8,
     "status": "Scheduled"
+  },
+  {
+    "id": "13",
+    "title": "Rachel Leona Motyer",
+    "startTime": "2025-06-26T19:45",
+    "endTime": "2025-06-26T21:15",
+    "location": "2427 woodview Drive SW, Calgary, T3B 0Z7",
+    "coordinates": {
+      "latitude": 50.9410198,
+      "longitude": -114.1169531
+    },
+    "trucks": ["7"],
+    "assignedStaff": ["2", "7", "10", "6", "8", "3"],
+    "requiredServers": 6,
+    "status": "Scheduled",
+    "contactName": "test algo",
+    "contactEmail": "leona.motyer@edu.sait.ca",
+    "contactPhone": "2502581143"
   }
 ]

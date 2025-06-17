@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 export async function POST(request: Request) {
-  const { email, firstName, lastName } = await request.json();
+  const { email, firstName, lastName, wage } = await request.json();
 
   if (!email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     employee_type: "pending",
     last_name: lastName,
     first_name: firstName,
+    wage: wage || 0,
   });
 
   return NextResponse.json({ user: data.user });

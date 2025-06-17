@@ -80,7 +80,6 @@ export default function EditTruckPage(): ReactElement {
     e.preventDefault();
 
     // Simulate saving the updated truck data
-    console.log("Updated Truck Data:", formData);
     alert("Truck information updated successfully!");
     router.push("/trucks");
   };

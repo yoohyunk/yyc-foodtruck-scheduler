@@ -10,7 +10,6 @@ export default function Events(): ReactElement {
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("All"); // Default filter is "All"
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
-  // const [maxDistance, setMaxDistance] = useState<string>(""); // For distance filtering
   const router = useRouter();
 
   // Fetch events from events.json
@@ -28,7 +27,7 @@ export default function Events(): ReactElement {
       .catch((error) => console.error("Error fetching events:", error));
   }, []);
 
-  // Filter events based on the active filter, date, and distance
+  // Filter events based on the active filter and date
   useEffect(() => {
     let filtered = [...events];
 
@@ -48,13 +47,6 @@ export default function Events(): ReactElement {
     if (selectedDate) {
       filtered = filtered.filter((event) => event.startTime === selectedDate);
     }
-
-    // Apply distance filter
-    // if (maxDistance) {
-    //   filtered = filtered.filter(
-    //     (event) => event.distance <= parseFloat(maxDistance)
-    //   );
-    // }
 
     setFilteredEvents(filtered);
   }, [activeFilter, selectedDate, events]);
@@ -103,23 +95,6 @@ export default function Events(): ReactElement {
             className="input-field w-full"
           />
         </div>
-        {/* Distance Filter */}
-        {/* <div>
-          <label
-            htmlFor="distance-filter"
-            className="block text-primary-dark font-medium mb-2"
-          >
-            Filter by Distance (km)
-          </label>
-          <input
-            type="number"
-            id="distance-filter"
-            value={maxDistance}
-            onChange={(e) => setMaxDistance(e.target.value)}
-            className="input-field w-full"
-            placeholder="Enter max distance"
-          />
-        </div> */}
       </div>
 
       {/* Event List */}
@@ -142,9 +117,6 @@ export default function Events(): ReactElement {
               <p>
                 <strong>Location:</strong> {event.location}
               </p>
-              {/* <p>
-                <strong>Distance:</strong> {event.distance} km
-              </p> */}
               <p>
                 <strong>Required Servers:</strong> {event.requiredServers}
               </p>

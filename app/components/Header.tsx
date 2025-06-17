@@ -4,15 +4,16 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
-import { FiLogOut } from "react-icons/fi";
+import { FiLogOut, FiUsers, FiCalendar, FiPlus, FiHome } from "react-icons/fi";
+import { FaRegCalendarAlt } from "react-icons/fa";
 import { NavLink } from "../types";
 
 const mainNavLinks: NavLink[] = [
-  { name: "Employees", href: "/employees/", icon: "👥" },
-  { name: "Events", href: "/events/", icon: "📅" },
-  { name: "Schedule", href: "/schedule/", icon: "📊" },
-  { name: "New Employee", href: "/employees/newEmployee/", icon: "➕" },
-  { name: "New Event", href: "/events/newEvent", icon: "➕" },
+  { name: "Employees", href: "/employees/", icon: <FiUsers /> },
+  { name: "Events", href: "/events/", icon: <FaRegCalendarAlt /> },
+  { name: "Schedule", href: "/schedule/", icon: <FiCalendar /> },
+  { name: "New Employee", href: "/employees/newEmployee/", icon: <FiPlus /> },
+  { name: "New Event", href: "/events/newEvent", icon: <FiPlus /> },
 ];
 
 export default function Header(): React.ReactElement {
@@ -39,7 +40,7 @@ export default function Header(): React.ReactElement {
                 href={link.href}
                 className="nav-link flex items-center space-x-1"
               >
-                <span>{link.icon}</span>
+                <span className="nav-icon">{link.icon}</span>
                 <span>{link.name}</span>
               </Link>
             ))}
@@ -59,7 +60,7 @@ export default function Header(): React.ReactElement {
               href="/login"
               className="nav-link flex items-center space-x-1"
             >
-              <span>🔑</span>
+              <FiHome />
               <span>Login</span>
             </Link>
           )}
