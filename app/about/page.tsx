@@ -264,29 +264,6 @@ export default function TruckManagementPage() {
             ))}
           </div>
 
-          {/* Back to Dashboard */}
-          <div className="mt-8 text-center">
-            <Link
-              href="/"
-              className="inline-flex items-center px-4 py-2 bg-primary-dark text-white rounded-md hover:bg-primary-medium transition-colors"
-            >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
-              Back to Dashboard
-            </Link>
-          </div>
-
           {/* Delete Confirmation Modal */}
           {deleteConfirm && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">

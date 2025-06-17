@@ -8,19 +8,16 @@ export function Footer() {
   return (
     <footer className="bg-primary-dark text-white py-4 w-full mt-auto">
       <div className="flex flex-row flex-wrap justify-center items-center gap-6">
-        <Link href="/" className="hover:text-primary-light transition-colors">
-          Home
+        <Link href="/" className="hover:text-primary-light transition-colors font-bold flex items-center">
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Dashboard
         </Link>
-        <Link
-          href="/about"
-          className="hover:text-primary-light transition-colors"
-        >
+        <Link href="/about" className="hover:text-primary-light transition-colors">
           About Trucks
         </Link>
-        <Link
-          href="/contact"
-          className="hover:text-primary-light transition-colors"
-        >
+        <Link href="/contact" className="hover:text-primary-light transition-colors">
           Contact
         </Link>
         <TutorialButton />

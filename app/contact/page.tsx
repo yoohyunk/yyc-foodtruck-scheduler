@@ -17,7 +17,8 @@ export default function ContactPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          {/* Contact Cards Grid */}
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
             {/* Emergency Contact */}
             <div className="bg-red-50 rounded-lg p-6">
               <h2 className="text-xl font-semibold text-red-800 mb-4">
@@ -74,10 +75,8 @@ export default function ContactPage() {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Owner Operators */}
-          <div className="mt-8 grid md:grid-cols-2 gap-8">
+            {/* Owner Operators */}
             <div className="bg-purple-50 rounded-lg p-6">
               <h2 className="text-xl font-semibold text-purple-800 mb-4">
                 Owner Operators
@@ -296,7 +295,7 @@ export default function ContactPage() {
           </div>
 
           {/* Office Hours */}
-          <div className="mt-8 bg-gray-50 rounded-lg p-6">
+          <div className="bg-gray-50 rounded-lg p-6" style={{ marginTop: '3rem' }}>
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Office Hours
             </h2>
