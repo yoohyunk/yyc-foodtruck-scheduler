@@ -35,6 +35,14 @@ const commonSteps: TutorialStep[] = [
     target: "body",
     position: "bottom",
   },
+  {
+    id: "back-to-dashboard",
+    title: "Back to Dashboard 🏠",
+    content:
+      "To return to the main dashboard from any page, click the 'YYC Food Trucks' logo in the top-left corner of the page. This will take you back to your main control center where you can access all features.",
+    target: ".header-logo, .logo, header a[href='/']",
+    position: "bottom",
+  },
 ];
 
 // Page-specific tutorial steps
