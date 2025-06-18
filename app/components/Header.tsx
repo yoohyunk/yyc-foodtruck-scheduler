@@ -4,7 +4,15 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
-import { FiLogOut, FiUsers, FiCalendar, FiPlus, FiHome, FiMenu, FiX } from "react-icons/fi";
+import {
+  FiLogOut,
+  FiUsers,
+  FiCalendar,
+  FiPlus,
+  FiHome,
+  FiMenu,
+  FiX,
+} from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { NavLink } from "../types";
 
@@ -72,16 +80,21 @@ export default function Header(): React.ReactElement {
               height={48}
               className="logo-img rounded"
             />
-            <span className="ml-2 text-xl font-bold whitespace-nowrap">YYC Food Trucks</span>
+            <span className="ml-2 text-xl font-bold whitespace-nowrap">
+              YYC Food Trucks
+            </span>
           </Link>
           {/* Progressive nav links */}
-          <div ref={navRef} className="nav-links flex space-x-2 ml-4 overflow-hidden flex-1">
+          <div
+            ref={navRef}
+            className="nav-links flex space-x-2 ml-4 overflow-hidden flex-1"
+          >
             {visibleLinks.map((link, i) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className="nav-link flex items-center space-x-1"
-                ref={el => tabRefs.current[i] = el}
+                ref={(el) => (tabRefs.current[i] = el)}
               >
                 <span className="nav-icon">{link.icon}</span>
                 <span>{link.name}</span>
@@ -123,7 +136,7 @@ export default function Header(): React.ReactElement {
       {/* Mobile/Overflow Menu Overlay */}
       {isMenuOpen && (
         <div className="mobile-menu-overlay" onClick={closeMenu}>
-          <div className="mobile-menu" onClick={e => e.stopPropagation()}>
+          <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-nav-links">
               {overflowLinks.map((link) => (
                 <Link
