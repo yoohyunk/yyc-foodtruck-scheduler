@@ -35,8 +35,7 @@ export default function Employees(): ReactElement {
             user_phone
           `
           )
-          .neq("employee_type", "pending")
-          .neq("employee_type", "admin");
+          .neq("employee_type", "pending");
 
         if (error) {
           console.error("Error fetching employees:", error);
@@ -115,34 +114,76 @@ export default function Employees(): ReactElement {
   const handleDeleteConfirm = async () => {
     if (!employeeToDelete) return;
 
+    console.log("Attempting to delete employee:", employeeToDelete);
+
     try {
-      // Get current employees
-      const response = await fetch("/employees.json");
-      const currentEmployees = await response.json();
+      // First, get the employee data to find related records
+      const { data: employeeData, error: fetchError } = await supabase
+        .from("employees")
+        .select("employee_id, address_id")
+        .eq("employee_id", employeeToDelete.id)
+        .single();
 
-      // Filter out the employee to delete
-      const updatedEmployees = currentEmployees.filter(
-        (emp: Employee) => emp.id !== employeeToDelete.id
-      );
+      if (fetchError) {
+        console.error("Error fetching employee data:", fetchError);
+        alert("Failed to fetch employee data for deletion.");
+        return;
+      }
 
-      // Save updated list
-      const saveResponse = await fetch("/api/employees", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedEmployees),
-      });
+      console.log("Employee data for deletion:", employeeData);
 
-      if (!saveResponse.ok) {
-        throw new Error("Failed to delete employee");
+      // Delete wage records
+      if (employeeData) {
+        const { error: wageError } = await supabase
+          .from("wage")
+          .delete()
+          .eq("employee_id", employeeData.employee_id);
+
+        if (wageError) {
+          console.error("Error deleting wage:", wageError);
+        } else {
+          console.log("Wage records deleted");
+        }
+
+        // Delete address if exists
+        if (employeeData.address_id) {
+          const { error: addressError } = await supabase
+            .from("addresses")
+            .delete()
+            .eq("id", employeeData.address_id);
+
+          if (addressError) {
+            console.error("Error deleting address:", addressError);
+          } else {
+            console.log("Address deleted");
+          }
+        }
+      }
+
+      // Finally delete the employee
+      const { error: employeeError } = await supabase
+        .from("employees")
+        .delete()
+        .eq("employee_id", employeeToDelete.id);
+
+      console.log("Delete result:", { error: employeeError });
+
+      if (employeeError) {
+        console.error("Error deleting employee:", employeeError);
+        alert("Failed to delete employee from database.");
+        return;
       }
 
       // Update local state
+      const updatedEmployees = employees.filter(
+        (emp) => emp.id !== employeeToDelete.id
+      );
       setEmployees(updatedEmployees);
       setFilteredEmployees(updatedEmployees);
       setShowDeleteModal(false);
       setEmployeeToDelete(null);
+
+      console.log("Employee and all related data deleted successfully");
     } catch (error) {
       console.error("Error deleting employee:", error);
       alert("Failed to delete employee. Please try again.");
