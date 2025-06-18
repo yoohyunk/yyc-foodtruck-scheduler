@@ -106,6 +106,7 @@ export type Database = {
           user_id: string | null;
           phone: string | null;
           email: string | null;
+          is_pending: boolean;
         };
         Insert: {
           address_id?: string | null;
@@ -119,6 +120,7 @@ export type Database = {
           user_id?: string | null;
           phone?: string | null;
           email?: string | null;
+          is_pending?: boolean;
         };
         Update: {
           address_id?: string | null;
@@ -130,6 +132,7 @@ export type Database = {
           is_available?: boolean | null;
           last_name?: string | null;
           user_id?: string | null;
+          is_pending?: boolean;
         };
         Relationships: [
           {
