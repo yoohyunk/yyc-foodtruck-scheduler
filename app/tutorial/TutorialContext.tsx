@@ -565,7 +565,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "create-employee-welcome",
       title: "Invite a New Employee 👋",
       content:
-        "Welcome to the employee invitation form! This tutorial will walk you through each required field for inviting a new employee to join your team. Let's start with the basics.",
+        "Welcome to the employee invitation form! This tutorial will walk you through the invitation process. When you invite someone, they'll receive an email and be marked as 'pending' until they activate their account.",
       target: ".create-employee-page",
       position: "bottom",
     },
@@ -594,11 +594,27 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       position: "bottom",
     },
     {
-      id: "wage-field",
-      title: "Wage (Required) 💰",
+      id: "invitation-process-explanation",
+      title: "How the Invitation Process Works 📨",
       content:
-        "Enter the employee's hourly wage rate. This is required and must be a positive number (e.g., 15.50, 20.00). The wage will be used for scheduling and payroll calculations.",
-      target: "input[id='wage']",
+        "When you submit this form: 1) An invitation email is sent to the employee, 2) The employee is marked as 'pending' in the system, 3) They receive a secure link to activate their account, 4) Once activated, they can set their password and complete their profile with address, role, and availability information.",
+      target: ".create-employee-page",
+      position: "bottom",
+    },
+    {
+      id: "pending-status-explanation",
+      title: "Pending Status ⏳",
+      content:
+        "After sending the invite, the employee will appear in your employee list with a 'pending' status. They cannot be scheduled for shifts until they activate their account and complete their profile. You'll see them listed but they won't be available for assignments.",
+      target: ".create-employee-page",
+      position: "bottom",
+    },
+    {
+      id: "activation-process",
+      title: "Employee Activation Process 🔗",
+      content:
+        "The employee will receive an email with an activation link. When they click it, they'll be taken to a page where they can: 1) Set their password, 2) Enter their address details, 3) Choose their role (Driver, Server, or Admin), 4) Set their hourly wage, 5) Specify their availability. Only after completing this process will they become active employees.",
+      target: ".create-employee-page",
       position: "bottom",
     },
     {
@@ -606,14 +622,6 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Email Validation ✅",
       content:
         "The system will validate the email format to ensure it's correct. The email must contain an @ symbol and a valid domain. Invalid emails will show an error message and prevent form submission.",
-      target: ".create-employee-page",
-      position: "bottom",
-    },
-    {
-      id: "invitation-process-explanation",
-      title: "How the Invitation Works 📨",
-      content:
-        "When you submit this form, the system will: 1) Send an invitation email to the employee, 2) Create a pending employee record, 3) The employee will receive a link to set up their password, 4) Once they set up their account, they can complete their profile with address, role, and availability.",
       target: ".create-employee-page",
       position: "bottom",
     },
@@ -629,7 +637,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "send-invite-button",
       title: "Send Invite Button 📤",
       content:
-        "Once all required fields are filled correctly, click this button to send the invitation email to the new employee. The system will show a success message and redirect you to the employees list where you can see the pending invitation.",
+        "Once all required fields are filled correctly, click this button to send the invitation email to the new employee. The system will show a success message and redirect you to the employees list where you can see the pending invitation. The employee will remain pending until they complete the activation process.",
       target: "button[type='submit']",
       position: "bottom",
     },
@@ -916,6 +924,27 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     if (!isActive) return;
     const steps = getCurrentSteps();
     const currentStepData = steps[currentStep];
+
+    // Add highlighting for home page navigation buttons
+    if (currentPath === "/") {
+      // Highlight specific navigation buttons
+      if (
+        currentStepData?.id === "schedule-button" ||
+        currentStepData?.id === "employees-button" ||
+        currentStepData?.id === "events-button" ||
+        currentStepData?.id === "trucks-button" ||
+        currentStepData?.id === "timeoff-button"
+      ) {
+        setTimeout(() => {
+          const targetElement = document.querySelector(
+            currentStepData.target
+          ) as HTMLElement;
+          if (targetElement) {
+            targetElement.classList.add("tutorial-highlight-button");
+          }
+        }, 600);
+      }
+    }
 
     // Add highlighting for create event form fields
     if (currentPath === "/events/newEvent") {

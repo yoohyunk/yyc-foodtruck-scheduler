@@ -29,7 +29,7 @@ export default function Header(): React.ReactElement {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(mainNavLinks.length);
   const navRef = useRef<HTMLDivElement>(null);
-  const tabRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const tabRefs = useRef<(HTMLElement | null)[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   // Ensure code only runs on client
@@ -94,7 +94,16 @@ export default function Header(): React.ReactElement {
                 key={link.href}
                 href={link.href}
                 className="nav-link flex items-center space-x-1"
-                ref={(el) => (tabRefs.current[i] = el)}
+                ref={(el) => {
+                  // Handle the ref properly for Next.js Link component
+                  if (el) {
+                    // Find the actual anchor element within the Link
+                    const anchorElement = el.querySelector('a') || el;
+                    tabRefs.current[i] = anchorElement as HTMLElement;
+                  } else {
+                    tabRefs.current[i] = null;
+                  }
+                }}
               >
                 <span className="nav-icon">{link.icon}</span>
                 <span>{link.name}</span>
