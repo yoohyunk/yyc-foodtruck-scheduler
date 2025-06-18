@@ -7,7 +7,8 @@ const supabase = createClient(
 );
 
 export async function POST(request: Request) {
-  const { email, firstName, lastName } = await request.json();
+  const { email, firstName, lastName, employeeType, wage } =
+    await request.json();
 
   if (!email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -21,12 +22,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await supabase.from("employees").insert({
-    user_id: data.user?.id,
-    employee_type: "pending",
-    last_name: lastName,
-    first_name: firstName,
-    user_email: email,
+  const { data: employeeData, error: employeeError } = await supabase
+    .from("employees")
+    .insert({
+      user_id: data.user?.id,
+      employee_type: employeeType,
+      last_name: lastName,
+      first_name: firstName,
+      user_email: email,
+      is_pending: true,
+    })
+    .select()
+    .single();
+
+  if (employeeError) {
+    console.error("Employee error:", employeeError);
+    return NextResponse.json({ error: employeeError.message }, { status: 500 });
+  }
+
+  await supabase.from("wages").insert({
+    employee_id: employeeData?.employee_id,
+    wage: wage,
   });
 
   return NextResponse.json({ user: data.user });

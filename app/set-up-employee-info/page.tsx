@@ -30,6 +30,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     user_id: null,
     phone: null,
     email: null,
+    is_pending: false,
   });
   const [address, setAddress] = useState<AddressInfo>({
     id: "",
@@ -116,10 +117,11 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             address_id: null,
             availability: [],
             created_at: "",
-            is_available: false,
+            is_available: true,
             user_id: user.id,
             phone: null,
             email: null,
+            is_pending: false,
           });
           setLoading(false);
           return;
@@ -143,6 +145,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           user_id: employees.user_id,
           phone: employees.user_phone,
           email: employees.user_email,
+          is_pending: employees.is_pending,
         });
 
         // Set address data if available
@@ -376,6 +379,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           is_available: employee.is_available,
           user_phone: employee.phone,
           user_email: employee.email,
+          is_pending: employee.is_pending,
         },
       });
 
@@ -391,6 +395,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             is_available: employee.is_available,
             user_phone: employee.phone,
             user_email: employee.email,
+            is_pending: employee.is_pending,
           })
           .eq("employee_id", existingEmployee.employee_id)
           .select();
@@ -498,16 +503,6 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
         onChange={handleEmployeeChange}
         placeholder="Email"
       />
-      <select
-        name="employee_type"
-        value={employee.employee_type ?? ""}
-        onChange={handleEmployeeChange}
-        className="w-full p-2 border rounded"
-      >
-        <option value="">Select Type</option>
-        <option value="Driver">Driver</option>
-        <option value="Server">Server</option>
-      </select>
 
       <h2 className="text-xl font-semibold">Address</h2>
       <input
@@ -541,20 +536,6 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
         placeholder="Country"
       />
       <div>
-        <label>
-          <input
-            type="checkbox"
-            checked={employee.is_available ?? false}
-            name="is_available"
-            onChange={(e) =>
-              setEmployee((prev) => ({
-                ...prev,
-                is_available: e.target.checked,
-              }))
-            }
-          />{" "}
-          Is Available
-        </label>
         <label>
           <input
             type="checkbox"
