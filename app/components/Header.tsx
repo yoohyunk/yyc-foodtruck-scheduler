@@ -15,6 +15,8 @@ import {
 } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { NavLink } from "../types";
+import { useTutorial } from "../tutorial/TutorialContext";
+import { TutorialHighlight } from "./TutorialHighlight";
 
 const mainNavLinks: NavLink[] = [
   { name: "Employees", href: "/employees/", icon: <FiUsers /> },
@@ -31,6 +33,10 @@ export default function Header(): React.ReactElement {
   const navRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLElement | null)[]>([]);
   const [isClient, setIsClient] = useState(false);
+
+  // Tutorial highlight logic
+  const { shouldHighlight } = useTutorial();
+  const highlightLogo = shouldHighlight(".logo.TutorialHighlight");
 
   // Ensure code only runs on client
   useEffect(() => setIsClient(true), []);
@@ -72,18 +78,20 @@ export default function Header(): React.ReactElement {
     <header className="header">
       <nav className="nav-container flex items-center justify-between">
         <div className="flex items-center w-full">
-          <Link href="/" className="logo flex items-center shrink-0">
-            <Image
-              src="/yyctrucks.jpg"
-              alt="YYC Logo"
-              width={48}
-              height={48}
-              className="logo-img rounded"
-            />
-            <span className="ml-2 text-xl font-bold whitespace-nowrap">
-              YYC Food Trucks
-            </span>
-          </Link>
+          <TutorialHighlight isHighlighted={highlightLogo} className="logo flex items-center shrink-0">
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/yyctrucks.jpg"
+                alt="YYC Logo"
+                width={48}
+                height={48}
+                className="logo-img rounded"
+              />
+              <span className="ml-2 text-xl font-bold whitespace-nowrap text-white">
+                YYC Food Trucks
+              </span>
+            </Link>
+          </TutorialHighlight>
           {/* Progressive nav links */}
           <div
             ref={navRef}
@@ -98,7 +106,7 @@ export default function Header(): React.ReactElement {
                   // Handle the ref properly for Next.js Link component
                   if (el) {
                     // Find the actual anchor element within the Link
-                    const anchorElement = el.querySelector('a') || el;
+                    const anchorElement = el.querySelector("a") || el;
                     tabRefs.current[i] = anchorElement as HTMLElement;
                   } else {
                     tabRefs.current[i] = null;

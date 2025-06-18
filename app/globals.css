@@ -328,6 +328,17 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.landing-link-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
 /* =========================
    Common Components
 ========================= */
@@ -1563,69 +1574,5 @@ button[title="Delete Employee"]:hover {
   .container {
     max-width: 1200px;
     margin: 0 auto;
-  }
-}
-
-/* =========================
-   Tutorial Highlighting
-========================= */
-.tutorial-highlight {
-  position: relative;
-  z-index: 10;
-  animation: tutorial-pulse 2s ease-in-out infinite;
-  box-shadow:
-    0 0 0 4px rgba(34, 197, 94, 0.3),
-    0 0 20px rgba(34, 197, 94, 0.2);
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.tutorial-highlight-packing-item {
-  background-color: rgba(34, 197, 94, 0.1);
-  border: 2px solid #22c55e;
-  border-radius: 6px;
-  padding: 8px;
-  margin: 4px 0;
-  animation: tutorial-pulse 2s ease-in-out infinite;
-  box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
-}
-
-.tutorial-highlight-button {
-  background-color: #22c55e !important;
-  color: white !important;
-  transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
-  animation: tutorial-pulse 2s ease-in-out infinite;
-}
-
-@keyframes tutorial-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 4px rgba(34, 197, 94, 0.3),
-      0 0 20px rgba(34, 197, 94, 0.2);
-  }
-  50% {
-    box-shadow:
-      0 0 0 6px rgba(34, 197, 94, 0.5),
-      0 0 30px rgba(34, 197, 94, 0.4);
-  }
-}
-
-.tutorial-expanded-truck {
-  border: 3px solid #22c55e;
-  border-radius: 12px;
-  box-shadow: 0 0 25px rgba(34, 197, 94, 0.3);
-  animation: tutorial-expand 0.5s ease-out;
-}
-
-@keyframes tutorial-expand {
-  from {
-    transform: scale(0.98);
-    opacity: 0.8;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
   }
 }

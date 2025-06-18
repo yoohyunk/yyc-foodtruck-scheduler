@@ -1,15 +1,9 @@
 import "./globals.css";
 
-import { AuthProvider } from "@/contexts/AuthContext";
-import { TutorialProvider, TutorialOverlay } from "@/app/tutorial";
-
 import { ReactNode, ReactElement } from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-
-import { Footer } from "./components/Footer";
-import Header from "./components/Header";
-import QuickActions from "./components/QuickActions";
+import { ClientLayoutContent } from "./components/ClientLayoutContent";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,20 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen flex flex-col`}>
-        <AuthProvider>
-          <TutorialProvider>
-            <Header />
-
-            <main className="container dashboard-grid flex-grow">
-              <QuickActions />
-
-              <div className="main-content p-4">{children}</div>
-            </main>
-
-            <Footer />
-            <TutorialOverlay />
-          </TutorialProvider>
-        </AuthProvider>
+        <ClientLayoutContent>{children}</ClientLayoutContent>
       </body>
     </html>
   );

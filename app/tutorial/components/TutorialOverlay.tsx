@@ -4,51 +4,96 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTutorial } from "../TutorialContext";
 
 export function TutorialOverlay() {
-  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial } =
-    useTutorial();
+  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial } = useTutorial();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
   // Always call hooks before any return
   const currentStepData = steps[currentStep];
 
+  // Simple, foolproof scroll logic
   useEffect(() => {
     if (!isActive || !currentStepData) return;
-    // Skip scrolling for overview steps that should scroll to top
+
+    console.log("=== TUTORIAL STEP CHANGED ===");
+    console.log("Step ID:", currentStepData.id);
+    console.log("Step Target:", currentStepData.target);
+    console.log("Current step index:", currentStep);
+
+    // For overview steps, scroll to top
     if (
       currentStepData.id.includes("welcome") ||
+      currentStepData.id === "home-welcome" ||
       currentStepData.id === "calendar-view" ||
       currentStepData.id === "event-list" ||
       currentStepData.id === "employee-list" ||
       currentStepData.id === "navigation-tips"
     ) {
-      setTimeout(() => {
-        setTargetRect(new DOMRect(0, 0, window.innerWidth, 100));
-      }, 1000);
+      console.log("Scrolling to top for overview step");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTargetRect(new DOMRect(0, 0, window.innerWidth, 100));
       return;
     }
-    const targetElement = document.querySelector(currentStepData.target);
+
+    // For targeted steps, find and scroll to element
+    console.log("Looking for target element:", currentStepData.target);
+    
+    // Debug: Log all elements with TutorialHighlight class
+    const allHighlights = document.querySelectorAll('.TutorialHighlight');
+    console.log("All TutorialHighlight elements found:", allHighlights.length);
+    allHighlights.forEach((el, index) => {
+      console.log(`Highlight ${index}:`, el.className, el.textContent?.slice(0, 50));
+    });
+    
+    let targetElement = document.querySelector(currentStepData.target);
+    
+    // Fallback: If the exact selector doesn't work, try to find the element by index
+    if (!targetElement && currentStepData.target.includes('.landing-links .TutorialHighlight:nth-child(')) {
+      const match = currentStepData.target.match(/nth-child\((\d+)\)/);
+      if (match) {
+        const index = parseInt(match[1]) - 1; // Convert to 0-based index
+        const highlights = document.querySelectorAll('.landing-links .TutorialHighlight');
+        if (highlights[index]) {
+          targetElement = highlights[index];
+          console.log(`Found element using fallback index ${index}:`, targetElement);
+        }
+      }
+    }
+    
     if (targetElement) {
+      console.log("✅ Found target element:", targetElement);
+      console.log("Element classes:", targetElement.className);
+      console.log("Element text:", targetElement.textContent?.slice(0, 100));
+      
+      // Scroll to element immediately
       targetElement.scrollIntoView({
         behavior: "smooth",
         block: "center",
         inline: "center",
       });
-      const scrollDelay = currentStepData.id.includes("button") ? 800 : 600;
+      
+      // Set overlay position after a short delay to allow scroll to complete
       setTimeout(() => {
         const rect = targetElement.getBoundingClientRect();
+        console.log("Setting target rect:", rect);
         setTargetRect(rect);
-        const overlay = overlayRef.current;
-        if (overlay) {
-          overlay.style.top = `${rect.top}px`;
-          overlay.style.left = `${rect.left}px`;
-          overlay.style.width = `${rect.width}px`;
-          overlay.style.height = `${rect.height}px`;
-          overlay.style.opacity = "1";
+      }, 500);
+    } else {
+      console.log("❌ Target element not found:", currentStepData.target);
+      console.log("Available elements with similar selectors:");
+      
+      // Try to find similar elements
+      const parts = currentStepData.target.split(' ');
+      parts.forEach(part => {
+        const similar = document.querySelectorAll(part);
+        if (similar.length > 0) {
+          console.log(`Elements matching "${part}":`, similar.length);
         }
-      }, scrollDelay);
+      });
+      
+      setTargetRect(null);
     }
-  }, [isActive, currentStep, steps, currentStepData]);
+  }, [isActive, currentStep, currentStepData]);
 
   // Only return after all hooks
   if (!isActive || !currentStepData) return null;
