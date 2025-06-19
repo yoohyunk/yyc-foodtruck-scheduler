@@ -6,6 +6,8 @@ import { ViewToggle } from "./components/ViewToggle";
 import { Navigation } from "./components/Navigation";
 import { Calendar } from "./components/Calendar";
 import { Event } from "../types";
+import { useTutorial } from "../tutorial/TutorialContext";
+import { TutorialHighlight } from "../components/TutorialHighlight";
 
 export default function Schedule(): React.ReactElement {
   const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">(
@@ -15,6 +17,7 @@ export default function Schedule(): React.ReactElement {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { shouldHighlight } = useTutorial();
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -35,11 +38,9 @@ export default function Schedule(): React.ReactElement {
         if (Array.isArray(data)) {
           setEvents(data);
         } else {
-          console.error("Received data is not an array:", data);
           setEvents([]);
         }
-      } catch (error) {
-        console.error("Error fetching events:", error);
+      } catch {
         setEvents([]);
       } finally {
         setIsLoading(false);
@@ -170,7 +171,10 @@ export default function Schedule(): React.ReactElement {
 
   return (
     <div className="schedule-container">
-      <div className="schedule-header">
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".schedule-header")}
+        className="schedule-header"
+      >
         <div>
           <h2 className="schedule-title text-primary-dark">Schedule</h2>
           <p className="schedule-subtitle text-gray-500">
@@ -178,27 +182,63 @@ export default function Schedule(): React.ReactElement {
           </p>
         </div>
         <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
-      </div>
+      </TutorialHighlight>
 
-      <Navigation
-        viewMode={viewMode}
-        onPrevious={handlePrevious}
-        onNext={handleNext}
-        onToday={handleToday}
-      />
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".navigation-container")}
+        className="navigation-container"
+      >
+        <Navigation
+          viewMode={viewMode}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
+          onToday={handleToday}
+        />
+      </TutorialHighlight>
 
       {isLoading ? (
         <div className="loading-container">
           <p className="text-primary-dark">Loading events...</p>
         </div>
       ) : (
-        <Calendar
-          viewMode={viewMode}
-          selectedDate={selectedDate}
-          events={getCalendarEvents()}
-          onEventClick={handleEventClick}
-        />
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".monthly-schedule")}
+          className="monthly-schedule"
+        >
+          <Calendar
+            viewMode={viewMode}
+            selectedDate={selectedDate}
+            events={getCalendarEvents()}
+            onEventClick={handleEventClick}
+          />
+        </TutorialHighlight>
       )}
+
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".new-shift-button")}
+        className="sidebar"
+      >
+        <div className="mt-6">
+          <button
+            className="button bg-primary-medium text-white w-full py-2 rounded-lg hover:bg-primary-dark new-shift-button"
+            onClick={() => router.push("/schedule/new")}
+          >
+            + New Shift
+          </button>
+        </div>
+      </TutorialHighlight>
+
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".shift-list")}
+        className="shift-list"
+      >
+        <div className="mt-4">
+          {/* This is where shifts would be displayed */}
+          <p className="text-gray-500 text-center">
+            No shifts scheduled for this period
+          </p>
+        </div>
+      </TutorialHighlight>
     </div>
   );
 }
