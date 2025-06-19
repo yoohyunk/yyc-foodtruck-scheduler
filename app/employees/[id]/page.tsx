@@ -65,7 +65,7 @@ export default function EditEmployeePage(): ReactElement {
         }
         setIsLoading(false);
       })
-      .catch((error) => {
+      .catch(() => {
         setIsLoading(false);
       });
   }, [id]);

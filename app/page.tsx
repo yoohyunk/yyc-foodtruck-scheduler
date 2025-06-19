@@ -29,7 +29,7 @@ export default function Home(): ReactElement {
           setEvents([]);
         }
       })
-      .catch((error) => {
+      .catch(() => {
         setEvents([]);
       });
   }, []);
@@ -44,7 +44,7 @@ export default function Home(): ReactElement {
         );
         setTimeOffRequests(upcomingRequests.slice(0, 3)); // Show only the next 3 requests
       })
-      .catch((error) => {
+      .catch(() => {
         setTimeOffRequests([]);
       });
   }, []);

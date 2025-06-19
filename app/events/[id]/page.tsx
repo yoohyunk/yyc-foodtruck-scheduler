@@ -52,7 +52,7 @@ export default function EventDetailsPage(): ReactElement {
         }
 
         setEvent(eventData);
-      } catch (error) {
+      } catch {
         setEvent(null);
       }
     };
@@ -97,7 +97,7 @@ export default function EventDetailsPage(): ReactElement {
         const trucksData = await trucksResponse.json();
         setTrucks(trucksData);
         setIsLoadingTrucks(false);
-      } catch (error) {
+      } catch {
         setIsLoadingEmployees(false);
         setIsLoadingTrucks(false);
       }
@@ -451,7 +451,7 @@ export default function EventDetailsPage(): ReactElement {
                     }
                     // Navigate back to events page
                     router.push("/events");
-                  } catch (error) {
+                  } catch {
                     alert("Failed to delete event. Please try again.");
                   }
                 }}

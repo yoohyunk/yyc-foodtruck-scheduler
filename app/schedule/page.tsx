@@ -40,7 +40,7 @@ export default function Schedule(): React.ReactElement {
         } else {
           setEvents([]);
         }
-      } catch (error) {
+      } catch {
         setEvents([]);
       } finally {
         setIsLoading(false);

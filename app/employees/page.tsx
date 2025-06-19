@@ -28,7 +28,7 @@ export default function Employees(): ReactElement {
         setEmployees(data);
         setFilteredEmployees(data);
       })
-      .catch((error) => {
+      .catch(() => {
         setEmployees([]);
         setFilteredEmployees([]);
       });
@@ -81,7 +81,7 @@ export default function Employees(): ReactElement {
       setFilteredEmployees(updatedEmployees);
       setShowDeleteModal(false);
       setEmployeeToDelete(null);
-    } catch (error) {
+    } catch {
       alert("Failed to delete employee. Please try again.");
     }
   };

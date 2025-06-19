@@ -1228,13 +1228,10 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   );
 
   // Helper function to set pending step for navigation
-  const setPendingStepForNavigation = useCallback(
-    (stepIndex: number) => {
-      // Set the pending step to continue the tutorial from the specified step
-      setPendingStep(stepIndex);
-    },
-    [currentPath]
-  );
+  const setPendingStepForNavigation = useCallback((stepIndex: number) => {
+    // Set the pending step to continue the tutorial from the specified step
+    setPendingStep(stepIndex);
+  }, []);
 
   const value = {
     isActive,
