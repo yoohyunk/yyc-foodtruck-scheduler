@@ -9,10 +9,9 @@ import {
 } from "react";
 
 import { createClient } from "@/lib/supabase/client";
-import { Employee, EmployeeFormData } from "@/app/types";
+import { EmployeeFormData } from "@/app/types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
-
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();
@@ -22,7 +21,6 @@ export default function EditEmployeePage(): ReactElement {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { shouldHighlight } = useTutorial();
   const [formData, setFormData] = useState<EmployeeFormData>({
-
     first_name: "",
     last_name: "",
     address: "",
@@ -48,7 +46,6 @@ export default function EditEmployeePage(): ReactElement {
   useEffect(() => {
     if (!id) return;
 
-
     const fetchEmployee = async () => {
       try {
         // Get employee data
@@ -73,7 +70,6 @@ export default function EditEmployeePage(): ReactElement {
           console.error("Employee not found");
           setIsLoading(false);
           return;
-
         }
 
         // Get wage data
@@ -322,50 +318,49 @@ export default function EditEmployeePage(): ReactElement {
       <h1 className="text-2xl font-bold mb-4">Edit Employee</h1>
       <TutorialHighlight isHighlighted={shouldHighlight("form")}>
         <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Name */}
-        <div>
-          <label htmlFor="first_name" className="block font-medium">
-            First Name
-          </label>
-          <input
-            type="text"
-            id="first_name"
-            name="first_name"
-            value={formData.first_name}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-          <label htmlFor="last_name" className="block font-medium">
-            Last Name
-          </label>
-          <input
-            type="text"
-            id="last_name"
-            name="last_name"
-            value={formData.last_name}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-        </div>
+          {/* Name */}
+          <div>
+            <label htmlFor="first_name" className="block font-medium">
+              First Name
+            </label>
+            <input
+              type="text"
+              id="first_name"
+              name="first_name"
+              value={formData.first_name}
+              onChange={handleChange}
+              className="input-field"
+              required
+            />
+            <label htmlFor="last_name" className="block font-medium">
+              Last Name
+            </label>
+            <input
+              type="text"
+              id="last_name"
+              name="last_name"
+              value={formData.last_name}
+              onChange={handleChange}
+              className="input-field"
+              required
+            />
+          </div>
 
-        {/* Address */}
-        <div>
-          <label htmlFor="address" className="block font-medium">
-            Address
-          </label>
-          <input
-            type="text"
-            id="address"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-        </div>
-
+          {/* Address */}
+          <div>
+            <label htmlFor="address" className="block font-medium">
+              Address
+            </label>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              className="input-field"
+              required
+            />
+          </div>
 
           {/* Role */}
           <div>
