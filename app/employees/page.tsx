@@ -2,6 +2,8 @@
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { Employee } from "@/app/types";
+import { useTutorial } from "../tutorial/TutorialContext";
+import { TutorialHighlight } from "../components/TutorialHighlight";
 
 export default function Employees(): ReactElement {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -12,6 +14,7 @@ export default function Employees(): ReactElement {
     null
   );
   const router = useRouter();
+  const { shouldHighlight } = useTutorial();
 
   // Fetch employees from employee.json
   useEffect(() => {
@@ -25,7 +28,10 @@ export default function Employees(): ReactElement {
         setEmployees(data);
         setFilteredEmployees(data);
       })
-      .catch((error) => console.error("Error fetching employees:", error));
+      .catch(() => {
+        setEmployees([]);
+        setFilteredEmployees([]);
+      });
   }, []);
 
   // Filter employees based on the active filter
@@ -75,8 +81,7 @@ export default function Employees(): ReactElement {
       setFilteredEmployees(updatedEmployees);
       setShowDeleteModal(false);
       setEmployeeToDelete(null);
-    } catch (error) {
-      console.error("Error deleting employee:", error);
+    } catch {
       alert("Failed to delete employee. Please try again.");
     }
   };
@@ -86,7 +91,10 @@ export default function Employees(): ReactElement {
       <h2 className="text-2xl mb-4">Employee Management</h2>
 
       {/* Filter Buttons */}
-      <div className="filter-buttons grid">
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".filter-buttons")}
+        className="filter-buttons grid"
+      >
         <button
           className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
           onClick={() => setActiveFilter("All")}
@@ -111,82 +119,120 @@ export default function Employees(): ReactElement {
         >
           Admins
         </button>
-      </div>
+      </TutorialHighlight>
 
       {/* Employee List */}
-      <div className="employee-list grid gap-4">
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".employee-list")}
+        className="employee-list grid gap-4"
+      >
         {filteredEmployees.length > 0 ? (
-          filteredEmployees.map((employee) => (
-            <div
-              key={employee.id}
-              className="employee-card bg-white p-4 rounded shadow relative"
-            >
-              {/* Action Buttons */}
-              <div className="absolute top-2 right-2 flex gap-4">
-                <button
-                  className="edit-button"
-                  onClick={() => router.push(`/employees/${employee.id}`)}
-                  title="Edit Employee"
-                >
-                  ✏️
-                </button>
-                <button
-                  className="delete-button"
-                  onClick={() => handleDeleteClick(employee)}
-                  title="Delete Employee"
-                >
-                  🗑️
-                </button>
-              </div>
+          filteredEmployees.map((employee, index) => {
+            // Highlight for "Employee Actions" step (all cards)
+            const highlightEmployeeCard =
+              shouldHighlight(".employee-card") ||
+              shouldHighlight(`.employee-card:nth-child(${index + 1})`);
 
-              <h3 className="text-lg font-semibold">
-                {employee.first_name}
-                {employee.last_name}
-              </h3>
-              <p>
-                <strong>Role:</strong> {employee.role}
-              </p>
-              <p>
-                <strong>Address:</strong> {employee.address}
-              </p>
-              <p>
-                <strong>Email:</strong>{" "}
-                <a href={`mailto:${employee.email}`} className="text-blue-500">
-                  {employee.email}
-                </a>
-              </p>
-              <p>
-                <strong>Phone:</strong> {employee.phone}
-              </p>
-              <p>
-                <strong>Wage:</strong> ${employee.wage}/hr
-              </p>
-              <p>
-                <strong>Status:</strong>{" "}
-                <span
-                  className={
-                    employee.isAvailable ? "text-green-500" : "text-red-500"
-                  }
-                >
-                  {employee.isAvailable ? "Available" : "Unavailable"}
-                </span>
-              </p>
-              <p>
-                <strong>Availability:</strong>{" "}
-                {employee.availability && employee.availability.length > 0 ? (
-                  <span className="text-primary-medium">
-                    {employee.availability.join(", ")}
+            // Highlight for "Edit Employee Details" step (first card)
+            const highlightEditButton =
+              (index === 0 &&
+                (shouldHighlight(
+                  ".employee-card:first-child button[title='Edit Employee']"
+                ) ||
+                  shouldHighlight(
+                    `.employee-card:nth-child(1) button[title='Edit Employee']`
+                  ))) ||
+              false;
+
+            // Highlight for "Delete Employee Button" step (first card)
+            const highlightDeleteButton =
+              (index === 0 &&
+                (shouldHighlight("button[onClick*='setShowDeleteModal']") ||
+                  shouldHighlight(
+                    `.employee-card:nth-child(1) button[title='Delete Employee']`
+                  ))) ||
+              false;
+
+            return (
+              <TutorialHighlight
+                key={employee.id}
+                isHighlighted={highlightEmployeeCard}
+                className="employee-card bg-white p-4 rounded shadow relative"
+              >
+                {/* Action Buttons */}
+                <div className="absolute top-2 right-2 flex gap-4">
+                  <TutorialHighlight isHighlighted={highlightEditButton}>
+                    <button
+                      className="edit-button"
+                      onClick={() => router.push(`/employees/${employee.id}`)}
+                      title="Edit Employee"
+                    >
+                      ✏️
+                    </button>
+                  </TutorialHighlight>
+                  <TutorialHighlight isHighlighted={highlightDeleteButton}>
+                    <button
+                      className="delete-button"
+                      onClick={() => handleDeleteClick(employee)}
+                      title="Delete Employee"
+                    >
+                      🗑️
+                    </button>
+                  </TutorialHighlight>
+                </div>
+
+                <h3 className="text-lg font-semibold">
+                  {employee.first_name}
+                  {employee.last_name}
+                </h3>
+                <p>
+                  <strong>Role:</strong> {employee.role}
+                </p>
+                <p>
+                  <strong>Address:</strong> {employee.address}
+                </p>
+                <p>
+                  <strong>Email:</strong>{" "}
+                  <a
+                    href={`mailto:${employee.email}`}
+                    className="text-blue-500"
+                  >
+                    {employee.email}
+                  </a>
+                </p>
+                <p>
+                  <strong>Phone:</strong> {employee.phone}
+                </p>
+                <p>
+                  <strong>Wage:</strong> ${employee.wage}/hr
+                </p>
+                <p>
+                  <strong>Status:</strong>{" "}
+                  <span
+                    className={
+                      employee.isAvailable ? "text-green-500" : "text-red-500"
+                    }
+                  >
+                    {employee.isAvailable ? "Available" : "Unavailable"}
                   </span>
-                ) : (
-                  <span className="text-gray-500">Not available</span>
-                )}
-              </p>
-            </div>
-          ))
+                </p>
+                <p>
+                  <strong>Availability:</strong>{" "}
+                  {employee.availability && employee.availability.length > 0 ? (
+                    <span className="text-primary-medium">
+                      {employee.availability.join(", ")}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">Not available</span>
+                  )}
+                </p>
+              </TutorialHighlight>
+            );
+          })
         ) : (
           <p className="text-gray-500">No employees found.</p>
         )}
-      </div>
+      </TutorialHighlight>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && employeeToDelete && (
@@ -198,99 +244,39 @@ export default function Employees(): ReactElement {
             width: "100vw",
             height: "100vh",
             background: "rgba(0,0,0,0.4)",
-            zIndex: 9999,
             display: "flex",
-            alignItems: "center",
             justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
           }}
         >
           <div
             style={{
               background: "white",
-              borderRadius: "1.5rem",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-              padding: "2.5rem",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              maxWidth: 400,
-              border: "4px solid #ef4444",
-              fontFamily: "sans-serif",
+              padding: "2rem",
+              borderRadius: "8px",
+              maxWidth: "400px",
+              textAlign: "center",
             }}
           >
-            <span style={{ fontSize: "3rem", marginBottom: "0.75rem" }}>
-              ⚠️
-            </span>
-            <p
-              style={{
-                color: "#b91c1c",
-                fontWeight: 800,
-                fontSize: "1.25rem",
-                marginBottom: "1rem",
-                textAlign: "center",
-                letterSpacing: "0.03em",
-              }}
-            >
-              Confirm Delete
+            <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
+            <p className="mb-4">
+              Are you sure you want to delete{" "}
+              <strong>
+                {employeeToDelete.first_name} {employeeToDelete.last_name}
+              </strong>
+              ? This action cannot be undone.
             </p>
-            <p
-              style={{
-                textAlign: "center",
-                marginBottom: "1.5rem",
-                color: "#4b5563",
-                fontSize: "1rem",
-              }}
-            >
-              Are you sure you want to delete {employeeToDelete.first_name}
-              {employeeToDelete.last_name}? This action cannot be undone.
-            </p>
-            <div style={{ display: "flex", gap: "1rem" }}>
+            <div className="flex justify-center gap-4">
               <button
-                style={{
-                  padding: "0.5rem 1.5rem",
-                  background: "#e5e7eb",
-                  color: "#4b5563",
-                  fontWeight: 700,
-                  borderRadius: "0.5rem",
-                  border: "none",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  transition: "background 0.2s",
-                }}
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setEmployeeToDelete(null);
-                }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = "#d1d5db")
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = "#e5e7eb")
-                }
+                className="button bg-gray-300 text-gray-700"
+                onClick={() => setShowDeleteModal(false)}
               >
                 Cancel
               </button>
               <button
-                style={{
-                  padding: "0.5rem 1.5rem",
-                  background: "#ef4444",
-                  color: "white",
-                  fontWeight: 700,
-                  borderRadius: "0.5rem",
-                  border: "none",
-                  boxShadow: "0 2px 8px rgba(239,68,68,0.15)",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  transition: "background 0.2s",
-                }}
+                className="button bg-red-500 text-white"
                 onClick={handleDeleteConfirm}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = "#dc2626")
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = "#ef4444")
-                }
               >
                 Delete
               </button>

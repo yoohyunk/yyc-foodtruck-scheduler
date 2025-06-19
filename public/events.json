@@ -2,199 +2,901 @@
   {
     "id": "1",
     "title": "Downtown Food Festival",
-    "startTime": "2025-06-15T10:00:00",
-    "endTime": "2025-06-15T16:00:00",
-    "location": "4908 23 Ave NW, Calgary, Alberta T3B 0Z7, Canada",
+    "startTime": "2025-06-18T11:00:00",
+    "endTime": "2025-06-18T18:00:00",
+    "location": "Stephen Avenue Walk, Calgary, Alberta T2P 1J9",
     "coordinates": {
-      "latitude": 51.0787,
-      "longitude": -114.159
+      "latitude": 51.0452,
+      "longitude": -114.0697
     },
-    "trucks": ["Truck 1", "Truck 2"],
+    "trucks": ["1", "2"],
     "assignedStaff": [],
-    "requiredServers": 4,
-    "status": "Scheduled"
+    "requiredServers": 3,
+    "status": "Scheduled",
+    "contactName": "Sarah Johnson",
+    "contactEmail": "sarah.johnson@downtownfestival.com",
+    "contactPhone": "(403) 555-0101"
   },
   {
     "id": "2",
-    "title": "Weekend Market",
-    "startTime": "2025-06-21T11:00:00",
-    "endTime": "2025-06-21T15:00:00",
-    "location": "698 Eau Claire Avenue SW, Calgary, Alberta T2P 5N4, Canada",
+    "title": "Corporate Lunch - Tech Startup",
+    "startTime": "2025-06-18T11:30:00",
+    "endTime": "2025-06-18T14:30:00",
+    "location": "500 8th Avenue SW, Calgary, Alberta T2P 1G4",
     "coordinates": {
-      "latitude": 51.0512,
-      "longitude": -114.0723
+      "latitude": 51.0447,
+      "longitude": -114.0719
     },
-    "trucks": ["Truck 3"],
-    "assignedStaff": [],
+    "trucks": ["3"],
+    "assignedStaff": ["4", "5"],
     "requiredServers": 2,
-    "status": "Scheduled"
+    "status": "Scheduled",
+    "contactName": "Mike Chen",
+    "contactEmail": "mike.chen@techstartup.ca",
+    "contactPhone": "(403) 555-0102"
   },
   {
     "id": "3",
-    "title": "Corporate Event",
-    "startTime": "2025-06-25T12:00:00",
-    "endTime": "2025-06-25T14:00:00",
-    "location": "120 9th Avenue SE, Calgary, Alberta T2G 0P3, Canada",
+    "title": "Wedding Reception",
+    "startTime": "2025-06-18T17:00:00",
+    "endTime": "2025-06-18T23:00:00",
+    "location": "Prince's Island Park, Calgary, Alberta T2L 2K7",
     "coordinates": {
-      "latitude": 51.0482,
-      "longitude": -114.0671
+      "latitude": 51.0533,
+      "longitude": -114.0708
     },
-    "trucks": ["Truck 1", "Truck 4"],
-    "assignedStaff": [],
+    "trucks": ["1", "4"],
+    "assignedStaff": ["6", "7", "8"],
     "requiredServers": 3,
-    "status": "Scheduled"
+    "status": "Scheduled",
+    "contactName": "Emily Rodriguez",
+    "contactEmail": "emily.rodriguez@email.com",
+    "contactPhone": "(403) 555-0103"
   },
   {
     "id": "4",
-    "title": "Summer Festival",
-    "startTime": "2025-07-15T10:00:00",
-    "endTime": "2025-07-15T16:00:00",
-    "location": "228 8th Avenue SE, Calgary, Alberta T2P 2K5, Canada",
+    "title": "Community Market",
+    "startTime": "2025-06-19T09:00:00",
+    "endTime": "2025-06-19T16:00:00",
+    "location": "Kensington Market, Calgary, Alberta T2N 4L8",
     "coordinates": {
-      "latitude": 51.0478,
-      "longitude": -114.0675
+      "latitude": 51.0522,
+      "longitude": -114.0856
     },
-    "trucks": ["Truck 2", "Truck 3"],
-    "assignedStaff": [],
-    "requiredServers": 5,
-    "status": "Scheduled"
+    "trucks": ["2", "3", "5"],
+    "assignedStaff": ["1", "2", "3", "4"],
+    "requiredServers": 4,
+    "status": "Scheduled",
+    "contactName": "David Thompson",
+    "contactEmail": "david.thompson@kensingtonmarket.ca",
+    "contactPhone": "(403) 555-0104"
   },
   {
     "id": "5",
-    "title": "Community Event",
-    "startTime": "2025-07-20T11:00:00",
-    "endTime": "2025-07-20T15:00:00",
-    "location": "200 Barclay Parade SW, Calgary, Alberta T2P 4R5, Canada",
+    "title": "Office Catering - Oil Company",
+    "startTime": "2025-06-19T12:00:00",
+    "endTime": "2025-06-19T15:00:00",
+    "location": "400 4th Avenue SW, Calgary, Alberta T2P 0J4",
     "coordinates": {
-      "latitude": 51.0516,
-      "longitude": -114.0719
+      "latitude": 51.0452,
+      "longitude": -114.0697
     },
-    "trucks": ["Truck 1", "Truck 4"],
-    "assignedStaff": [],
-    "requiredServers": 3,
-    "status": "Scheduled"
+    "trucks": ["1"],
+    "assignedStaff": ["5", "6"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Lisa Wang",
+    "contactEmail": "lisa.wang@oilcompany.com",
+    "contactPhone": "(403) 555-0105"
   },
   {
     "id": "6",
-    "title": "Summer Kickoff",
-    "startTime": "2025-08-01T10:00:00",
-    "endTime": "2025-08-01T16:00:00",
-    "location": "200 8th Avenue SW, Calgary, Alberta T2P 1B5, Canada",
+    "title": "Summer Music Festival",
+    "startTime": "2025-06-19T16:00:00",
+    "endTime": "2025-06-19T22:00:00",
+    "location": "Olympic Plaza, Calgary, Alberta T2P 2W5",
     "coordinates": {
-      "latitude": 51.0474,
-      "longitude": -114.0679
+      "latitude": 51.0452,
+      "longitude": -114.0697
     },
-    "trucks": ["Truck 1", "Truck 2", "Truck 3"],
-    "assignedStaff": [],
-    "requiredServers": 6,
-    "status": "Scheduled"
+    "trucks": ["1", "2", "3", "4"],
+    "assignedStaff": ["7", "8", "1", "2"],
+    "requiredServers": 4,
+    "status": "Scheduled",
+    "contactName": "Alex Martinez",
+    "contactEmail": "alex.martinez@musicfestival.ca",
+    "contactPhone": "(403) 555-0106"
   },
   {
     "id": "7",
-    "title": "Corporate Lunch",
-    "startTime": "2025-08-15T11:00:00",
-    "endTime": "2025-08-15T14:00:00",
-    "location": "120 9th Avenue SE, Calgary, Alberta T2G 0P3, Canada",
+    "title": "Food Truck Friday",
+    "startTime": "2025-06-20T11:00:00",
+    "endTime": "2025-06-20T20:00:00",
+    "location": "17th Avenue SW, Calgary, Alberta T2S 0A1",
     "coordinates": {
-      "latitude": 51.0482,
-      "longitude": -114.0671
+      "latitude": 51.0372,
+      "longitude": -114.0856
     },
-    "trucks": ["Truck 1", "Truck 4"],
-    "assignedStaff": [],
-    "requiredServers": 4,
-    "status": "Scheduled"
+    "trucks": ["1", "2", "3", "4", "5"],
+    "assignedStaff": ["3", "4", "5", "6", "7"],
+    "requiredServers": 5,
+    "status": "Scheduled",
+    "contactName": "Jennifer Lee",
+    "contactEmail": "jennifer.lee@17thavenue.ca",
+    "contactPhone": "(403) 555-0107"
   },
   {
     "id": "8",
-    "title": "Summer Festival",
-    "startTime": "2025-09-15T10:00:00",
-    "endTime": "2025-09-15T16:00:00",
-    "location": "698 Eau Claire Avenue SW, Calgary, Alberta T2P 5N4, Canada",
+    "title": "Corporate Event - Bank",
+    "startTime": "2025-06-20T18:00:00",
+    "endTime": "2025-06-20T21:00:00",
+    "location": "700 2nd Street SW, Calgary, Alberta T2P 2W1",
     "coordinates": {
-      "latitude": 51.0512,
-      "longitude": -114.0723
+      "latitude": 51.0452,
+      "longitude": -114.0697
     },
-    "trucks": ["Truck 2", "Truck 3"],
-    "assignedStaff": [],
-    "requiredServers": 5,
-    "status": "Scheduled"
+    "trucks": ["3", "4"],
+    "assignedStaff": ["8", "1"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Robert Brown",
+    "contactEmail": "robert.brown@bank.ca",
+    "contactPhone": "(403) 555-0108"
   },
   {
     "id": "9",
-    "title": "Canada Day Celebration",
-    "startTime": "2025-10-01T10:00:00",
-    "endTime": "2025-10-01T22:00:00",
-    "location": "228 8th Avenue SE, Calgary, Alberta T2P 2K5, Canada",
+    "title": "Weekend Farmers Market",
+    "startTime": "2025-06-21T08:00:00",
+    "endTime": "2025-06-21T16:00:00",
+    "location": "Inglewood Bird Sanctuary, Calgary, Alberta T2G 4A2",
     "coordinates": {
-      "latitude": 51.0478,
-      "longitude": -114.0675
+      "latitude": 51.0333,
+      "longitude": -114.0333
     },
-    "trucks": ["Truck 1", "Truck 2", "Truck 3", "Truck 4"],
-    "assignedStaff": [],
-    "requiredServers": 8,
-    "status": "Scheduled"
+    "trucks": ["2", "5"],
+    "assignedStaff": ["2", "3"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Maria Garcia",
+    "contactEmail": "maria.garcia@farmersmarket.ca",
+    "contactPhone": "(403) 555-0109"
   },
   {
     "id": "10",
-    "title": "Summer Market",
-    "startTime": "2025-10-20T11:00:00",
-    "endTime": "2025-10-20T15:00:00",
-    "location": "200 Barclay Parade SW, Calgary, Alberta T2P 4R5, Canada",
+    "title": "Birthday Party",
+    "startTime": "2025-06-21T14:00:00",
+    "endTime": "2025-06-21T18:00:00",
+    "location": "Nose Hill Park, Calgary, Alberta T2K 5J7",
     "coordinates": {
-      "latitude": 51.0516,
-      "longitude": -114.0719
+      "latitude": 51.1,
+      "longitude": -114.1333
     },
-    "trucks": ["Truck 1", "Truck 3"],
-    "assignedStaff": [],
-    "requiredServers": 3,
-    "status": "Scheduled"
+    "trucks": ["1"],
+    "assignedStaff": ["4"],
+    "requiredServers": 1,
+    "status": "Scheduled",
+    "contactName": "Tom Wilson",
+    "contactEmail": "tom.wilson@email.com",
+    "contactPhone": "(403) 555-0110"
   },
   {
     "id": "11",
-    "title": "Corporate Event",
-    "startTime": "2025-11-01T12:00:00",
-    "endTime": "2025-11-01T14:00:00",
-    "location": "120 9th Avenue SE, Calgary, Alberta T2G 0P3, Canada",
+    "title": "Jazz in the Park",
+    "startTime": "2025-06-21T19:00:00",
+    "endTime": "2025-06-21T23:00:00",
+    "location": "Central Memorial Park, Calgary, Alberta T2P 2G8",
     "coordinates": {
-      "latitude": 51.0482,
-      "longitude": -114.0671
+      "latitude": 51.0372,
+      "longitude": -114.0856
     },
-    "trucks": ["Truck 2", "Truck 4"],
-    "assignedStaff": [],
-    "requiredServers": 4,
-    "status": "Scheduled"
+    "trucks": ["3", "4"],
+    "assignedStaff": ["5", "6"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Sophie Anderson",
+    "contactEmail": "sophie.anderson@jazzpark.ca",
+    "contactPhone": "(403) 555-0111"
   },
   {
     "id": "12",
-    "title": "Summer Festival Finale",
-    "startTime": "2025-11-30T10:00:00",
-    "endTime": "2025-11-30T16:00:00",
-    "location": "200 8th Avenue SW, Calgary, Alberta T2P 1B5, Canada",
+    "title": "Food Truck Rally",
+    "startTime": "2025-06-22T12:00:00",
+    "endTime": "2025-06-22T20:00:00",
+    "location": "Eau Claire Market, Calgary, Alberta T2P 4K2",
     "coordinates": {
-      "latitude": 51.0474,
-      "longitude": -114.0679
+      "latitude": 51.0533,
+      "longitude": -114.0708
     },
-    "trucks": ["Truck 1", "Truck 2", "Truck 3", "Truck 4"],
-    "assignedStaff": [],
-    "requiredServers": 8,
-    "status": "Scheduled"
+    "trucks": ["1", "2", "3", "4", "5"],
+    "assignedStaff": ["7", "8", "1", "2", "3"],
+    "requiredServers": 5,
+    "status": "Scheduled",
+    "contactName": "Kevin O'Connor",
+    "contactEmail": "kevin.oconnor@foodtruckrally.ca",
+    "contactPhone": "(403) 555-0112"
   },
   {
     "id": "13",
-    "title": "Rachel Leona Motyer",
-    "startTime": "2025-06-26T19:45",
-    "endTime": "2025-06-26T21:15",
-    "location": "2427 woodview Drive SW, Calgary, T3B 0Z7",
+    "title": "Corporate Lunch - Law Firm",
+    "startTime": "2025-06-23T11:30:00",
+    "endTime": "2025-06-23T14:30:00",
+    "location": "300 5th Avenue SW, Calgary, Alberta T2P 3C4",
     "coordinates": {
-      "latitude": 50.9410198,
-      "longitude": -114.1169531
+      "latitude": 51.0452,
+      "longitude": -114.0697
     },
-    "trucks": ["7"],
-    "assignedStaff": ["2", "7", "10", "6", "8", "3"],
-    "requiredServers": 6,
+    "trucks": ["3"],
+    "assignedStaff": ["4", "5"],
+    "requiredServers": 2,
     "status": "Scheduled",
-    "contactName": "test algo",
-    "contactEmail": "leona.motyer@edu.sait.ca",
-    "contactPhone": "2502581143"
+    "contactName": "Amanda Foster",
+    "contactEmail": "amanda.foster@lawfirm.ca",
+    "contactPhone": "(403) 555-0113"
+  },
+  {
+    "id": "14",
+    "title": "Community BBQ",
+    "startTime": "2025-06-23T16:00:00",
+    "endTime": "2025-06-23T20:00:00",
+    "location": "Riley Park, Calgary, Alberta T2T 3A7",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2"],
+    "assignedStaff": ["6", "7"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Chris Taylor",
+    "contactEmail": "chris.taylor@communitybbq.ca",
+    "contactPhone": "(403) 555-0114"
+  },
+  {
+    "id": "15",
+    "title": "Food Truck Tuesday",
+    "startTime": "2025-06-24T11:00:00",
+    "endTime": "2025-06-24T19:00:00",
+    "location": "4th Street SW, Calgary, Alberta T2S 1W3",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2", "3"],
+    "assignedStaff": ["8", "1", "2"],
+    "requiredServers": 3,
+    "status": "Scheduled",
+    "contactName": "Rachel Green",
+    "contactEmail": "rachel.green@4thstreet.ca",
+    "contactPhone": "(403) 555-0115"
+  },
+  {
+    "id": "16",
+    "title": "Office Party",
+    "startTime": "2025-06-24T18:00:00",
+    "endTime": "2025-06-24T22:00:00",
+    "location": "600 6th Avenue SW, Calgary, Alberta T2P 0S5",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["4", "5"],
+    "assignedStaff": ["3", "4"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Daniel Kim",
+    "contactEmail": "daniel.kim@officeparty.ca",
+    "contactPhone": "(403) 555-0116"
+  },
+  {
+    "id": "17",
+    "title": "Food Truck Wednesday",
+    "startTime": "2025-06-25T11:00:00",
+    "endTime": "2025-06-25T19:00:00",
+    "location": "8th Avenue SW, Calgary, Alberta T2P 1J9",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["1", "3", "5"],
+    "assignedStaff": ["5", "6", "7"],
+    "requiredServers": 3,
+    "status": "Scheduled",
+    "contactName": "Michelle Davis",
+    "contactEmail": "michelle.davis@8thavenue.ca",
+    "contactPhone": "(403) 555-0117"
+  },
+  {
+    "id": "18",
+    "title": "Corporate Event - Tech Company",
+    "startTime": "2025-06-25T19:00:00",
+    "endTime": "2025-06-25T23:00:00",
+    "location": "500 9th Avenue SW, Calgary, Alberta T2P 3L9",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["2", "4"],
+    "assignedStaff": ["8", "1"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Ryan Johnson",
+    "contactEmail": "ryan.johnson@techcompany.ca",
+    "contactPhone": "(403) 555-0118"
+  },
+  {
+    "id": "19",
+    "title": "Food Truck Thursday",
+    "startTime": "2025-06-26T11:00:00",
+    "endTime": "2025-06-26T19:00:00",
+    "location": "10th Street SW, Calgary, Alberta T2R 0A4",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2", "3", "4"],
+    "assignedStaff": ["2", "3", "4", "5"],
+    "requiredServers": 4,
+    "status": "Scheduled",
+    "contactName": "Laura White",
+    "contactEmail": "laura.white@10thstreet.ca",
+    "contactPhone": "(403) 555-0119"
+  },
+  {
+    "id": "20",
+    "title": "Wedding Reception",
+    "startTime": "2025-06-26T17:00:00",
+    "endTime": "2025-06-26T23:00:00",
+    "location": "Fish Creek Provincial Park, Calgary, Alberta T2Y 4P2",
+    "coordinates": {
+      "latitude": 50.9333,
+      "longitude": -114.0333
+    },
+    "trucks": ["1", "3"],
+    "assignedStaff": ["6", "7"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Jessica Moore",
+    "contactEmail": "jessica.moore@email.com",
+    "contactPhone": "(403) 555-0120"
+  },
+  {
+    "id": "21",
+    "title": "Canada Day Celebration",
+    "startTime": "2025-07-01T10:00:00",
+    "endTime": "2025-07-01T22:00:00",
+    "location": "Prince's Island Park, Calgary, Alberta T2L 2K7",
+    "coordinates": {
+      "latitude": 51.0533,
+      "longitude": -114.0708
+    },
+    "trucks": ["1", "2", "3", "4", "5"],
+    "assignedStaff": ["1", "2", "3", "4", "5", "6", "7", "8"],
+    "requiredServers": 8,
+    "status": "Scheduled",
+    "contactName": "Canada Day Committee",
+    "contactEmail": "info@canadadaycalgary.ca",
+    "contactPhone": "(403) 555-0121"
+  },
+  {
+    "id": "22",
+    "title": "Stampede Breakfast",
+    "startTime": "2025-07-02T07:00:00",
+    "endTime": "2025-07-02T11:00:00",
+    "location": "Stampede Park, Calgary, Alberta T2P 2K8",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2"],
+    "assignedStaff": ["3", "4"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Stampede Committee",
+    "contactEmail": "breakfast@calgarystampede.com",
+    "contactPhone": "(403) 555-0122"
+  },
+  {
+    "id": "23",
+    "title": "Corporate Lunch - Energy Company",
+    "startTime": "2025-07-02T12:00:00",
+    "endTime": "2025-07-02T15:00:00",
+    "location": "400 3rd Avenue SW, Calgary, Alberta T2P 4H2",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["3"],
+    "assignedStaff": ["5", "6"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Mark Thompson",
+    "contactEmail": "mark.thompson@energycompany.ca",
+    "contactPhone": "(403) 555-0123"
+  },
+  {
+    "id": "24",
+    "title": "Food Truck Festival",
+    "startTime": "2025-07-03T11:00:00",
+    "endTime": "2025-07-03T21:00:00",
+    "location": "17th Avenue SW, Calgary, Alberta T2S 0A1",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2", "3", "4", "5"],
+    "assignedStaff": ["7", "8", "1", "2", "3"],
+    "requiredServers": 5,
+    "status": "Scheduled",
+    "contactName": "Food Truck Festival",
+    "contactEmail": "info@foodtruckfestival.ca",
+    "contactPhone": "(403) 555-0124"
+  },
+  {
+    "id": "25",
+    "title": "Corporate Event - Bank",
+    "startTime": "2025-07-04T18:00:00",
+    "endTime": "2025-07-04T22:00:00",
+    "location": "600 7th Avenue SW, Calgary, Alberta T2P 0Z4",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["2", "4"],
+    "assignedStaff": ["4", "5"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Sarah Wilson",
+    "contactEmail": "sarah.wilson@bank.ca",
+    "contactPhone": "(403) 555-0125"
+  },
+  {
+    "id": "26",
+    "title": "Community Market",
+    "startTime": "2025-07-05T09:00:00",
+    "endTime": "2025-07-05T17:00:00",
+    "location": "Kensington Market, Calgary, Alberta T2N 4L8",
+    "coordinates": {
+      "latitude": 51.0522,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "3", "5"],
+    "assignedStaff": ["6", "7", "8"],
+    "requiredServers": 3,
+    "status": "Scheduled",
+    "contactName": "David Chen",
+    "contactEmail": "david.chen@kensingtonmarket.ca",
+    "contactPhone": "(403) 555-0126"
+  },
+  {
+    "id": "27",
+    "title": "Birthday Party",
+    "startTime": "2025-07-05T15:00:00",
+    "endTime": "2025-07-05T19:00:00",
+    "location": "Nose Hill Park, Calgary, Alberta T2K 5J7",
+    "coordinates": {
+      "latitude": 51.1,
+      "longitude": -114.1333
+    },
+    "trucks": ["2"],
+    "assignedStaff": ["1"],
+    "requiredServers": 1,
+    "status": "Scheduled",
+    "contactName": "Emma Rodriguez",
+    "contactEmail": "emma.rodriguez@email.com",
+    "contactPhone": "(403) 555-0127"
+  },
+  {
+    "id": "28",
+    "title": "Food Truck Saturday",
+    "startTime": "2025-07-06T12:00:00",
+    "endTime": "2025-07-06T20:00:00",
+    "location": "Eau Claire Market, Calgary, Alberta T2P 4K2",
+    "coordinates": {
+      "latitude": 51.0533,
+      "longitude": -114.0708
+    },
+    "trucks": ["1", "2", "3", "4"],
+    "assignedStaff": ["2", "3", "4", "5"],
+    "requiredServers": 4,
+    "status": "Scheduled",
+    "contactName": "Michael Brown",
+    "contactEmail": "michael.brown@eauclaire.ca",
+    "contactPhone": "(403) 555-0128"
+  },
+  {
+    "id": "29",
+    "title": "Corporate Lunch - Law Firm",
+    "startTime": "2025-07-07T11:30:00",
+    "endTime": "2025-07-07T14:30:00",
+    "location": "300 6th Avenue SW, Calgary, Alberta T2P 3C4",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["3"],
+    "assignedStaff": ["6", "7"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Lisa Anderson",
+    "contactEmail": "lisa.anderson@lawfirm.ca",
+    "contactPhone": "(403) 555-0129"
+  },
+  {
+    "id": "30",
+    "title": "Community BBQ",
+    "startTime": "2025-07-07T16:00:00",
+    "endTime": "2025-07-07T20:00:00",
+    "location": "Riley Park, Calgary, Alberta T2T 3A7",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2"],
+    "assignedStaff": ["8", "1"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Chris Martinez",
+    "contactEmail": "chris.martinez@communitybbq.ca",
+    "contactPhone": "(403) 555-0130"
+  },
+  {
+    "id": "31",
+    "title": "Food Truck Tuesday",
+    "startTime": "2025-07-08T11:00:00",
+    "endTime": "2025-07-08T19:00:00",
+    "location": "4th Street SW, Calgary, Alberta T2S 1W3",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2", "3"],
+    "assignedStaff": ["2", "3", "4"],
+    "requiredServers": 3,
+    "status": "Scheduled",
+    "contactName": "Rachel Green",
+    "contactEmail": "rachel.green@4thstreet.ca",
+    "contactPhone": "(403) 555-0131"
+  },
+  {
+    "id": "32",
+    "title": "Office Party",
+    "startTime": "2025-07-08T18:00:00",
+    "endTime": "2025-07-08T22:00:00",
+    "location": "600 6th Avenue SW, Calgary, Alberta T2P 0S5",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["4", "5"],
+    "assignedStaff": ["5", "6"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Daniel Kim",
+    "contactEmail": "daniel.kim@officeparty.ca",
+    "contactPhone": "(403) 555-0132"
+  },
+  {
+    "id": "33",
+    "title": "Food Truck Wednesday",
+    "startTime": "2025-07-09T11:00:00",
+    "endTime": "2025-07-09T19:00:00",
+    "location": "8th Avenue SW, Calgary, Alberta T2P 1J9",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["1", "3", "5"],
+    "assignedStaff": ["7", "8", "1"],
+    "requiredServers": 3,
+    "status": "Scheduled",
+    "contactName": "Michelle Davis",
+    "contactEmail": "michelle.davis@8thavenue.ca",
+    "contactPhone": "(403) 555-0133"
+  },
+  {
+    "id": "34",
+    "title": "Corporate Event - Tech Company",
+    "startTime": "2025-07-09T19:00:00",
+    "endTime": "2025-07-09T23:00:00",
+    "location": "500 9th Avenue SW, Calgary, Alberta T2P 3L9",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["2", "4"],
+    "assignedStaff": ["2", "3"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Ryan Johnson",
+    "contactEmail": "ryan.johnson@techcompany.ca",
+    "contactPhone": "(403) 555-0134"
+  },
+  {
+    "id": "35",
+    "title": "Food Truck Thursday",
+    "startTime": "2025-07-10T11:00:00",
+    "endTime": "2025-07-10T19:00:00",
+    "location": "10th Street SW, Calgary, Alberta T2R 0A4",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2", "3", "4"],
+    "assignedStaff": ["4", "5", "6", "7"],
+    "requiredServers": 4,
+    "status": "Scheduled",
+    "contactName": "Laura White",
+    "contactEmail": "laura.white@10thstreet.ca",
+    "contactPhone": "(403) 555-0135"
+  },
+  {
+    "id": "36",
+    "title": "Wedding Reception",
+    "startTime": "2025-07-10T17:00:00",
+    "endTime": "2025-07-10T23:00:00",
+    "location": "Fish Creek Provincial Park, Calgary, Alberta T2Y 4P2",
+    "coordinates": {
+      "latitude": 50.9333,
+      "longitude": -114.0333
+    },
+    "trucks": ["1", "3"],
+    "assignedStaff": ["8", "1"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Jessica Moore",
+    "contactEmail": "jessica.moore@email.com",
+    "contactPhone": "(403) 555-0136"
+  },
+  {
+    "id": "37",
+    "title": "Food Truck Friday",
+    "startTime": "2025-07-11T11:00:00",
+    "endTime": "2025-07-11T20:00:00",
+    "location": "17th Avenue SW, Calgary, Alberta T2S 0A1",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2", "3", "4", "5"],
+    "assignedStaff": ["2", "3", "4", "5", "6"],
+    "requiredServers": 5,
+    "status": "Scheduled",
+    "contactName": "Jennifer Lee",
+    "contactEmail": "jennifer.lee@17thavenue.ca",
+    "contactPhone": "(403) 555-0137"
+  },
+  {
+    "id": "38",
+    "title": "Corporate Event - Bank",
+    "startTime": "2025-07-11T18:00:00",
+    "endTime": "2025-07-11T22:00:00",
+    "location": "700 2nd Street SW, Calgary, Alberta T2P 2W1",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["3", "4"],
+    "assignedStaff": ["7", "8"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Robert Brown",
+    "contactEmail": "robert.brown@bank.ca",
+    "contactPhone": "(403) 555-0138"
+  },
+  {
+    "id": "39",
+    "title": "Weekend Farmers Market",
+    "startTime": "2025-07-12T08:00:00",
+    "endTime": "2025-07-12T16:00:00",
+    "location": "Inglewood Bird Sanctuary, Calgary, Alberta T2G 4A2",
+    "coordinates": {
+      "latitude": 51.0333,
+      "longitude": -114.0333
+    },
+    "trucks": ["2", "5"],
+    "assignedStaff": ["1", "2"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Maria Garcia",
+    "contactEmail": "maria.garcia@farmersmarket.ca",
+    "contactPhone": "(403) 555-0139"
+  },
+  {
+    "id": "40",
+    "title": "Birthday Party",
+    "startTime": "2025-07-12T14:00:00",
+    "endTime": "2025-07-12T18:00:00",
+    "location": "Nose Hill Park, Calgary, Alberta T2K 5J7",
+    "coordinates": {
+      "latitude": 51.1,
+      "longitude": -114.1333
+    },
+    "trucks": ["1"],
+    "assignedStaff": ["3"],
+    "requiredServers": 1,
+    "status": "Scheduled",
+    "contactName": "Tom Wilson",
+    "contactEmail": "tom.wilson@email.com",
+    "contactPhone": "(403) 555-0140"
+  },
+  {
+    "id": "41",
+    "title": "Jazz in the Park",
+    "startTime": "2025-07-12T19:00:00",
+    "endTime": "2025-07-12T23:00:00",
+    "location": "Central Memorial Park, Calgary, Alberta T2P 2G8",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["3", "4"],
+    "assignedStaff": ["4", "5"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Sophie Anderson",
+    "contactEmail": "sophie.anderson@jazzpark.ca",
+    "contactPhone": "(403) 555-0141"
+  },
+  {
+    "id": "42",
+    "title": "Food Truck Rally",
+    "startTime": "2025-07-13T12:00:00",
+    "endTime": "2025-07-13T20:00:00",
+    "location": "Eau Claire Market, Calgary, Alberta T2P 4K2",
+    "coordinates": {
+      "latitude": 51.0533,
+      "longitude": -114.0708
+    },
+    "trucks": ["1", "2", "3", "4", "5"],
+    "assignedStaff": ["6", "7", "8", "1", "2"],
+    "requiredServers": 5,
+    "status": "Scheduled",
+    "contactName": "Kevin O'Connor",
+    "contactEmail": "kevin.oconnor@foodtruckrally.ca",
+    "contactPhone": "(403) 555-0142"
+  },
+  {
+    "id": "43",
+    "title": "Corporate Lunch - Law Firm",
+    "startTime": "2025-07-14T11:30:00",
+    "endTime": "2025-07-14T14:30:00",
+    "location": "300 5th Avenue SW, Calgary, Alberta T2P 3C4",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["3"],
+    "assignedStaff": ["3", "4"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Amanda Foster",
+    "contactEmail": "amanda.foster@lawfirm.ca",
+    "contactPhone": "(403) 555-0143"
+  },
+  {
+    "id": "44",
+    "title": "Community BBQ",
+    "startTime": "2025-07-14T16:00:00",
+    "endTime": "2025-07-14T20:00:00",
+    "location": "Riley Park, Calgary, Alberta T2T 3A7",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2"],
+    "assignedStaff": ["5", "6"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Chris Taylor",
+    "contactEmail": "chris.taylor@communitybbq.ca",
+    "contactPhone": "(403) 555-0144"
+  },
+  {
+    "id": "45",
+    "title": "Food Truck Tuesday",
+    "startTime": "2025-07-15T11:00:00",
+    "endTime": "2025-07-15T19:00:00",
+    "location": "4th Street SW, Calgary, Alberta T2S 1W3",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2", "3"],
+    "assignedStaff": ["7", "8", "1"],
+    "requiredServers": 3,
+    "status": "Scheduled",
+    "contactName": "Rachel Green",
+    "contactEmail": "rachel.green@4thstreet.ca",
+    "contactPhone": "(403) 555-0145"
+  },
+  {
+    "id": "46",
+    "title": "Office Party",
+    "startTime": "2025-07-15T18:00:00",
+    "endTime": "2025-07-15T22:00:00",
+    "location": "600 6th Avenue SW, Calgary, Alberta T2P 0S5",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["4", "5"],
+    "assignedStaff": ["2", "3"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Daniel Kim",
+    "contactEmail": "daniel.kim@officeparty.ca",
+    "contactPhone": "(403) 555-0146"
+  },
+  {
+    "id": "47",
+    "title": "Food Truck Wednesday",
+    "startTime": "2025-07-16T11:00:00",
+    "endTime": "2025-07-16T19:00:00",
+    "location": "8th Avenue SW, Calgary, Alberta T2P 1J9",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["1", "3", "5"],
+    "assignedStaff": ["4", "5", "6"],
+    "requiredServers": 3,
+    "status": "Scheduled",
+    "contactName": "Michelle Davis",
+    "contactEmail": "michelle.davis@8thavenue.ca",
+    "contactPhone": "(403) 555-0147"
+  },
+  {
+    "id": "48",
+    "title": "Corporate Event - Tech Company",
+    "startTime": "2025-07-16T19:00:00",
+    "endTime": "2025-07-16T23:00:00",
+    "location": "500 9th Avenue SW, Calgary, Alberta T2P 3L9",
+    "coordinates": {
+      "latitude": 51.0452,
+      "longitude": -114.0697
+    },
+    "trucks": ["2", "4"],
+    "assignedStaff": ["7", "8"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Ryan Johnson",
+    "contactEmail": "ryan.johnson@techcompany.ca",
+    "contactPhone": "(403) 555-0148"
+  },
+  {
+    "id": "49",
+    "title": "Food Truck Thursday",
+    "startTime": "2025-07-17T11:00:00",
+    "endTime": "2025-07-17T19:00:00",
+    "location": "10th Street SW, Calgary, Alberta T2R 0A4",
+    "coordinates": {
+      "latitude": 51.0372,
+      "longitude": -114.0856
+    },
+    "trucks": ["1", "2", "3", "4"],
+    "assignedStaff": ["1", "2", "3", "4"],
+    "requiredServers": 4,
+    "status": "Scheduled",
+    "contactName": "Laura White",
+    "contactEmail": "laura.white@10thstreet.ca",
+    "contactPhone": "(403) 555-0149"
+  },
+  {
+    "id": "50",
+    "title": "Wedding Reception",
+    "startTime": "2025-07-17T17:00:00",
+    "endTime": "2025-07-17T23:00:00",
+    "location": "Fish Creek Provincial Park, Calgary, Alberta T2Y 4P2",
+    "coordinates": {
+      "latitude": 50.9333,
+      "longitude": -114.0333
+    },
+    "trucks": ["1", "3"],
+    "assignedStaff": ["5", "6"],
+    "requiredServers": 2,
+    "status": "Scheduled",
+    "contactName": "Jessica Moore",
+    "contactEmail": "jessica.moore@email.com",
+    "contactPhone": "(403) 555-0150"
   }
 ]
