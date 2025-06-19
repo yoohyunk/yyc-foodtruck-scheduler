@@ -93,7 +93,7 @@ export default function Employees(): ReactElement {
     };
 
     fetchEmployees();
-  }, []);
+  }, [supabase]);
 
   // Filter employees based on the active filter
   useEffect(() => {
