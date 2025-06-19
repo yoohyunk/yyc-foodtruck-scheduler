@@ -168,7 +168,7 @@
     "endTime": "2025-06-21T18:00:00",
     "location": "Nose Hill Park, Calgary, Alberta T2K 5J7",
     "coordinates": {
-      "latitude": 51.1000,
+      "latitude": 51.1,
       "longitude": -114.1333
     },
     "trucks": ["1"],
@@ -474,7 +474,7 @@
     "endTime": "2025-07-05T19:00:00",
     "location": "Nose Hill Park, Calgary, Alberta T2K 5J7",
     "coordinates": {
-      "latitude": 51.1000,
+      "latitude": 51.1,
       "longitude": -114.1333
     },
     "trucks": ["2"],
@@ -708,7 +708,7 @@
     "endTime": "2025-07-12T18:00:00",
     "location": "Nose Hill Park, Calgary, Alberta T2K 5J7",
     "coordinates": {
-      "latitude": 51.1000,
+      "latitude": 51.1,
       "longitude": -114.1333
     },
     "trucks": ["1"],

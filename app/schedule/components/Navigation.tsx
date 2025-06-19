@@ -24,7 +24,9 @@ export const Navigation = ({
       className="navigation-container"
     >
       <TutorialHighlight
-        isHighlighted={shouldHighlight(".navigation-container .TutorialHighlight:nth-child(1) button")}
+        isHighlighted={shouldHighlight(
+          ".navigation-container .TutorialHighlight:nth-child(1) button"
+        )}
       >
         <button
           className="navigation-button bg-secondary-dark text-primary-dark hover:bg-primary-light hover:text-white"
@@ -34,7 +36,9 @@ export const Navigation = ({
         </button>
       </TutorialHighlight>
       <TutorialHighlight
-        isHighlighted={shouldHighlight(".navigation-container .TutorialHighlight:nth-child(2) button")}
+        isHighlighted={shouldHighlight(
+          ".navigation-container .TutorialHighlight:nth-child(2) button"
+        )}
       >
         <button
           className="navigation-button bg-primary-medium text-white hover:bg-primary-dark"
@@ -48,7 +52,9 @@ export const Navigation = ({
         </button>
       </TutorialHighlight>
       <TutorialHighlight
-        isHighlighted={shouldHighlight(".navigation-container .TutorialHighlight:nth-child(3) button")}
+        isHighlighted={shouldHighlight(
+          ".navigation-container .TutorialHighlight:nth-child(3) button"
+        )}
       >
         <button
           className="navigation-button bg-secondary-dark text-primary-dark hover:bg-primary-light hover:text-white"

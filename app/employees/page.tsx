@@ -145,9 +145,7 @@ export default function Employees(): ReactElement {
             // Highlight for "Delete Employee Button" step (first card)
             const highlightDeleteButton =
               (index === 0 &&
-                (shouldHighlight(
-                  "button[onClick*='setShowDeleteModal']"
-                ) ||
+                (shouldHighlight("button[onClick*='setShowDeleteModal']") ||
                   shouldHighlight(
                     `.employee-card:nth-child(1) button[title='Delete Employee']`
                   ))) ||
@@ -161,9 +159,7 @@ export default function Employees(): ReactElement {
               >
                 {/* Action Buttons */}
                 <div className="absolute top-2 right-2 flex gap-4">
-                  <TutorialHighlight
-                    isHighlighted={highlightEditButton}
-                  >
+                  <TutorialHighlight isHighlighted={highlightEditButton}>
                     <button
                       className="edit-button"
                       onClick={() => router.push(`/employees/${employee.id}`)}
@@ -172,9 +168,7 @@ export default function Employees(): ReactElement {
                       ✏️
                     </button>
                   </TutorialHighlight>
-                  <TutorialHighlight
-                    isHighlighted={highlightDeleteButton}
-                  >
+                  <TutorialHighlight isHighlighted={highlightDeleteButton}>
                     <button
                       className="delete-button"
                       onClick={() => handleDeleteClick(employee)}
@@ -197,7 +191,10 @@ export default function Employees(): ReactElement {
                 </p>
                 <p>
                   <strong>Email:</strong>{" "}
-                  <a href={`mailto:${employee.email}`} className="text-blue-500">
+                  <a
+                    href={`mailto:${employee.email}`}
+                    className="text-blue-500"
+                  >
                     {employee.email}
                   </a>
                 </p>

@@ -142,7 +142,9 @@ export default function TruckManagementPage() {
             {trucks.map((truck, index) => (
               <TutorialHighlight
                 key={truck.id}
-                isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1})`)}
+                isHighlighted={shouldHighlight(
+                  `.truck-card:nth-child(${index + 1})`
+                )}
                 className="border border-gray-200 rounded-lg overflow-hidden truck-card"
               >
                 {/* Truck Header */}
@@ -174,7 +176,9 @@ export default function TruckManagementPage() {
                     </div>
                     {/* Arrow Button */}
                     <TutorialHighlight
-                      isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) button[class*='bg-green-800']`)}
+                      isHighlighted={shouldHighlight(
+                        `.truck-card:nth-child(${index + 1}) button[class*='bg-green-800']`
+                      )}
                     >
                       <button
                         onClick={() => toggleTruckExpansion(truck.id)}
@@ -205,7 +209,9 @@ export default function TruckManagementPage() {
                       Items to Pack
                     </h4>
                     <TutorialHighlight
-                      isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) .flex.flex-col.gap-2`)}
+                      isHighlighted={shouldHighlight(
+                        `.truck-card:nth-child(${index + 1}) .flex.flex-col.gap-2`
+                      )}
                       className="flex flex-col gap-2 w-full"
                     >
                       {(Array.isArray(truck.packingList)
@@ -242,7 +248,9 @@ export default function TruckManagementPage() {
                             {item}
                           </label>
                           <TutorialHighlight
-                            isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) button[title='Delete item']`)}
+                            isHighlighted={shouldHighlight(
+                              `.truck-card:nth-child(${index + 1}) button[title='Delete item']`
+                            )}
                           >
                             <button
                               className="ml-2 text-red-600 hover:text-red-800 text-lg font-bold focus:outline-none"
@@ -260,7 +268,9 @@ export default function TruckManagementPage() {
                     </TutorialHighlight>
                     <div className="pt-4 flex gap-2 items-center">
                       <TutorialHighlight
-                        isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:first-child`)}
+                        isHighlighted={shouldHighlight(
+                          `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:first-child`
+                        )}
                       >
                         <button
                           className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
@@ -311,7 +321,9 @@ export default function TruckManagementPage() {
                         </>
                       ) : (
                         <TutorialHighlight
-                          isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:last-child`)}
+                          isHighlighted={shouldHighlight(
+                            `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:last-child`
+                          )}
                         >
                           <button
                             style={{ backgroundColor: "var(--primary-dark)" }}

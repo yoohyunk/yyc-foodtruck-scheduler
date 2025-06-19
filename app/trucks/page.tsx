@@ -81,12 +81,16 @@ export default function Trucks(): ReactElement {
           filteredTrucks.map((truck, index) => (
             <TutorialHighlight
               key={truck.id}
-              isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1})`)}
+              isHighlighted={shouldHighlight(
+                `.truck-card:nth-child(${index + 1})`
+              )}
               className="truck-card bg-white p-4 rounded shadow relative"
             >
               {/* Edit Button */}
               <TutorialHighlight
-                isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) button[title='Edit Truck']`)}
+                isHighlighted={shouldHighlight(
+                  `.truck-card:nth-child(${index + 1}) button[title='Edit Truck']`
+                )}
               >
                 <button
                   className="edit-button"

@@ -236,7 +236,9 @@ export default function Schedule(): React.ReactElement {
       >
         <div className="mt-4">
           {/* This is where shifts would be displayed */}
-          <p className="text-gray-500 text-center">No shifts scheduled for this period</p>
+          <p className="text-gray-500 text-center">
+            No shifts scheduled for this period
+          </p>
         </div>
       </TutorialHighlight>
     </div>

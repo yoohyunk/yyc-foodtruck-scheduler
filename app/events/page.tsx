@@ -123,7 +123,9 @@ export default function Events(): ReactElement {
             return (
               <TutorialHighlight
                 key={event.id}
-                isHighlighted={shouldHighlight(`.event-card:nth-child(${index + 1})`)}
+                isHighlighted={shouldHighlight(
+                  `.event-card:nth-child(${index + 1})`
+                )}
                 className="event-card bg-secondary-light p-4 rounded shadow"
               >
                 <h3 className="text-lg font-semibold">{event.title}</h3>
@@ -161,9 +163,7 @@ export default function Events(): ReactElement {
                       : "Scheduled"}
                   </span>
                 </p>
-                <TutorialHighlight
-                  isHighlighted={highlightViewDetailsButton}
-                >
+                <TutorialHighlight isHighlighted={highlightViewDetailsButton}>
                   <button
                     className="button mt-2"
                     onClick={() => router.push(`/events/${event.id}`)}

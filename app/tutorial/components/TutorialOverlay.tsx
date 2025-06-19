@@ -4,8 +4,15 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTutorial } from "../TutorialContext";
 
 export function TutorialOverlay() {
-  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial, setPendingStepForNavigation } =
-    useTutorial();
+  const {
+    isActive,
+    currentStep,
+    steps,
+    nextStep,
+    previousStep,
+    skipTutorial,
+    setPendingStepForNavigation,
+  } = useTutorial();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
@@ -113,7 +120,8 @@ export function TutorialOverlay() {
   useEffect(() => {
     if (!isActive || !currentStepData || !currentStepData.autoAction) return;
 
-    const { type, delay, nextPath, waitAfter, extra } = currentStepData.autoAction;
+    const { type, delay, nextPath, waitAfter, extra } =
+      currentStepData.autoAction;
     let timeout1: NodeJS.Timeout;
     let timeout2: NodeJS.Timeout;
 
@@ -136,7 +144,9 @@ export function TutorialOverlay() {
         if (extra && extra.closeModal) {
           setTimeout(() => {
             // Try to find a close/cancel button in the modal
-            const closeBtn = document.querySelector('.modal-footer button, .modal button[aria-label="Close"], .modal button[aria-label="Cancel"]');
+            const closeBtn = document.querySelector(
+              '.modal-footer button, .modal button[aria-label="Close"], .modal button[aria-label="Cancel"]'
+            );
             if (closeBtn) {
               (closeBtn as HTMLElement).click();
             }
@@ -178,7 +188,7 @@ export function TutorialOverlay() {
           }}
         />
       )} */}
-      
+
       <div className="tutorial-popup">
         <div className="tutorial-accent-bar" />
         <div className="tutorial-content">

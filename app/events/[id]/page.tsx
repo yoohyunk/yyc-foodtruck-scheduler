@@ -231,7 +231,12 @@ export default function EventDetailsPage(): ReactElement {
                 employees.map((employee, index) => (
                   <TutorialHighlight
                     key={employee.id}
-                    isHighlighted={index === 0 && shouldHighlight(".modal-body .employee-checkbox:first-child")}
+                    isHighlighted={
+                      index === 0 &&
+                      shouldHighlight(
+                        ".modal-body .employee-checkbox:first-child"
+                      )
+                    }
                   >
                     <label
                       className={`employee-label ${
@@ -248,8 +253,9 @@ export default function EventDetailsPage(): ReactElement {
                         )}
                         onChange={() => handleEmployeeSelection(employee)}
                         disabled={
-                          !assignedEmployees.some((e) => e.id === employee.id) &&
-                          assignedEmployees.length >= event.requiredServers
+                          !assignedEmployees.some(
+                            (e) => e.id === employee.id
+                          ) && assignedEmployees.length >= event.requiredServers
                         }
                       />
                       <span className="employee-name">
@@ -265,7 +271,9 @@ export default function EventDetailsPage(): ReactElement {
             </div>
             <div className="modal-footer">
               <TutorialHighlight
-                isHighlighted={shouldHighlight(".modal-footer button.btn-secondary")}
+                isHighlighted={shouldHighlight(
+                  ".modal-footer button.btn-secondary"
+                )}
               >
                 <button
                   className="btn-secondary"
@@ -389,7 +397,9 @@ export default function EventDetailsPage(): ReactElement {
             </div>
             <div className="modal-footer flex justify-center gap-4">
               <TutorialHighlight
-                isHighlighted={shouldHighlight(".modal-footer button.btn-secondary")}
+                isHighlighted={shouldHighlight(
+                  ".modal-footer button.btn-secondary"
+                )}
               >
                 <button
                   className="btn-secondary"

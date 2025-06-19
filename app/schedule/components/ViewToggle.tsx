@@ -17,7 +17,9 @@ export const ViewToggle = ({ viewMode, onViewChange }: ViewToggleProps) => {
       className="view-toggle-container"
     >
       <TutorialHighlight
-        isHighlighted={shouldHighlight(".view-toggle-container .TutorialHighlight:nth-child(1) button")}
+        isHighlighted={shouldHighlight(
+          ".view-toggle-container .TutorialHighlight:nth-child(1) button"
+        )}
       >
         <button
           className={`view-toggle-button ${
@@ -31,7 +33,9 @@ export const ViewToggle = ({ viewMode, onViewChange }: ViewToggleProps) => {
         </button>
       </TutorialHighlight>
       <TutorialHighlight
-        isHighlighted={shouldHighlight(".view-toggle-container .TutorialHighlight:nth-child(2) button")}
+        isHighlighted={shouldHighlight(
+          ".view-toggle-container .TutorialHighlight:nth-child(2) button"
+        )}
       >
         <button
           className={`view-toggle-button ${
@@ -45,7 +49,9 @@ export const ViewToggle = ({ viewMode, onViewChange }: ViewToggleProps) => {
         </button>
       </TutorialHighlight>
       <TutorialHighlight
-        isHighlighted={shouldHighlight(".view-toggle-container .TutorialHighlight:nth-child(3) button")}
+        isHighlighted={shouldHighlight(
+          ".view-toggle-container .TutorialHighlight:nth-child(3) button"
+        )}
       >
         <button
           className={`view-toggle-button ${

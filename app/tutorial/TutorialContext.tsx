@@ -220,7 +220,12 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click the 'Edit' button on any employee card to see all the information about that employee and make changes. This opens the employee details page where you can update their contact information, role, wage, and availability.",
       target: ".employee-card:first-child button[title='Edit Employee']",
       position: "bottom",
-      autoAction: { type: "click", delay: 300, nextPath: "/employees/1", waitAfter: 800 },
+      autoAction: {
+        type: "click",
+        delay: 300,
+        nextPath: "/employees/1",
+        waitAfter: 800,
+      },
     },
   ],
   "/events": [
@@ -263,7 +268,12 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click the 'View Details' button on any event card to see all the information about that event, including assigned staff, trucks, and contact details. This opens the event details page where you can make changes.",
       target: ".event-card:first-child .button",
       position: "bottom",
-      autoAction: { type: "click", delay: 800, nextPath: "/events/1", waitAfter: 600 },
+      autoAction: {
+        type: "click",
+        delay: 800,
+        nextPath: "/events/1",
+        waitAfter: 600,
+      },
     },
   ],
   "/schedule": [
@@ -521,7 +531,12 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Select the first available employee by checking the box, then close the modal to save your selection.",
       target: ".modal-body .employee-checkbox:first-child",
       position: "bottom",
-      autoAction: { type: "check", delay: 800, waitAfter: 1500, extra: { closeModal: true } },
+      autoAction: {
+        type: "check",
+        delay: 800,
+        waitAfter: 1500,
+        extra: { closeModal: true },
+      },
     },
     {
       id: "assigned-staff-section",
