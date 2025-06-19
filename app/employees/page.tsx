@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 
-
 export default function Employees(): ReactElement {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
@@ -99,7 +98,6 @@ export default function Employees(): ReactElement {
     fetchEmployees();
   }, [supabase]);
 
-
   // Filter employees based on the active filter
   useEffect(() => {
     if (activeFilter === "All") {
@@ -187,7 +185,6 @@ export default function Employees(): ReactElement {
       setFilteredEmployees(updatedEmployees);
       setShowDeleteModal(false);
       setEmployeeToDelete(null);
-
 
       console.log("Employee and all related data deleted successfully");
     } catch (error) {
