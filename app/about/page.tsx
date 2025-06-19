@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useTutorial } from "../tutorial/TutorialContext";
+import { TutorialHighlight } from "../components/TutorialHighlight";
 
 interface Truck {
   id: number;
@@ -32,6 +34,7 @@ export default function TruckManagementPage() {
     truckId: number;
     idx: number;
   } | null>(null);
+  const { shouldHighlight } = useTutorial();
 
   useEffect(() => {
     // Load trucks data
@@ -132,10 +135,14 @@ export default function TruckManagementPage() {
             <p className="text-lg text-gray-600">Manage your food trucks</p>
           </div>
 
-          <div className="grid gap-6 truck-management">
-            {trucks.map((truck) => (
-              <div
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".truck-management")}
+            className="grid gap-6 truck-management"
+          >
+            {trucks.map((truck, index) => (
+              <TutorialHighlight
                 key={truck.id}
+                isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1})`)}
                 className="border border-gray-200 rounded-lg overflow-hidden truck-card"
               >
                 {/* Truck Header */}
@@ -166,24 +173,28 @@ export default function TruckManagementPage() {
                       )}
                     </div>
                     {/* Arrow Button */}
-                    <button
-                      onClick={() => toggleTruckExpansion(truck.id)}
-                      className="ml-4 bg-green-800 hover:bg-green-900 text-white p-3 rounded-full transition-colors duration-200 shadow-md"
+                    <TutorialHighlight
+                      isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) button[class*='bg-green-800']`)}
                     >
-                      <svg
-                        className={`w-5 h-5 transition-transform duration-200 ${expandedTrucks.has(truck.id) ? "rotate-180" : ""}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                      <button
+                        onClick={() => toggleTruckExpansion(truck.id)}
+                        className="ml-4 bg-green-800 hover:bg-green-900 text-white p-3 rounded-full transition-colors duration-200 shadow-md"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 5v14m0 0l-7-7m7 7l7-7"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className={`w-5 h-5 transition-transform duration-200 ${expandedTrucks.has(truck.id) ? "rotate-180" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 5v14m0 0l-7-7m7 7l7-7"
+                          />
+                        </svg>
+                      </button>
+                    </TutorialHighlight>
                   </div>
                 </div>
 
@@ -193,7 +204,10 @@ export default function TruckManagementPage() {
                     <h4 className="font-medium text-gray-900 mb-3">
                       Items to Pack
                     </h4>
-                    <div className="flex flex-col gap-2 w-full">
+                    <TutorialHighlight
+                      isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) .flex.flex-col.gap-2`)}
+                      className="flex flex-col gap-2 w-full"
+                    >
                       {(Array.isArray(truck.packingList)
                         ? truck.packingList
                         : []
@@ -227,37 +241,45 @@ export default function TruckManagementPage() {
                           >
                             {item}
                           </label>
-                          <button
-                            className="ml-2 text-red-600 hover:text-red-800 text-lg font-bold focus:outline-none"
-                            title="Delete item"
-                            onClick={() =>
-                              setDeleteConfirm({ truckId: truck.id, idx })
-                            }
-                            type="button"
+                          <TutorialHighlight
+                            isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) button[title='Delete item']`)}
                           >
-                            ×
-                          </button>
+                            <button
+                              className="ml-2 text-red-600 hover:text-red-800 text-lg font-bold focus:outline-none"
+                              title="Delete item"
+                              onClick={() =>
+                                setDeleteConfirm({ truckId: truck.id, idx })
+                              }
+                              type="button"
+                            >
+                              ×
+                            </button>
+                          </TutorialHighlight>
                         </div>
                       ))}
-                    </div>
+                    </TutorialHighlight>
                     <div className="pt-4 flex gap-2 items-center">
-                      <button
-                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                        onClick={() => {
-                          const packingList = Array.isArray(truck.packingList)
-                            ? truck.packingList
-                            : [];
-                          setCheckedItems((prev) => ({
-                            ...prev,
-                            [truck.id]: new Set(
-                              packingList.map((_, idx) => idx)
-                            ),
-                          }));
-                        }}
-                        type="button"
+                      <TutorialHighlight
+                        isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:first-child`)}
                       >
-                        Mark All Packed
-                      </button>
+                        <button
+                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                          onClick={() => {
+                            const packingList = Array.isArray(truck.packingList)
+                              ? truck.packingList
+                              : [];
+                            setCheckedItems((prev) => ({
+                              ...prev,
+                              [truck.id]: new Set(
+                                packingList.map((_, idx) => idx)
+                              ),
+                            }));
+                          }}
+                          type="button"
+                        >
+                          Mark All Packed
+                        </button>
+                      </TutorialHighlight>
                       {showAddInput[truck.id] ? (
                         <>
                           <input
@@ -288,26 +310,43 @@ export default function TruckManagementPage() {
                           </button>
                         </>
                       ) : (
-                        <button
-                          style={{ backgroundColor: "var(--primary-dark)" }}
-                          className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
-                          onClick={() =>
-                            setShowAddInput((prev) => ({
-                              ...prev,
-                              [truck.id]: true,
-                            }))
-                          }
-                          type="button"
+                        <TutorialHighlight
+                          isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:last-child`)}
                         >
-                          Add Item
-                        </button>
+                          <button
+                            style={{ backgroundColor: "var(--primary-dark)" }}
+                            className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
+                            onClick={() =>
+                              setShowAddInput((prev) => ({
+                                ...prev,
+                                [truck.id]: true,
+                              }))
+                            }
+                            type="button"
+                          >
+                            Add Item
+                          </button>
+                        </TutorialHighlight>
                       )}
                     </div>
                   </div>
                 )}
-              </div>
+              </TutorialHighlight>
             ))}
-          </div>
+          </TutorialHighlight>
+
+          {/* Back to Dashboard Button */}
+          <TutorialHighlight
+            isHighlighted={shouldHighlight('.mt-8 a[href="/"]')}
+            className="mt-8 text-center"
+          >
+            <a
+              href="/"
+              className="inline-block bg-primary-dark text-white px-6 py-3 rounded-lg hover:bg-primary-medium transition-colors"
+            >
+              Back to Dashboard
+            </a>
+          </TutorialHighlight>
 
           {/* Delete Confirmation Modal */}
           {deleteConfirm && (

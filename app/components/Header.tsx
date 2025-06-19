@@ -78,7 +78,10 @@ export default function Header(): React.ReactElement {
     <header className="header">
       <nav className="nav-container flex items-center justify-between">
         <div className="flex items-center w-full">
-          <TutorialHighlight isHighlighted={highlightLogo} className="logo flex items-center shrink-0">
+          <TutorialHighlight
+            isHighlighted={highlightLogo}
+            className="logo flex items-center shrink-0"
+          >
             <Link href="/" className="flex items-center">
               <Image
                 src="/yyctrucks.jpg"

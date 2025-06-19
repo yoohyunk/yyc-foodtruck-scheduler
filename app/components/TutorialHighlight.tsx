@@ -9,11 +9,11 @@ interface TutorialHighlightProps {
   style?: React.CSSProperties;
 }
 
-export function TutorialHighlight({ 
-  children, 
-  isHighlighted, 
-  className = "", 
-  style = {} 
+export function TutorialHighlight({
+  children,
+  isHighlighted,
+  className = "",
+  style = {},
 }: TutorialHighlightProps) {
   const elementRef = useRef<HTMLDivElement>(null);
 
@@ -49,11 +49,7 @@ export function TutorialHighlight({
   const combinedClassName = `TutorialHighlight ${className}`.trim();
 
   return (
-    <div 
-      ref={elementRef}
-      className={combinedClassName}
-      style={style}
-    >
+    <div ref={elementRef} className={combinedClassName} style={style}>
       {children}
     </div>
   );
@@ -79,4 +75,4 @@ if (typeof document !== "undefined") {
     }
   `;
   document.head.appendChild(style);
-} 
+}

@@ -18,7 +18,7 @@ export default function QuickActions() {
       <h3 className="text-md font-semibold mb-6">Quick Actions</h3>
       <nav>
         {quickActionLinks.map((link, index) => {
-          const selector = `.button[href=\"${link.href}\"]`;
+          const selector = `.sidebar .TutorialHighlight:nth-child(${index + 1})`;
           const isHighlighted = shouldHighlight(selector);
           return (
             <TutorialHighlight

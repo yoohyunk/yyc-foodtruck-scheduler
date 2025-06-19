@@ -4,6 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, ReactElement } from "react";
 import { extractDate, extractTime } from "../utils";
 import { Event, Employee, Truck } from "@/app/types";
+import { useTutorial } from "../../tutorial/TutorialContext";
+import { TutorialHighlight } from "../../components/TutorialHighlight";
 
 export default function EventDetailsPage(): ReactElement {
   const { id } = useParams();
@@ -18,6 +20,7 @@ export default function EventDetailsPage(): ReactElement {
   const [isLoadingEmployees, setIsLoadingEmployees] = useState<boolean>(true);
   const [isLoadingTrucks, setIsLoadingTrucks] = useState<boolean>(true);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
+  const { shouldHighlight } = useTutorial();
 
   // Fetch event details
   useEffect(() => {
@@ -154,12 +157,18 @@ export default function EventDetailsPage(): ReactElement {
   }
 
   return (
-    <div className="event-details-page">
+    <TutorialHighlight
+      isHighlighted={shouldHighlight(".event-details-page")}
+      className="event-details-page"
+    >
       <button className="button" onClick={() => router.back()}>
         &larr; Back
       </button>
 
-      <div className="event-detail-card">
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".event-detail-card")}
+        className="event-detail-card"
+      >
         <h1 className="event-detail-title">{event.title}</h1>
         <div className="event-detail-info-container">
           <p className="event-detail-info">
@@ -178,28 +187,36 @@ export default function EventDetailsPage(): ReactElement {
             {event.requiredServers}
           </p>
         </div>
-      </div>
+      </TutorialHighlight>
 
       {/* Assign Staff and Trucks Buttons */}
       <div className="mt-6 flex gap-4">
-        <button
-          className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
-          onClick={() => setEmployeeModalOpen(true)}
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".mt-6.flex.gap-4 button:first-child")}
         >
-          Select Employees
-        </button>
+          <button
+            className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
+            onClick={() => setEmployeeModalOpen(true)}
+          >
+            Select Employees
+          </button>
+        </TutorialHighlight>
         <button
           className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
           onClick={() => setTruckModalOpen(true)}
         >
           Select Trucks
         </button>
-        <button
-          className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
-          onClick={() => setDeleteModalOpen(true)}
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".mt-6.flex.gap-4 button:last-child")}
         >
-          Delete Event
-        </button>
+          <button
+            className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            Delete Event
+          </button>
+        </TutorialHighlight>
       </div>
 
       {/* Employee Selection Modal */}
@@ -211,44 +228,52 @@ export default function EventDetailsPage(): ReactElement {
               {isLoadingEmployees ? (
                 <p className="text-gray-500">Loading employees...</p>
               ) : employees.length > 0 ? (
-                employees.map((employee) => (
-                  <label
+                employees.map((employee, index) => (
+                  <TutorialHighlight
                     key={employee.id}
-                    className={`employee-label ${
-                      assignedEmployees.some((e) => e.id === employee.id)
-                        ? "employee-label-selected"
-                        : ""
-                    }`}
+                    isHighlighted={index === 0 && shouldHighlight(".modal-body .employee-checkbox:first-child")}
                   >
-                    <input
-                      type="checkbox"
-                      className="employee-checkbox"
-                      checked={assignedEmployees.some(
-                        (e) => e.id === employee.id
-                      )}
-                      onChange={() => handleEmployeeSelection(employee)}
-                      disabled={
-                        !assignedEmployees.some((e) => e.id === employee.id) &&
-                        assignedEmployees.length >= event.requiredServers
-                      }
-                    />
-                    <span className="employee-name">
-                      {employee.first_name} {employee.last_name} (
-                      {employee.role})
-                    </span>
-                  </label>
+                    <label
+                      className={`employee-label ${
+                        assignedEmployees.some((e) => e.id === employee.id)
+                          ? "employee-label-selected"
+                          : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="employee-checkbox"
+                        checked={assignedEmployees.some(
+                          (e) => e.id === employee.id
+                        )}
+                        onChange={() => handleEmployeeSelection(employee)}
+                        disabled={
+                          !assignedEmployees.some((e) => e.id === employee.id) &&
+                          assignedEmployees.length >= event.requiredServers
+                        }
+                      />
+                      <span className="employee-name">
+                        {employee.first_name} {employee.last_name} (
+                        {employee.role})
+                      </span>
+                    </label>
+                  </TutorialHighlight>
                 ))
               ) : (
                 <p className="text-gray-500">No employees available.</p>
               )}
             </div>
             <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setEmployeeModalOpen(false)}
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".modal-footer button.btn-secondary")}
               >
-                Close
-              </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setEmployeeModalOpen(false)}
+                >
+                  Close
+                </button>
+              </TutorialHighlight>
               <button
                 className="btn-primary"
                 onClick={() => setEmployeeModalOpen(false)}
@@ -313,7 +338,10 @@ export default function EventDetailsPage(): ReactElement {
 
       {/* Assigned Employees Section */}
       {assignedEmployees.length > 0 && (
-        <div className="assigned-section assigned-employees-section mt-8">
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".assigned-employees-section")}
+          className="assigned-section assigned-employees-section mt-8"
+        >
           <h2 className="assigned-section-title">Assigned Employees</h2>
           <div className="assigned-grid">
             {assignedEmployees.map((employee) => (
@@ -325,7 +353,7 @@ export default function EventDetailsPage(): ReactElement {
               </div>
             ))}
           </div>
-        </div>
+        </TutorialHighlight>
       )}
 
       {/* Assigned Trucks Section */}
@@ -360,12 +388,16 @@ export default function EventDetailsPage(): ReactElement {
               </p>
             </div>
             <div className="modal-footer flex justify-center gap-4">
-              <button
-                className="btn-secondary"
-                onClick={() => setDeleteModalOpen(false)}
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".modal-footer button.btn-secondary")}
               >
-                Cancel
-              </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setDeleteModalOpen(false)}
+                >
+                  Cancel
+                </button>
+              </TutorialHighlight>
               <button
                 className="btn-primary bg-red-600 hover:bg-red-700 text-white"
                 onClick={async () => {
@@ -378,7 +410,7 @@ export default function EventDetailsPage(): ReactElement {
                     const events = await response.json();
                     // Remove the event
                     const updatedEvents = events.filter(
-                      (evt: Event) => evt.id !== id
+                      (e: Event) => e.id !== event.id
                     );
                     // Save updated events
                     const saveResponse = await fetch("/api/events", {
@@ -391,14 +423,11 @@ export default function EventDetailsPage(): ReactElement {
                     if (!saveResponse.ok) {
                       throw new Error("Failed to delete event");
                     }
-                    // Show success message and redirect
-                    alert("Event deleted successfully");
-                    setDeleteModalOpen(false);
+                    // Navigate back to events page
                     router.push("/events");
                   } catch (error) {
                     console.error("Error deleting event:", error);
                     alert("Failed to delete event. Please try again.");
-                    setDeleteModalOpen(false);
                   }
                 }}
               >
@@ -408,6 +437,6 @@ export default function EventDetailsPage(): ReactElement {
           </div>
         </div>
       )}
-    </div>
+    </TutorialHighlight>
   );
 }

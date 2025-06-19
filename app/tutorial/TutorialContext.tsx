@@ -9,12 +9,21 @@ import React, {
   ReactNode,
 } from "react";
 
+interface TutorialAutoAction {
+  type: string;
+  delay: number;
+  nextPath?: string;
+  waitAfter?: number;
+  extra?: Record<string, any>;
+}
+
 interface TutorialStep {
   id: string;
   title: string;
   content: string;
   target: string;
   position: "top" | "bottom" | "left" | "right";
+  autoAction?: TutorialAutoAction;
 }
 
 interface TutorialContextType {
@@ -28,6 +37,7 @@ interface TutorialContextType {
   skipTutorial: () => void;
   highlightTarget: string | null;
   shouldHighlight: (selector: string) => boolean;
+  setPendingStepForNavigation: (stepIndex: number) => void;
 }
 
 const TutorialContext = createContext<TutorialContextType | undefined>(
@@ -66,11 +76,19 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       position: "bottom",
     },
     {
+      id: "main-navigation",
+      title: "Main Navigation Buttons 🧭",
+      content:
+        "These are your main navigation buttons. Each button takes you to a different section of the system. Let's go through each one to understand what they do.",
+      target: ".landing-links",
+      position: "bottom",
+    },
+    {
       id: "schedule-button",
       title: "Schedule Button 📅",
       content:
         "Click this button to view and manage your team's work schedule. Here you can see who's working when and create new shifts.",
-      target: '.landing-links .TutorialHighlight:nth-child(1)',
+      target: ".landing-links .TutorialHighlight:nth-child(1)",
       position: "right",
     },
     {
@@ -78,7 +96,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Employees Button 👥",
       content:
         "This button takes you to your employee management page. Here you can add new staff, view employee details, and manage their information.",
-      target: '.landing-links .TutorialHighlight:nth-child(2)',
+      target: ".landing-links .TutorialHighlight:nth-child(2)",
       position: "right",
     },
     {
@@ -86,7 +104,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Events Button 🎉",
       content:
         "Click here to manage your food truck events. You can create new events, view upcoming events, and assign staff to events.",
-      target: '.landing-links .TutorialHighlight:nth-child(3)',
+      target: ".landing-links .TutorialHighlight:nth-child(3)",
       position: "right",
     },
     {
@@ -94,7 +112,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Trucks Button 🚚",
       content:
         "This button takes you to your truck management page. Here you can add new trucks, view your fleet, and manage truck details.",
-      target: '.landing-links .TutorialHighlight:nth-child(4)',
+      target: ".landing-links .TutorialHighlight:nth-child(4)",
       position: "right",
     },
     {
@@ -102,7 +120,39 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Time-Off Button 🌴",
       content:
         "Click here to manage time-off requests from your staff. You can approve or deny requests and view upcoming time off.",
-      target: '.landing-links .TutorialHighlight:nth-child(5)',
+      target: ".landing-links .TutorialHighlight:nth-child(5)",
+      position: "right",
+    },
+    {
+      id: "quick-actions-sidebar",
+      title: "Quick Actions Sidebar ⚡",
+      content:
+        "This sidebar contains quick action buttons for common tasks. You can quickly create new shifts, add staff, or create events without navigating through menus.",
+      target: ".sidebar",
+      position: "right",
+    },
+    {
+      id: "new-shift-button",
+      title: "New Shift Button ➕",
+      content:
+        "Click this button to quickly create a new shift. This will take you to the schedule page where you can set up work shifts for your employees.",
+      target: ".sidebar .TutorialHighlight:nth-child(1)",
+      position: "right",
+    },
+    {
+      id: "add-staff-button",
+      title: "Add Staff Button 👥",
+      content:
+        "Click this button to quickly add a new employee to your team. This will take you to the employee invitation form.",
+      target: ".sidebar .TutorialHighlight:nth-child(2)",
+      position: "right",
+    },
+    {
+      id: "create-event",
+      title: "Create New Event ➕",
+      content:
+        'To create a new event, click the "Create Event" button in the Quick Actions sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      target: ".sidebar .TutorialHighlight:nth-child(3)",
       position: "right",
     },
     {
@@ -151,8 +201,8 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "add-employee",
       title: "Add New Employee ➕",
       content:
-        'To add a new employee, click the "New Employee" button in the sidebar. Important tips for the form: 1) Don\'t add number suffixes to numbered streets, 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
-      target: ".sidebar",
+        'To add a new employee, click the "Add Staff" button in the Quick Actions sidebar. Important tips for the form: 1) Don\'t add number suffixes to numbered streets, 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      target: ".sidebar .TutorialHighlight:nth-child(2)",
       position: "right",
     },
     {
@@ -170,6 +220,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click the 'Edit' button on any employee card to see all the information about that employee and make changes. This opens the employee details page where you can update their contact information, role, wage, and availability.",
       target: ".employee-card:first-child button[title='Edit Employee']",
       position: "bottom",
+      autoAction: { type: "click", delay: 300, nextPath: "/employees/1", waitAfter: 800 },
     },
   ],
   "/events": [
@@ -201,17 +252,9 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "create-event",
       title: "Create New Event ➕",
       content:
-        'To create a new event, click the "New Event" button in the sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
-      target: ".sidebar",
+        'To create a new event, click the "Create Event" button in the Quick Actions sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      target: ".sidebar .TutorialHighlight:nth-child(3)",
       position: "right",
-    },
-    {
-      id: "event-details",
-      title: "Event Details 📝",
-      content:
-        "When creating an event, you'll need to fill in: Event name, date and time, location, number of servers needed, and contact information. The system will help you find the best staff for the event based on location.",
-      target: ".event-form",
-      position: "bottom",
     },
     {
       id: "view-details-button",
@@ -220,6 +263,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click the 'View Details' button on any event card to see all the information about that event, including assigned staff, trucks, and contact details. This opens the event details page where you can make changes.",
       target: ".event-card:first-child .button",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, nextPath: "/events/1", waitAfter: 600 },
     },
   ],
   "/schedule": [
@@ -244,24 +288,27 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Previous Button ⬅️",
       content:
         "Click this button to go back to the previous day, week, or month depending on your current view.",
-      target: ".navigation-container button:first-child",
+      target: ".navigation-container .TutorialHighlight:nth-child(1) button",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 600 },
     },
     {
       id: "today-button",
       title: "Today Button 📍",
       content:
         "Click this button to quickly jump to today's date in your current view.",
-      target: ".navigation-container button:nth-child(2)",
+      target: ".navigation-container .TutorialHighlight:nth-child(2) button",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 600 },
     },
     {
       id: "next-button",
       title: "Next Button ➡️",
       content:
         "Click this button to advance to the next day, week, or month depending on your current view.",
-      target: ".navigation-container button:last-child",
+      target: ".navigation-container .TutorialHighlight:nth-child(3) button",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 600 },
     },
     {
       id: "view-options",
@@ -276,24 +323,27 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Daily View Button 📆",
       content:
         "Click this button to see a detailed timeline of all events and shifts for a specific day.",
-      target: ".view-toggle-button:nth-child(1)",
+      target: ".view-toggle-container .TutorialHighlight:nth-child(1) button",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 600 },
     },
     {
       id: "weekly-view-button",
       title: "Weekly View Button 📅",
       content:
         "Click this button to see all events and shifts for the entire week.",
-      target: ".view-toggle-button:nth-child(2)",
+      target: ".view-toggle-container .TutorialHighlight:nth-child(2) button",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 600 },
     },
     {
       id: "monthly-view-button",
       title: "Monthly View Button 📊",
       content:
         "Click this button to see a high-level overview of your entire month.",
-      target: ".view-toggle-button:nth-child(3)",
+      target: ".view-toggle-container .TutorialHighlight:nth-child(3) button",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 600 },
     },
     {
       id: "create-shift",
@@ -462,6 +512,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click this button to open a modal where you can choose which employees will work at this event. Let's try adding an employee!",
       target: ".mt-6.flex.gap-4 button:first-child",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 500 },
     },
     {
       id: "select-employee-in-modal",
@@ -470,30 +521,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Select the first available employee by checking the box, then close the modal to save your selection.",
       target: ".modal-body .employee-checkbox:first-child",
       position: "bottom",
-    },
-    {
-      id: "select-trucks-button",
-      title: "Select Trucks Button 🚚",
-      content:
-        "Click this button to open a modal where you can choose which food trucks will be at this event. Let's try adding a truck!",
-      target: ".mt-6.flex.gap-4 button:nth-child(2)",
-      position: "bottom",
-    },
-    {
-      id: "select-truck-in-modal",
-      title: "Select a Truck ✅",
-      content:
-        "Select the first available truck by checking the box, then close the modal to save your selection.",
-      target: ".modal-body .employee-checkbox:first-child",
-      position: "bottom",
-    },
-    {
-      id: "delete-event-button",
-      title: "Delete Event Button ❌",
-      content:
-        "Click this button to permanently delete this event. You'll get a confirmation popup to prevent accidental deletions. Be careful - this action cannot be undone!",
-      target: ".mt-6.flex.gap-4 button:last-child",
-      position: "bottom",
+      autoAction: { type: "check", delay: 800, waitAfter: 1500, extra: { closeModal: true } },
     },
     {
       id: "assigned-staff-section",
@@ -504,12 +532,22 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       position: "bottom",
     },
     {
-      id: "assigned-trucks-section",
-      title: "Assigned Trucks Section 🚚",
+      id: "delete-event-button",
+      title: "Delete Event Button ❌",
       content:
-        "This section shows all the trucks currently assigned to this event. Each card displays the truck name and type. You can manage truck assignments using the Select Trucks button above.",
-      target: ".assigned-trucks-section",
+        "Click this button to permanently delete this event. You'll get a confirmation popup to prevent accidental deletions. Be careful - this action cannot be undone!",
+      target: ".mt-6.flex.gap-4 button:last-child",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 500 },
+    },
+    {
+      id: "delete-event-cancel-modal",
+      title: "Cancel Delete Event Modal",
+      content:
+        "This is the confirmation modal for deleting an event. We'll cancel it for safety.",
+      target: ".modal-footer button.btn-secondary",
+      position: "bottom",
+      autoAction: { type: "click", delay: 1500, waitAfter: 500 },
     },
   ],
   "/employees/[id]": [
@@ -570,6 +608,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Enter the employee's first name. This is required and will be used throughout the system for identification and communication. Examples: 'John', 'Sarah', 'Michael'.",
       target: "input[id='firstName']",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "last-name-field",
@@ -578,6 +617,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Enter the employee's last name. This is required and will be used along with the first name for complete identification. Examples: 'Smith', 'Johnson', 'Williams'.",
       target: "input[id='lastName']",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "email-field",
@@ -586,6 +626,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Enter a valid email address for the employee. This is required and must be in a valid email format (e.g., john.smith@example.com). The system will send an invitation email to this address.",
       target: "input[id='email']",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "invitation-process-explanation",
@@ -634,6 +675,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Once all required fields are filled correctly, click this button to send the invitation email to the new employee. The system will show a success message and redirect you to the employees list where you can see the pending invitation. The employee will remain pending until they complete the activation process.",
       target: "button[type='submit']",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 600 },
     },
   ],
   "/events/newEvent": [
@@ -652,6 +694,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Enter a descriptive name for your event. This is required and will be used to identify the event in the system. Examples: 'Downtown Food Festival', 'Corporate Lunch Event', 'Weekend Market'.",
       target: "input[name='name']",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "location-field",
@@ -660,6 +703,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Enter the event location using the address form below. This must be a valid Calgary address. The system will use this to find the best staff for your event. Important: Don't add number suffixes to streets (e.g., use '23rd Ave' not '23rd Ave rd').",
       target: ".input-group:has(input[name='name']) + .input-group",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "address-form-explanation",
@@ -676,6 +720,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "After entering the location, click 'Check Address' to validate it. This button will verify the address exists in Calgary and get the coordinates needed for staff assignment. This step is crucial for the auto-assignment system to work properly.",
       target: "button[onClick*='geocodeAddress']",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 600 },
     },
     {
       id: "date-field",
@@ -684,6 +729,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Select the date for your event. Only future dates are allowed. The date picker will only show dates from today onwards. This helps ensure you're scheduling events in the future.",
       target: "input[name='date'], .react-datepicker-wrapper",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "start-time-field",
@@ -692,6 +738,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Select the start time for your event. This is required and helps determine the event duration. Choose a time that gives you enough setup time before customers arrive.",
       target: "input[name='time'], .react-datepicker-wrapper:nth-of-type(2)",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "end-time-field",
@@ -700,6 +747,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Select the end time for your event. This must be after the start time. The system will calculate the event duration automatically. Make sure to allow enough time for cleanup.",
       target: "input[name='endTime'], .react-datepicker-wrapper:nth-of-type(3)",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "required-servers-field",
@@ -708,6 +756,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Enter the number of servers needed for this event. This is crucial for the auto-assignment system. The system will find the best available servers within 5km of your event location.",
       target: "input[name='requiredServers']",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "contact-name-field",
@@ -716,6 +765,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Enter the name of the main contact person for this event. This person will be responsible for coordinating with the event organizers and handling any issues that arise.",
       target: "input[name='contactName']",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "contact-email-field",
@@ -724,6 +774,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Enter a valid email address for the contact person. This is required and must be in a valid email format (e.g., john@example.com). This will be used for event communications.",
       target: "input[name='contactEmail']",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "contact-phone-field",
@@ -732,6 +783,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Enter a phone number for the contact person. This is required and should be a valid phone number format. This will be used for urgent communications about the event.",
       target: "input[name='contactPhone']",
       position: "bottom",
+      autoAction: { type: "focus", delay: 400, waitAfter: 600 },
     },
     {
       id: "truck-selection-field",
@@ -764,6 +816,233 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Once all required fields are filled and the address is validated, click this button to create the event. The system will automatically assign the best available staff and redirect you to the event details page where you can see the assigned employees.",
       target: "button[type='submit']",
       position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 600 },
+    },
+  ],
+  "/requests": [
+    {
+      id: "timeoff-requests-welcome",
+      title: "Time-Off Requests Page 🌴",
+      content:
+        "This page allows you to submit and manage time-off requests. You can request vacation days, sick leave, or other types of time off. All requests will be reviewed by management.",
+      target: ".min-h-screen",
+      position: "bottom",
+    },
+    {
+      id: "request-form",
+      title: "Time-Off Request Form 📝",
+      content:
+        "Fill out this form to submit a time-off request. You'll need to specify the type of request, dates, duration, and provide a reason for your request.",
+      target: "form",
+      position: "bottom",
+    },
+    {
+      id: "request-type-field",
+      title: "Request Type 📋",
+      content:
+        "Select the type of time-off request: Vacation, Sick Leave, Personal Day, or Other. This helps management understand the nature of your request.",
+      target: "select[name='type']",
+      position: "bottom",
+    },
+    {
+      id: "request-date-field",
+      title: "Request Date 📅",
+      content:
+        "Select the date when you want to start your time off. Make sure to give enough notice for your request to be approved.",
+      target: "input[name='date']",
+      position: "bottom",
+    },
+    {
+      id: "request-duration-field",
+      title: "Duration ⏰",
+      content:
+        "Specify how long you need off: Half Day, Full Day, or Multiple Days. For multiple days, you can specify the exact number.",
+      target: "select[name='duration']",
+      position: "bottom",
+    },
+    {
+      id: "request-reason-field",
+      title: "Reason for Request 📝",
+      content:
+        "Provide a brief explanation for your time-off request. This helps management make informed decisions about approval.",
+      target: "textarea[name='reason']",
+      position: "bottom",
+    },
+    {
+      id: "submit-request-button",
+      title: "Submit Request Button 📤",
+      content:
+        "Click this button to submit your time-off request. You'll receive a confirmation and can track the status of your request.",
+      target: "button[type='submit']",
+      position: "bottom",
+    },
+  ],
+  "/assign-staff": [
+    {
+      id: "assign-staff-welcome",
+      title: "Auto-Assign Staff Page 👥",
+      content:
+        "This page helps you automatically assign the best available staff to events based on location and availability. The system uses distance calculations and employee preferences to find the optimal matches.",
+      target: ".max-w-4xl",
+      position: "bottom",
+    },
+    {
+      id: "event-selection",
+      title: "Select Event 📅",
+      content:
+        "Choose an event from the dropdown menu. Only events that need staff assigned will appear in this list. The system will show how many servers are required for each event.",
+      target: "select",
+      position: "bottom",
+    },
+    {
+      id: "auto-assign-button",
+      title: "Auto-Assign Staff Button 🤖",
+      content:
+        "Click this button to automatically assign the best available staff to the selected event. The system will find employees within 5km of the event location and sort them by distance and wage.",
+      target: "button[onClick*='handleAutoAssign']",
+      position: "bottom",
+    },
+    {
+      id: "assigned-staff-results",
+      title: "Assigned Staff Results 👥",
+      content:
+        "Here you can see the staff that has been automatically assigned to the event. Each card shows the employee's name, distance from the event, and hourly wage. You can review and adjust assignments as needed.",
+      target: ".mt-8",
+      position: "bottom",
+    },
+  ],
+  "/login": [
+    {
+      id: "login-welcome",
+      title: "Login Page 🔐",
+      content:
+        "Welcome to the YYC Food Trucks login page. Enter your credentials to access the scheduling system. If you're a new employee, you'll need to use the invitation link sent to your email.",
+      target: ".min-h-screen",
+      position: "bottom",
+    },
+    {
+      id: "username-field",
+      title: "Username/Email Field 📧",
+      content:
+        "Enter your username or email address. This is the same email address that was used when you were invited to join the system.",
+      target: "input[name='username']",
+      position: "bottom",
+    },
+    {
+      id: "password-field",
+      title: "Password Field 🔒",
+      content:
+        "Enter your password. If you're logging in for the first time, you'll need to use the temporary password sent to your email or set a new password using the invitation link.",
+      target: "input[name='password']",
+      position: "bottom",
+    },
+    {
+      id: "login-button",
+      title: "Login Button 🔐",
+      content:
+        "Click this button to sign in to your account. If your credentials are correct, you'll be redirected to the main dashboard.",
+      target: "button[type='submit']",
+      position: "bottom",
+    },
+    {
+      id: "forgot-password-link",
+      title: "Forgot Password Link 🔗",
+      content:
+        "If you've forgotten your password, click this link to reset it. You'll receive an email with instructions to create a new password.",
+      target: "a[href*='forgot-password']",
+      position: "bottom",
+    },
+  ],
+  "/set-password": [
+    {
+      id: "set-password-welcome",
+      title: "Set Password Page 🔐",
+      content:
+        "Welcome to the password setup page. This page appears when you click the invitation link sent to your email. Here you can create a secure password for your account.",
+      target: ".min-h-screen",
+      position: "bottom",
+    },
+    {
+      id: "new-password-field",
+      title: "New Password Field 🔒",
+      content:
+        "Enter a strong password for your account. Make sure it's at least 8 characters long and includes a mix of letters, numbers, and special characters.",
+      target: "input[name='password']",
+      position: "bottom",
+    },
+    {
+      id: "confirm-password-field",
+      title: "Confirm Password Field 🔒",
+      content:
+        "Re-enter your password to confirm it. This helps prevent typos and ensures you remember your password correctly.",
+      target: "input[name='confirmPassword']",
+      position: "bottom",
+    },
+    {
+      id: "set-password-button",
+      title: "Set Password Button 🔐",
+      content:
+        "Click this button to save your new password. Once set, you'll be able to log in to your account using your email and this password.",
+      target: "button[type='submit']",
+      position: "bottom",
+    },
+  ],
+  "/set-up-employee-info": [
+    {
+      id: "setup-employee-welcome",
+      title: "Complete Your Profile 👤",
+      content:
+        "Welcome! Now that you've set your password, you need to complete your employee profile. This information will be used for scheduling and contact purposes.",
+      target: ".min-h-screen",
+      position: "bottom",
+    },
+    {
+      id: "personal-information",
+      title: "Personal Information 📝",
+      content:
+        "Fill in your personal information including your full name, address, and contact details. This information is required for scheduling and emergency contact purposes.",
+      target: ".personal-info-section",
+      position: "bottom",
+    },
+    {
+      id: "address-form",
+      title: "Address Form 📍",
+      content:
+        "Enter your complete address. The system will use this to calculate distances to events for automatic scheduling. Make sure to include your street number and name.",
+      target: ".address-form",
+      position: "bottom",
+    },
+    {
+      id: "role-selection",
+      title: "Role Selection 👥",
+      content:
+        "Choose your role: Driver (delivers food), Server (serves customers), or Admin (manages the business). Your role determines what tasks you'll be assigned.",
+      target: "select[name='role']",
+      position: "bottom",
+    },
+    {
+      id: "wage-information",
+      title: "Wage Information 💰",
+      content:
+        "Enter your hourly wage. This information is used for payroll and helps the system optimize staff assignments based on cost.",
+      target: "input[name='wage']",
+      position: "bottom",
+    },
+    {
+      id: "availability-settings",
+      title: "Availability Settings 📅",
+      content:
+        "Select which days of the week you're available to work. You can choose individual days or use 'Select All' to choose every day. This helps with automatic scheduling.",
+      target: ".availability-options",
+      position: "bottom",
+    },
+    {
+      id: "complete-profile-button",
+      title: "Complete Profile Button ✅",
+      content:
+        "Click this button to save your profile information. Once completed, you'll be marked as an active employee and can be scheduled for shifts.",
+      target: "button[type='submit']",
+      position: "bottom",
     },
   ],
 };
@@ -791,13 +1070,16 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   // Get the appropriate tutorial steps for the current page
   const getCurrentSteps = useCallback(() => {
     const pageSteps = pageTutorials[normalizePath(currentPath)] || [];
-    return [...commonSteps, ...pageSteps];
+    // Only include common steps on the home page, not when navigating to specific pages
+    const isHomePage = normalizePath(currentPath) === "/";
+    return isHomePage ? [...commonSteps, ...pageSteps] : pageSteps;
   }, [currentPath]);
 
   const startTutorial = () => {
     setCurrentPath(normalizePath(window.location.pathname));
     setIsActive(true);
     setCurrentStep(0);
+    setPendingStep(null);
   };
 
   const endTutorial = () => {
@@ -820,16 +1102,18 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     }
   }, [currentPath, isActive, pendingStep]);
 
-  // Watch for route changes and end tutorial if user navigates to a different page
+  // Watch for route changes and handle tutorial state
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const handleRouteChange = () => {
       const newPath = normalizePath(window.location.pathname);
       if (isActive && newPath !== currentPath) {
-        endTutorial();
+        // Don't end tutorial on navigation, just update path
+        setCurrentPath(newPath);
+      } else if (!isActive) {
+        setCurrentPath(newPath);
       }
-      setCurrentPath(newPath);
     };
 
     // Listen for popstate events (back/forward navigation)
@@ -890,13 +1174,22 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   };
 
   // Helper function to check if an element should be highlighted
-  const shouldHighlight = useCallback((selector: string): boolean => {
-    if (!isActive) return false;
-    const steps = getCurrentSteps();
-    const currentStepData = steps[currentStep];
-    if (!currentStepData) return false;
-    return currentStepData.target === selector;
-  }, [isActive, currentStep, getCurrentSteps]);
+  const shouldHighlight = useCallback(
+    (selector: string): boolean => {
+      if (!isActive) return false;
+      const steps = getCurrentSteps();
+      const currentStepData = steps[currentStep];
+      if (!currentStepData) return false;
+      return currentStepData.target === selector;
+    },
+    [isActive, currentStep, getCurrentSteps]
+  );
+
+  // Helper function to set pending step for navigation
+  const setPendingStepForNavigation = useCallback((stepIndex: number) => {
+    // Always start from step 0 when navigating to a new page
+    setPendingStep(0);
+  }, []);
 
   const value = {
     isActive,
@@ -909,6 +1202,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     skipTutorial,
     highlightTarget: isActive ? getCurrentSteps()[currentStep]?.target : null,
     shouldHighlight,
+    setPendingStepForNavigation,
   };
 
   return (

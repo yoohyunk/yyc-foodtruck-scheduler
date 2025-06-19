@@ -3,12 +3,15 @@
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { Truck } from "../types";
+import { useTutorial } from "../tutorial/TutorialContext";
+import { TutorialHighlight } from "../components/TutorialHighlight";
 
 export default function Trucks(): ReactElement {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filteredTrucks, setFilteredTrucks] = useState<Truck[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const router = useRouter();
+  const { shouldHighlight } = useTutorial();
 
   // Fetch trucks from trucks.json
   useEffect(() => {
@@ -39,7 +42,10 @@ export default function Trucks(): ReactElement {
       <h2 className="text-2xl mb-4">Truck Management</h2>
 
       {/* Filter Buttons */}
-      <div className="filter-buttons grid">
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".filter-buttons")}
+        className="filter-buttons grid"
+      >
         <button
           className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
           onClick={() => setActiveFilter("All")}
@@ -64,24 +70,32 @@ export default function Trucks(): ReactElement {
         >
           Dessert Trucks
         </button>
-      </div>
+      </TutorialHighlight>
 
       {/* Truck List */}
-      <div className="truck-list grid gap-4">
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".truck-list")}
+        className="truck-list grid gap-4"
+      >
         {filteredTrucks.length > 0 ? (
-          filteredTrucks.map((truck) => (
-            <div
+          filteredTrucks.map((truck, index) => (
+            <TutorialHighlight
               key={truck.id}
+              isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1})`)}
               className="truck-card bg-white p-4 rounded shadow relative"
             >
               {/* Edit Button */}
-              <button
-                className="edit-button"
-                onClick={() => router.push(`/trucks/${truck.id}`)}
-                title="Edit Truck"
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(`.truck-card:nth-child(${index + 1}) button[title='Edit Truck']`)}
               >
-                ✏️
-              </button>
+                <button
+                  className="edit-button"
+                  onClick={() => router.push(`/trucks/${truck.id}`)}
+                  title="Edit Truck"
+                >
+                  ✏️
+                </button>
+              </TutorialHighlight>
 
               <h3 className="text-lg font-semibold">{truck.name}</h3>
               <p>
@@ -109,12 +123,12 @@ export default function Trucks(): ReactElement {
               <p>
                 <strong>Location:</strong> {truck.location}
               </p>
-            </div>
+            </TutorialHighlight>
           ))
         ) : (
           <p className="text-gray-500">No trucks found.</p>
         )}
-      </div>
+      </TutorialHighlight>
     </div>
   );
 }

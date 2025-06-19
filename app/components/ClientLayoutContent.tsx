@@ -28,4 +28,4 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
       </TutorialProvider>
     </AuthProvider>
   );
-} 
+}

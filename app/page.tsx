@@ -79,8 +79,8 @@ export default function Home(): ReactElement {
                 isHighlighted={isHighlighted}
                 className={`landing-link ${hoveredLink === index ? "bg-gray-100 scale-105 transition-transform" : ""}`}
               >
-                <a 
-                  href={link.href} 
+                <a
+                  href={link.href}
                   className="landing-link-inner"
                   onMouseEnter={() => setHoveredLink(index)}
                   onMouseLeave={() => setHoveredLink(null)}
