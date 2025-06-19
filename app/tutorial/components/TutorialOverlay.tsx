@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import { useTutorial } from "../TutorialContext";
 
 export function TutorialOverlay() {
@@ -13,8 +13,6 @@ export function TutorialOverlay() {
     skipTutorial,
     setPendingStepForNavigation,
   } = useTutorial();
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
   // Always call hooks before any return
   const currentStepData = steps[currentStep];
@@ -38,7 +36,6 @@ export function TutorialOverlay() {
       currentStepData.id === "navigation-tips"
     ) {
       console.log("Welcome/overview step - creating overlay at top");
-      setTargetRect(new DOMRect(0, 0, window.innerWidth, 300));
       return;
     }
 
@@ -92,13 +89,6 @@ export function TutorialOverlay() {
         block: "center",
         inline: "center",
       });
-
-      // Wait for scroll to complete, then set overlay position
-      setTimeout(() => {
-        const rect = targetElement.getBoundingClientRect();
-        console.log("Setting target rect after scroll:", rect);
-        setTargetRect(rect);
-      }, 500);
     } else {
       console.log("❌ Target element not found:", currentStepData.target);
       console.log("Available elements with similar selectors:");
@@ -111,8 +101,6 @@ export function TutorialOverlay() {
           console.log(`Elements matching "${part}":`, similar.length);
         }
       });
-
-      setTargetRect(null);
     }
   }, [isActive, currentStep, currentStepData]);
 
@@ -122,10 +110,7 @@ export function TutorialOverlay() {
 
     const { type, delay, nextPath, waitAfter, extra } =
       currentStepData.autoAction;
-    let timeout1: NodeJS.Timeout;
-    let timeout2: NodeJS.Timeout;
-
-    timeout1 = setTimeout(() => {
+    const timeout1 = setTimeout(() => {
       const targetElement = document.querySelector(currentStepData.target);
       if (targetElement) {
         if (type === "click") {
@@ -156,7 +141,7 @@ export function TutorialOverlay() {
       if (nextPath) {
         // Set pending step before navigation
         setPendingStepForNavigation(currentStep + 1);
-        timeout2 = setTimeout(() => {
+        setTimeout(() => {
           window.location.pathname = nextPath;
         }, waitAfter || 1000);
       }
@@ -164,7 +149,6 @@ export function TutorialOverlay() {
 
     return () => {
       clearTimeout(timeout1);
-      clearTimeout(timeout2);
     };
   }, [isActive, currentStep, currentStepData, setPendingStepForNavigation]);
 
@@ -173,22 +157,6 @@ export function TutorialOverlay() {
 
   return (
     <>
-      {/* Highlight border around target element - REMOVED */}
-      {/* {targetRect && (
-        <div
-          ref={overlayRef}
-          className="tutorial-highlight-border"
-          style={{
-            position: "fixed",
-            top: targetRect.top - 4,
-            left: targetRect.left - 4,
-            width: targetRect.width + 8,
-            height: targetRect.height + 8,
-            opacity: 1,
-          }}
-        />
-      )} */}
-
       <div className="tutorial-popup">
         <div className="tutorial-accent-bar" />
         <div className="tutorial-content">

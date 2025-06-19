@@ -1,6 +1,6 @@
 "use client";
 import "../globals.css";
-import { useState, useEffect, ReactElement } from "react";
+import { useState, useEffect } from "react";
 
 import React, {
   createContext,
@@ -14,7 +14,7 @@ interface TutorialAutoAction {
   delay: number;
   nextPath?: string;
   waitAfter?: number;
-  extra?: Record<string, any>;
+  extra?: Record<string, unknown>;
 }
 
 interface TutorialStep {
@@ -1080,7 +1080,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       : "/"
   );
   const [pendingStep, setPendingStep] = useState<number | null>(null);
-  const [previousStepId, setPreviousStepId] = useState<string | null>(null);
 
   // Get the appropriate tutorial steps for the current page
   const getCurrentSteps = useCallback(() => {
@@ -1201,7 +1200,8 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   );
 
   // Helper function to set pending step for navigation
-  const setPendingStepForNavigation = useCallback((stepIndex: number) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setPendingStepForNavigation = useCallback((_stepIndex: number) => {
     // Always start from step 0 when navigating to a new page
     setPendingStep(0);
   }, []);

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 
@@ -352,12 +353,12 @@ export default function TruckManagementPage() {
             isHighlighted={shouldHighlight('.mt-8 a[href="/"]')}
             className="mt-8 text-center"
           >
-            <a
+            <Link
               href="/"
               className="inline-block bg-primary-dark text-white px-6 py-3 rounded-lg hover:bg-primary-medium transition-colors"
             >
               Back to Dashboard
-            </a>
+            </Link>
           </TutorialHighlight>
 
           {/* Delete Confirmation Modal */}
