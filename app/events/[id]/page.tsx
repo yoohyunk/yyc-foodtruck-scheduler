@@ -40,7 +40,6 @@ export default function EventDetailsPage(): ReactElement {
         const data = await response.json();
 
         if (!Array.isArray(data)) {
-          console.error("Received data is not an array:", data);
           setEvent(null);
           return;
         }
@@ -48,14 +47,12 @@ export default function EventDetailsPage(): ReactElement {
         const eventData = data.find((event) => event.id === id);
 
         if (!eventData) {
-          console.error("Event not found:", id);
           setEvent(null);
           return;
         }
 
         setEvent(eventData);
       } catch (error) {
-        console.error("Error fetching event:", error);
         setEvent(null);
       }
     };
@@ -101,7 +98,6 @@ export default function EventDetailsPage(): ReactElement {
         setTrucks(trucksData);
         setIsLoadingTrucks(false);
       } catch (error) {
-        console.error("Error fetching data:", error);
         setIsLoadingEmployees(false);
         setIsLoadingTrucks(false);
       }
@@ -192,26 +188,30 @@ export default function EventDetailsPage(): ReactElement {
       {/* Assign Staff and Trucks Buttons */}
       <div className="mt-6 flex gap-4">
         <TutorialHighlight
-          isHighlighted={shouldHighlight(".mt-6.flex.gap-4 button:first-child")}
+          isHighlighted={shouldHighlight(".select-employees-button")}
         >
           <button
-            className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
+            className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
             onClick={() => setEmployeeModalOpen(true)}
           >
             Select Employees
           </button>
         </TutorialHighlight>
-        <button
-          className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
-          onClick={() => setTruckModalOpen(true)}
-        >
-          Select Trucks
-        </button>
         <TutorialHighlight
-          isHighlighted={shouldHighlight(".mt-6.flex.gap-4 button:last-child")}
+          isHighlighted={shouldHighlight(".select-trucks-button")}
         >
           <button
-            className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
+            className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
+            onClick={() => setTruckModalOpen(true)}
+          >
+            Select Trucks
+          </button>
+        </TutorialHighlight>
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".delete-event-button")}
+        >
+          <button
+            className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
             onClick={() => setDeleteModalOpen(true)}
           >
             Delete Event
@@ -302,37 +302,50 @@ export default function EventDetailsPage(): ReactElement {
               {isLoadingTrucks ? (
                 <p className="text-gray-500">Loading trucks...</p>
               ) : trucks.length > 0 ? (
-                trucks.map((truck) => (
-                  <label
+                trucks.map((truck, index) => (
+                  <TutorialHighlight
                     key={truck.id}
-                    className={`employee-label ${
-                      assignedTrucks.some((t) => t.id === truck.id)
-                        ? "employee-label-selected"
-                        : ""
-                    }`}
+                    isHighlighted={
+                      index === 0 &&
+                      shouldHighlight(".modal-body .truck-checkbox:first-child")
+                    }
                   >
-                    <input
-                      type="checkbox"
-                      className="employee-checkbox"
-                      checked={assignedTrucks.some((t) => t.id === truck.id)}
-                      onChange={() => handleTruckSelection(truck)}
-                    />
-                    <span className="employee-name">
-                      {truck.name} ({truck.type})
-                    </span>
-                  </label>
+                    <label
+                      className={`employee-label ${
+                        assignedTrucks.some((t) => t.id === truck.id)
+                          ? "employee-label-selected"
+                          : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="truck-checkbox"
+                        checked={assignedTrucks.some((t) => t.id === truck.id)}
+                        onChange={() => handleTruckSelection(truck)}
+                      />
+                      <span className="employee-name">
+                        {truck.name} ({truck.type})
+                      </span>
+                    </label>
+                  </TutorialHighlight>
                 ))
               ) : (
                 <p className="text-gray-500">No trucks available.</p>
               )}
             </div>
             <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setTruckModalOpen(false)}
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(
+                  ".modal-footer button.btn-secondary"
+                )}
               >
-                Close
-              </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setTruckModalOpen(false)}
+                >
+                  Close
+                </button>
+              </TutorialHighlight>
               <button
                 className="btn-primary"
                 onClick={() => setTruckModalOpen(false)}
@@ -366,7 +379,10 @@ export default function EventDetailsPage(): ReactElement {
 
       {/* Assigned Trucks Section */}
       {assignedTrucks.length > 0 && (
-        <div className="assigned-section assigned-trucks-section mt-8">
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".assigned-trucks-section")}
+          className="assigned-section assigned-trucks-section mt-8"
+        >
           <h2 className="assigned-section-title">Assigned Trucks</h2>
           <div className="assigned-grid">
             {assignedTrucks.map((truck) => (
@@ -376,7 +392,7 @@ export default function EventDetailsPage(): ReactElement {
               </div>
             ))}
           </div>
-        </div>
+        </TutorialHighlight>
       )}
 
       {/* Delete Event Confirmation Modal */}
@@ -436,7 +452,6 @@ export default function EventDetailsPage(): ReactElement {
                     // Navigate back to events page
                     router.push("/events");
                   } catch (error) {
-                    console.error("Error deleting event:", error);
                     alert("Failed to delete event. Please try again.");
                   }
                 }}

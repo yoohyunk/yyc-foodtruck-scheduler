@@ -38,11 +38,9 @@ export default function Schedule(): React.ReactElement {
         if (Array.isArray(data)) {
           setEvents(data);
         } else {
-          console.error("Received data is not an array:", data);
           setEvents([]);
         }
       } catch (error) {
-        console.error("Error fetching events:", error);
         setEvents([]);
       } finally {
         setIsLoading(false);
@@ -217,12 +215,12 @@ export default function Schedule(): React.ReactElement {
       )}
 
       <TutorialHighlight
-        isHighlighted={shouldHighlight(".sidebar")}
+        isHighlighted={shouldHighlight(".new-shift-button")}
         className="sidebar"
       >
         <div className="mt-6">
           <button
-            className="button bg-primary-medium text-white w-full py-2 rounded-lg hover:bg-primary-dark"
+            className="button bg-primary-medium text-white w-full py-2 rounded-lg hover:bg-primary-dark new-shift-button"
             onClick={() => router.push("/schedule/new")}
           >
             + New Shift

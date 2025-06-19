@@ -360,7 +360,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Create Shift ➕",
       content:
         'To create a new shift, click the "New Shift" button. You\'ll need to select: the date, time, location, and which employees will work. The system will help you find available staff.',
-      target: ".sidebar",
+      target: ".new-shift-button",
       position: "right",
     },
     {
@@ -520,7 +520,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Select Employees Button 👥",
       content:
         "Click this button to open a modal where you can choose which employees will work at this event. Let's try adding an employee!",
-      target: ".mt-6.flex.gap-4 button:first-child",
+      target: ".select-employees-button",
       position: "bottom",
       autoAction: { type: "click", delay: 800, waitAfter: 500 },
     },
@@ -547,11 +547,42 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       position: "bottom",
     },
     {
+      id: "select-trucks-button",
+      title: "Select Trucks Button 🚚",
+      content:
+        "Click this button to open a modal where you can choose which food trucks will be at this event. Let's try adding a truck!",
+      target: ".select-trucks-button",
+      position: "bottom",
+      autoAction: { type: "click", delay: 800, waitAfter: 500 },
+    },
+    {
+      id: "select-truck-in-modal",
+      title: "Select a Truck ✅",
+      content:
+        "Select the first available truck by checking the box, then close the modal to save your selection.",
+      target: ".modal-body .truck-checkbox:first-child",
+      position: "bottom",
+      autoAction: {
+        type: "check",
+        delay: 1200,
+        waitAfter: 1500,
+        extra: { closeModal: true },
+      },
+    },
+    {
+      id: "assigned-trucks-section",
+      title: "Assigned Trucks Section 🚚",
+      content:
+        "This section shows all the trucks currently assigned to this event. Each card displays the truck name, type, and capacity. You can manage truck assignments using the Select Trucks button above.",
+      target: ".assigned-trucks-section",
+      position: "bottom",
+    },
+    {
       id: "delete-event-button",
       title: "Delete Event Button ❌",
       content:
         "Click this button to permanently delete this event. You'll get a confirmation popup to prevent accidental deletions. Be careful - this action cannot be undone!",
-      target: ".mt-6.flex.gap-4 button:last-child",
+      target: ".delete-event-button",
       position: "bottom",
       autoAction: { type: "click", delay: 800, waitAfter: 500 },
     },
@@ -1108,24 +1139,14 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     setPendingStep(null);
   };
 
-  // Watch for path changes and resume tutorial if needed
-  useEffect(() => {
-    if (pendingStep !== null && isActive) {
-      setCurrentStep(pendingStep);
-      setPendingStep(null);
-    }
-  }, [currentPath, isActive, pendingStep]);
-
   // Watch for route changes and handle tutorial state
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const handleRouteChange = () => {
       const newPath = normalizePath(window.location.pathname);
-      if (isActive && newPath !== currentPath) {
-        // Don't end tutorial on navigation, just update path
-        setCurrentPath(newPath);
-      } else if (!isActive) {
+
+      if (newPath !== currentPath) {
         setCurrentPath(newPath);
       }
     };
@@ -1133,26 +1154,23 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     // Listen for popstate events (back/forward navigation)
     window.addEventListener("popstate", handleRouteChange);
 
-    // Listen for pushstate/replacestate events (programmatic navigation)
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
-
-    history.pushState = function (...args) {
-      originalPushState.apply(history, args);
-      setTimeout(handleRouteChange, 0);
+    // Use a more reliable method to detect route changes
+    let currentUrl = window.location.pathname;
+    const checkUrl = () => {
+      if (window.location.pathname !== currentUrl) {
+        currentUrl = window.location.pathname;
+        handleRouteChange();
+      }
     };
 
-    history.replaceState = function (...args) {
-      originalReplaceState.apply(history, args);
-      setTimeout(handleRouteChange, 0);
-    };
+    // Check for URL changes periodically
+    const interval = setInterval(checkUrl, 100);
 
     return () => {
       window.removeEventListener("popstate", handleRouteChange);
-      history.pushState = originalPushState;
-      history.replaceState = originalReplaceState;
+      clearInterval(interval);
     };
-  }, [isActive, currentPath]);
+  }, [currentPath, isActive, pendingStep]);
 
   // Watch for step changes and apply highlighting
   useEffect(() => {
@@ -1167,6 +1185,16 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     }
     // No scroll logic here! Only overlay cleanup.
   }, [currentStep, isActive, getCurrentSteps]);
+
+  // Watch for path changes and resume tutorial if needed
+  useEffect(() => {
+    if (pendingStep !== null) {
+      // Always resume tutorial when there's a pending step, regardless of isActive state
+      setIsActive(true);
+      setCurrentStep(pendingStep);
+      setPendingStep(null);
+    }
+  }, [currentPath, pendingStep]);
 
   const nextStep = () => {
     const steps = getCurrentSteps();
@@ -1200,11 +1228,13 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   );
 
   // Helper function to set pending step for navigation
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const setPendingStepForNavigation = useCallback((_stepIndex: number) => {
-    // Always start from step 0 when navigating to a new page
-    setPendingStep(0);
-  }, []);
+  const setPendingStepForNavigation = useCallback(
+    (stepIndex: number) => {
+      // Set the pending step to continue the tutorial from the specified step
+      setPendingStep(stepIndex);
+    },
+    [currentPath]
+  );
 
   const value = {
     isActive,

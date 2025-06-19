@@ -10,7 +10,7 @@
       "longitude": -114.0697
     },
     "trucks": ["1", "2"],
-    "assignedStaff": ["1", "2", "3"],
+    "assignedStaff": [],
     "requiredServers": 3,
     "status": "Scheduled",
     "contactName": "Sarah Johnson",

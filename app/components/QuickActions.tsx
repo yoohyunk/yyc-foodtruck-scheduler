@@ -14,25 +14,30 @@ export default function QuickActions() {
   const { shouldHighlight } = useTutorial();
 
   return (
-    <aside className="sidebar bg-gray-100 p-3 shadow-md">
-      <h3 className="text-md font-semibold mb-6">Quick Actions</h3>
-      <nav>
-        {quickActionLinks.map((link, index) => {
-          const selector = `.sidebar .TutorialHighlight:nth-child(${index + 1})`;
-          const isHighlighted = shouldHighlight(selector);
-          return (
-            <TutorialHighlight
-              key={index}
-              isHighlighted={isHighlighted}
-              className="button"
-            >
-              <Link href={link.href}>
-                <span>{link.icon}</span> {link.name}
-              </Link>
-            </TutorialHighlight>
-          );
-        })}
-      </nav>
-    </aside>
+    <TutorialHighlight
+      isHighlighted={shouldHighlight(".sidebar")}
+      className="sidebar"
+    >
+      <aside className="sidebar bg-gray-100 p-3 shadow-md">
+        <h3 className="text-md font-semibold mb-6">Quick Actions</h3>
+        <nav>
+          {quickActionLinks.map((link, index) => {
+            const selector = `.sidebar .TutorialHighlight:nth-child(${index + 1})`;
+            const isHighlighted = shouldHighlight(selector);
+            return (
+              <TutorialHighlight
+                key={index}
+                isHighlighted={isHighlighted}
+                className="button"
+              >
+                <Link href={link.href}>
+                  <span>{link.icon}</span> {link.name}
+                </Link>
+              </TutorialHighlight>
+            );
+          })}
+        </nav>
+      </aside>
+    </TutorialHighlight>
   );
 }

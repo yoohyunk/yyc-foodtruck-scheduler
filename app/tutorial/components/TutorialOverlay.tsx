@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTutorial } from "../TutorialContext";
 
 export function TutorialOverlay() {
@@ -14,17 +15,14 @@ export function TutorialOverlay() {
     setPendingStepForNavigation,
   } = useTutorial();
 
+  const router = useRouter();
+
   // Always call hooks before any return
   const currentStepData = steps[currentStep];
 
   // Scroll logic with proper positioning
   useEffect(() => {
     if (!isActive || !currentStepData) return;
-
-    console.log("=== TUTORIAL STEP CHANGED ===");
-    console.log("Step ID:", currentStepData.id);
-    console.log("Step Target:", currentStepData.target);
-    console.log("Current step index:", currentStep);
 
     // For welcome and overview steps, create overlay at the top
     if (
@@ -35,23 +33,8 @@ export function TutorialOverlay() {
       currentStepData.id === "employee-list" ||
       currentStepData.id === "navigation-tips"
     ) {
-      console.log("Welcome/overview step - creating overlay at top");
       return;
     }
-
-    // For targeted steps, find and position overlay
-    console.log("Looking for target element:", currentStepData.target);
-
-    // Debug: Log all elements with TutorialHighlight class
-    const allHighlights = document.querySelectorAll(".TutorialHighlight");
-    console.log("All TutorialHighlight elements found:", allHighlights.length);
-    allHighlights.forEach((el, index) => {
-      console.log(
-        `Highlight ${index}:`,
-        el.className,
-        el.textContent?.slice(0, 50)
-      );
-    });
 
     let targetElement = document.querySelector(currentStepData.target);
 
@@ -70,36 +53,15 @@ export function TutorialOverlay() {
         );
         if (highlights[index]) {
           targetElement = highlights[index];
-          console.log(
-            `Found element using fallback index ${index}:`,
-            targetElement
-          );
         }
       }
     }
 
     if (targetElement) {
-      console.log("✅ Found target element:", targetElement);
-      console.log("Element classes:", targetElement.className);
-      console.log("Element text:", targetElement.textContent?.slice(0, 100));
-
-      // Scroll to the target element
       targetElement.scrollIntoView({
         behavior: "smooth",
         block: "center",
         inline: "center",
-      });
-    } else {
-      console.log("❌ Target element not found:", currentStepData.target);
-      console.log("Available elements with similar selectors:");
-
-      // Try to find similar elements
-      const parts = currentStepData.target.split(" ");
-      parts.forEach((part) => {
-        const similar = document.querySelectorAll(part);
-        if (similar.length > 0) {
-          console.log(`Elements matching "${part}":`, similar.length);
-        }
       });
     }
   }, [isActive, currentStep, currentStepData]);
@@ -112,6 +74,95 @@ export function TutorialOverlay() {
       currentStepData.autoAction;
     const timeout1 = setTimeout(() => {
       const targetElement = document.querySelector(currentStepData.target);
+
+      // Special handling for modal checkboxes - these steps should always try to find the checkbox
+      if (
+        type === "check" &&
+        (currentStepData.id === "select-employee-in-modal" ||
+          currentStepData.id === "select-truck-in-modal")
+      ) {
+        // Wait for modal to open and find the checkbox
+        let retryCount = 0;
+        const maxRetries = 10;
+
+        const findAndClickCheckbox = () => {
+          const checkboxClass =
+            currentStepData.id === "select-employee-in-modal"
+              ? "employee-checkbox"
+              : "truck-checkbox";
+
+          // First check if the modal is actually open
+          const modalOverlay = document.querySelector(".modal-overlay");
+          if (!modalOverlay) {
+            retryCount++;
+            if (retryCount < maxRetries) {
+              setTimeout(findAndClickCheckbox, 200);
+            }
+            return;
+          }
+
+          // Try multiple selectors to find the checkbox
+          const modalCheckbox =
+            document.querySelector(
+              `.modal-body .TutorialHighlight input.${checkboxClass}:first-child`
+            ) ||
+            document.querySelector(
+              `.modal-body input.${checkboxClass}:first-child`
+            ) ||
+            document.querySelector(
+              `.modal-body label:has(input.${checkboxClass}) input:first-child`
+            ) ||
+            document.querySelector(`.${checkboxClass}:first-child`) ||
+            document.querySelector(`input.${checkboxClass}:first-child`);
+
+          const checkboxLabel =
+            document.querySelector(
+              `.modal-body .TutorialHighlight label:has(input.${checkboxClass}):first-child`
+            ) ||
+            document.querySelector(
+              `.modal-body label:has(input.${checkboxClass}):first-child`
+            ) ||
+            document.querySelector(
+              `label:has(input.${checkboxClass}):first-child`
+            ) ||
+            document.querySelector(`.modal-body label:first-child`);
+
+          if (modalCheckbox) {
+            // Try clicking the label first (this is how users typically interact)
+            if (checkboxLabel) {
+              (checkboxLabel as HTMLElement).click();
+            } else {
+              // Fallback: click the checkbox directly
+              (modalCheckbox as HTMLElement).click();
+            }
+
+            // Handle modal closing if needed
+            if (extra && extra.closeModal) {
+              setTimeout(() => {
+                const closeBtn = document.querySelector(
+                  ".modal-footer .btn-secondary, .modal-footer button:first-child"
+                );
+                if (closeBtn) {
+                  (closeBtn as HTMLElement).click();
+                }
+              }, 800);
+            }
+          } else {
+            retryCount++;
+            if (retryCount < maxRetries) {
+              // Try again after a short delay
+              setTimeout(findAndClickCheckbox, 200);
+            }
+          }
+        };
+
+        // Start looking for the checkbox with a longer initial delay for truck modal
+        const initialDelay =
+          currentStepData.id === "select-truck-in-modal" ? 500 : 300;
+        setTimeout(findAndClickCheckbox, initialDelay);
+        return;
+      }
+
       if (targetElement) {
         if (type === "click") {
           (targetElement as HTMLElement).click();
@@ -120,17 +171,17 @@ export function TutorialOverlay() {
         } else if (type === "check") {
           if ((targetElement as HTMLInputElement).type === "checkbox") {
             (targetElement as HTMLInputElement).checked = true;
-            // Trigger change event if needed
-            const event = new Event("change", { bubbles: true });
-            targetElement.dispatchEvent(event);
+            // Trigger change event to update the state
+            const changeEvent = new Event("change", { bubbles: true });
+            targetElement.dispatchEvent(changeEvent);
           }
         }
+
         // Handle extra actions like closing modals
         if (extra && extra.closeModal) {
           setTimeout(() => {
-            // Try to find a close/cancel button in the modal
             const closeBtn = document.querySelector(
-              '.modal-footer button, .modal button[aria-label="Close"], .modal button[aria-label="Cancel"]'
+              ".modal-footer .btn-secondary, .modal-footer button:first-child"
             );
             if (closeBtn) {
               (closeBtn as HTMLElement).click();
@@ -138,11 +189,12 @@ export function TutorialOverlay() {
           }, 800);
         }
       }
+
       if (nextPath) {
         // Set pending step before navigation
-        setPendingStepForNavigation(currentStep + 1);
+        setPendingStepForNavigation(0);
         setTimeout(() => {
-          window.location.pathname = nextPath;
+          router.push(nextPath);
         }, waitAfter || 1000);
       }
     }, delay || 1000);
@@ -150,7 +202,13 @@ export function TutorialOverlay() {
     return () => {
       clearTimeout(timeout1);
     };
-  }, [isActive, currentStep, currentStepData, setPendingStepForNavigation]);
+  }, [
+    isActive,
+    currentStep,
+    currentStepData,
+    setPendingStepForNavigation,
+    router,
+  ]);
 
   // Only return after all hooks
   if (!isActive || !currentStepData) return null;

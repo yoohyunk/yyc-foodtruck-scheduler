@@ -26,12 +26,10 @@ export default function Home(): ReactElement {
           );
           setEvents(upcomingEvents.slice(0, 5)); // Show only the next 5 events
         } else {
-          console.error("Received data is not an array:", data);
           setEvents([]);
         }
       })
       .catch((error) => {
-        console.error("Error fetching events:", error);
         setEvents([]);
       });
   }, []);
@@ -46,9 +44,9 @@ export default function Home(): ReactElement {
         );
         setTimeOffRequests(upcomingRequests.slice(0, 3)); // Show only the next 3 requests
       })
-      .catch((error) =>
-        console.error("Error fetching time-off requests:", error)
-      );
+      .catch((error) => {
+        setTimeOffRequests([]);
+      });
   }, []);
 
   const links: NavLink[] = [

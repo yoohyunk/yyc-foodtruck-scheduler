@@ -8,12 +8,15 @@ import {
   ReactElement,
 } from "react";
 import { Employee, EmployeeFormData } from "@/app/types";
+import { useTutorial } from "../../tutorial/TutorialContext";
+import { TutorialHighlight } from "../../components/TutorialHighlight";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { shouldHighlight } = useTutorial();
   const [formData, setFormData] = useState<EmployeeFormData>({
     first_name: "",
     last_name: "",
@@ -59,13 +62,10 @@ export default function EditEmployeePage(): ReactElement {
             isAvailable: employeeData.isAvailable || false,
             availability: employeeData.availability || [],
           });
-        } else {
-          console.error("Employee not found");
         }
         setIsLoading(false);
       })
       .catch((error) => {
-        console.error("Error fetching employee:", error);
         setIsLoading(false);
       });
   }, [id]);
@@ -180,7 +180,10 @@ export default function EditEmployeePage(): ReactElement {
   }
 
   return (
-    <div className="edit-employee-page">
+    <TutorialHighlight
+      isHighlighted={shouldHighlight(".edit-employee-page")}
+      className="edit-employee-page"
+    >
       <div className="flex justify-between items-center mb-4">
         <button className="button" onClick={() => router.back()}>
           &larr; Back
@@ -189,181 +192,196 @@ export default function EditEmployeePage(): ReactElement {
 
       <h1 className="text-2xl font-bold mb-4">Edit Employee</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Name */}
-        <div>
-          <label htmlFor="name" className="block font-medium">
-            First Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.first_name}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-          <label htmlFor="name" className="block font-medium">
-            Last Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.last_name}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-        </div>
-
-        {/* Address */}
-        <div>
-          <label htmlFor="address" className="block font-medium">
-            Address
-          </label>
-          <input
-            type="text"
-            id="address"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-        </div>
-
-        {/* Role */}
-        <div>
-          <label htmlFor="role" className="block font-medium">
-            Role
-          </label>
-          <select
-            id="role"
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            className="input-field"
-            required
-          >
-            <option value="">Select Role</option>
-            <option value="Driver">Driver</option>
-            <option value="Server">Server</option>
-            <option value="Admin">Admin</option>
-          </select>
-        </div>
-
-        {/* Email */}
-        <div>
-          <label htmlFor="email" className="block font-medium">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-        </div>
-
-        {/* Phone */}
-        <div>
-          <label htmlFor="phone" className="block font-medium">
-            Phone
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-        </div>
-
-        {/* Wage */}
-        <div>
-          <label htmlFor="wage" className="block font-medium">
-            Wage
-          </label>
-          <input
-            type="number"
-            id="wage"
-            name="wage"
-            value={formData.wage}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-        </div>
-
-        {/* Is Available */}
-        <div>
-          <label htmlFor="isAvailable" className="block font-medium">
+      <TutorialHighlight isHighlighted={shouldHighlight("form")}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name */}
+          <div>
+            <label htmlFor="name" className="block font-medium">
+              First Name
+            </label>
             <input
-              type="checkbox"
-              id="isAvailable"
-              name="isAvailable"
-              checked={formData.isAvailable}
+              type="text"
+              id="name"
+              name="name"
+              value={formData.first_name}
               onChange={handleChange}
+              className="input-field"
+              required
             />
-            Is Available
-          </label>
-        </div>
+            <label htmlFor="name" className="block font-medium">
+              Last Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.last_name}
+              onChange={handleChange}
+              className="input-field"
+              required
+            />
+          </div>
 
-        {/* Availability */}
-        <div>
-          <label className="block font-medium">
-            Availability (Days of the Week)
-          </label>
-          <div className="availability-options">
-            <label className="availability-label">
+          {/* Address */}
+          <div>
+            <label htmlFor="address" className="block font-medium">
+              Address
+            </label>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              className="input-field"
+              required
+            />
+          </div>
+
+          {/* Role */}
+          <div>
+            <label htmlFor="role" className="block font-medium">
+              Role
+            </label>
+            <select
+              id="role"
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="input-field"
+              required
+            >
+              <option value="">Select Role</option>
+              <option value="Driver">Driver</option>
+              <option value="Server">Server</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="block font-medium">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="input-field"
+              required
+            />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label htmlFor="phone" className="block font-medium">
+              Phone
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="input-field"
+              required
+            />
+          </div>
+
+          {/* Wage */}
+          <div>
+            <label htmlFor="wage" className="block font-medium">
+              Wage
+            </label>
+            <input
+              type="number"
+              id="wage"
+              name="wage"
+              value={formData.wage}
+              onChange={handleChange}
+              className="input-field"
+              required
+            />
+          </div>
+
+          {/* Is Available */}
+          <div>
+            <label htmlFor="isAvailable" className="block font-medium">
               <input
                 type="checkbox"
-                checked={formData.availability.length === daysOfWeek.length}
-                onChange={handleSelectAll}
+                id="isAvailable"
+                name="isAvailable"
+                checked={formData.isAvailable}
+                onChange={handleChange}
               />
-              Select All
+              Is Available
             </label>
-            {daysOfWeek.map((day) => (
-              <label key={day} className="availability-label">
+          </div>
+
+          {/* Availability */}
+          <div>
+            <label className="block font-medium">
+              Availability (Days of the Week)
+            </label>
+            <TutorialHighlight
+              isHighlighted={shouldHighlight(".availability-options")}
+              className="availability-options"
+            >
+              <label className="availability-label">
                 <input
                   type="checkbox"
-                  checked={formData.availability.includes(day)}
-                  onChange={() => handleDaySelection(day)}
+                  checked={formData.availability.length === daysOfWeek.length}
+                  onChange={handleSelectAll}
                 />
-                {day}
+                Select All
               </label>
-            ))}
+              {daysOfWeek.map((day) => (
+                <label key={day} className="availability-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.availability.includes(day)}
+                    onChange={() => handleDaySelection(day)}
+                  />
+                  {day}
+                </label>
+              ))}
+            </TutorialHighlight>
           </div>
-        </div>
 
-        <div
-          style={{
-            marginTop: "2rem",
-            paddingTop: "1.5rem",
-            borderTop: "1px solid #e5e7eb",
-          }}
-        >
-          <div style={{ display: "flex", gap: "2rem", marginLeft: "1rem" }}>
-            <button type="submit" className="button">
-              Save Changes
-            </button>
-            <button
-              type="button"
-              className="button bg-red-500 hover:bg-red-600 text-white"
-              onClick={() => setShowDeleteModal(true)}
-            >
-              Delete Employee
-            </button>
+          <div
+            style={{
+              marginTop: "2rem",
+              paddingTop: "1.5rem",
+              borderTop: "1px solid #e5e7eb",
+            }}
+          >
+            <div style={{ display: "flex", gap: "2rem", marginLeft: "1rem" }}>
+              <TutorialHighlight
+                isHighlighted={shouldHighlight("form button[type='submit']")}
+              >
+                <button type="submit" className="button">
+                  Save Changes
+                </button>
+              </TutorialHighlight>
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(
+                  "button[onClick*='setShowDeleteModal']"
+                )}
+              >
+                <button
+                  type="button"
+                  className="button bg-red-500 hover:bg-red-600 text-white"
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  Delete Employee
+                </button>
+              </TutorialHighlight>
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </TutorialHighlight>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
@@ -472,6 +490,6 @@ export default function EditEmployeePage(): ReactElement {
           </div>
         </div>
       )}
-    </div>
+    </TutorialHighlight>
   );
 }

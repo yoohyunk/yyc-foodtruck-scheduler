@@ -28,7 +28,10 @@ export default function Employees(): ReactElement {
         setEmployees(data);
         setFilteredEmployees(data);
       })
-      .catch((error) => console.error("Error fetching employees:", error));
+      .catch((error) => {
+        setEmployees([]);
+        setFilteredEmployees([]);
+      });
   }, []);
 
   // Filter employees based on the active filter
@@ -79,7 +82,6 @@ export default function Employees(): ReactElement {
       setShowDeleteModal(false);
       setEmployeeToDelete(null);
     } catch (error) {
-      console.error("Error deleting employee:", error);
       alert("Failed to delete employee. Please try again.");
     }
   };
