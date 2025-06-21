@@ -1,7 +1,10 @@
+import { ReactNode } from "react";
+
 // Employee types
 export interface Employee {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string;
   address: string;
   coordinates?: Coordinates;
   role: string;
@@ -13,7 +16,8 @@ export interface Employee {
 }
 
 export interface EmployeeFormData {
-  name: string;
+  first_name: string;
+  last_name: string;
   address: string;
   role: string;
   email: string;
@@ -65,7 +69,7 @@ export interface Truck {
   downForService: false
 }
 
-export interface TruckFormData extends Omit<Truck, 'id' | 'driver'> {
+export interface TruckFormData extends Omit<Truck, "id" | "driver"> {
   driver: string; // Form data uses string for driver input
 }
 
@@ -74,11 +78,11 @@ export interface TimeOffRequest {
   date: string;
   type: string;
   duration: string;
-  status: 'Approved' | 'Pending' | 'Rejected';
+  status: "Approved" | "Pending" | "Rejected";
   reason: string;
 }
 
-export interface TimeOffRequestFormData extends Omit<TimeOffRequest, 'status'> {}
+export type TimeOffRequestFormData = Omit<TimeOffRequest, "status">;
 
 // Common types
 export interface Coordinates {
@@ -90,5 +94,5 @@ export interface Coordinates {
 export interface NavLink {
   name: string;
   href: string;
-  icon: string;
+  icon: ReactNode;
 }

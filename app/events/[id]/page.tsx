@@ -4,6 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, ReactElement } from "react";
 import { extractDate, extractTime } from "../utils";
 import { Event, Employee, Truck } from "@/app/types";
+import { useTutorial } from "../../tutorial/TutorialContext";
+import { TutorialHighlight } from "../../components/TutorialHighlight";
 
 export default function EventDetailsPage(): ReactElement {
   const { id } = useParams();
@@ -17,6 +19,8 @@ export default function EventDetailsPage(): ReactElement {
   const [isTruckModalOpen, setTruckModalOpen] = useState<boolean>(false);
   const [isLoadingEmployees, setIsLoadingEmployees] = useState<boolean>(true);
   const [isLoadingTrucks, setIsLoadingTrucks] = useState<boolean>(true);
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
+  const { shouldHighlight } = useTutorial();
 
   // Fetch event details
   useEffect(() => {
@@ -36,7 +40,6 @@ export default function EventDetailsPage(): ReactElement {
         const data = await response.json();
 
         if (!Array.isArray(data)) {
-          console.error("Received data is not an array:", data);
           setEvent(null);
           return;
         }
@@ -44,14 +47,12 @@ export default function EventDetailsPage(): ReactElement {
         const eventData = data.find((event) => event.id === id);
 
         if (!eventData) {
-          console.error("Event not found:", id);
           setEvent(null);
           return;
         }
 
         setEvent(eventData);
-      } catch (error) {
-        console.error("Error fetching event:", error);
+      } catch {
         setEvent(null);
       }
     };
@@ -96,8 +97,7 @@ export default function EventDetailsPage(): ReactElement {
         const trucksData = await trucksResponse.json();
         setTrucks(trucksData);
         setIsLoadingTrucks(false);
-      } catch (error) {
-        console.error("Error fetching data:", error);
+      } catch {
         setIsLoadingEmployees(false);
         setIsLoadingTrucks(false);
       }
@@ -109,7 +109,7 @@ export default function EventDetailsPage(): ReactElement {
   // Update assigned employees when event or employees change
   useEffect(() => {
     if (event && employees.length > 0) {
-      const assigned = employees.filter(emp => 
+      const assigned = employees.filter((emp) =>
         event.assignedStaff.includes(emp.id.toString())
       );
       setAssignedEmployees(assigned);
@@ -119,7 +119,7 @@ export default function EventDetailsPage(): ReactElement {
   // Update assigned trucks when event or trucks change
   useEffect(() => {
     if (event && trucks.length > 0) {
-      const assigned = trucks.filter(truck => 
+      const assigned = trucks.filter((truck) =>
         event.trucks.includes(truck.id)
       );
       setAssignedTrucks(assigned);
@@ -153,12 +153,18 @@ export default function EventDetailsPage(): ReactElement {
   }
 
   return (
-    <div className="event-details-page">
+    <TutorialHighlight
+      isHighlighted={shouldHighlight(".event-details-page")}
+      className="event-details-page"
+    >
       <button className="button" onClick={() => router.back()}>
         &larr; Back
       </button>
 
-      <div className="event-detail-card">
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".event-detail-card")}
+        className="event-detail-card"
+      >
         <h1 className="event-detail-title">{event.title}</h1>
         <div className="event-detail-info-container">
           <p className="event-detail-info">
@@ -172,70 +178,45 @@ export default function EventDetailsPage(): ReactElement {
           <p className="event-detail-info">
             <span className="info-label">Location:</span> {event.location}
           </p>
-          {/* <p className="event-detail-info">
-            <span className="info-label">Time:</span> {event.time}
-          </p> */}
           <p className="event-detail-info">
             <span className="info-label">Required Servers:</span>{" "}
             {event.requiredServers}
           </p>
         </div>
-      </div>
+      </TutorialHighlight>
 
       {/* Assign Staff and Trucks Buttons */}
       <div className="mt-6 flex gap-4">
-        <button
-          className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
-          onClick={() => setEmployeeModalOpen(true)}
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".select-employees-button")}
         >
-          Select Employees
-        </button>
-        <button
-          className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
-          onClick={() => setTruckModalOpen(true)}
+          <button
+            className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
+            onClick={() => setEmployeeModalOpen(true)}
+          >
+            Select Employees
+          </button>
+        </TutorialHighlight>
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".select-trucks-button")}
         >
-          Select Trucks
-        </button>
-        <button
-          className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
-          onClick={async () => {
-            if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-              try {
-                // Get current events
-                const response = await fetch('/events.json');
-                if (!response.ok) {
-                  throw new Error('Failed to fetch events');
-                }
-                const events = await response.json();
-
-                // Remove the event
-                const updatedEvents = events.filter((evt: Event) => evt.id !== id);
-
-                // Save updated events
-                const saveResponse = await fetch('/api/events', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(updatedEvents),
-                });
-
-                if (!saveResponse.ok) {
-                  throw new Error('Failed to delete event');
-                }
-
-                // Show success message and redirect
-                alert('Event deleted successfully');
-                router.push('/events');
-              } catch (error) {
-                console.error('Error deleting event:', error);
-                alert('Failed to delete event. Please try again.');
-              }
-            }
-          }}
+          <button
+            className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
+            onClick={() => setTruckModalOpen(true)}
+          >
+            Select Trucks
+          </button>
+        </TutorialHighlight>
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".delete-event-button")}
         >
-          Delete Event
-        </button>
+          <button
+            className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            Delete Event
+          </button>
+        </TutorialHighlight>
       </div>
 
       {/* Employee Selection Modal */}
@@ -247,43 +228,60 @@ export default function EventDetailsPage(): ReactElement {
               {isLoadingEmployees ? (
                 <p className="text-gray-500">Loading employees...</p>
               ) : employees.length > 0 ? (
-                employees.map((employee) => (
-                  <label
+                employees.map((employee, index) => (
+                  <TutorialHighlight
                     key={employee.id}
-                    className={`employee-label ${
-                      assignedEmployees.some((e) => e.id === employee.id)
-                        ? "employee-label-selected"
-                        : ""
-                    }`}
+                    isHighlighted={
+                      index === 0 &&
+                      shouldHighlight(
+                        ".modal-body .employee-checkbox:first-child"
+                      )
+                    }
                   >
-                    <input
-                      type="checkbox"
-                      className="employee-checkbox"
-                      checked={assignedEmployees.some(
-                        (e) => e.id === employee.id
-                      )}
-                      onChange={() => handleEmployeeSelection(employee)}
-                      disabled={
-                        !assignedEmployees.some((e) => e.id === employee.id) &&
-                        assignedEmployees.length >= event.requiredServers
-                      }
-                    />
-                    <span className="employee-name">
-                      {employee.name} ({employee.role})
-                    </span>
-                  </label>
+                    <label
+                      className={`employee-label ${
+                        assignedEmployees.some((e) => e.id === employee.id)
+                          ? "employee-label-selected"
+                          : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="employee-checkbox"
+                        checked={assignedEmployees.some(
+                          (e) => e.id === employee.id
+                        )}
+                        onChange={() => handleEmployeeSelection(employee)}
+                        disabled={
+                          !assignedEmployees.some(
+                            (e) => e.id === employee.id
+                          ) && assignedEmployees.length >= event.requiredServers
+                        }
+                      />
+                      <span className="employee-name">
+                        {employee.first_name} {employee.last_name} (
+                        {employee.role})
+                      </span>
+                    </label>
+                  </TutorialHighlight>
                 ))
               ) : (
                 <p className="text-gray-500">No employees available.</p>
               )}
             </div>
             <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setEmployeeModalOpen(false)}
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(
+                  ".modal-footer button.btn-secondary"
+                )}
               >
-                Close
-              </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setEmployeeModalOpen(false)}
+                >
+                  Close
+                </button>
+              </TutorialHighlight>
               <button
                 className="btn-primary"
                 onClick={() => setEmployeeModalOpen(false)}
@@ -304,37 +302,50 @@ export default function EventDetailsPage(): ReactElement {
               {isLoadingTrucks ? (
                 <p className="text-gray-500">Loading trucks...</p>
               ) : trucks.length > 0 ? (
-                trucks.map((truck) => (
-                  <label
+                trucks.map((truck, index) => (
+                  <TutorialHighlight
                     key={truck.id}
-                    className={`employee-label ${
-                      assignedTrucks.some((t) => t.id === truck.id)
-                        ? "employee-label-selected"
-                        : ""
-                    }`}
+                    isHighlighted={
+                      index === 0 &&
+                      shouldHighlight(".modal-body .truck-checkbox:first-child")
+                    }
                   >
-                    <input
-                      type="checkbox"
-                      className="employee-checkbox"
-                      checked={assignedTrucks.some((t) => t.id === truck.id)}
-                      onChange={() => handleTruckSelection(truck)}
-                    />
-                    <span className="employee-name">
-                      {truck.name} ({truck.type})
-                    </span>
-                  </label>
+                    <label
+                      className={`employee-label ${
+                        assignedTrucks.some((t) => t.id === truck.id)
+                          ? "employee-label-selected"
+                          : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="truck-checkbox"
+                        checked={assignedTrucks.some((t) => t.id === truck.id)}
+                        onChange={() => handleTruckSelection(truck)}
+                      />
+                      <span className="employee-name">
+                        {truck.name} ({truck.type})
+                      </span>
+                    </label>
+                  </TutorialHighlight>
                 ))
               ) : (
                 <p className="text-gray-500">No trucks available.</p>
               )}
             </div>
             <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setTruckModalOpen(false)}
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(
+                  ".modal-footer button.btn-secondary"
+                )}
               >
-                Close
-              </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setTruckModalOpen(false)}
+                >
+                  Close
+                </button>
+              </TutorialHighlight>
               <button
                 className="btn-primary"
                 onClick={() => setTruckModalOpen(false)}
@@ -348,22 +359,30 @@ export default function EventDetailsPage(): ReactElement {
 
       {/* Assigned Employees Section */}
       {assignedEmployees.length > 0 && (
-        <div className="assigned-section mt-8">
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".assigned-employees-section")}
+          className="assigned-section assigned-employees-section mt-8"
+        >
           <h2 className="assigned-section-title">Assigned Employees</h2>
           <div className="assigned-grid">
             {assignedEmployees.map((employee) => (
               <div key={employee.id} className="employee-card">
-                <h3 className="employee-name">{employee.name}</h3>
+                <h3 className="employee-name">
+                  {employee.first_name} {employee.last_name}
+                </h3>
                 <p className="employee-role">Role: {employee.role}</p>
               </div>
             ))}
           </div>
-        </div>
+        </TutorialHighlight>
       )}
 
       {/* Assigned Trucks Section */}
       {assignedTrucks.length > 0 && (
-        <div className="assigned-section mt-8">
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".assigned-trucks-section")}
+          className="assigned-section assigned-trucks-section mt-8"
+        >
           <h2 className="assigned-section-title">Assigned Trucks</h2>
           <div className="assigned-grid">
             {assignedTrucks.map((truck) => (
@@ -373,8 +392,76 @@ export default function EventDetailsPage(): ReactElement {
               </div>
             ))}
           </div>
+        </TutorialHighlight>
+      )}
+
+      {/* Delete Event Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <h3 className="modal-title text-red-700">Delete Event</h3>
+            <div className="modal-body">
+              <div className="text-4xl mb-4 text-red-600 text-center">
+                &#10060;
+              </div>
+              <p className="text-lg font-bold mb-2 text-gray-900 text-center">
+                Are you sure you want to delete this event?
+              </p>
+              <p className="mb-6 text-gray-700 text-center">
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className="modal-footer flex justify-center gap-4">
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(
+                  ".modal-footer button.btn-secondary"
+                )}
+              >
+                <button
+                  className="btn-secondary"
+                  onClick={() => setDeleteModalOpen(false)}
+                >
+                  Cancel
+                </button>
+              </TutorialHighlight>
+              <button
+                className="btn-primary bg-red-600 hover:bg-red-700 text-white"
+                onClick={async () => {
+                  try {
+                    // Get current events
+                    const response = await fetch("/events.json");
+                    if (!response.ok) {
+                      throw new Error("Failed to fetch events");
+                    }
+                    const events = await response.json();
+                    // Remove the event
+                    const updatedEvents = events.filter(
+                      (e: Event) => e.id !== event.id
+                    );
+                    // Save updated events
+                    const saveResponse = await fetch("/api/events", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify(updatedEvents),
+                    });
+                    if (!saveResponse.ok) {
+                      throw new Error("Failed to delete event");
+                    }
+                    // Navigate back to events page
+                    router.push("/events");
+                  } catch {
+                    alert("Failed to delete event. Please try again.");
+                  }
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </TutorialHighlight>
   );
 }

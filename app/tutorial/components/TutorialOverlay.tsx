@@ -1,81 +1,261 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef } from 'react';
-import { useTutorial } from '../TutorialContext';
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useTutorial } from "../TutorialContext";
 
 export function TutorialOverlay() {
-  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial } = useTutorial();
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const {
+    isActive,
+    currentStep,
+    steps,
+    nextStep,
+    previousStep,
+    skipTutorial,
+    setPendingStepForNavigation,
+  } = useTutorial();
 
-  useEffect(() => {
-    if (isActive && overlayRef.current) {
-      const currentStepData = steps[currentStep];
-      const targetElement = document.querySelector(currentStepData.target);
-      
-      if (targetElement) {
-        // First scroll the target element into view with a longer delay for navigation buttons
-        targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-          inline: 'center'
-        });
+  const router = useRouter();
 
-        // Wait for scroll to complete before positioning overlay
-        // Use a longer delay for navigation buttons to ensure proper scrolling
-        const delay = currentStepData.id.includes('button') ? 800 : 500;
-        
-        setTimeout(() => {
-          const rect = targetElement.getBoundingClientRect();
-          const overlay = overlayRef.current;
-          
-          if (overlay) {
-            // Position the overlay
-            overlay.style.top = `${rect.top}px`;
-            overlay.style.left = `${rect.left}px`;
-            overlay.style.width = `${rect.width}px`;
-            overlay.style.height = `${rect.height}px`;
-            overlay.style.opacity = '1';
-          }
-        }, delay);
-      }
-    }
-  }, [isActive, currentStep, steps]);
-
-  if (!isActive) return null;
-
+  // Always call hooks before any return
   const currentStepData = steps[currentStep];
 
+  // Scroll logic with proper positioning
+  useEffect(() => {
+    if (!isActive || !currentStepData) return;
+
+    // For welcome and overview steps, create overlay at the top
+    if (
+      currentStepData.id.includes("welcome") ||
+      currentStepData.id === "home-welcome" ||
+      currentStepData.id === "calendar-view" ||
+      currentStepData.id === "event-list" ||
+      currentStepData.id === "employee-list" ||
+      currentStepData.id === "navigation-tips"
+    ) {
+      return;
+    }
+
+    let targetElement = document.querySelector(currentStepData.target);
+
+    // Fallback: If the exact selector doesn't work, try to find the element by index
+    if (
+      !targetElement &&
+      currentStepData.target.includes(
+        ".landing-links .TutorialHighlight:nth-child("
+      )
+    ) {
+      const match = currentStepData.target.match(/nth-child\((\d+)\)/);
+      if (match) {
+        const index = parseInt(match[1]) - 1; // Convert to 0-based index
+        const highlights = document.querySelectorAll(
+          ".landing-links .TutorialHighlight"
+        );
+        if (highlights[index]) {
+          targetElement = highlights[index];
+        }
+      }
+    }
+
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "center",
+      });
+    }
+  }, [isActive, currentStep, currentStepData]);
+
+  // Auto-action logic for steps with autoAction
+  useEffect(() => {
+    if (!isActive || !currentStepData || !currentStepData.autoAction) return;
+
+    const { type, delay, nextPath, waitAfter, extra } =
+      currentStepData.autoAction;
+    const timeout1 = setTimeout(() => {
+      const targetElement = document.querySelector(currentStepData.target);
+
+      // Special handling for modal checkboxes - these steps should always try to find the checkbox
+      if (
+        type === "check" &&
+        (currentStepData.id === "select-employee-in-modal" ||
+          currentStepData.id === "select-truck-in-modal")
+      ) {
+        // Wait for modal to open and find the checkbox
+        let retryCount = 0;
+        const maxRetries = 10;
+
+        const findAndClickCheckbox = () => {
+          const checkboxClass =
+            currentStepData.id === "select-employee-in-modal"
+              ? "employee-checkbox"
+              : "truck-checkbox";
+
+          // First check if the modal is actually open
+          const modalOverlay = document.querySelector(".modal-overlay");
+          if (!modalOverlay) {
+            retryCount++;
+            if (retryCount < maxRetries) {
+              setTimeout(findAndClickCheckbox, 200);
+            }
+            return;
+          }
+
+          // Try multiple selectors to find the checkbox
+          const modalCheckbox =
+            document.querySelector(
+              `.modal-body .TutorialHighlight input.${checkboxClass}:first-child`
+            ) ||
+            document.querySelector(
+              `.modal-body input.${checkboxClass}:first-child`
+            ) ||
+            document.querySelector(
+              `.modal-body label:has(input.${checkboxClass}) input:first-child`
+            ) ||
+            document.querySelector(`.${checkboxClass}:first-child`) ||
+            document.querySelector(`input.${checkboxClass}:first-child`);
+
+          const checkboxLabel =
+            document.querySelector(
+              `.modal-body .TutorialHighlight label:has(input.${checkboxClass}):first-child`
+            ) ||
+            document.querySelector(
+              `.modal-body label:has(input.${checkboxClass}):first-child`
+            ) ||
+            document.querySelector(
+              `label:has(input.${checkboxClass}):first-child`
+            ) ||
+            document.querySelector(`.modal-body label:first-child`);
+
+          if (modalCheckbox) {
+            // Try clicking the label first (this is how users typically interact)
+            if (checkboxLabel) {
+              (checkboxLabel as HTMLElement).click();
+            } else {
+              // Fallback: click the checkbox directly
+              (modalCheckbox as HTMLElement).click();
+            }
+
+            // Handle modal closing if needed
+            if (extra && extra.closeModal) {
+              setTimeout(() => {
+                const closeBtn = document.querySelector(
+                  ".modal-footer .btn-secondary, .modal-footer button:first-child"
+                );
+                if (closeBtn) {
+                  (closeBtn as HTMLElement).click();
+                }
+              }, 800);
+            }
+          } else {
+            retryCount++;
+            if (retryCount < maxRetries) {
+              // Try again after a short delay
+              setTimeout(findAndClickCheckbox, 200);
+            }
+          }
+        };
+
+        // Start looking for the checkbox with a longer initial delay for truck modal
+        const initialDelay =
+          currentStepData.id === "select-truck-in-modal" ? 500 : 300;
+        setTimeout(findAndClickCheckbox, initialDelay);
+        return;
+      }
+
+      if (targetElement) {
+        if (type === "click") {
+          (targetElement as HTMLElement).click();
+        } else if (type === "focus") {
+          (targetElement as HTMLElement).focus();
+        } else if (type === "check") {
+          if ((targetElement as HTMLInputElement).type === "checkbox") {
+            (targetElement as HTMLInputElement).checked = true;
+            // Trigger change event to update the state
+            const changeEvent = new Event("change", { bubbles: true });
+            targetElement.dispatchEvent(changeEvent);
+          }
+        }
+
+        // Handle extra actions like closing modals
+        if (extra && extra.closeModal) {
+          setTimeout(() => {
+            const closeBtn = document.querySelector(
+              ".modal-footer .btn-secondary, .modal-footer button:first-child"
+            );
+            if (closeBtn) {
+              (closeBtn as HTMLElement).click();
+            }
+          }, 800);
+        }
+      }
+
+      if (nextPath) {
+        // Set pending step before navigation
+        setPendingStepForNavigation(0);
+        setTimeout(() => {
+          router.push(nextPath);
+        }, waitAfter || 1000);
+      }
+    }, delay || 1000);
+
+    return () => {
+      clearTimeout(timeout1);
+    };
+  }, [
+    isActive,
+    currentStep,
+    currentStepData,
+    setPendingStepForNavigation,
+    router,
+  ]);
+
+  // Only return after all hooks
+  if (!isActive || !currentStepData) return null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
-      <div
-        ref={overlayRef}
-        className="absolute border-2 border-primary-light rounded-lg transition-opacity duration-300 opacity-0"
-      />
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow-lg max-w-md">
-        <h3 className="text-lg font-semibold mb-2">{currentStepData.title}</h3>
-        <p className="mb-4">{currentStepData.content}</p>
-        <div className="flex justify-between">
-          <button
-            onClick={previousStep}
-            disabled={currentStep === 0}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <button
-            onClick={skipTutorial}
-            className="px-4 py-2 bg-gray-200 rounded"
-          >
-            Skip
-          </button>
-          <button
-            onClick={nextStep}
-            className="px-4 py-2 bg-primary-medium text-white rounded"
-          >
-            {currentStep === steps.length - 1 ? 'Finish' : 'Next'}
-          </button>
+    <>
+      <div className="tutorial-popup">
+        <div className="tutorial-accent-bar" />
+        <div className="tutorial-content">
+          <div className="tutorial-header">
+            <h3 className="tutorial-title">{currentStepData.title}</h3>
+            <div className="tutorial-divider" />
+            <p className="tutorial-description">{currentStepData.content}</p>
+          </div>
+          <div className="tutorial-progress">
+            {steps.map((_, index) => (
+              <div
+                key={index}
+                className={`tutorial-progress-dot ${index === currentStep ? "tutorial-progress-dot-active" : index < currentStep ? "tutorial-progress-dot-completed" : "tutorial-progress-dot-inactive"}`}
+              />
+            ))}
+          </div>
+          <div className="tutorial-actions">
+            <button
+              onClick={previousStep}
+              disabled={currentStep === 0}
+              className="tutorial-button tutorial-button-secondary"
+            >
+              ← Previous
+            </button>
+            <button
+              onClick={skipTutorial}
+              className="tutorial-button tutorial-button-skip"
+            >
+              Skip
+            </button>
+            <button
+              onClick={nextStep}
+              className="tutorial-button tutorial-button-primary"
+            >
+              {currentStep === steps.length - 1 ? "Finish ✨" : "Next →"}
+            </button>
+          </div>
         </div>
+        <div className="tutorial-corner-accent tutorial-corner-accent-top" />
+        <div className="tutorial-corner-accent tutorial-corner-accent-bottom" />
       </div>
-    </div>
+    </>
   );
-} 
+}

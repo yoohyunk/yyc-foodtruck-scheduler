@@ -81,7 +81,12 @@ export default function EditTruckPage(): ReactElement {
   // Submit handler
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     console.log("Updated Truck Data:", formData);
+=======
+
+    // Simulate saving the updated truck data
+
     alert("Truck information updated successfully!");
     router.push("/trucks");
   };

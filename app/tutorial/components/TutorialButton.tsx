@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useTutorial } from '../TutorialContext';
+import React from "react";
+import { useTutorial } from "../TutorialContext";
 
 export function TutorialButton() {
   const { startTutorial } = useTutorial();
@@ -15,4 +15,4 @@ export function TutorialButton() {
       <span>Help</span>
     </button>
   );
-} 
+}
