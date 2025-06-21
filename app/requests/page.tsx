@@ -5,23 +5,7 @@ import { TimeOffRequest, TimeOffRequestFormData } from "../types";
 
 export default function TimeOff(): ReactElement {
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [requests, setRequests] = useState<TimeOffRequest[]>([
-    {
-      date: "2024-11-13",
-      type: "Sick Leave",
-      duration: "Full Day",
-      status: "Approved",
-      reason: "Flu",
-    },
-    {
-      date: "2024-11-15",
-      type: "Personal",
-      duration: "Half Day (AM)",
-      status: "Pending",
-      reason: "Errand",
-    },
-  ]);
-
+  const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [formData, setFormData] = useState<TimeOffRequestFormData>({
     date: "",
     type: "Vacation",
@@ -29,16 +13,39 @@ export default function TimeOff(): ReactElement {
     reason: "",
   });
 
+  const [startHour, setStartHour] = useState("09");
+  const [startPeriod, setStartPeriod] = useState("AM");
+  const [endHour, setEndHour] = useState("05");
+  const [endPeriod, setEndPeriod] = useState("PM");
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newRequest: TimeOffRequest = { ...formData, status: "Pending" };
+
+    const customDuration =
+      formData.duration === "Full Day"
+        ? "Full Day"
+        : `${startHour}:00 ${startPeriod} - ${endHour}:00 ${endPeriod}`;
+
+    const newRequest: TimeOffRequest = {
+      ...formData,
+      duration: customDuration,
+      status: "Pending",
+    };
+
     setRequests([...requests, newRequest]);
+
     setFormData({
       date: "",
       type: "Vacation",
       duration: "Full Day",
       reason: "",
     });
+
+    setStartHour("09");
+    setStartPeriod("AM");
+    setEndHour("05");
+    setEndPeriod("PM");
+
     setShowModal(false);
   };
 
@@ -46,12 +53,31 @@ export default function TimeOff(): ReactElement {
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    if (name === "reason" && value.length > 1000) return;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const getTotalHours = () => {
+    let start = parseInt(startHour);
+    let end = parseInt(endHour);
+
+    if (startPeriod === "PM" && start !== 12) start += 12;
+    if (endPeriod === "PM" && end !== 12) end += 12;
+    if (startPeriod === "AM" && start === 12) start = 0;
+    if (endPeriod === "AM" && end === 12) end = 0;
+
+    const diff = end - start;
+    return diff > 0 ? diff : 0;
+  };
+
+  const hours = [
+    "01", "02", "03", "04", "05", "06",
+    "07", "08", "09", "10", "11", "12",
+  ];
+  const periods = ["AM", "PM"];
+
   return (
     <div className="max-w-5xl mx-auto p-6">
-      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">My Time-Off Requests</h2>
         <button
@@ -64,7 +90,7 @@ export default function TimeOff(): ReactElement {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full  rounded-lg overflow-hidden">
+        <table className="w-full rounded-lg overflow-hidden">
           <thead className="bg-gray-100 text-left text-sm text-gray-600">
             <tr>
               <th className="p-3">Date</th>
@@ -80,7 +106,7 @@ export default function TimeOff(): ReactElement {
                 <td className="p-3">
                   <div className="flex items-center gap-2">
                     <FiCalendar size={16} />
-                    <span className="inline-block">{item.date}</span>
+                    <span>{item.date}</span>
                   </div>
                 </td>
                 <td className="p-3">{item.type}</td>
@@ -91,8 +117,8 @@ export default function TimeOff(): ReactElement {
                       item.status === "Approved"
                         ? "bg-green-100 text-green-600"
                         : item.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-600"
-                          : "bg-red-100 text-red-600"
+                        ? "bg-yellow-100 text-yellow-600"
+                        : "bg-red-100 text-red-600"
                     }`}
                   >
                     {item.status}
@@ -105,7 +131,7 @@ export default function TimeOff(): ReactElement {
         </table>
       </div>
 
-      {/* Inline Form */}
+      {/* Modal */}
       {showModal && (
         <div className="mt-6 bg-white p-6 rounded-lg shadow">
           <h3 className="text-xl font-bold mb-4">Request Time-Off</h3>
@@ -147,22 +173,85 @@ export default function TimeOff(): ReactElement {
                 value={formData.duration}
                 onChange={handleInputChange}
               >
-                <option>Full Day</option>
-                <option>Half Day (AM)</option>
-                <option>Half Day (PM)</option>
+                <option value="Full Day">Full Day</option>
+                <option value="Custom Hours">Custom Hours</option>
               </select>
             </div>
 
-            <div>
+            {formData.duration === "Custom Hours" && (
+              <>
+                <div className="text-sm font-medium">Start Time</div>
+                <div className="flex gap-3">
+                  <select
+                    className="border p-2 rounded"
+                    value={startHour}
+                    onChange={(e) => setStartHour(e.target.value)}
+                  >
+                    {hours.map((h) => (
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="border p-2 rounded"
+                    value={startPeriod}
+                    onChange={(e) => setStartPeriod(e.target.value)}
+                  >
+                    {periods.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="text-sm font-medium mt-4">End Time</div>
+                <div className="flex gap-3">
+                  <select
+                    className="border p-2 rounded"
+                    value={endHour}
+                    onChange={(e) => setEndHour(e.target.value)}
+                  >
+                    {hours.map((h) => (
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="border p-2 rounded"
+                    value={endPeriod}
+                    onChange={(e) => setEndPeriod(e.target.value)}
+                  >
+                    {periods.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="text-xs text-gray-600 mt-2">
+                  🕒 You're requesting <strong>{getTotalHours()}</strong>{" "}
+                  {getTotalHours() === 1 ? "hour" : "hours"} off
+                </div>
+              </>
+            )}
+
+            <div className="relative">
               <label className="block mb-1 text-sm font-medium">Reason</label>
               <textarea
                 name="reason"
-                rows={3}
-                className="w-full border p-2 rounded"
+                rows={4}
+                className="w-full border p-2 rounded pr-12"
                 placeholder="Optional"
                 value={formData.reason}
                 onChange={handleInputChange}
               />
+              <div className="absolute top-1 right-2 text-xs text-gray-500">
+                {formData.reason.length}/1000
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 mt-4">
@@ -186,3 +275,4 @@ export default function TimeOff(): ReactElement {
     </div>
   );
 }
+
