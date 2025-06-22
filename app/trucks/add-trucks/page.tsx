@@ -185,7 +185,7 @@ export default function AddTrucks(): ReactElement {
           formData.packingList.length > 0 ? formData.packingList : null,
       };
 
-      const { data: truck, error: truckError } = await supabase
+      const { error: truckError } = await supabase
         .from("trucks")
         .insert(truckInsert)
         .select()
