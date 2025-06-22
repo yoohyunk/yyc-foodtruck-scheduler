@@ -47,13 +47,7 @@ export default function AddTrucks(): ReactElement {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const truckTypes = [
-    "Food Truck",
-    "Catering Truck",
-    "Mobile Kitchen",
-    "Food Cart",
-    "Trailer",
-  ];
+  const truckTypes = ["Food Truck", "Beverage Truck", "Dessert Truck"];
 
   const capacityOptions = [
     "Small (1-50 people)",

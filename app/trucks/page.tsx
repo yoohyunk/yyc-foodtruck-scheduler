@@ -2,31 +2,54 @@
 
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-import { Truck } from "../types";
+import { createClient } from "@/lib/supabase/client";
+import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
+
+type Truck = Tables<"trucks"> & {
+  addresses?: Tables<"addresses">;
+};
 
 export default function Trucks(): ReactElement {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filteredTrucks, setFilteredTrucks] = useState<Truck[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("All");
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
+  const supabase = createClient();
 
-  // Fetch trucks from trucks.json
+  // Fetch trucks from Supabase
   useEffect(() => {
-    fetch("/trucks.json")
-      .then((response) => {
-        if (!response.ok)
-          throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-      })
-      .then((data: Truck[]) => {
-        setTrucks(data);
-        setFilteredTrucks(data);
-      })
-      .catch((error) => console.error("Error fetching trucks:", error));
-  }, []);
+    const fetchTrucks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("trucks")
+          .select(
+            `
+            *,
+            addresses (*)
+          `
+          )
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching trucks:", error);
+          return;
+        }
+
+        setTrucks(data || []);
+        setFilteredTrucks(data || []);
+      } catch (error) {
+        console.error("Error fetching trucks:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrucks();
+  }, [supabase]);
 
   // Filter trucks based on the active filter
   useEffect(() => {
@@ -37,14 +60,30 @@ export default function Trucks(): ReactElement {
     }
   }, [activeFilter, trucks]);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-lg text-gray-500">Loading trucks...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="trucks-page">
-      <h2 className="text-2xl mb-4">Truck Management</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Truck Management</h2>
+        <button
+          onClick={() => router.push("/trucks/add-trucks")}
+          className="button bg-green-600 hover:bg-green-700 text-white"
+        >
+          + Add Truck
+        </button>
+      </div>
 
       {/* Filter Buttons */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".filter-buttons")}
-        className="filter-buttons grid"
+        className="filter-buttons grid grid-cols-2 md:grid-cols-4 gap-2 mb-6"
       >
         <button
           className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
@@ -84,7 +123,7 @@ export default function Trucks(): ReactElement {
               isHighlighted={shouldHighlight(
                 `.truck-card:nth-child(${index + 1})`
               )}
-              className="truck-card bg-white p-4 rounded shadow relative"
+              className="truck-card bg-white p-6 rounded-lg shadow-md relative border"
             >
               {/* Edit Button */}
               <TutorialHighlight
@@ -93,7 +132,7 @@ export default function Trucks(): ReactElement {
                 )}
               >
                 <button
-                  className="edit-button"
+                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
                   onClick={() => router.push(`/trucks/${truck.id}`)}
                   title="Edit Truck"
                 >
@@ -101,36 +140,58 @@ export default function Trucks(): ReactElement {
                 </button>
               </TutorialHighlight>
 
-              <h3 className="text-lg font-semibold">{truck.name}</h3>
-              <p>
-                <strong>Type:</strong> {truck.type}
-              </p>
-              <p>
-                <strong>Capacity:</strong> {truck.capacity}
-              </p>
-              <p>
-                <strong>Status:</strong>{" "}
-                <span
-                  className={
-                    truck.status === "Available"
-                      ? "text-green-500"
-                      : "text-red-500"
-                  }
-                >
-                  {truck.status}
-                </span>
-              </p>
-              <p>
-                <strong>Driver:</strong>{" "}
-                {truck.driver ? truck.driver.name : "No driver assigned"}
-              </p>
-              <p>
-                <strong>Location:</strong> {truck.location}
-              </p>
+              <h3 className="text-xl font-semibold mb-3">{truck.name}</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="mb-2">
+                    <strong>Type:</strong> {truck.type}
+                  </p>
+                  <p className="mb-2">
+                    <strong>Capacity:</strong> {truck.capacity}
+                  </p>
+                  <p className="mb-2">
+                    <strong>Status:</strong>{" "}
+                    <span
+                      className={
+                        truck.is_available
+                          ? "text-green-600 font-semibold"
+                          : "text-red-600 font-semibold"
+                      }
+                    >
+                      {truck.is_available ? "Available" : "Unavailable"}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <p className="mb-2">
+                    <strong>Location:</strong>{" "}
+                    {truck.addresses?.street || "No address"}
+                  </p>
+                  {truck.packing_list && truck.packing_list.length > 0 && (
+                    <p className="mb-2">
+                      <strong>Equipment:</strong>{" "}
+                      <span className="text-sm text-gray-600">
+                        {truck.packing_list.slice(0, 3).join(", ")}
+                        {truck.packing_list.length > 3 && "..."}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
             </TutorialHighlight>
           ))
         ) : (
-          <p className="text-gray-500">No trucks found.</p>
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg mb-4">No trucks found.</p>
+            <button
+              onClick={() => router.push("/trucks/add-trucks")}
+              className="button bg-green-600 hover:bg-green-700 text-white"
+            >
+              Add Your First Truck
+            </button>
+          </div>
         )}
       </TutorialHighlight>
     </div>
