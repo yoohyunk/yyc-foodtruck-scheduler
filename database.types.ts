@@ -49,31 +49,31 @@ export type Database = {
         Row: {
           created_at: string;
           employee_id: string | null;
-          end_date: string | null;
+          end_date: string;
           event_id: string | null;
-          id: number;
+          id: string;
           is_completed: boolean | null;
-          start_date: string | null;
+          start_date: string;
           status: string | null;
         };
         Insert: {
           created_at?: string;
           employee_id?: string | null;
-          end_date?: string | null;
+          end_date: string;
           event_id?: string | null;
-          id?: number;
+          id?: string;
           is_completed?: boolean | null;
-          start_date?: string | null;
+          start_date: string;
           status?: string | null;
         };
         Update: {
           created_at?: string;
           employee_id?: string | null;
-          end_date?: string | null;
+          end_date?: string;
           event_id?: string | null;
-          id?: number;
+          id?: string;
           is_completed?: boolean | null;
-          start_date?: string | null;
+          start_date?: string;
           status?: string | null;
         };
         Relationships: [
@@ -101,12 +101,12 @@ export type Database = {
           employee_id: string;
           employee_type: string | null;
           first_name: string | null;
-          is_available: boolean | null;
-          last_name: string | null;
-          user_id: string | null;
-          phone: string | null;
-          email: string | null;
+          is_available: boolean;
           is_pending: boolean;
+          last_name: string | null;
+          user_email: string | null;
+          user_id: string | null;
+          user_phone: string | null;
         };
         Insert: {
           address_id?: string | null;
@@ -115,12 +115,12 @@ export type Database = {
           employee_id?: string;
           employee_type?: string | null;
           first_name?: string | null;
-          is_available?: boolean | null;
-          last_name?: string | null;
-          user_id?: string | null;
-          phone?: string | null;
-          email?: string | null;
+          is_available: boolean;
           is_pending?: boolean;
+          last_name?: string | null;
+          user_email?: string | null;
+          user_id?: string | null;
+          user_phone?: string | null;
         };
         Update: {
           address_id?: string | null;
@@ -129,10 +129,12 @@ export type Database = {
           employee_id?: string;
           employee_type?: string | null;
           first_name?: string | null;
-          is_available?: boolean | null;
-          last_name?: string | null;
-          user_id?: string | null;
+          is_available?: boolean;
           is_pending?: boolean;
+          last_name?: string | null;
+          user_email?: string | null;
+          user_id?: string | null;
+          user_phone?: string | null;
         };
         Relationships: [
           {
@@ -194,30 +196,161 @@ export type Database = {
           },
         ];
       };
-      wage: {
+      time_off_request: {
         Row: {
           created_at: string;
           employee_id: string | null;
-          end_date: string | null;
-          hourly_wage: number | null;
-          id: number;
-          start_date: string | null;
+          end_datetime: string;
+          id: string;
+          reason: string | null;
+          start_datetime: string;
+          status: string;
         };
         Insert: {
           created_at?: string;
           employee_id?: string | null;
-          end_date?: string | null;
-          hourly_wage?: number | null;
-          id?: number;
-          start_date?: string | null;
+          end_datetime: string;
+          id?: string;
+          reason?: string | null;
+          start_datetime: string;
+          status?: string;
         };
         Update: {
           created_at?: string;
           employee_id?: string | null;
-          end_date?: string | null;
-          hourly_wage?: number | null;
-          id?: number;
-          start_date?: string | null;
+          end_datetime?: string;
+          id?: string;
+          reason?: string | null;
+          start_datetime?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "time_off_request_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["employee_id"];
+          },
+        ];
+      };
+      truck_assignment: {
+        Row: {
+          created_at: string;
+          driver_id: string | null;
+          end_time: string;
+          event_id: string | null;
+          id: string;
+          start_time: string;
+          truck_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          driver_id?: string | null;
+          end_time: string;
+          event_id?: string | null;
+          id?: string;
+          start_time: string;
+          truck_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          driver_id?: string | null;
+          end_time?: string;
+          event_id?: string | null;
+          id?: string;
+          start_time?: string;
+          truck_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "truck_assignment_driver_id_fkey";
+            columns: ["driver_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["employee_id"];
+          },
+          {
+            foreignKeyName: "truck_assignment_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "truck_assignment_truck_id_fkey";
+            columns: ["truck_id"];
+            isOneToOne: false;
+            referencedRelation: "trucks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      trucks: {
+        Row: {
+          address_id: string | null;
+          capacity: string;
+          created_at: string;
+          id: string;
+          is_available: boolean;
+          name: string;
+          packing_list: string[] | null;
+          type: string;
+        };
+        Insert: {
+          address_id?: string | null;
+          capacity: string;
+          created_at?: string;
+          id?: string;
+          is_available?: boolean;
+          name: string;
+          packing_list?: string[] | null;
+          type: string;
+        };
+        Update: {
+          address_id?: string | null;
+          capacity?: string;
+          created_at?: string;
+          id?: string;
+          is_available?: boolean;
+          name?: string;
+          packing_list?: string[] | null;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trucks_address_id_fkey";
+            columns: ["address_id"];
+            isOneToOne: false;
+            referencedRelation: "addresses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      wage: {
+        Row: {
+          created_at: string;
+          employee_id: string | null;
+          end_date: string;
+          hourly_wage: number;
+          id: string;
+          start_date: string;
+        };
+        Insert: {
+          created_at?: string;
+          employee_id?: string | null;
+          end_date: string;
+          hourly_wage?: number;
+          id?: string;
+          start_date: string;
+        };
+        Update: {
+          created_at?: string;
+          employee_id?: string | null;
+          end_date?: string;
+          hourly_wage?: number;
+          id?: string;
+          start_date?: string;
         };
         Relationships: [
           {

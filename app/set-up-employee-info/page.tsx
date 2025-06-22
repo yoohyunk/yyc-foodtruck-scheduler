@@ -28,8 +28,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     created_at: "",
     is_available: false,
     user_id: null,
-    phone: null,
-    email: null,
+    user_phone: null,
+    user_email: null,
     is_pending: false,
   });
   const [address, setAddress] = useState<AddressInfo>({
@@ -119,8 +119,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             created_at: "",
             is_available: true,
             user_id: user.id,
-            phone: null,
-            email: null,
+            user_phone: null,
+            user_email: null,
             is_pending: false,
           });
           setLoading(false);
@@ -143,8 +143,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           created_at: employees.created_at,
           is_available: employees.is_available ?? false,
           user_id: employees.user_id,
-          phone: employees.user_phone,
-          email: employees.user_email,
+          user_phone: employees.user_phone,
+          user_email: employees.user_email,
           is_pending: employees.is_pending,
         });
 
@@ -377,8 +377,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           address_id: addressId,
           availability: employee.availability,
           is_available: employee.is_available,
-          user_phone: employee.phone,
-          user_email: employee.email,
+          user_phone: employee.user_phone,
+          user_email: employee.user_email,
           is_pending: employee.is_pending,
         },
       });
@@ -393,8 +393,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             address_id: addressId,
             availability: employee.availability,
             is_available: employee.is_available,
-            user_phone: employee.phone,
-            user_email: employee.email,
+            user_phone: employee.user_phone,
+            user_email: employee.user_email,
             is_pending: employee.is_pending,
           })
           .eq("employee_id", existingEmployee.employee_id)
@@ -492,14 +492,14 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
         placeholder="Last Name"
       />
       <input
-        name="phone"
-        value={employee.phone ?? ""}
+        name="user_phone"
+        value={employee.user_phone ?? ""}
         onChange={handleEmployeeChange}
         placeholder="Phone Number"
       />
       <input
-        name="email"
-        value={employee.email ?? ""}
+        name="user_email"
+        value={employee.user_email ?? ""}
         onChange={handleEmployeeChange}
         placeholder="Email"
       />
