@@ -6,85 +6,318 @@ import {
   FormEvent,
   ChangeEvent,
   ReactElement,
+  useRef,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Truck, Event, TruckFormData } from "@/app/types";
-import { extractDate, extractTime } from "@/app/events/utils";
+import { createClient } from "@/lib/supabase/client";
+import { Tables, TablesInsert } from "@/database.types";
+import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
+import { Coordinates } from "@/app/types";
+
+type Truck = Tables<"trucks"> & {
+  addresses?: Tables<"addresses">;
+};
+
+type Event = Tables<"events"> & {
+  addresses?: Tables<"addresses">;
+};
+
+interface TruckFormData {
+  name: string;
+  type: string;
+  capacity: string;
+  isAvailable: boolean;
+  address: string;
+  packingList: string[];
+}
 
 export default function EditTruckPage(): ReactElement {
   const { id } = useParams();
   const router = useRouter();
+  const supabase = createClient();
+  const addressFormRef = useRef<AddressFormRef>(null);
+
   const [truck, setTruck] = useState<Truck | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
+  const [addressFormData, setAddressFormData] = useState<{
+    streetNumber: string;
+    streetName: string;
+    direction: string;
+    city: string;
+    postalCode: string;
+  } | null>(null);
+
   const [formData, setFormData] = useState<TruckFormData>({
     name: "",
     type: "",
     capacity: "",
-    status: "",
-    driver: "",
-    location: "",
-    isAvailable: false,
+    isAvailable: true,
+    address: "",
+    packingList: [],
   });
 
-  // Fetch truck details
+  const truckTypes = ["Food Truck", "Beverage Truck", "Dessert Truck"];
+
+  const capacityOptions = [
+    "Small (1-50 people)",
+    "Medium (51-100 people)",
+    "Large (101-200 people)",
+    "Extra Large (200+ people)",
+  ];
+
+  const packingListOptions = [
+    "Grill",
+    "Fryer",
+    "Refrigerator",
+    "Freezer",
+    "Sink",
+    "Prep Station",
+    "Storage Cabinets",
+    "Generator",
+    "Water Tank",
+    "Propane Tank",
+    "Utensils",
+    "Plates & Cups",
+    "Cleaning Supplies",
+    "First Aid Kit",
+    "Fire Extinguisher",
+  ];
+
+  // Fetch truck details from Supabase
   useEffect(() => {
-    fetch("/trucks.json")
-      .then((response) => response.json())
-      .then((data: Truck[]) => {
-        const truckData = data.find((t) => String(t.id) === id);
-        if (truckData) {
-          setTruck(truckData);
-          setFormData({
-            name: truckData.name || "",
-            type: truckData.type || "",
-            capacity: truckData.capacity || "",
-            status: truckData.status || "",
-            driver: truckData.driver ? truckData.driver.name : "",
-            location: truckData.location || "",
-            isAvailable: truckData.status === "Available",
-          });
-        } else {
-          console.error("Truck not found");
+    const fetchTruck = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("trucks")
+          .select(
+            `
+            *,
+            addresses (*)
+          `
+          )
+          .eq("id", id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching truck:", error);
+          setError("Failed to load truck details");
+          return;
         }
-      })
-      .catch((error) => console.error("Error fetching truck:", error));
-  }, [id]);
+
+        if (data) {
+          setTruck(data);
+          setFormData({
+            name: data.name || "",
+            type: data.type || "",
+            capacity: data.capacity || "",
+            isAvailable: data.is_available ?? true,
+            address: data.addresses?.street || "",
+            packingList: data.packing_list || [],
+          });
+
+          // Set address form data if available
+          if (data.addresses) {
+            setAddressFormData({
+              streetNumber: "",
+              streetName: "",
+              direction: "None",
+              city: data.addresses.city || "Calgary",
+              postalCode: data.addresses.postal_code || "",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching truck:", error);
+        setError("Failed to load truck details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchTruck();
+    }
+  }, [id, supabase]);
 
   // Fetch events associated with the truck
   useEffect(() => {
-    fetch("/events.json")
-      .then((response) => response.json())
-      .then((data: Event[]) => {
-        const truckEvents = data.filter(
-          (event) =>
-            event.trucks && event.trucks.map(String).includes(id as string)
-        );
-        setEvents(truckEvents);
-      })
-      .catch((error) => console.error("Error fetching events:", error));
-  }, [id]);
+    const fetchEvents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("events")
+          .select(
+            `
+            *,
+            addresses (*)
+          `
+          )
+          .order("start_date", { ascending: true });
 
-  // Handle form input changes
-  const handleInputChange = (
+        if (error) {
+          console.error("Error fetching events:", error);
+          return;
+        }
+
+        // Filter events that include this truck (would need truck_assignment table)
+        // For now, show all events
+        setEvents(data || []);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    };
+
+    if (id) {
+      fetchEvents();
+    }
+  }, [id, supabase]);
+
+  const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  // Handle form submission
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    // Simulate saving the updated truck data
-    alert("Truck information updated successfully!");
-    router.push("/trucks");
+  const handleAddressChange = (
+    address: string,
+    coords?: Coordinates,
+    addrData?: {
+      streetNumber: string;
+      streetName: string;
+      direction: string;
+      city: string;
+      postalCode: string;
+    }
+  ) => {
+    setFormData({
+      ...formData,
+      address: address,
+    });
+    setCoordinates(coords);
+    setAddressFormData(addrData || null);
   };
 
-  if (!truck) {
+  const handlePackingListChange = (item: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      packingList: prev.packingList.includes(item)
+        ? prev.packingList.filter((i) => i !== item)
+        : [...prev.packingList, item],
+    }));
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!truck) return;
+
+    // Validate address
+    const isAddressValid = addressFormRef.current?.validate() ?? false;
+    if (!isAddressValid) {
+      setError("Please enter a valid address.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Update or create address
+      let addressId = truck.address_id;
+
+      if (truck.address_id) {
+        // Update existing address
+        const { error: addressError } = await supabase
+          .from("addresses")
+          .update({
+            street: formData.address,
+            city: addressFormData?.city || "Calgary",
+            province: "Alberta",
+            postal_code: addressFormData?.postalCode || "",
+            country: "Canada",
+            latitude: coordinates?.latitude?.toString() ?? null,
+            longitude: coordinates?.longitude?.toString() ?? null,
+          })
+          .eq("id", truck.address_id);
+
+        if (addressError) {
+          setError(`Failed to update address: ${addressError.message}`);
+          setIsSubmitting(false);
+          return;
+        }
+      } else {
+        // Create new address
+        const addressInsert: TablesInsert<"addresses"> = {
+          street: formData.address,
+          city: addressFormData?.city || "Calgary",
+          province: "Alberta",
+          postal_code: addressFormData?.postalCode || "",
+          country: "Canada",
+          latitude: coordinates?.latitude?.toString() ?? null,
+          longitude: coordinates?.longitude?.toString() ?? null,
+        };
+
+        const { data: newAddress, error: addressError } = await supabase
+          .from("addresses")
+          .insert(addressInsert)
+          .select()
+          .single();
+
+        if (addressError) {
+          setError(`Failed to create address: ${addressError.message}`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        addressId = newAddress.id;
+      }
+
+      // Update truck
+      const truckUpdate: TablesInsert<"trucks"> = {
+        name: formData.name,
+        type: formData.type,
+        capacity: formData.capacity,
+        address_id: addressId,
+        is_available: formData.isAvailable,
+        packing_list:
+          formData.packingList.length > 0 ? formData.packingList : null,
+      };
+
+      const { error: truckError } = await supabase
+        .from("trucks")
+        .update(truckUpdate)
+        .eq("id", id);
+
+      if (truckError) {
+        setError(`Failed to update truck: ${truckError.message}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSuccess("Truck updated successfully!");
+      setTimeout(() => {
+        router.push("/trucks");
+      }, 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p className="text-lg text-gray-500">Loading truck details...</p>
@@ -92,128 +325,154 @@ export default function EditTruckPage(): ReactElement {
     );
   }
 
+  if (!truck) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-lg text-gray-500">Truck not found</p>
+      </div>
+    );
+  }
+
   return (
     <div className="edit-truck-page">
-      <button className="button mb-4" onClick={() => router.back()}>
-        &larr; Back
-      </button>
+      <div className="flex justify-between items-center mb-6">
+        <button className="button" onClick={() => router.back()}>
+          &larr; Back
+        </button>
+      </div>
 
-      <h1 className="text-2xl font-bold mb-4">Edit Truck</h1>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name */}
-        <div>
-          <label htmlFor="name" className="block font-medium">
-            Name
+        <div className="input-group">
+          <label htmlFor="name" className="input-label">
+            Truck Name *
           </label>
           <input
             type="text"
             id="name"
             name="name"
             value={formData.name}
-            onChange={handleInputChange}
+            onChange={handleChange}
             className="input-field"
             required
           />
         </div>
 
         {/* Type */}
-        <div>
-          <label htmlFor="type" className="block font-medium">
-            Type
+        <div className="input-group">
+          <label htmlFor="type" className="input-label">
+            Truck Type *
           </label>
           <select
             id="type"
             name="type"
             value={formData.type}
-            onChange={handleInputChange}
+            onChange={handleChange}
             className="input-field"
             required
           >
-            <option value="">Select Type</option>
-            <option value="Food Truck">Food Truck</option>
-            <option value="Beverage Truck">Beverage Truck</option>
-            <option value="Dessert Truck">Dessert Truck</option>
-            <option value="Holiday Truck">Holiday Truck</option>
+            <option value="">Select truck type</option>
+            {truckTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
           </select>
         </div>
 
         {/* Capacity */}
-        <div>
-          <label htmlFor="capacity" className="block font-medium">
-            Capacity
+        <div className="input-group">
+          <label htmlFor="capacity" className="input-label">
+            Capacity *
           </label>
-          <input
-            type="number"
+          <select
             id="capacity"
             name="capacity"
             value={formData.capacity}
-            onChange={handleInputChange}
-            className="input-field"
-            required
-          />
-        </div>
-
-        {/* Status */}
-        <div>
-          <label htmlFor="status" className="block font-medium">
-            Status
-          </label>
-          <select
-            id="status"
-            name="status"
-            value={formData.status}
-            onChange={handleInputChange}
+            onChange={handleChange}
             className="input-field"
             required
           >
-            <option value="">Select Status</option>
-            <option value="Available">Available</option>
-            <option value="Unavailable">Unavailable</option>
+            <option value="">Select capacity</option>
+            {capacityOptions.map((capacity) => (
+              <option key={capacity} value={capacity}>
+                {capacity}
+              </option>
+            ))}
           </select>
         </div>
 
-        {/* Driver */}
-        <div>
-          <label htmlFor="driver" className="block font-medium">
-            Driver
+        {/* Availability */}
+        <div className="input-group">
+          <label className="flex items-center space-x-2">
+            <span className="input-label">Available</span>
+            <input
+              type="checkbox"
+              name="isAvailable"
+              checked={formData.isAvailable}
+              onChange={handleChange}
+              className="rounded"
+            />
           </label>
-          <input
-            type="text"
-            id="driver"
-            name="driver"
-            value={formData.driver}
-            onChange={handleInputChange}
-            className="input-field"
-            placeholder="Enter driver name"
+        </div>
+
+        {/* Address */}
+        <div className="input-group">
+          <label htmlFor="address" className="input-label">
+            Address *
+          </label>
+          <AddressForm
+            value={formData.address}
+            onChange={handleAddressChange}
+            placeholder="Enter truck address"
+            required
+            ref={addressFormRef}
           />
         </div>
 
-        {/* Location */}
-        <div>
-          <label htmlFor="location" className="block font-medium">
-            Location
-          </label>
-          <select
-            id="location"
-            name="location"
-            value={formData.location}
-            onChange={handleInputChange}
-            className="input-field"
-            required
-          >
-            <option value="">Select Location</option>
-            <option value="NE">NE</option>
-            <option value="SE">SE</option>
-          </select>
+        {/* Packing List */}
+        <div className="input-group">
+          <label className="input-label">Packing List (Optional)</label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {packingListOptions.map((item) => (
+              <label key={item} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={formData.packingList.includes(item)}
+                  onChange={() => handlePackingListChange(item)}
+                  className="rounded"
+                />
+                <span className="text-sm">{item}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
-        <button
-          type="submit"
-          className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
-        >
-          Save Changes
-        </button>
+        {/* Submit Buttons */}
+        <div className="flex gap-4">
+          <button type="submit" className="button" disabled={isSubmitting}>
+            {isSubmitting ? "Updating..." : "Save Changes"}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="button bg-gray-500 hover:bg-gray-600"
+          >
+            Cancel
+          </button>
+        </div>
+
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+            {success}
+          </div>
+        )}
       </form>
 
       {/* Upcoming Events */}
@@ -224,20 +483,25 @@ export default function EditTruckPage(): ReactElement {
             {events.map((event) => (
               <div
                 key={event.id}
-                className="event-card bg-white p-4 rounded shadow"
+                className="event-card bg-white p-4 rounded-lg shadow border"
               >
                 <h3 className="text-lg font-semibold">{event.title}</h3>
-                <p>
+                <p className="mb-1">
                   <strong>Date:</strong>{" "}
-                  {extractDate(event.startTime, event.endTime)}
+                  {new Date(event.start_date).toLocaleDateString()}
                 </p>
-                <p>
-                  <strong>Location:</strong> {event.location}
+                <p className="mb-1">
+                  <strong>Time:</strong>{" "}
+                  {new Date(event.start_date).toLocaleTimeString()} -{" "}
+                  {new Date(event.end_date).toLocaleTimeString()}
                 </p>
-                <p>
-                  <strong>Time:</strong> {extractTime(event.startTime)} -{" "}
-                  {extractTime(event.endTime)}
+                <p className="mb-1">
+                  <strong>Location:</strong>{" "}
+                  {event.addresses?.street || "No address"}
                 </p>
+                {event.description && (
+                  <p className="text-sm text-gray-600">{event.description}</p>
+                )}
               </div>
             ))}
           </div>
