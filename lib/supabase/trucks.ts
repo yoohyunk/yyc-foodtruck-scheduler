@@ -4,7 +4,6 @@ import { Truck } from "@/app/types";
 const supabase = createClient();
 
 export const trucksApi = {
-  // 모든 트럭 가져오기
   async getAllTrucks(): Promise<Truck[]> {
     const { data, error } = await supabase
       .from("trucks")
@@ -19,7 +18,6 @@ export const trucksApi = {
     return data || [];
   },
 
-  // 특정 트럭 가져오기
   async getTruckById(id: string): Promise<Truck | null> {
     const { data, error } = await supabase
       .from("trucks")
@@ -35,7 +33,6 @@ export const trucksApi = {
     return data;
   },
 
-  // 사용 가능한 트럭 가져오기
   async getAvailableTrucks(): Promise<Truck[]> {
     const { data, error } = await supabase
       .from("trucks")
@@ -51,7 +48,6 @@ export const trucksApi = {
     return data || [];
   },
 
-  // 새 트럭 생성
   async createTruck(
     truckData: Omit<Truck, "id" | "created_at">
   ): Promise<Truck> {
@@ -69,7 +65,6 @@ export const trucksApi = {
     return data;
   },
 
-  // 트럭 업데이트
   async updateTruck(id: string, updates: Partial<Truck>): Promise<Truck> {
     const { data, error } = await supabase
       .from("trucks")
@@ -86,7 +81,6 @@ export const trucksApi = {
     return data;
   },
 
-  // 트럭 삭제
   async deleteTruck(id: string): Promise<void> {
     const { error } = await supabase.from("trucks").delete().eq("id", id);
 
@@ -96,7 +90,6 @@ export const trucksApi = {
     }
   },
 
-  // 트럭 가용성 업데이트
   async updateTruckAvailability(
     id: string,
     isAvailable: boolean

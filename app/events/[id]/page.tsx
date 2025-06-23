@@ -544,7 +544,6 @@ export default function EventDetailsPage(): ReactElement {
           isOpen={isTruckAssignmentModalOpen}
           onClose={() => setTruckAssignmentModalOpen(false)}
           trucks={trucks}
-          assignedEmployees={assignedEmployees}
           onTruckAssignment={(truckId, driverId) =>
             handleTruckAssignment(truckId, driverId)
           }
@@ -559,8 +558,6 @@ export default function EventDetailsPage(): ReactElement {
       {assignedEmployees.length > 0 && (
         <AssignedEmployeesSection
           assignedEmployees={assignedEmployees}
-          trucks={trucks}
-          employees={employees}
           shouldHighlight={shouldHighlight}
         />
       )}

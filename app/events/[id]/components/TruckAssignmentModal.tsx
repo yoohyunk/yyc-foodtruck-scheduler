@@ -1,12 +1,11 @@
 import React from "react";
-import { Employee, Truck, TruckAssignment } from "@/app/types";
+import { Employee, Truck } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 
 interface TruckAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   trucks: Truck[];
-  assignedEmployees: Employee[];
   isLoadingTrucks: boolean;
   onTruckAssignment: (truckId: string, driverId: string | null) => void;
   getAssignedDriverForTruck: (truckId: string) => Employee | null;
@@ -18,7 +17,6 @@ export default function TruckAssignmentModal({
   isOpen,
   onClose,
   trucks,
-  assignedEmployees,
   isLoadingTrucks,
   onTruckAssignment,
   getAssignedDriverForTruck,

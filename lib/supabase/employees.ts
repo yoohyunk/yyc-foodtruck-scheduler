@@ -4,7 +4,6 @@ import { Employee } from "@/app/types";
 const supabase = createClient();
 
 export const employeesApi = {
-  // 모든 직원 가져오기
   async getAllEmployees(): Promise<Employee[]> {
     const { data, error } = await supabase
       .from("employees")
@@ -24,7 +23,6 @@ export const employeesApi = {
     return data || [];
   },
 
-  // 특정 직원 가져오기
   async getEmployeeById(employeeId: string): Promise<Employee | null> {
     const { data, error } = await supabase
       .from("employees")
@@ -45,7 +43,6 @@ export const employeesApi = {
     return data;
   },
 
-  // 사용 가능한 드라이버 가져오기
   async getAvailableDrivers(): Promise<Employee[]> {
     const { data, error } = await supabase
       .from("employees")
@@ -67,7 +64,6 @@ export const employeesApi = {
     return data || [];
   },
 
-  // 사용 가능한 서버 가져오기
   async getAvailableServers(): Promise<Employee[]> {
     const { data, error } = await supabase
       .from("employees")
@@ -89,7 +85,6 @@ export const employeesApi = {
     return data || [];
   },
 
-  // 새 직원 생성
   async createEmployee(
     employeeData: Omit<Employee, "employee_id" | "created_at">
   ): Promise<Employee> {
@@ -107,7 +102,6 @@ export const employeesApi = {
     return data;
   },
 
-  // 직원 업데이트
   async updateEmployee(
     employeeId: string,
     updates: Partial<Employee>
@@ -127,7 +121,6 @@ export const employeesApi = {
     return data;
   },
 
-  // 직원 삭제
   async deleteEmployee(employeeId: string): Promise<void> {
     const { error } = await supabase
       .from("employees")

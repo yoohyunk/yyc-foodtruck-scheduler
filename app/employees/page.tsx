@@ -35,7 +35,9 @@ export default function Employees(): ReactElement {
             address_id,
             user_id,
             user_email,
-            user_phone
+            user_phone,
+            created_at,
+            is_pending
           `
           )
           .neq("employee_type", "pending");

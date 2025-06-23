@@ -5,9 +5,7 @@ import { addressesApi } from "./addresses";
 
 const supabase = createClient();
 
-// 이벤트 관련 함수들
 export const eventsApi = {
-  // 모든 이벤트 가져오기
   async getAllEvents(): Promise<Event[]> {
     const { data, error } = await supabase
       .from("events")
@@ -27,7 +25,6 @@ export const eventsApi = {
     return data || [];
   },
 
-  // 특정 이벤트 가져오기
   async getEventById(id: string): Promise<Event | null> {
     const { data, error } = await supabase
       .from("events")
@@ -48,7 +45,6 @@ export const eventsApi = {
     return data;
   },
 
-  // 새 이벤트 생성
   async createEvent(
     eventData: TablesInsert<"events"> & {
       addressData?: TablesInsert<"addresses">;
@@ -84,7 +80,6 @@ export const eventsApi = {
     return data;
   },
 
-  // 이벤트 업데이트
   async updateEvent(
     id: string,
     updateData: TablesUpdate<"events"> & {
@@ -139,7 +134,6 @@ export const eventsApi = {
     return data;
   },
 
-  // 이벤트 삭제
   async deleteEvent(id: string): Promise<void> {
     // First get the event to check if it has an address
     const event = await this.getEventById(id);
@@ -163,9 +157,7 @@ export const eventsApi = {
   },
 };
 
-// 트럭 할당 관련 함수들
 export const truckAssignmentsApi = {
-  // 이벤트의 트럭 할당 가져오기
   async getTruckAssignmentsByEventId(
     eventId: string
   ): Promise<TruckAssignment[]> {
@@ -182,7 +174,6 @@ export const truckAssignmentsApi = {
     return data || [];
   },
 
-  // 트럭 할당 생성
   async createTruckAssignment(
     assignmentData: Omit<TruckAssignment, "id" | "created_at">
   ): Promise<TruckAssignment> {
@@ -200,7 +191,6 @@ export const truckAssignmentsApi = {
     return data;
   },
 
-  // 트럭 할당 업데이트
   async updateTruckAssignment(
     id: string,
     updates: Partial<TruckAssignment>
@@ -220,7 +210,6 @@ export const truckAssignmentsApi = {
     return data;
   },
 
-  // 트럭 할당 삭제
   async deleteTruckAssignment(id: string): Promise<void> {
     const { error } = await supabase
       .from("truck_assignment")
@@ -233,7 +222,6 @@ export const truckAssignmentsApi = {
     }
   },
 
-  // 이벤트의 모든 트럭 할당 삭제
   async deleteTruckAssignmentsByEventId(eventId: string): Promise<void> {
     const { error } = await supabase
       .from("truck_assignment")

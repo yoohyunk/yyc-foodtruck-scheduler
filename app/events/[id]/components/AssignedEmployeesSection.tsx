@@ -1,18 +1,14 @@
 import React from "react";
-import { Employee, Truck } from "@/app/types";
+import { Employee } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 
 interface AssignedEmployeesSectionProps {
   assignedEmployees: Employee[];
-  trucks: Truck[];
-  employees: Employee[];
   shouldHighlight: (selector: string) => boolean;
 }
 
 export default function AssignedEmployeesSection({
   assignedEmployees,
-  trucks,
-  employees,
   shouldHighlight,
 }: AssignedEmployeesSectionProps) {
   if (assignedEmployees.length === 0) return null;
