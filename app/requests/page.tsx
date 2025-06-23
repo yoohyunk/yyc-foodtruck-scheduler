@@ -204,15 +204,15 @@ export default function RequestsPage(): ReactElement {
           </div>
         </button>
         <button
-          className={`button ${filterStatus === "Approved" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
-          onClick={() => setFilterStatus("Approved")}
+          className={`button ${filterStatus === "Accepted" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setFilterStatus("Accepted")}
         >
           <div className="flex items-center justify-center">
             <FiUser
-              className={`mr-2 ${filterStatus === "Approved" ? "text-white" : "text-green-500"}`}
+              className={`mr-2 ${filterStatus === "Accepted" ? "text-white" : "text-green-500"}`}
             />
             <span>
-              Approved ({requests.filter((r) => r.status === "Approved").length}
+              Accepted ({requests.filter((r) => r.status === "Accepted").length}
               )
             </span>
           </div>
@@ -276,7 +276,7 @@ export default function RequestsPage(): ReactElement {
                       handleStatusUpdate(request.id, e.target.value)
                     }
                     className={`px-3 py-1 rounded text-sm font-medium border-none focus:outline-none focus:ring-2 focus:ring-primary-dark ${
-                      request.status === "Approved"
+                      request.status === "Accepted"
                         ? "bg-green-100 text-green-800"
                         : request.status === "Rejected"
                           ? "bg-red-100 text-red-800"
@@ -284,7 +284,7 @@ export default function RequestsPage(): ReactElement {
                     }`}
                   >
                     <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
+                    <option value="Accepted">Accepted</option>
                     <option value="Rejected">Rejected</option>
                   </select>
                   <button

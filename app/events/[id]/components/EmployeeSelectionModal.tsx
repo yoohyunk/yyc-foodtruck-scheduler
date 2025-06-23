@@ -4,10 +4,13 @@ import { TutorialHighlight } from "../../../components/TutorialHighlight";
 import { calculateDistance } from "../../../AlgApi/distance";
 import { wagesApi } from "@/lib/supabase/wages";
 import { Tables } from "@/database.types";
+import { createClient } from "@/lib/supabase/client";
 
 interface EmployeeWithDistanceAndWage extends Employee {
   distance?: number;
   currentWage?: number;
+  isAvailable?: boolean;
+  availabilityReason?: string;
 }
 
 interface EmployeeSelectionModalProps {
@@ -16,7 +19,13 @@ interface EmployeeSelectionModalProps {
   employees: Employee[];
   assignedEmployees: Employee[];
   isLoadingEmployees: boolean;
-  event: { addresses?: Tables<"addresses">; number_of_servers_needed?: number };
+  event: {
+    id?: string;
+    addresses?: Tables<"addresses">;
+    number_of_servers_needed?: number;
+    start_date?: string;
+    end_date?: string;
+  };
   onEmployeeSelection: (employee: Employee) => void;
   shouldHighlight: (selector: string) => boolean;
   employeeFilter: string;
@@ -64,6 +73,11 @@ const EmployeeItem = React.memo(
             <span className="text-sm text-gray-500 ml-2">
               ({employee.employee_type || "Unknown"})
             </span>
+            {!employee.isAvailable && employee.availabilityReason && (
+              <div className="text-xs text-red-600 mt-1">
+                ⚠️ {employee.availabilityReason}
+              </div>
+            )}
           </div>
           <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
             <span className="mr-4">{formatDistance(employee.distance)}</span>
@@ -75,7 +89,7 @@ const EmployeeItem = React.memo(
           className="employee-checkbox mr-3"
           checked={isAssigned}
           onChange={() => !isDisabled && onSelection(employee)}
-          disabled={isDisabled}
+          disabled={isDisabled || !employee.isAvailable}
         />
       </label>
     </TutorialHighlight>
@@ -101,11 +115,101 @@ export default function EmployeeSelectionModal({
   >([]);
   const [isLoadingDistances, setIsLoadingDistances] = useState(false);
   const [sortByDistance, setSortByDistance] = useState(false);
+  const supabase = createClient();
 
   // Memoize assigned employee IDs for faster lookups
   const assignedEmployeeIds = useMemo(
     () => new Set(assignedEmployees.map((emp) => emp.employee_id)),
     [assignedEmployees]
+  );
+
+  // Check employee availability for the event
+  const checkEmployeeAvailability = useCallback(
+    async (employee: Employee) => {
+      if (!event.start_date || !event.end_date) {
+        return { isAvailable: true, reason: "" };
+      }
+
+      const eventStart = new Date(event.start_date);
+      const eventEnd = new Date(event.end_date);
+      const dayOfWeek = eventStart.getDay();
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const eventDay = dayNames[dayOfWeek];
+
+      // Check day availability
+      const availability = employee.availability as string[] | null;
+      if (!availability || !availability.includes(eventDay)) {
+        return {
+          isAvailable: false,
+          reason: `Not available on ${eventDay}`,
+        };
+      }
+
+      // Check for time off conflicts
+      const { data: timeOffRequests } = await supabase
+        .from("time_off_request")
+        .select("*")
+        .eq("employee_id", employee.employee_id)
+        .eq("status", "Accepted");
+
+      if (timeOffRequests && timeOffRequests.length > 0) {
+        const hasTimeOffConflict = timeOffRequests.some((request) => {
+          const requestStart = new Date(request.start_datetime);
+          const requestEnd = new Date(request.end_datetime);
+
+          return (
+            (requestStart <= eventStart && requestEnd > eventStart) ||
+            (requestStart < eventEnd && requestEnd >= eventEnd) ||
+            (requestStart >= eventStart && requestEnd <= eventEnd)
+          );
+        });
+
+        if (hasTimeOffConflict) {
+          return {
+            isAvailable: false,
+            reason: "Has approved time off during this period",
+          };
+        }
+      }
+
+      // Check for other event conflicts
+      const { data: otherAssignments } = await supabase
+        .from("assignments")
+        .select("start_date, end_date")
+        .eq("employee_id", employee.employee_id)
+        .neq("event_id", event.id || "");
+
+      if (otherAssignments && otherAssignments.length > 0) {
+        const hasEventConflict = otherAssignments.some((assignment) => {
+          const assignmentStart = new Date(assignment.start_date);
+          const assignmentEnd = new Date(assignment.end_date);
+
+          return (
+            (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
+            (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
+            (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
+          );
+        });
+
+        if (hasEventConflict) {
+          return {
+            isAvailable: false,
+            reason: "Assigned to another event during this time",
+          };
+        }
+      }
+
+      return { isAvailable: true, reason: "" };
+    },
+    [event, supabase]
   );
 
   const calculateDistancesAndWages = useCallback(async () => {
@@ -156,10 +260,15 @@ export default function EmployeeSelectionModal({
             }
           }
 
+          // Check availability
+          const availability = await checkEmployeeAvailability(employee);
+
           return {
             ...employee,
             distance,
             currentWage,
+            isAvailable: availability.isAvailable,
+            availabilityReason: availability.reason,
           };
         })
       );
@@ -170,7 +279,7 @@ export default function EmployeeSelectionModal({
     } finally {
       setIsLoadingDistances(false);
     }
-  }, [employees, event]);
+  }, [employees, event, checkEmployeeAvailability]);
 
   // Calculate distances and get wages when modal opens
   useEffect(() => {

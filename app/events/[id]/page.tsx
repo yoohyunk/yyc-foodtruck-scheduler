@@ -668,8 +668,11 @@ export default function EventDetailsPage(): ReactElement {
           onFilterChange={(filter) => setEmployeeFilter(filter)}
           isLoadingEmployees={isLoadingEmployees}
           event={{
+            id: event.id,
             addresses: event.addresses,
             number_of_servers_needed: event.number_of_servers_needed || 0,
+            start_date: event.start_date,
+            end_date: event.end_date,
           }}
           shouldHighlight={shouldHighlight}
         />

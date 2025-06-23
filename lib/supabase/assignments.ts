@@ -62,7 +62,7 @@ export const assignmentsApi = {
             .from("time_off_request")
             .select("*")
             .eq("employee_id", employee.employee_id)
-            .eq("status", "Approved");
+            .eq("status", "Accepted");
 
           if (timeOffRequests && timeOffRequests.length > 0) {
             // Check if any approved time off overlaps with the event
@@ -81,6 +81,31 @@ export const assignmentsApi = {
             });
 
             if (hasTimeOffConflict) {
+              return null;
+            }
+          }
+
+          // Check for other event conflicts
+          const { data: otherAssignments } = await supabase
+            .from("assignments")
+            .select("start_date, end_date")
+            .eq("employee_id", employee.employee_id);
+
+          if (otherAssignments && otherAssignments.length > 0) {
+            const hasEventConflict = otherAssignments.some((assignment) => {
+              const assignmentStart = new Date(assignment.start_date);
+              const assignmentEnd = new Date(assignment.end_date);
+              const eventStart = new Date(`${eventDate}T${eventStartTime}`);
+              const eventEnd = new Date(`${eventDate}T${eventEndTime}`);
+
+              return (
+                (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
+                (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
+                (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
+              );
+            });
+
+            if (hasEventConflict) {
               return null;
             }
           }
