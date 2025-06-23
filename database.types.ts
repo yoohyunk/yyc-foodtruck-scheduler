@@ -220,6 +220,7 @@ export type Database = {
           reason: string | null
           start_datetime: string
           status: string
+          type: string | null
         }
         Insert: {
           created_at?: string
@@ -229,6 +230,7 @@ export type Database = {
           reason?: string | null
           start_datetime: string
           status?: string
+          type?: string | null
         }
         Update: {
           created_at?: string
@@ -238,6 +240,7 @@ export type Database = {
           reason?: string | null
           start_datetime?: string
           status?: string
+          type?: string | null
         }
         Relationships: [
           {
