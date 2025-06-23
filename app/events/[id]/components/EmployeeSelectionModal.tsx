@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Employee } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 import { calculateDistance } from "../../../AlgApi/distance";
@@ -39,6 +39,7 @@ export default function EmployeeSelectionModal({
     EmployeeWithDistanceAndWage[]
   >([]);
   const [isLoadingDistances, setIsLoadingDistances] = useState(false);
+  const [sortByDistance, setSortByDistance] = useState(false);
 
   // Calculate distances and get wages when modal opens
   useEffect(() => {
@@ -122,6 +123,20 @@ export default function EmployeeSelectionModal({
     return `$${wage.toFixed(2)}/hr`;
   };
 
+  const sortedAndFilteredEmployees = useMemo(() => {
+    let processedEmployees = employeesWithDistance.filter(
+      (employee) =>
+        employeeFilter === "all" || employee.employee_type === employeeFilter
+    );
+
+    if (sortByDistance) {
+      processedEmployees.sort(
+        (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
+      );
+    }
+    return processedEmployees;
+  }, [employeesWithDistance, employeeFilter, sortByDistance]);
+
   if (!isOpen) return null;
 
   return (
@@ -129,81 +144,79 @@ export default function EmployeeSelectionModal({
       <div className="modal-container">
         <h3 className="modal-title">Select Employees</h3>
         <div className="modal-body">
-          {/* Employee Filter */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Filter by Employee Type:
-            </label>
-            <select
-              value={employeeFilter}
-              onChange={(e) => onFilterChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {/* Employee Filter and Sort */}
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Type
+              </label>
+              <select
+                value={employeeFilter}
+                onChange={(e) => onFilterChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Employees</option>
+                <option value="Server">Server Only</option>
+                <option value="Driver">Driver Only</option>
+                <option value="Manager">Manager Only</option>
+              </select>
+            </div>
+            <button
+              onClick={() => setSortByDistance((prev) => !prev)}
+              className="btn-secondary"
             >
-              <option value="all">All Employees</option>
-              <option value="Server">Server Only</option>
-              <option value="Driver">Driver Only</option>
-              <option value="Manager">Manager Only</option>
-            </select>
+              {sortByDistance ? "Clear Sort" : "Sort by Distance"}
+            </button>
           </div>
 
           {isLoadingEmployees || isLoadingDistances ? (
             <p className="text-gray-500">Loading employees...</p>
-          ) : employeesWithDistance.length > 0 ? (
-            employeesWithDistance
-              .filter(
-                (employee) =>
-                  employeeFilter === "all" ||
-                  employee.employee_type === employeeFilter
-              )
-              .map((employee, index) => (
-                <TutorialHighlight
-                  key={employee.employee_id}
-                  isHighlighted={
-                    index === 0 &&
-                    shouldHighlight(
-                      ".modal-body .employee-checkbox:first-child"
+          ) : sortedAndFilteredEmployees.length > 0 ? (
+            sortedAndFilteredEmployees.map((employee, index) => (
+              <TutorialHighlight
+                key={employee.employee_id}
+                isHighlighted={
+                  index === 0 &&
+                  shouldHighlight(".modal-body .employee-checkbox:first-child")
+                }
+              >
+                <label
+                  className={`employee-label ${
+                    assignedEmployees.some(
+                      (e) => e.employee_id === employee.employee_id
                     )
-                  }
+                      ? "employee-label-selected"
+                      : ""
+                  }`}
                 >
-                  <label
-                    className={`employee-label ${
-                      assignedEmployees.some(
+                  <input
+                    type="checkbox"
+                    className="employee-checkbox"
+                    checked={assignedEmployees.some(
+                      (e) => e.employee_id === employee.employee_id
+                    )}
+                    onChange={() => onEmployeeSelection(employee)}
+                    disabled={
+                      !assignedEmployees.some(
                         (e) => e.employee_id === employee.employee_id
-                      )
-                        ? "employee-label-selected"
-                        : ""
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="employee-checkbox"
-                      checked={assignedEmployees.some(
-                        (e) => e.employee_id === employee.employee_id
-                      )}
-                      onChange={() => onEmployeeSelection(employee)}
-                      disabled={
-                        !assignedEmployees.some(
-                          (e) => e.employee_id === employee.employee_id
-                        ) &&
-                        assignedEmployees.length >=
-                          (event.number_of_servers_needed || 0)
-                      }
-                    />
-                    <div className="employee-info">
-                      <span className="employee-name">
-                        {employee.first_name} {employee.last_name} (
-                        {employee.employee_type || "Unknown"})
-                      </span>
-                      <div className="employee-details text-sm text-gray-600">
-                        <span>
-                          Distance: {formatDistance(employee.distance)}
-                        </span>
-                        <span>Wage: {formatWage(employee.currentWage)}</span>
-                      </div>
+                      ) &&
+                      assignedEmployees.length >=
+                        (event.number_of_servers_needed || 0)
+                    }
+                  />
+                  <div className="employee-info">
+                    <span className="employee-name">
+                      {employee.first_name} {employee.last_name} (
+                      {employee.employee_type || "Unknown"})
+                    </span>
+                    <div className="employee-details text-sm text-gray-600">
+                      <span>Distance: {formatDistance(employee.distance)}</span>
+                      <span>Wage: {formatWage(employee.currentWage)}</span>
                     </div>
-                  </label>
-                </TutorialHighlight>
-              ))
+                  </div>
+                </label>
+              </TutorialHighlight>
+            ))
           ) : (
             <p className="text-gray-500">No employees available.</p>
           )}
