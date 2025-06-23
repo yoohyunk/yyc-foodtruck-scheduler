@@ -58,6 +58,14 @@ export default function EventDetailsPage(): ReactElement {
     contactPhone: "",
     trucks: [],
     isPrepaid: false,
+    // Address fields
+    street: "",
+    city: "",
+    province: "",
+    postalCode: "",
+    country: "",
+    latitude: "",
+    longitude: "",
   });
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -271,6 +279,14 @@ export default function EventDetailsPage(): ReactElement {
       contactPhone: event.contact_phone || "",
       trucks: [],
       isPrepaid: event.is_prepaid || false,
+      // Address fields
+      street: "",
+      city: "",
+      province: "",
+      postalCode: "",
+      country: "",
+      latitude: "",
+      longitude: "",
     });
 
     setSelectedDate(startDate);
@@ -507,11 +523,14 @@ export default function EventDetailsPage(): ReactElement {
           onClose={() => setEmployeeModalOpen(false)}
           employees={employees}
           assignedEmployees={assignedEmployees}
-          onEmployeeSelect={handleEmployeeSelection}
+          onEmployeeSelection={handleEmployeeSelection}
           employeeFilter={employeeFilter}
-          onEmployeeFilterChange={(filter) => setEmployeeFilter(filter)}
+          onFilterChange={(filter) => setEmployeeFilter(filter)}
           isLoadingEmployees={isLoadingEmployees}
-          event={event}
+          event={{
+            addresses: event.addresses,
+            number_of_servers_needed: event.number_of_servers_needed || 0,
+          }}
           shouldHighlight={shouldHighlight}
         />
       )}

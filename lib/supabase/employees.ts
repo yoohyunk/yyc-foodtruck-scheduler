@@ -8,7 +8,12 @@ export const employeesApi = {
   async getAllEmployees(): Promise<Employee[]> {
     const { data, error } = await supabase
       .from("employees")
-      .select("*")
+      .select(
+        `
+        *,
+        addresses (*)
+      `
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -23,7 +28,12 @@ export const employeesApi = {
   async getEmployeeById(employeeId: string): Promise<Employee | null> {
     const { data, error } = await supabase
       .from("employees")
-      .select("*")
+      .select(
+        `
+        *,
+        addresses (*)
+      `
+      )
       .eq("employee_id", employeeId)
       .single();
 
@@ -39,7 +49,12 @@ export const employeesApi = {
   async getAvailableDrivers(): Promise<Employee[]> {
     const { data, error } = await supabase
       .from("employees")
-      .select("*")
+      .select(
+        `
+        *,
+        addresses (*)
+      `
+      )
       .eq("employee_type", "Driver")
       .eq("is_available", true)
       .order("first_name", { ascending: true });
@@ -56,7 +71,12 @@ export const employeesApi = {
   async getAvailableServers(): Promise<Employee[]> {
     const { data, error } = await supabase
       .from("employees")
-      .select("*")
+      .select(
+        `
+        *,
+        addresses (*)
+      `
+      )
       .eq("employee_type", "Server")
       .eq("is_available", true)
       .order("first_name", { ascending: true });

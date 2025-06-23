@@ -1,6 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Employee } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
+import { getCoordinates, calculateDistance } from "../../../AlgApi/distance";
+import { wagesApi } from "@/lib/supabase/wages";
+import { Tables } from "@/database.types";
+
+interface EmployeeWithDistanceAndWage extends Employee {
+  distance?: number;
+  currentWage?: number;
+}
 
 interface EmployeeSelectionModalProps {
   isOpen: boolean;
@@ -8,11 +16,11 @@ interface EmployeeSelectionModalProps {
   employees: Employee[];
   assignedEmployees: Employee[];
   isLoadingEmployees: boolean;
-  event: any;
-  onEmployeeSelect: (employee: Employee) => void;
-  employeeFilter: string;
-  onEmployeeFilterChange: (filter: string) => void;
+  event: { addresses?: Tables<"addresses">; number_of_servers_needed?: number };
+  onEmployeeSelection: (employee: Employee) => void;
   shouldHighlight: (selector: string) => boolean;
+  employeeFilter: string;
+  onFilterChange: (filter: string) => void;
 }
 
 export default function EmployeeSelectionModal({
@@ -22,11 +30,92 @@ export default function EmployeeSelectionModal({
   assignedEmployees,
   isLoadingEmployees,
   event,
-  onEmployeeSelect,
-  employeeFilter,
-  onEmployeeFilterChange,
+  onEmployeeSelection,
   shouldHighlight,
+  employeeFilter,
+  onFilterChange,
 }: EmployeeSelectionModalProps) {
+  const [employeesWithDistance, setEmployeesWithDistance] = useState<
+    EmployeeWithDistanceAndWage[]
+  >([]);
+  const [isLoadingDistances, setIsLoadingDistances] = useState(false);
+
+  // Calculate distances and get wages when modal opens
+  useEffect(() => {
+    if (isOpen && event?.addresses && employees.length > 0) {
+      calculateDistancesAndWages();
+    }
+  }, [isOpen, event, employees]);
+
+  const calculateDistancesAndWages = async () => {
+    setIsLoadingDistances(true);
+    try {
+      const eventAddress = event.addresses;
+      if (!eventAddress) return;
+
+      const employeesWithData = await Promise.all(
+        employees.map(async (employee) => {
+          let distance = undefined;
+          let currentWage = undefined;
+
+          // Get employee's current wage
+          try {
+            const wage = await wagesApi.getCurrentWage(employee.employee_id);
+            currentWage = wage?.hourly_wage;
+          } catch (error) {
+            console.error(
+              `Error fetching wage for employee ${employee.employee_id}:`,
+              error
+            );
+          }
+
+          // Calculate distance if employee has address
+          if (employee.addresses && eventAddress) {
+            try {
+              // Get employee address coordinates
+              const employeeAddress = await getCoordinates(
+                `${employee.addresses.street}, ${employee.addresses.city}, ${employee.addresses.province}`
+              );
+              const eventCoords = await getCoordinates(
+                `${eventAddress.street}, ${eventAddress.city}, ${eventAddress.province}`
+              );
+
+              distance = await calculateDistance(employeeAddress, eventCoords);
+            } catch (error) {
+              console.error(
+                `Error calculating distance for employee ${employee.employee_id}:`,
+                error
+              );
+            }
+          }
+
+          return {
+            ...employee,
+            distance,
+            currentWage,
+          };
+        })
+      );
+
+      setEmployeesWithDistance(employeesWithData);
+    } catch (error) {
+      console.error("Error calculating distances and wages:", error);
+    } finally {
+      setIsLoadingDistances(false);
+    }
+  };
+
+  const formatDistance = (distance: number | undefined) => {
+    if (distance === undefined) return "N/A";
+    if (distance < 1) return `${(distance * 1000).toFixed(0)}m`;
+    return `${distance.toFixed(1)}km`;
+  };
+
+  const formatWage = (wage: number | undefined) => {
+    if (wage === undefined) return "N/A";
+    return `$${wage.toFixed(2)}/hr`;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -41,7 +130,7 @@ export default function EmployeeSelectionModal({
             </label>
             <select
               value={employeeFilter}
-              onChange={(e) => onEmployeeFilterChange(e.target.value)}
+              onChange={(e) => onFilterChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Employees</option>
@@ -51,10 +140,10 @@ export default function EmployeeSelectionModal({
             </select>
           </div>
 
-          {isLoadingEmployees ? (
+          {isLoadingEmployees || isLoadingDistances ? (
             <p className="text-gray-500">Loading employees...</p>
-          ) : employees.length > 0 ? (
-            employees
+          ) : employeesWithDistance.length > 0 ? (
+            employeesWithDistance
               .filter(
                 (employee) =>
                   employeeFilter === "all" ||
@@ -63,9 +152,12 @@ export default function EmployeeSelectionModal({
               .map((employee, index) => (
                 <TutorialHighlight
                   key={employee.employee_id}
-                  isHighlighted={shouldHighlight(
-                    `.modal-body .employee-checkbox:nth-child(${index + 1})`
-                  )}
+                  isHighlighted={
+                    index === 0 &&
+                    shouldHighlight(
+                      ".modal-body .employee-checkbox:first-child"
+                    )
+                  }
                 >
                   <label
                     className={`employee-label ${
@@ -82,7 +174,7 @@ export default function EmployeeSelectionModal({
                       checked={assignedEmployees.some(
                         (e) => e.employee_id === employee.employee_id
                       )}
-                      onChange={() => onEmployeeSelect(employee)}
+                      onChange={() => onEmployeeSelection(employee)}
                       disabled={
                         !assignedEmployees.some(
                           (e) => e.employee_id === employee.employee_id
@@ -91,10 +183,18 @@ export default function EmployeeSelectionModal({
                           (event.number_of_servers_needed || 0)
                       }
                     />
-                    <span className="employee-name">
-                      {employee.first_name} {employee.last_name} (
-                      {employee.employee_type || "Unknown"})
-                    </span>
+                    <div className="employee-info">
+                      <span className="employee-name">
+                        {employee.first_name} {employee.last_name} (
+                        {employee.employee_type || "Unknown"})
+                      </span>
+                      <div className="employee-details text-sm text-gray-600">
+                        <span>
+                          Distance: {formatDistance(employee.distance)}
+                        </span>
+                        <span>Wage: {formatWage(employee.currentWage)}</span>
+                      </div>
+                    </div>
                   </label>
                 </TutorialHighlight>
               ))

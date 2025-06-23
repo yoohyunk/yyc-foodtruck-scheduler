@@ -8,13 +8,7 @@ import React, {
   FormEvent,
   useRef,
 } from "react";
-import {
-  EventFormData,
-  Truck,
-  Coordinates,
-  Employee,
-  TruckAssignment,
-} from "@/app/types";
+import { EventFormData, Truck, Employee, TruckAssignment } from "@/app/types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -36,12 +30,22 @@ export default function AddEventPage(): ReactElement {
     contactPhone: "",
     trucks: [], // Array to store selected trucks
     isPrepaid: false, // Add isPrepaid field
+    // Address fields
+    street: "",
+    city: "",
+    province: "",
+    postalCode: "",
+    country: "",
+    latitude: "",
+    longitude: "",
   });
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
-  const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
+  const [coordinates, setCoordinates] = useState<
+    { latitude: number; longitude: number } | undefined
+  >();
   const [trucks, setTrucks] = useState<Truck[]>([]); // State to store truck data
   const [employees, setEmployees] = useState<Employee[]>([]); // State to store employee data
   const [truckAssignments, setTruckAssignments] = useState<TruckAssignment[]>(
@@ -112,12 +116,56 @@ export default function AddEventPage(): ReactElement {
     }
   };
 
-  const handleLocationChange = (address: string, coords?: Coordinates) => {
+  const handleLocationChange = (
+    address: string,
+    coords?: { latitude: number; longitude: number }
+  ) => {
     setFormData({
       ...formData,
       location: address,
     });
     setCoordinates(coords);
+
+    // Parse address string to extract components
+    if (address) {
+      const addressData = parseAddressString(address);
+      setFormData((prev) => ({
+        ...prev,
+        location: address,
+        ...addressData,
+      }));
+    }
+  };
+
+  // Parse address string to extract street, city, province, postal code
+  const parseAddressString = (address: string) => {
+    try {
+      // Expected format: "123 Street Name NW, Calgary, T2N 1N4"
+      const parts = address.split(", ");
+      if (parts.length >= 2) {
+        const streetPart = parts[0];
+        const cityPart = parts[1];
+        const postalCodePart = parts[2] || "";
+
+        return {
+          street: streetPart,
+          city: cityPart,
+          province: "Alberta", // Default for Alberta
+          postalCode: postalCodePart,
+          country: "Canada", // Default for Canada
+        };
+      }
+    } catch (error) {
+      console.error("Error parsing address:", error);
+    }
+
+    return {
+      street: address,
+      city: "Calgary",
+      province: "Alberta",
+      postalCode: "",
+      country: "Canada",
+    };
   };
 
   const handleTruckAssignment = (truckId: string, driverId: string | null) => {
@@ -259,7 +307,7 @@ export default function AddEventPage(): ReactElement {
       // Get the required number of servers
       const requiredServers = parseInt(formData.requiredServers);
 
-      // Create event data
+      // Create event data with address
       const eventData = {
         title: formData.name,
         start_date: `${formData.date}T${formData.time}`,
@@ -268,15 +316,24 @@ export default function AddEventPage(): ReactElement {
         contact_name: formData.contactName,
         contact_email: formData.contactEmail,
         contact_phone: formData.contactPhone,
-        address_id: null, // Will be set when address is created
         created_by: null, // Will be set when user authentication is implemented
         expected_budget: null,
         number_of_driver_needed: truckAssignments.length,
         number_of_servers_needed: requiredServers,
         is_prepaid: formData.isPrepaid,
+        // Address data to be created first
+        addressData: {
+          street: formData.street,
+          city: formData.city,
+          province: formData.province,
+          postal_code: formData.postalCode,
+          country: formData.country,
+          latitude: coordinates.latitude.toString(),
+          longitude: coordinates.longitude.toString(),
+        },
       };
 
-      // Create event in Supabase
+      // Create event in Supabase (this will create address first)
       const newEvent = await eventsApi.createEvent(eventData);
 
       // Create truck assignments in Supabase

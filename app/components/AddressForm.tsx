@@ -5,11 +5,13 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { Coordinates } from "@/app/types";
 
 interface AddressFormProps {
   value: string;
-  onChange: (address: string, coordinates?: Coordinates) => void;
+  onChange: (
+    address: string,
+    coordinates?: { latitude: number; longitude: number }
+  ) => void;
   placeholder?: string;
   required?: boolean;
   className?: string;
@@ -357,6 +359,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       setCheckStatus(null);
       setCheckMessage("");
       const fullAddress = getFullAddress(formData);
+
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`;
         const response = await fetch(url, {
@@ -377,7 +380,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           ) {
             setCheckStatus("error");
             setCheckMessage("Please check address.");
-            onChange(fullAddress, undefined);
+            onChange(fullAddress);
           } else {
             setCheckStatus("success");
             setCheckMessage("Address found and validated!");
@@ -386,12 +389,12 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         } else {
           setCheckStatus("error");
           setCheckMessage("Address not found. Please check your input.");
-          onChange(fullAddress, undefined);
+          onChange(fullAddress);
         }
       } catch {
         setCheckStatus("error");
         setCheckMessage("Please check address.");
-        onChange(fullAddress, undefined);
+        onChange(fullAddress);
       } finally {
         setIsChecking(false);
       }
