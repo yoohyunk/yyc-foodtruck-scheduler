@@ -195,8 +195,6 @@ export default function Employees(): ReactElement {
 
   return (
     <div className="employees-page">
-      <h2 className="text-2xl mb-4">Employee Management</h2>
-
       {/* Filter Buttons */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".filter-buttons")}

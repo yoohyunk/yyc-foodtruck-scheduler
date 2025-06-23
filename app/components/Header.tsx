@@ -17,13 +17,12 @@ import { FaRegCalendarAlt } from "react-icons/fa";
 import { NavLink } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "./TutorialHighlight";
+import { usePathname } from "next/navigation";
 
 const mainNavLinks: NavLink[] = [
   { name: "Employees", href: "/employees/", icon: <FiUsers /> },
   { name: "Events", href: "/events/", icon: <FaRegCalendarAlt /> },
   { name: "Schedule", href: "/schedule/", icon: <FiCalendar /> },
-  { name: "New Employee", href: "/employees/newEmployee/", icon: <FiPlus /> },
-  { name: "New Event", href: "/events/newEvent", icon: <FiPlus /> },
 ];
 
 export default function Header(): React.ReactElement {
@@ -33,6 +32,8 @@ export default function Header(): React.ReactElement {
   const navRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLElement | null)[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const pathname = usePathname();
+  const normalize = (path: string) => path.replace(/\/$/, "");
 
   // Tutorial highlight logic
   const { shouldHighlight } = useTutorial();
@@ -77,81 +78,88 @@ export default function Header(): React.ReactElement {
   return (
     <header className="header">
       <nav className="nav-container flex items-center justify-between">
-        <div className="flex items-center w-full">
-          <TutorialHighlight
-            isHighlighted={highlightLogo}
-            className="logo flex items-center shrink-0"
-          >
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/yyctrucks.jpg"
-                alt="YYC Logo"
-                width={48}
-                height={48}
-                className="logo-img rounded"
-              />
-              <span className="ml-2 text-xl font-bold whitespace-nowrap text-white">
-                YYC Food Trucks
-              </span>
-            </Link>
-          </TutorialHighlight>
+        {/* Logo on the left */}
+        <TutorialHighlight
+          isHighlighted={highlightLogo}
+          className="logo flex items-center shrink-0"
+        >
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/yyctrucks.jpg"
+              alt="YYC Logo"
+              width={48}
+              height={48}
+              className="logo-img rounded"
+            />
+            <span className="ml-2 text-xl font-bold whitespace-nowrap text-white">
+              YYC Food Trucks
+            </span>
+          </Link>
+        </TutorialHighlight>
+        {/* Everything else on the right */}
+        <div className="flex items-center">
           {/* Progressive nav links */}
           <div
             ref={navRef}
-            className="nav-links flex space-x-2 ml-4 overflow-hidden flex-1"
+            className="nav-links flex space-x-2 ml-4 overflow-hidden"
           >
-            {visibleLinks.map((link, i) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="nav-link flex items-center space-x-1"
-                ref={(el) => {
-                  // Handle the ref properly for Next.js Link component
-                  if (el) {
-                    // Find the actual anchor element within the Link
-                    const anchorElement = el.querySelector("a") || el;
-                    tabRefs.current[i] = anchorElement as HTMLElement;
-                  } else {
-                    tabRefs.current[i] = null;
-                  }
-                }}
-              >
-                <span className="nav-icon">{link.icon}</span>
-                <span>{link.name}</span>
-              </Link>
-            ))}
+            {visibleLinks.map((link, i) => {
+              const isActive = normalize(pathname) === normalize(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center space-x-1 nav-link ${
+                    isActive
+                      ? "!text-yellow-400 font-bold underline"
+                      : "text-white"
+                  }`}
+                  ref={(el) => {
+                    if (el) {
+                      const anchorElement = el.querySelector("a") || el;
+                      tabRefs.current[i] = anchorElement as HTMLElement;
+                    } else {
+                      tabRefs.current[i] = null;
+                    }
+                  }}
+                >
+                  <span className="nav-icon">{link.icon}</span>
+                  <span>{link.name}</span>
+                </Link>
+              );
+            })}
           </div>
-        </div>
-        {/* Desktop Auth Section */}
-        <div className="hidden lg:block ml-2">
-          {user ? (
+          {/* Desktop Auth Section */}
+          <div className="hidden lg:block ml-2">
+            {user ? (
+              <button
+                onClick={signOut}
+                className="nav-link flex items-center space-x-1"
+              >
+                <FiLogOut />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="nav-link flex items-center space-x-1"
+              >
+                <FiHome />
+                <span>Login</span>
+              </Link>
+            )}
+          </div>
+          {/* Hamburger always shows if there are overflow links */}
+          {(overflowLinks.length > 0 || !isClient) && (
             <button
-              onClick={signOut}
-              className="nav-link flex items-center space-x-1"
+              onClick={toggleMenu}
+              className="nav-link flex items-center space-x-1 ml-2"
+              aria-label="Toggle menu"
             >
-              <FiLogOut />
-              <span>Logout</span>
+              {isMenuOpen ? <FiX /> : <FiMenu />}
             </button>
-          ) : (
-            <Link
-              href="/login"
-              className="nav-link flex items-center space-x-1"
-            >
-              <FiHome />
-              <span>Login</span>
-            </Link>
           )}
         </div>
-        {/* Hamburger always shows if there are overflow links */}
-        {(overflowLinks.length > 0 || !isClient) && (
-          <button
-            onClick={toggleMenu}
-            className="nav-link flex items-center space-x-1 ml-2"
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? <FiX /> : <FiMenu />}
-          </button>
-        )}
       </nav>
       {/* Mobile/Overflow Menu Overlay */}
       {isMenuOpen && (
