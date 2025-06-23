@@ -69,3 +69,35 @@ export interface QuickAction {
   href: string;
   icon: ReactNode;
 }
+
+export interface NavLink {
+  name: string;
+  href: string;
+  icon: React.ReactElement;
+}
+
+export interface TimeOffRequest {
+  type: string;
+  date: string;
+  duration: string;
+  reason: string;
+  status: string;
+}
+
+export interface TimeOffRequestFormData {
+  date: string;
+  type: string;
+  duration: string;
+  reason: string;
+}
+
+export interface HomePageEvent {
+  title: string;
+  startTime: string;
+  location: string;
+}
+
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
+}

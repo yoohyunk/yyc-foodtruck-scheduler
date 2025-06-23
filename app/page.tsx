@@ -1,7 +1,7 @@
 "use client";
 import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
-import { Event, TimeOffRequest, NavLink } from "./types";
+import { HomePageEvent, TimeOffRequest, NavLink } from "./types";
 import { TutorialOverlay } from "./tutorial";
 import { FiUsers, FiCalendar, FiTruck, FiClock } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
@@ -10,7 +10,7 @@ import { TutorialHighlight } from "./components/TutorialHighlight";
 
 export default function Home(): ReactElement {
   const [hoveredLink, setHoveredLink] = useState<number | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<HomePageEvent[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
 
   const { shouldHighlight } = useTutorial();
@@ -19,7 +19,7 @@ export default function Home(): ReactElement {
   useEffect(() => {
     fetch("/events.json")
       .then((response) => response.json())
-      .then((data: Event[]) => {
+      .then((data: HomePageEvent[]) => {
         if (Array.isArray(data)) {
           const upcomingEvents = data.filter(
             (event) => new Date(event.startTime) >= new Date()

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Employee } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 import { calculateDistance } from "../../../AlgApi/distance";
@@ -41,14 +41,7 @@ export default function EmployeeSelectionModal({
   const [isLoadingDistances, setIsLoadingDistances] = useState(false);
   const [sortByDistance, setSortByDistance] = useState(false);
 
-  // Calculate distances and get wages when modal opens
-  useEffect(() => {
-    if (isOpen && event?.addresses && employees.length > 0) {
-      calculateDistancesAndWages();
-    }
-  }, [isOpen, event, employees]);
-
-  const calculateDistancesAndWages = async () => {
+  const calculateDistancesAndWages = useCallback(async () => {
     setIsLoadingDistances(true);
     try {
       const eventAddress = event.addresses;
@@ -110,7 +103,14 @@ export default function EmployeeSelectionModal({
     } finally {
       setIsLoadingDistances(false);
     }
-  };
+  }, [employees, event]);
+
+  // Calculate distances and get wages when modal opens
+  useEffect(() => {
+    if (isOpen && event?.addresses && employees.length > 0) {
+      calculateDistancesAndWages();
+    }
+  }, [isOpen, event, employees, calculateDistancesAndWages]);
 
   const formatDistance = (distance: number | undefined) => {
     if (distance === undefined) return "N/A";
