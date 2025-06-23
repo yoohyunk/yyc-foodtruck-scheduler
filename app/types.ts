@@ -1,20 +1,50 @@
 import { ReactNode } from "react";
+import { Database } from "../database.types";
 
-// Employee types
-export interface Employee {
-  id: number;
-  first_name: string;
-  last_name: string;
-  address: string;
+// Supabase table types
+export type Employee = Database["public"]["Tables"]["employees"]["Row"] & {
+  address?: string;
   coordinates?: Coordinates;
-  role: string;
-  email: string;
-  phone: string;
-  wage: number;
-  isAvailable: boolean;
-  availability: string[];
-}
+  role?: string;
+  wage?: number;
+  isAvailable?: boolean;
+  availability?: string[];
+};
 
+export type Event = Database["public"]["Tables"]["events"]["Row"] & {
+  title?: string;
+  startTime?: string;
+  endTime?: string;
+  location?: string;
+  coordinates?: Coordinates;
+  trucks?: string[];
+  assignedStaff?: string[];
+  requiredServers?: number;
+  status?: string;
+};
+
+export type Truck = Database["public"]["Tables"]["trucks"]["Row"] & {
+  status?: string;
+  driver?: {
+    name: string;
+  };
+  location?: string;
+  isAvailable?: boolean;
+};
+
+export type Address = Database["public"]["Tables"]["addresses"]["Row"];
+
+export type Assignment = Database["public"]["Tables"]["assignments"]["Row"];
+
+export type TruckAssignment =
+  Database["public"]["Tables"]["truck_assignment"]["Row"];
+
+export type TimeOffRequest =
+  Database["public"]["Tables"]["time_off_request"]["Row"];
+
+export type Wage = Database["public"]["Tables"]["wage"]["Row"];
+
+// Form data types
 export interface EmployeeFormData {
   first_name: string;
   last_name: string;
@@ -25,20 +55,6 @@ export interface EmployeeFormData {
   wage: string; // Form data uses string for wage input
   isAvailable: boolean;
   availability: string[];
-}
-
-// Event types
-export interface Event {
-  id: string;
-  title: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  coordinates?: Coordinates;
-  trucks: string[];
-  assignedStaff: string[];
-  requiredServers: number;
-  status: string;
 }
 
 export interface EventFormData {
@@ -52,33 +68,11 @@ export interface EventFormData {
   contactEmail: string;
   contactPhone: string;
   trucks: string[];
-}
-
-// Truck types
-export interface Truck {
-  id: string;
-  name: string;
-  type: string;
-  capacity: string;
-  status: string;
-  driver?: {
-    name: string;
-  };
-  location: string;
-  isAvailable: boolean;
+  isPrepaid: boolean;
 }
 
 export interface TruckFormData extends Omit<Truck, "id" | "driver"> {
   driver: string; // Form data uses string for driver input
-}
-
-// Time off request types
-export interface TimeOffRequest {
-  date: string;
-  type: string;
-  duration: string;
-  status: "Approved" | "Pending" | "Rejected";
-  reason: string;
 }
 
 export type TimeOffRequestFormData = Omit<TimeOffRequest, "status">;
