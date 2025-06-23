@@ -225,11 +225,11 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     ) => {
       const { name, value } = e.target;
 
-      // Update form data immediately
-      setFormData((prev) => ({
-        ...prev,
+      const newFormData = {
+        ...formData,
         [name]: value,
-      }));
+      };
+      setFormData(newFormData);
 
       // Validate after state update
       let isValid = true;
@@ -259,26 +259,16 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         [name]: errorMessage,
       }));
 
-      // Update parent component if we have both street number and name
-      if (name === "streetNumber" || name === "streetName") {
-        const newData = {
-          ...formData,
-          [name]: value,
-        };
-        if (newData.streetNumber && newData.streetName) {
-          updateParentAddress(newData);
-        }
-      }
+      // Update parent component with the new full address
+      updateParentAddress(newFormData);
     };
 
     // Add a specific handler for street name
     const handleStreetNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
-      // Only update the local state while typing
-      setFormData((prev) => ({
-        ...prev,
-        streetName: value,
-      }));
+      const newFormData = { ...formData, streetName: value };
+      setFormData(newFormData);
+      updateParentAddress(newFormData);
     };
 
     // Add a blur handler for street name
@@ -297,13 +287,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         streetName: isValid ? "" : "Please enter a street name",
       }));
 
-      // Update parent only on blur if we have both street number and name
-      if (formData.streetNumber && value) {
-        updateParentAddress({
-          ...formData,
-          streetName: value,
-        });
-      }
+      // Parent is already updated by handleStreetNameChange, no need to call here
     };
 
     // Add a handler for postal code formatting
@@ -312,10 +296,9 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       if (value.length > 3) {
         value = value.slice(0, 3) + " " + value.slice(3, 6);
       }
-      setFormData((prev) => ({
-        ...prev,
-        postalCode: value,
-      }));
+      const newFormData = { ...formData, postalCode: value };
+      setFormData(newFormData);
+      updateParentAddress(newFormData);
     };
 
     // Parse initial value if provided

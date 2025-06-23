@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Employee } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
-import { getCoordinates, calculateDistance } from "../../../AlgApi/distance";
+import { calculateDistance } from "../../../AlgApi/distance";
 import { wagesApi } from "@/lib/supabase/wages";
 import { Tables } from "@/database.types";
 
@@ -70,17 +70,23 @@ export default function EmployeeSelectionModal({
           }
 
           // Calculate distance if employee has address
-          if (employee.addresses && eventAddress) {
+          if (
+            employee.addresses?.latitude &&
+            employee.addresses?.longitude &&
+            eventAddress?.latitude &&
+            eventAddress?.longitude
+          ) {
             try {
-              // Get employee address coordinates
-              const employeeAddress = await getCoordinates(
-                `${employee.addresses.street}, ${employee.addresses.city}, ${employee.addresses.province}`
-              );
-              const eventCoords = await getCoordinates(
-                `${eventAddress.street}, ${eventAddress.city}, ${eventAddress.province}`
-              );
+              const employeeCoords = {
+                lat: parseFloat(employee.addresses.latitude as string),
+                lng: parseFloat(employee.addresses.longitude as string),
+              };
+              const eventCoords = {
+                lat: parseFloat(eventAddress.latitude as string),
+                lng: parseFloat(eventAddress.longitude as string),
+              };
 
-              distance = await calculateDistance(employeeAddress, eventCoords);
+              distance = await calculateDistance(employeeCoords, eventCoords);
             } catch (error) {
               console.error(
                 `Error calculating distance for employee ${employee.employee_id}:`,
