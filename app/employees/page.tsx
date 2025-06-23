@@ -142,8 +142,10 @@ export default function Employees(): ReactElement {
         setEmployees(formattedEmployees as Employee[]);
         setFilteredEmployees(formattedEmployees as Employee[]);
         // Set global variable for tutorial navigation
-        if (typeof window !== 'undefined' && formattedEmployees.length > 0) {
-          (window as any).__TUTORIAL_EMPLOYEE_ID = formattedEmployees[0].employee_id;
+        if (typeof window !== "undefined" && formattedEmployees.length > 0) {
+          (
+            window as { __TUTORIAL_EMPLOYEE_ID?: string }
+          ).__TUTORIAL_EMPLOYEE_ID = formattedEmployees[0].employee_id;
         }
       } catch (err) {
         console.error("Unexpected error:", err);

@@ -194,12 +194,15 @@ export function TutorialOverlay() {
         // Replace placeholders with actual IDs from global variables
         let resolvedPath = nextPath;
         if (nextPath.includes("{eventId}")) {
-          const eventId = (window as any).__TUTORIAL_EVENT_ID;
+          const eventId = (window as { __TUTORIAL_EVENT_ID?: string })
+            .__TUTORIAL_EVENT_ID;
           if (eventId) resolvedPath = nextPath.replace("{eventId}", eventId);
         }
         if (nextPath.includes("{employeeId}")) {
-          const employeeId = (window as any).__TUTORIAL_EMPLOYEE_ID;
-          if (employeeId) resolvedPath = nextPath.replace("{employeeId}", employeeId);
+          const employeeId = (window as { __TUTORIAL_EMPLOYEE_ID?: string })
+            .__TUTORIAL_EMPLOYEE_ID;
+          if (employeeId)
+            resolvedPath = nextPath.replace("{employeeId}", employeeId);
         }
         setPendingStepForNavigation(0);
         setTimeout(() => {

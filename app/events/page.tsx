@@ -28,8 +28,9 @@ export default function Events(): ReactElement {
         setEvents(data);
         setFilteredEvents(data); // Initially show all events
         // Set global variable for tutorial navigation
-        if (typeof window !== 'undefined' && data.length > 0) {
-          (window as any).__TUTORIAL_EVENT_ID = data[0].id;
+        if (typeof window !== "undefined" && data.length > 0) {
+          (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
+            data[0].id;
         }
       } catch (err) {
         console.error("Error fetching events:", err);

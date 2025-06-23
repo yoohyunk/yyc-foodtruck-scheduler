@@ -1184,7 +1184,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       return;
     }
     // No scroll logic here! Only overlay cleanup.
-  }, [currentStep, isActive, getCurrentSteps]);
+  }, [currentStep, isActive]);
 
   // Watch for path changes and resume tutorial if needed
   useEffect(() => {
