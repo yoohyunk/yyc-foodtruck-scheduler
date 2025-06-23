@@ -4,10 +4,11 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ViewToggle } from "./components/ViewToggle";
 import { Navigation } from "./components/Navigation";
-import { Calendar } from "./components/Calendar";
+import { Calendar, CalendarEvent } from "./components/Calendar";
 import { Event } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
+import { eventsApi } from "@/lib/supabase/events";
 
 export default function Schedule(): React.ReactElement {
   const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">(
@@ -21,26 +22,12 @@ export default function Schedule(): React.ReactElement {
 
   useEffect(() => {
     const fetchEvents = async () => {
+      setIsLoading(true);
       try {
-        const response = await fetch("/events.json", {
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (Array.isArray(data)) {
-          setEvents(data);
-        } else {
-          setEvents([]);
-        }
-      } catch {
+        const data = await eventsApi.getAllEvents();
+        setEvents(data);
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
         setEvents([]);
       } finally {
         setIsLoading(false);
@@ -66,13 +53,17 @@ export default function Schedule(): React.ReactElement {
       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);
-      return `${formatDate(startOfWeek)} - ${formatDate(endOfWeek, { year: "numeric" })}`;
+      return `${formatDate(startOfWeek)} - ${formatDate(endOfWeek, {
+        year: "numeric",
+      })}`;
     } else {
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth();
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
-      return `${formatDate(firstDay)} - ${formatDate(lastDay, { year: "numeric" })}`;
+      return `${formatDate(firstDay)} - ${formatDate(lastDay, {
+        year: "numeric",
+      })}`;
     }
   };
 
@@ -114,31 +105,31 @@ export default function Schedule(): React.ReactElement {
     }
   }, [viewMode]);
 
-  const getCalendarEvents = useCallback(() => {
+  const getCalendarEvents = useCallback((): CalendarEvent[] => {
     if (!events || !Array.isArray(events)) {
       return [];
     }
 
     return events
+      .filter((event) => event.start_date && event.end_date && event.id)
       .map((event) => {
-        const startDate = new Date(event.startTime);
-        const endDate = new Date(event.endTime);
+        const startDate = new Date(event.start_date!);
+        const endDate = new Date(event.end_date!);
 
         return {
           id: event.id,
-          title: event.title,
+          title: event.title || "Untitled Event",
           start: startDate,
           end: endDate,
           extendedProps: {
-            location: event.location,
-            trucks: event.trucks || [],
-            assignedStaff: event.assignedStaff || [],
-            requiredServers: event.requiredServers,
-            startTime: event.startTime,
-            endTime: event.endTime,
-            status: ((event.assignedStaff?.length || 0) >= event.requiredServers
-              ? "Scheduled"
-              : "Pending") as "Scheduled" | "Pending",
+            location: event.description || "N/A",
+            // The following are placeholders as we don't have this data yet
+            trucks: [],
+            assignedStaff: [],
+            requiredServers: event.number_of_servers_needed || 0,
+            startTime: event.start_date || "",
+            endTime: event.end_date || "",
+            status: "Pending" as "Pending" | "Scheduled",
           },
         };
       })
@@ -221,9 +212,9 @@ export default function Schedule(): React.ReactElement {
         <div className="mt-6">
           <button
             className="button bg-primary-medium text-white w-full py-2 rounded-lg hover:bg-primary-dark new-shift-button"
-            onClick={() => router.push("/schedule/new")}
+            onClick={() => router.push("/events/newEvent")}
           >
-            + New Shift
+            + New Event
           </button>
         </div>
       </TutorialHighlight>
@@ -235,7 +226,7 @@ export default function Schedule(): React.ReactElement {
         <div className="mt-4">
           {/* This is where shifts would be displayed */}
           <p className="text-gray-500 text-center">
-            No shifts scheduled for this period
+            No events scheduled for this period
           </p>
         </div>
       </TutorialHighlight>
