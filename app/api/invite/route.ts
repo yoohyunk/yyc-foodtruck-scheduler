@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   console.log("Redirect URL:", redirectUrl);
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: redirectUrl,
+    redirectTo: `https://yyc-foodtruck-scheduler.vercel.app/set-password?email=${encodeURIComponent(email)}`,
   });
 
   if (error) {
