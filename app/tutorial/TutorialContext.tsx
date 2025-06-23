@@ -223,7 +223,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       autoAction: {
         type: "click",
         delay: 300,
-        nextPath: "/employees/1",
+        nextPath: "/employees/{employeeId}",
         waitAfter: 800,
       },
     },
@@ -271,7 +271,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       autoAction: {
         type: "click",
         delay: 800,
-        nextPath: "/events/1",
+        nextPath: "/events/{eventId}",
         waitAfter: 600,
       },
     },

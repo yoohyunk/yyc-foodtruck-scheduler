@@ -27,6 +27,10 @@ export default function Events(): ReactElement {
         const data = await eventsApi.getAllEvents();
         setEvents(data);
         setFilteredEvents(data); // Initially show all events
+        // Set global variable for tutorial navigation
+        if (typeof window !== 'undefined' && data.length > 0) {
+          (window as any).__TUTORIAL_EVENT_ID = data[0].id;
+        }
       } catch (err) {
         console.error("Error fetching events:", err);
         setError("Failed to load events. Please try again.");
