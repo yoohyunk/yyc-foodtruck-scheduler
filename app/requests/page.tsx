@@ -71,8 +71,18 @@ export default function TimeOff(): ReactElement {
   };
 
   const hours = [
-    "01", "02", "03", "04", "05", "06",
-    "07", "08", "09", "10", "11", "12",
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "10",
+    "11",
+    "12",
   ];
   const periods = ["AM", "PM"];
 
@@ -117,8 +127,8 @@ export default function TimeOff(): ReactElement {
                       item.status === "Approved"
                         ? "bg-green-100 text-green-600"
                         : item.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-600"
-                        : "bg-red-100 text-red-600"
+                          ? "bg-yellow-100 text-yellow-600"
+                          : "bg-red-100 text-red-600"
                     }`}
                   >
                     {item.status}
@@ -233,7 +243,7 @@ export default function TimeOff(): ReactElement {
                 </div>
 
                 <div className="text-xs text-gray-600 mt-2">
-                  🕒 You're requesting <strong>{getTotalHours()}</strong>{" "}
+                  🕒 Your requesting <strong>{getTotalHours()}</strong>{" "}
                   {getTotalHours() === 1 ? "hour" : "hours"} off
                 </div>
               </>
@@ -275,4 +285,3 @@ export default function TimeOff(): ReactElement {
     </div>
   );
 }
-
