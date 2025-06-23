@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "YYC Foodtruck Scheduler",
   description:
     "A scheduling and workforce-management platform for YYC food truck operations",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 interface RootLayoutProps {
