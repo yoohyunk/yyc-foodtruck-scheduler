@@ -1,3 +1,5 @@
+"use client";
+import React from "react";
 import dynamic from "next/dynamic";
 import { EventContent } from "./EventContent";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -10,7 +12,7 @@ const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
 
 const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin];
 
-interface CalendarEvent {
+export interface CalendarEvent {
   id: string;
   title: string;
   start: Date;

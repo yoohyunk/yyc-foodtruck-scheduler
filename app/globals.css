@@ -651,23 +651,21 @@ tr:hover td {
 }
 
 .employee-card p {
-  margin-bottom: 0.25rem;
+  color: #666;
 }
 
 .edit-button {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
   background: none;
   border: none;
-  color: var(--gray-500);
-  font-size: 1.25rem;
   cursor: pointer;
-  transition: color 0.3s ease;
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s;
 }
 
 .edit-button:hover {
-  color: var(--primary-medium);
+  background-color: #f0f0f0;
 }
 
 button[title="Edit Employee"],
@@ -782,24 +780,21 @@ button[title="Delete Employee"]:hover {
   padding: 2rem;
   border-radius: 1rem;
   box-shadow: 0 10px 25px var(--shadow);
-  width: 24rem;
-  max-width: 90%;
+  width: 20rem;
+  max-width: 70%;
   border: 1px solid var(--border);
 }
 
 .modal-title {
   font-size: 1.125rem;
   font-weight: bold;
-  margin-bottom: 1rem;
   color: var(--primary-dark);
 }
 
 .modal-body {
-  max-height: 15rem;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
   overflow-y: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  padding: 0.75rem;
 }
 
 .modal-footer {

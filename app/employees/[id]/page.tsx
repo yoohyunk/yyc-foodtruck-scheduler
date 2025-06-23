@@ -6,12 +6,15 @@ import {
   FormEvent,
   ChangeEvent,
   ReactElement,
+  useRef,
 } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { EmployeeFormData } from "@/app/types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
+import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
+import { wagesApi } from "@/lib/supabase/wages";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();
@@ -20,6 +23,7 @@ export default function EditEmployeePage(): ReactElement {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { shouldHighlight } = useTutorial();
+  const addressFormRef = useRef<AddressFormRef>(null);
   const [formData, setFormData] = useState<EmployeeFormData>({
     first_name: "",
     last_name: "",
@@ -30,6 +34,14 @@ export default function EditEmployeePage(): ReactElement {
     wage: "",
     isAvailable: false,
     availability: [] as string[],
+    // Address fields
+    street: "",
+    city: "",
+    province: "",
+    postalCode: "",
+    country: "",
+    latitude: "",
+    longitude: "",
   });
 
   const daysOfWeek = [
@@ -84,6 +96,10 @@ export default function EditEmployeePage(): ReactElement {
           ? `${employeeData.addresses.street}, ${employeeData.addresses.city}, ${employeeData.addresses.province}`
           : "";
 
+        console.log("Employee data:", employeeData);
+        console.log("Address data:", employeeData.addresses);
+        console.log("Formatted address:", address);
+
         setFormData({
           first_name: employeeData.first_name || "",
           last_name: employeeData.last_name || "",
@@ -94,6 +110,14 @@ export default function EditEmployeePage(): ReactElement {
           wage: wageData?.hourly_wage ? String(wageData.hourly_wage) : "",
           isAvailable: employeeData.is_available || false,
           availability: (employeeData.availability as string[]) || [],
+          // Address fields
+          street: employeeData.addresses?.street || "",
+          city: employeeData.addresses?.city || "",
+          province: employeeData.addresses?.province || "",
+          postalCode: employeeData.addresses?.postal_code || "",
+          country: employeeData.addresses?.country || "",
+          latitude: employeeData.addresses?.latitude || "",
+          longitude: employeeData.addresses?.longitude || "",
         });
 
         setIsLoading(false);
@@ -116,6 +140,52 @@ export default function EditEmployeePage(): ReactElement {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
+  };
+
+  // Parse address string to extract street, city, province, postal code
+  const parseAddressString = (address: string) => {
+    try {
+      const parts = address.split(", ").map((part) => part.trim());
+      if (parts.length >= 2) {
+        const streetPart = parts[0] || "";
+        const cityPart = parts[1] || "";
+        const postalCodePart = parts[2] || "";
+
+        return {
+          street: streetPart,
+          city: cityPart,
+          province: "Alberta",
+          postalCode: postalCodePart,
+          country: "Canada",
+        };
+      }
+    } catch (error) {
+      console.error("Error parsing address:", error);
+    }
+    // Return defaults if parsing fails
+    return {
+      street: address,
+      city: "",
+      province: "Alberta",
+      postalCode: "",
+      country: "Canada",
+    };
+  };
+
+  const handleAddressChange = (
+    address: string,
+    coordinates?: { latitude: number; longitude: number }
+  ) => {
+    console.log("AddressForm onChange called with:", address, coordinates);
+    const addressData = parseAddressString(address);
+
+    setFormData((prev) => ({
+      ...prev,
+      address: address,
+      ...addressData,
+      latitude: coordinates?.latitude?.toString() || prev.latitude,
+      longitude: coordinates?.longitude?.toString() || prev.longitude,
+    }));
   };
 
   const handleDaySelection = (day: string) => {
@@ -153,32 +223,84 @@ export default function EditEmployeePage(): ReactElement {
   // Handle form submission
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("Form submission started");
 
     try {
-      // Parse address
-      const addressParts = formData.address.split(", ");
-      const street = addressParts[0] || "";
-      const city = addressParts[1] || "";
-      const province = addressParts[2] || "";
+      // Use structured address data from formData
+      const street = formData.street || "";
+      const city = formData.city || "";
+      const province = formData.province || "";
+      const postalCode = formData.postalCode || "";
+      const country = formData.country || "Canada";
+
+      console.log("FormData address fields:", {
+        street: formData.street,
+        city: formData.city,
+        province: formData.province,
+        postalCode: formData.postalCode,
+        country: formData.country,
+      });
+
+      console.log("Address data to process:", {
+        street,
+        city,
+        province,
+        postalCode,
+        country,
+      });
 
       // Update or create address
       let addressId: string | null = null;
 
       // Check if employee has existing address
-      const { data: existingEmployee } = await supabase
-        .from("employees")
-        .select("address_id")
-        .eq("employee_id", id)
-        .single();
+      console.log("Checking existing employee address...");
+      const { data: existingEmployee, error: existingEmployeeError } =
+        await supabase
+          .from("employees")
+          .select(
+            `
+            address_id,
+            addresses (
+              street,
+              city,
+              province,
+              postal_code,
+              country,
+              latitude,
+              longitude
+            )
+          `
+          )
+          .eq("employee_id", id)
+          .single();
+
+      if (existingEmployeeError) {
+        console.error(
+          "Error fetching existing employee:",
+          existingEmployeeError
+        );
+      }
+
+      console.log("Existing employee data:", existingEmployee);
 
       if (existingEmployee?.address_id) {
         // Update existing address
+        console.log(
+          "Updating existing address with ID:",
+          existingEmployee.address_id
+        );
         const { error: addressError } = await supabase
           .from("addresses")
           .update({
             street,
             city,
             province,
+            postal_code: postalCode,
+            country,
+            latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+            longitude: formData.longitude
+              ? parseFloat(formData.longitude)
+              : null,
           })
           .eq("id", existingEmployee.address_id);
 
@@ -188,16 +310,22 @@ export default function EditEmployeePage(): ReactElement {
           return;
         }
         addressId = existingEmployee.address_id;
+        console.log("Address updated successfully");
       } else {
         // Create new address
+        console.log("Creating new address...");
         const { data: newAddress, error: addressError } = await supabase
           .from("addresses")
           .insert({
             street,
             city,
             province,
-            country: "Canada",
-            postal_code: "",
+            postal_code: postalCode,
+            country,
+            latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+            longitude: formData.longitude
+              ? parseFloat(formData.longitude)
+              : null,
           })
           .select()
           .single();
@@ -208,61 +336,166 @@ export default function EditEmployeePage(): ReactElement {
           return;
         }
         addressId = newAddress.id;
+        console.log("Created new address with ID:", addressId);
       }
 
-      // Update employee
-      const { error: employeeError } = await supabase
+      console.log("Final addressId value:", addressId);
+
+      // Update employee with address_id
+      const updateData: {
+        first_name: string;
+        last_name: string;
+        employee_type: string;
+        address_id: string | null;
+        user_phone?: string;
+        is_available: boolean;
+        availability: string[];
+        user_email?: string;
+      } = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        employee_type: formData.role,
+        address_id: addressId, // Always update address_id
+        is_available: formData.isAvailable,
+        availability: formData.availability,
+      };
+
+      console.log("Update data with address_id:", updateData);
+
+      // Only update email and phone if they're different from the current ones
+      console.log("Checking email and phone updates...");
+      const { data: currentEmployee } = await supabase
         .from("employees")
-        .update({
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          employee_type: formData.role,
-          address_id: addressId,
-          user_email: formData.email,
-          user_phone: formData.phone,
-          is_available: formData.isAvailable,
-          availability: formData.availability,
-        })
-        .eq("employee_id", id);
+        .select("user_email, user_phone")
+        .eq("employee_id", id)
+        .single();
+
+      if (formData.email !== currentEmployee?.user_email) {
+        updateData.user_email = formData.email;
+        console.log("Email will be updated");
+      }
+
+      // Check if the new phone number is already used by another employee
+      if (formData.phone !== currentEmployee?.user_phone) {
+        // If current phone is null, we can always update
+        if (currentEmployee?.user_phone === null) {
+          updateData.user_phone = formData.phone;
+          console.log("Phone will be updated (was null)");
+        } else {
+          // Check if the new phone number is already used by another employee
+          console.log("Checking if phone number is already used...");
+          const { data: existingEmployeeWithPhone } = await supabase
+            .from("employees")
+            .select("employee_id")
+            .eq("user_phone", formData.phone)
+            .neq("employee_id", id)
+            .single();
+
+          if (existingEmployeeWithPhone) {
+            console.error("Phone number already used by another employee");
+            alert(
+              "This phone number is already used by another employee. Please use a different phone number."
+            );
+            return;
+          } else {
+            updateData.user_phone = formData.phone;
+            console.log("Phone will be updated");
+          }
+        }
+      } else {
+        updateData.user_phone = currentEmployee.user_phone;
+        console.log("Phone unchanged");
+      }
+
+      console.log("Final update data:", updateData);
+      console.log("Employee ID:", id);
+      console.log("Current email:", currentEmployee?.user_email);
+      console.log("New email:", formData.email);
+      console.log("Current phone:", currentEmployee?.user_phone);
+      console.log("New phone:", formData.phone);
+
+      console.log("Updating employee in database...");
+      const { data: updatedEmployee, error: employeeError } = await supabase
+        .from("employees")
+        .update(updateData)
+        .eq("employee_id", id)
+        .select()
+        .single();
 
       if (employeeError) {
         console.error("Error updating employee:", employeeError);
+        console.error("Error details:", employeeError.details);
+        console.error("Error hint:", employeeError.hint);
+        console.error("Error message:", employeeError.message);
         alert("Failed to update employee.");
         return;
       }
 
+      console.log("Employee updated successfully:", updatedEmployee);
+
+      // Verify address update by fetching the updated employee data
+      console.log("Verifying address update...");
+      const { data: verifyEmployee, error: verifyError } = await supabase
+        .from("employees")
+        .select(
+          `
+          *,
+          addresses (
+            street,
+            city,
+            province,
+            postal_code,
+            country,
+            latitude,
+            longitude
+          )
+        `
+        )
+        .eq("employee_id", id)
+        .single();
+
+      if (verifyError) {
+        console.error("Error verifying employee update:", verifyError);
+      } else {
+        console.log("Verified employee data:", verifyEmployee);
+        console.log("Address ID after update:", verifyEmployee.address_id);
+        console.log("Address data after update:", verifyEmployee.addresses);
+      }
+
       // Update wage
       if (formData.wage) {
-        const { data: existingWage } = await supabase
-          .from("wage")
-          .select("*")
-          .eq("employee_id", id)
-          .single();
+        try {
+          const newWageValue = parseFloat(formData.wage);
+          const existingWage = await wagesApi.getCurrentWage(id as string);
 
-        if (existingWage) {
-          // Update existing wage
-          const { error: wageError } = await supabase
-            .from("wage")
-            .update({
-              hourly_wage: parseFloat(formData.wage),
-            })
-            .eq("employee_id", id);
-
-          if (wageError) {
-            console.error("Error updating wage:", wageError);
+          // Only update or create if the wage has actually changed
+          if (!existingWage || existingWage.hourly_wage !== newWageValue) {
+            if (existingWage) {
+              // Update existing wage
+              console.log(
+                "Wage changed. Updating existing wage with ID:",
+                existingWage.id
+              );
+              await wagesApi.updateWage(existingWage.id, {
+                hourly_wage: newWageValue,
+              });
+            } else {
+              // Create new wage
+              console.log("No existing wage. Creating new wage.");
+              const wageData = {
+                employee_id: id as string,
+                hourly_wage: newWageValue,
+                start_date: new Date().toISOString(),
+                end_date: null,
+              };
+              await wagesApi.createWage(wageData);
+            }
+          } else {
+            console.log("Wage is unchanged. Skipping wage update.");
           }
-        } else {
-          // Create new wage
-          const { error: wageError } = await supabase.from("wage").insert({
-            employee_id: id as string,
-            hourly_wage: parseFloat(formData.wage),
-            start_date: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-          });
-
-          if (wageError) {
-            console.error("Error creating wage:", wageError);
-          }
+        } catch (wageError) {
+          console.error("Error updating wage:", wageError);
+          // Don't stop the process for wage errors
         }
       }
 
@@ -348,17 +581,13 @@ export default function EditEmployeePage(): ReactElement {
 
           {/* Address */}
           <div>
-            <label htmlFor="address" className="block font-medium">
-              Address
-            </label>
-            <input
-              type="text"
-              id="address"
-              name="address"
+            <label className="block font-medium">Address</label>
+            <AddressForm
+              ref={addressFormRef}
               value={formData.address}
-              onChange={handleChange}
-              className="input-field"
+              onChange={handleAddressChange}
               required
+              className="input-field"
             />
           </div>
 

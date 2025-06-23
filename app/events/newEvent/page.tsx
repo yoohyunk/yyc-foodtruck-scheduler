@@ -8,18 +8,14 @@ import React, {
   FormEvent,
   useRef,
 } from "react";
-import {
-  EventFormData,
-  Truck,
-  Coordinates,
-  Employee,
-  Event,
-} from "@/app/types";
+import { EventFormData, Truck, Employee, TruckAssignment } from "@/app/types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
-import { findClosestEmployees } from "@/app/AlgApi/distance";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import HelpPopup from "@/app/components/HelpPopup";
+import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
+import { employeesApi } from "@/lib/supabase/employees";
+import { trucksApi } from "@/lib/supabase/trucks";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -33,41 +29,51 @@ export default function AddEventPage(): ReactElement {
     contactEmail: "",
     contactPhone: "",
     trucks: [], // Array to store selected trucks
+    isPrepaid: false, // Add isPrepaid field
+    // Address fields
+    street: "",
+    city: "",
+    province: "",
+    postalCode: "",
+    country: "",
+    latitude: "",
+    longitude: "",
   });
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
-  const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
+  const [coordinates, setCoordinates] = useState<
+    { latitude: number; longitude: number } | undefined
+  >();
   const [trucks, setTrucks] = useState<Truck[]>([]); // State to store truck data
   const [employees, setEmployees] = useState<Employee[]>([]); // State to store employee data
+  const [truckAssignments, setTruckAssignments] = useState<TruckAssignment[]>(
+    []
+  );
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showHelpPopup, setShowHelpPopup] = useState(false);
   const addressFormRef = useRef<AddressFormRef>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch truck and employee data
+  // Fetch truck and employee data from Supabase
   useEffect(() => {
-    // Fetch truck data
-    fetch("/trucks.json")
-      .then((response) => {
-        if (!response.ok)
-          throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-      })
-      .then((data: Truck[]) => setTrucks(data))
-      .catch((error) => console.error("Error fetching trucks:", error));
+    const fetchData = async () => {
+      try {
+        // Fetch truck data
+        const trucksData = await trucksApi.getAllTrucks();
+        setTrucks(trucksData);
 
-    // Fetch employee data
-    fetch("/employees.json")
-      .then((response) => {
-        if (!response.ok)
-          throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-      })
-      .then((data) => setEmployees(data))
-      .catch((error) => console.error("Error fetching employees:", error));
+        // Fetch employee data
+        const employeesData = await employeesApi.getAllEmployees();
+        setEmployees(employeesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleChange = (
@@ -110,29 +116,121 @@ export default function AddEventPage(): ReactElement {
     }
   };
 
-  const handleLocationChange = (address: string, coords?: Coordinates) => {
+  const handleLocationChange = (
+    address: string,
+    coords?: { latitude: number; longitude: number }
+  ) => {
     setFormData({
       ...formData,
       location: address,
     });
     setCoordinates(coords);
+
+    // Parse address string to extract components
+    if (address) {
+      const addressData = parseAddressString(address);
+      setFormData((prev) => ({
+        ...prev,
+        location: address,
+        ...addressData,
+      }));
+    }
   };
 
-  const handleTruckSelection = (truckId: string | number): void => {
-    const truckIdStr = truckId.toString();
-    if (formData.trucks.includes(truckIdStr)) {
-      // Remove truck if already selected
+  // Parse address string to extract street, city, province, postal code
+  const parseAddressString = (address: string) => {
+    try {
+      // Expected format: "123 Street Name NW, Calgary, T2N 1N4"
+      const parts = address.split(", ");
+      if (parts.length >= 2) {
+        const streetPart = parts[0];
+        const cityPart = parts[1];
+        const postalCodePart = parts[2] || "";
+
+        return {
+          street: streetPart,
+          city: cityPart,
+          province: "Alberta", // Default for Alberta
+          postalCode: postalCodePart,
+          country: "Canada", // Default for Canada
+        };
+      }
+    } catch (error) {
+      console.error("Error parsing address:", error);
+    }
+
+    return {
+      street: address,
+      city: "Calgary",
+      province: "Alberta",
+      postalCode: "",
+      country: "Canada",
+    };
+  };
+
+  const handleTruckAssignment = (truckId: string, driverId: string | null) => {
+    const existingAssignment = truckAssignments.find(
+      (assignment) => assignment.truck_id === truckId
+    );
+
+    if (existingAssignment) {
+      if (driverId === null) {
+        // Remove assignment if no driver selected
+        setTruckAssignments(
+          truckAssignments.filter(
+            (assignment) => assignment.truck_id !== truckId
+          )
+        );
+        // Also remove from formData.trucks
+        setFormData({
+          ...formData,
+          trucks: formData.trucks.filter((id) => id !== truckId),
+        });
+      } else {
+        // Update existing assignment
+        setTruckAssignments(
+          truckAssignments.map((assignment) =>
+            assignment.truck_id === truckId
+              ? { ...assignment, driver_id: driverId }
+              : assignment
+          )
+        );
+      }
+    } else if (driverId !== null) {
+      // Create new assignment
+      const newAssignment: TruckAssignment = {
+        id: `temp-${Date.now()}`,
+        truck_id: truckId,
+        driver_id: driverId,
+        event_id: null, // Will be set when event is created
+        start_time: `${formData.date}T${formData.time}`,
+        end_time: `${formData.date}T${formData.endTime}`,
+        created_at: new Date().toISOString(),
+      };
+      setTruckAssignments([...truckAssignments, newAssignment]);
+      // Also add to formData.trucks
       setFormData({
         ...formData,
-        trucks: formData.trucks.filter((id) => id !== truckIdStr),
-      });
-    } else {
-      // Add truck if not already selected
-      setFormData({
-        ...formData,
-        trucks: [...formData.trucks, truckIdStr],
+        trucks: [...formData.trucks, truckId],
       });
     }
+  };
+
+  const getAssignedDriverForTruck = (truckId: string): Employee | null => {
+    const assignment = truckAssignments.find((a) => a.truck_id === truckId);
+    if (assignment?.driver_id) {
+      return (
+        employees.find((emp) => emp.employee_id === assignment.driver_id) ||
+        null
+      );
+    }
+    return null;
+  };
+
+  const getAvailableDrivers = (): Employee[] => {
+    return employees.filter(
+      (emp) => emp.employee_type === "Driver" && emp.is_available
+    );
   };
 
   const validateForm = (): boolean => {
@@ -157,8 +255,8 @@ export default function AddEventPage(): ReactElement {
       !/^\+?[\d\s-]{10,}$/.test(formData.contactPhone.replace(/\s/g, ""))
     )
       errorList.push("Please enter a valid phone number.");
-    if (formData.trucks.length === 0)
-      errorList.push("Please select at least one truck.");
+    if (truckAssignments.length === 0)
+      errorList.push("Please assign at least one truck with a driver.");
     if (selectedDate && selectedTime && selectedEndTime) {
       const start = new Date(selectedDate);
       start.setHours(selectedTime.getHours(), selectedTime.getMinutes());
@@ -209,79 +307,54 @@ export default function AddEventPage(): ReactElement {
       // Get the required number of servers
       const requiredServers = parseInt(formData.requiredServers);
 
-      // Find the closest available servers
-      const closestEmployees = await findClosestEmployees(
-        formData.location,
-        employees
-          .filter((emp) => emp.role === "Server" && emp.isAvailable)
-          .map((emp) => ({
-            ...emp,
-            name: `${emp.first_name} ${emp.last_name}`,
-          })),
-        coordinates as { latitude: number; longitude: number }
-      );
-
-      // Take only the required number of servers
-      const assignedStaff = closestEmployees
-        .slice(0, requiredServers)
-        .map((emp) => emp.id.toString());
-
-      // Create event data
+      // Create event data with address
       const eventData = {
         title: formData.name,
-        startTime: `${formData.date}T${formData.time}`,
-        endTime: `${formData.date}T${formData.endTime}`,
-        location: formData.location,
-        coordinates: {
-          latitude: (coordinates as { latitude: number; longitude: number })
-            .latitude,
-          longitude: (coordinates as { latitude: number; longitude: number })
-            .longitude,
+        start_date: `${formData.date}T${formData.time}`,
+        end_date: `${formData.date}T${formData.endTime}`,
+        description: formData.location,
+        contact_name: formData.contactName,
+        contact_email: formData.contactEmail,
+        contact_phone: formData.contactPhone,
+        created_by: null, // Will be set when user authentication is implemented
+        expected_budget: null,
+        number_of_driver_needed: truckAssignments.length,
+        number_of_servers_needed: requiredServers,
+        is_prepaid: formData.isPrepaid,
+        // Address data to be created first
+        addressData: {
+          street: formData.street,
+          city: formData.city,
+          province: formData.province,
+          postal_code: formData.postalCode,
+          country: formData.country,
+          latitude: coordinates.latitude.toString(),
+          longitude: coordinates.longitude.toString(),
         },
-        trucks: formData.trucks,
-        assignedStaff: assignedStaff,
-        requiredServers: requiredServers,
-        status: "Scheduled",
-        contactName: formData.contactName,
-        contactEmail: formData.contactEmail,
-        contactPhone: formData.contactPhone,
       };
 
-      // Get existing events
-      const response = await fetch("/events.json");
-      if (!response.ok) {
-        throw new Error("Failed to fetch existing events");
-      }
-      const events = (await response.json()) as Event[];
-      const newId = Math.max(...events.map((evt) => parseInt(evt.id) || 0)) + 1;
+      // Create event in Supabase (this will create address first)
+      const newEvent = await eventsApi.createEvent(eventData);
 
-      // Create new event with ID
-      const newEvent = {
-        id: newId.toString(),
-        ...eventData,
-      };
-
-      // Add new event to the list
-      const updatedEvents = [...events, newEvent];
-
-      // Save updated list
-      const saveResponse = await fetch("/api/events", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedEvents),
-      });
-
-      if (!saveResponse.ok) {
-        throw new Error("Failed to save event data");
+      // Create truck assignments in Supabase
+      for (const assignment of truckAssignments) {
+        await truckAssignmentsApi.createTruckAssignment({
+          truck_id: assignment.truck_id,
+          driver_id: assignment.driver_id,
+          event_id: newEvent.id,
+          start_time: assignment.start_time,
+          end_time: assignment.end_time,
+        });
       }
 
       // Redirect to the specific event page
       window.location.href = `/events/${newEvent.id}`;
     } catch (error) {
+      console.error("Error creating event:", error);
       setFormErrors([
-        error instanceof Error ? error.message : "Please check address.",
+        error instanceof Error
+          ? error.message
+          : "Failed to create event. Please try again.",
       ]);
       setShowErrorModal(true);
       setIsSubmitting(false);
@@ -462,36 +535,97 @@ export default function AddEventPage(): ReactElement {
           </div>
 
           <div className="input-group">
-            <label className="input-label">Select Trucks</label>
+            <label className="input-label">Payment Status</label>
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isPrepaid"
+                  name="isPrepaid"
+                  checked={formData.isPrepaid}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      isPrepaid: e.target.checked,
+                    })
+                  }
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Prepaid Event
+                </span>
+              </label>
+              <span className="text-xs text-gray-500">
+                Check if payment has been received in advance
+              </span>
+            </div>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Assign Trucks & Drivers</label>
             <div
-              className={`truck-list grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 ${formErrors.includes("Please select at least one truck.") ? "border-red-500" : ""}`}
+              className={`truck-assignment-list space-y-4 ${formErrors.includes("Please assign at least one truck with a driver.") ? "border-red-500" : ""}`}
             >
               {trucks.map((truck) => {
-                const truckIdStr = truck.id.toString();
+                const assignedDriver = getAssignedDriverForTruck(truck.id);
+                const availableDrivers = getAvailableDrivers();
+
                 return (
-                  <label
-                    key={truckIdStr}
-                    className="truck-item flex items-center gap-2 p-2 border rounded-md bg-white shadow-sm"
-                    style={{ minWidth: 0 }}
+                  <div
+                    key={truck.id}
+                    className="truck-assignment-item border rounded-lg p-4 bg-gray-50"
                   >
-                    <input
-                      type="checkbox"
-                      checked={formData.trucks.includes(truckIdStr)}
-                      onChange={() => handleTruckSelection(truckIdStr)}
-                    />
-                    <span className="truncate">
-                      {truck.name} ({truck.type}) -{" "}
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-lg">
+                        {truck.name} ({truck.type})
+                      </h4>
                       <span
-                        className={
-                          truck.isAvailable
-                            ? "status-available text-green-600"
-                            : "status-unavailable text-red-500"
+                        className={`px-2 py-1 rounded text-sm ${
+                          truck.is_available
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {truck.is_available ? "Available" : "Unavailable"}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Assign Driver:
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={assignedDriver?.employee_id || ""}
+                        onChange={(e) =>
+                          handleTruckAssignment(
+                            truck.id,
+                            e.target.value || null
+                          )
                         }
                       >
-                        {truck.isAvailable ? "Available" : "Unavailable"}
-                      </span>
-                    </span>
-                  </label>
+                        <option value="">No driver assigned</option>
+                        {availableDrivers.map((driver) => (
+                          <option
+                            key={driver.employee_id}
+                            value={driver.employee_id}
+                          >
+                            {driver.first_name} {driver.last_name}
+                          </option>
+                        ))}
+                      </select>
+
+                      {assignedDriver && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded">
+                          <p className="text-sm text-blue-800">
+                            <strong>Assigned Driver:</strong>{" "}
+                            {assignedDriver.first_name}{" "}
+                            {assignedDriver.last_name}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
