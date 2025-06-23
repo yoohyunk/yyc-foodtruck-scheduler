@@ -321,6 +321,7 @@ export default function AddEventPage(): ReactElement {
         number_of_driver_needed: truckAssignments.length,
         number_of_servers_needed: requiredServers,
         is_prepaid: formData.isPrepaid,
+        status: "Pending",
         // Address data to be created first
         addressData: {
           street: formData.street,

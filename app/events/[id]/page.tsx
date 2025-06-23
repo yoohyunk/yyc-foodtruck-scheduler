@@ -260,6 +260,20 @@ export default function EventDetailsPage(): ReactElement {
     }
   };
 
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!event?.id) return;
+
+    try {
+      const updatedEvent = await eventsApi.updateEvent(event.id, {
+        status: newStatus,
+      });
+      setEvent(updatedEvent);
+    } catch (err) {
+      console.error("Error updating event status:", err);
+      alert("Failed to update event status. Please try again.");
+    }
+  };
+
   const handleEditEvent = () => {
     if (!event) return;
 
@@ -480,6 +494,20 @@ export default function EventDetailsPage(): ReactElement {
                   {event.is_prepaid ? "Prepaid" : "Pending Payment"}
                 </span>
               </p>
+              <p className="event-detail-info">
+                <strong className="info-label">Event Status:</strong>
+                <span
+                  className={`px-2 py-1 rounded text-sm ${
+                    event.status === "Pending"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : event.status === "Cancelled"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-green-100 text-green-800"
+                  }`}
+                >
+                  {event.status || "Pending"}
+                </span>
+              </p>
             </div>
           </div>
         </div>
@@ -516,6 +544,21 @@ export default function EventDetailsPage(): ReactElement {
           >
             {event.is_prepaid ? "Mark as Pending Payment" : "Mark as Prepaid"}
           </button>
+        </TutorialHighlight>
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".update-status-buttons")}
+        >
+          <div className="flex gap-2 update-status-buttons">
+            <select
+              value={event.status || "Pending"}
+              onChange={(e) => handleUpdateStatus(e.target.value)}
+              className="button bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 border-none"
+            >
+              <option value="Pending">Pending</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
         </TutorialHighlight>
       </div>
 
