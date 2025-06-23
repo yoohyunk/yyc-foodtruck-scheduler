@@ -23,6 +23,67 @@ interface EmployeeSelectionModalProps {
   onFilterChange: (filter: string) => void;
 }
 
+// Memoized employee item component to prevent unnecessary re-renders
+const EmployeeItem = React.memo(
+  ({
+    employee,
+    isAssigned,
+    isDisabled,
+    onSelection,
+    shouldHighlight,
+    index,
+    formatDistance,
+    formatWage,
+  }: {
+    employee: EmployeeWithDistanceAndWage;
+    isAssigned: boolean;
+    isDisabled: boolean;
+    onSelection: (employee: Employee) => void;
+    shouldHighlight: (selector: string) => boolean;
+    index: number;
+    formatDistance: (distance: number | undefined) => string;
+    formatWage: (wage: number | undefined) => string;
+  }) => (
+    <TutorialHighlight
+      key={employee.employee_id}
+      isHighlighted={
+        index === 0 &&
+        shouldHighlight(".modal-body .employee-checkbox:first-child")
+      }
+    >
+      <label
+        className={`employee-label w-full flex items-center justify-between px-0 ${
+          isAssigned ? "employee-label-selected" : ""
+        } ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+      >
+        <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
+          <div>
+            <span className="font-semibold" style={{ whiteSpace: "nowrap" }}>
+              {employee.first_name} {employee.last_name}
+            </span>
+            <span className="text-sm text-gray-500 ml-2">
+              ({employee.employee_type || "Unknown"})
+            </span>
+          </div>
+          <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
+            <span className="mr-4">{formatDistance(employee.distance)}</span>
+            <span>{formatWage(employee.currentWage)}</span>
+          </div>
+        </div>
+        <input
+          type="checkbox"
+          className="employee-checkbox mr-3"
+          checked={isAssigned}
+          onChange={() => !isDisabled && onSelection(employee)}
+          disabled={isDisabled}
+        />
+      </label>
+    </TutorialHighlight>
+  )
+);
+
+EmployeeItem.displayName = "EmployeeItem";
+
 export default function EmployeeSelectionModal({
   isOpen,
   onClose,
@@ -40,6 +101,12 @@ export default function EmployeeSelectionModal({
   >([]);
   const [isLoadingDistances, setIsLoadingDistances] = useState(false);
   const [sortByDistance, setSortByDistance] = useState(false);
+
+  // Memoize assigned employee IDs for faster lookups
+  const assignedEmployeeIds = useMemo(
+    () => new Set(assignedEmployees.map((emp) => emp.employee_id)),
+    [assignedEmployees]
+  );
 
   const calculateDistancesAndWages = useCallback(async () => {
     setIsLoadingDistances(true);
@@ -112,16 +179,16 @@ export default function EmployeeSelectionModal({
     }
   }, [isOpen, event, employees, calculateDistancesAndWages]);
 
-  const formatDistance = (distance: number | undefined) => {
+  const formatDistance = useCallback((distance: number | undefined) => {
     if (distance === undefined) return "N/A";
     if (distance < 1) return `${(distance * 1000).toFixed(0)}m`;
     return `${distance.toFixed(1)}km`;
-  };
+  }, []);
 
-  const formatWage = (wage: number | undefined) => {
+  const formatWage = useCallback((wage: number | undefined) => {
     if (wage === undefined) return "N/A";
     return `$${wage.toFixed(2)}/hr`;
-  };
+  }, []);
 
   const sortedAndFilteredEmployees = useMemo(() => {
     const processedEmployees = employeesWithDistance.filter(
@@ -157,6 +224,10 @@ export default function EmployeeSelectionModal({
           style={{ flexShrink: 0, padding: "2rem 2rem 0.75rem 2rem" }}
         >
           Select Employees
+          <span className="text-sm font-normal text-gray-600 ml-2">
+            ({assignedEmployees.length}/{event.number_of_servers_needed}{" "}
+            assigned)
+          </span>
         </h3>
         <div
           className="modal-body"
@@ -203,62 +274,41 @@ export default function EmployeeSelectionModal({
             {isLoadingEmployees || isLoadingDistances ? (
               <p className="text-gray-500">Loading employees...</p>
             ) : sortedAndFilteredEmployees.length > 0 ? (
-              sortedAndFilteredEmployees.map((employee, index) => (
-                <TutorialHighlight
-                  key={employee.employee_id}
-                  isHighlighted={
-                    index === 0 &&
-                    shouldHighlight(
-                      ".modal-body .employee-checkbox:first-child"
-                    )
-                  }
-                >
-                  <label
-                    className={`employee-label w-full flex items-center justify-between px-0 ${
-                      assignedEmployees.some(
-                        (e) => e.employee_id === employee.employee_id
-                      )
-                        ? "employee-label-selected"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
-                      <div>
-                        <span
-                          className="font-semibold"
-                          style={{ whiteSpace: "nowrap" }}
-                        >
-                          {employee.first_name} {employee.last_name}
-                        </span>
-                        <span className="text-sm text-gray-500 ml-2">
-                          ({employee.employee_type || "Unknown"})
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
-                        <span className="mr-4">
-                          {formatDistance(employee.distance)}
-                        </span>
-                        <span>{formatWage(employee.currentWage)}</span>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="employee-checkbox mr-3"
-                      checked={assignedEmployees.some(
-                        (e) => e.employee_id === employee.employee_id
-                      )}
-                      onChange={() => onEmployeeSelection(employee)}
-                      disabled={
-                        !assignedEmployees.some(
-                          (e) => e.employee_id === employee.employee_id
-                        ) &&
-                        assignedEmployees.length >=
-                          (event.number_of_servers_needed || 0)
-                      }
+              <>
+                {assignedEmployees.length >=
+                  (event.number_of_servers_needed || 0) && (
+                  <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+                    <p className="text-green-800 text-sm">
+                      ✅ Maximum number of servers (
+                      {event.number_of_servers_needed}) assigned. You can
+                      unassign servers to add different ones.
+                    </p>
+                  </div>
+                )}
+                {sortedAndFilteredEmployees.map((employee, index) => {
+                  const isAssigned = assignedEmployeeIds.has(
+                    employee.employee_id
+                  );
+                  const maxReached =
+                    assignedEmployees.length >=
+                    (event.number_of_servers_needed || 0);
+                  const isDisabled = !isAssigned && maxReached;
+
+                  return (
+                    <EmployeeItem
+                      key={employee.employee_id}
+                      employee={employee}
+                      isAssigned={isAssigned}
+                      isDisabled={isDisabled}
+                      onSelection={onEmployeeSelection}
+                      shouldHighlight={shouldHighlight}
+                      index={index}
+                      formatDistance={formatDistance}
+                      formatWage={formatWage}
                     />
-                  </label>
-                </TutorialHighlight>
-              ))
+                  );
+                })}
+              </>
             ) : (
               <p className="text-gray-500">No employees available.</p>
             )}

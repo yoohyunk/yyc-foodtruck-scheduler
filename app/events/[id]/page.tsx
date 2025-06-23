@@ -15,14 +15,15 @@ import { TutorialHighlight } from "../../components/TutorialHighlight";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
+import { assignmentsApi } from "@/lib/supabase/assignments";
 
 // Import components
 import EmployeeSelectionModal from "./components/EmployeeSelectionModal";
 import TruckAssignmentModal from "./components/TruckAssignmentModal";
 import EditEventModal from "./components/EditEventModal";
 import DeleteEventModal from "./components/DeleteEventModal";
-import AssignedEmployeesSection from "./components/AssignedEmployeesSection";
 import TruckAssignmentsSection from "./components/TruckAssignmentsSection";
+import ServerAssignmentsSection from "./components/ServerAssignmentsSection";
 
 export default function EventDetailsPage(): ReactElement {
   const { id } = useParams();
@@ -34,6 +35,18 @@ export default function EventDetailsPage(): ReactElement {
   const [truckAssignments, setTruckAssignments] = useState<TruckAssignment[]>(
     []
   );
+  const [serverAssignments, setServerAssignments] = useState<
+    Array<{
+      id: string;
+      employee_id: string;
+      event_id: string;
+      start_date: string;
+      end_date: string;
+      is_completed: boolean;
+      status: string;
+      employees: Employee;
+    }>
+  >([]);
   const [isEmployeeModalOpen, setEmployeeModalOpen] = useState<boolean>(false);
   const [isTruckAssignmentModalOpen, setTruckAssignmentModalOpen] =
     useState<boolean>(false);
@@ -73,8 +86,8 @@ export default function EventDetailsPage(): ReactElement {
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Employee filter state
-  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+  // Employee filter state - default to Server for server assignments
+  const [employeeFilter, setEmployeeFilter] = useState<string>("Server");
 
   // Fetch event details from Supabase
   useEffect(() => {
@@ -137,25 +150,106 @@ export default function EventDetailsPage(): ReactElement {
     fetchTruckAssignments();
   }, [event?.id]);
 
-  // Update assigned employees when event or employees change
+  // Fetch server assignments when event is loaded
   useEffect(() => {
-    if (event && employees.length > 0) {
-      // For now, we'll show all employees since assignedStaff is not in the Supabase schema yet
-      // This will need to be updated when assignments are properly implemented
+    const fetchServerAssignments = async () => {
+      if (!event?.id) return;
+
+      try {
+        const assignments = await assignmentsApi.getServerAssignmentsByEventId(
+          event.id
+        );
+        setServerAssignments(assignments);
+      } catch (err) {
+        console.error("Error fetching server assignments:", err);
+      }
+    };
+
+    fetchServerAssignments();
+  }, [event?.id]);
+
+  // Update assigned employees when server assignments change
+  useEffect(() => {
+    if (serverAssignments.length > 0 && employees.length > 0) {
+      // Map server assignments to employee objects
+      const assignedEmployeeIds = serverAssignments.map(
+        (assignment) => assignment.employee_id
+      );
+      const assignedEmployeeObjects = employees.filter((emp) =>
+        assignedEmployeeIds.includes(emp.employee_id)
+      );
+
+      // Only update if the assigned employees have actually changed
+      const currentIds = new Set(
+        assignedEmployees.map((emp) => emp.employee_id)
+      );
+      const newIds = new Set(
+        assignedEmployeeObjects.map((emp) => emp.employee_id)
+      );
+
+      if (
+        currentIds.size !== newIds.size ||
+        !assignedEmployeeObjects.every((emp) => currentIds.has(emp.employee_id))
+      ) {
+        setAssignedEmployees(assignedEmployeeObjects);
+      }
+    } else if (assignedEmployees.length > 0) {
       setAssignedEmployees([]);
     }
-  }, [event, employees]);
+  }, [serverAssignments, employees, assignedEmployees]);
 
-  const handleEmployeeSelection = (employee: Employee) => {
-    if (assignedEmployees.some((e) => e.employee_id === employee.employee_id)) {
-      setAssignedEmployees(
-        assignedEmployees.filter((e) => e.employee_id !== employee.employee_id)
+  const handleEmployeeSelection = async (employee: Employee) => {
+    if (!event?.id) return;
+
+    try {
+      const isCurrentlyAssigned = assignedEmployees.some(
+        (e) => e.employee_id === employee.employee_id
       );
-    } else if (
-      event &&
-      assignedEmployees.length < (event.number_of_servers_needed || 0)
-    ) {
-      setAssignedEmployees([...assignedEmployees, employee]);
+
+      if (isCurrentlyAssigned) {
+        // Remove assignment
+        const assignmentToRemove = serverAssignments.find(
+          (assignment) => assignment.employee_id === employee.employee_id
+        );
+
+        if (assignmentToRemove) {
+          await assignmentsApi.removeServerAssignment(
+            assignmentToRemove.id,
+            event.id
+          );
+
+          // Update local state
+          setServerAssignments(
+            serverAssignments.filter(
+              (assignment) => assignment.employee_id !== employee.employee_id
+            )
+          );
+        }
+      } else {
+        // Check if we can add more employees
+        if (assignedEmployees.length >= (event.number_of_servers_needed || 0)) {
+          alert(
+            `Maximum number of servers (${event.number_of_servers_needed}) already assigned.`
+          );
+          return;
+        }
+
+        // Add assignment
+        await assignmentsApi.addServerAssignment(
+          event.id,
+          employee.employee_id,
+          event.start_date || new Date().toISOString(),
+          event.end_date || new Date().toISOString()
+        );
+
+        // Refresh server assignments
+        const updatedAssignments =
+          await assignmentsApi.getServerAssignmentsByEventId(event.id);
+        setServerAssignments(updatedAssignments);
+      }
+    } catch (error) {
+      console.error("Error handling employee selection:", error);
+      alert("Failed to update employee assignment. Please try again.");
     }
   };
 
@@ -597,23 +691,29 @@ export default function EventDetailsPage(): ReactElement {
         />
       )}
 
-      {/* Assigned Employees Section */}
-      {assignedEmployees.length > 0 && (
-        <AssignedEmployeesSection
-          assignedEmployees={assignedEmployees}
-          shouldHighlight={shouldHighlight}
-        />
-      )}
+      {/* Assignments Grid - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        {/* Server Assignments Section */}
+        <ServerAssignmentsSection serverAssignments={serverAssignments} />
 
-      {/* Truck Assignments Section */}
-      {truckAssignments.length > 0 && (
-        <TruckAssignmentsSection
-          truckAssignments={truckAssignments}
-          trucks={trucks}
-          employees={employees}
-          shouldHighlight={shouldHighlight}
-        />
-      )}
+        {/* Truck Assignments Section */}
+        {truckAssignments.length > 0 ? (
+          <TruckAssignmentsSection
+            trucks={trucks}
+            truckAssignments={truckAssignments}
+            employees={employees}
+          />
+        ) : (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800">
+              Truck Assignments
+            </h3>
+            <p className="text-gray-500">
+              No trucks assigned to this event yet.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Edit Event Modal */}
       {isEditModalOpen && (
