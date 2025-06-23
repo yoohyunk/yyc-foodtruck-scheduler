@@ -13,7 +13,7 @@ export default function SetPasswordPage(): ReactElement {
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
 
-  // Parse hash fragment and set session
+  // Parse hash fragment, set session, and verify
   useEffect(() => {
     const hash = window.location.hash;
     if (!hash) {
@@ -21,25 +21,21 @@ export default function SetPasswordPage(): ReactElement {
       setLoading(false);
       return;
     }
-
     const params = new URLSearchParams(hash.substring(1));
     const access_token = params.get("access_token");
     const refresh_token = params.get("refresh_token");
-
     if (access_token && refresh_token) {
       supabase.auth
         .setSession({ access_token, refresh_token })
         .then(({ data, error: sessionError }) => {
           if (sessionError || !data.session) {
-            console.error("Session error:", sessionError);
-            setError("Failed to verify invitation. Please try again.");
+            setError("Failed to verify invitation.");
           } else {
             setVerified(true);
           }
         })
-        .catch((err) => {
-          console.error("Error setting session:", err);
-          setError("Error setting session. Please try again.");
+        .catch(() => {
+          setError("Error setting session.");
         })
         .finally(() => setLoading(false));
     } else {
@@ -54,10 +50,8 @@ export default function SetPasswordPage(): ReactElement {
       setError("Password must be at least 6 characters.");
       return;
     }
-
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
-      console.error("Password update error:", updateError);
       setError(updateError.message);
     } else {
       router.push("/set-up-employee-info");
@@ -65,45 +59,13 @@ export default function SetPasswordPage(): ReactElement {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center">
-          <p className="text-lg">Verifying invitation...</p>
-        </div>
-      </div>
-    );
+    return <p>Verifying invitation...</p>;
   }
-
   if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => router.push("/login")}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Back to Login
-          </button>
-        </div>
-      </div>
-    );
+    return <p className="text-red-600">{error}</p>;
   }
-
   if (!verified) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow text-center">
-          <p className="text-red-600 mb-4">Unable to set password.</p>
-          <button
-            onClick={() => router.push("/login")}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Back to Login
-          </button>
-        </div>
-      </div>
-    );
+    return <p className="text-red-600">Unable to set password.</p>;
   }
 
   return (
@@ -127,7 +89,7 @@ export default function SetPasswordPage(): ReactElement {
           {error && <p className="text-red-600">{error}</p>}
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+            className="w-full bg-green-600 text-white py-2 rounded"
           >
             Set Password
           </button>
