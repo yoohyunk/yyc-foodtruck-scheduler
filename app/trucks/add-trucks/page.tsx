@@ -10,10 +10,10 @@ import React, {
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { TablesInsert } from "@/database.types";
-import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
+import ShopLocationDropdown from "@/app/components/ShopLocationDropdown";
 import { Coordinates } from "@/app/types";
 import ErrorModal from "../../components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateNumber, createValidationRule, sanitizeFormData } from "../../lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateNumber, createValidationRule, sanitizeFormData } from "../../../lib/formValidation";
 
 interface TruckFormData {
   name: string;
@@ -26,7 +26,6 @@ interface TruckFormData {
 export default function AddTrucks(): ReactElement {
   const router = useRouter();
   const supabase = createClient();
-  const addressFormRef = useRef<AddressFormRef>(null);
 
   const [formData, setFormData] = useState<TruckFormData>({
     name: "",
@@ -37,13 +36,6 @@ export default function AddTrucks(): ReactElement {
   });
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
-  const [addressFormData, setAddressFormData] = useState<{
-    streetNumber: string;
-    streetName: string;
-    direction: string;
-    city: string;
-    postalCode: string;
-  } | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -94,23 +86,15 @@ export default function AddTrucks(): ReactElement {
     });
   };
 
-  const handleAddressChange = (
+  const handleShopLocationChange = (
     address: string,
-    coords?: Coordinates,
-    addrData?: {
-      streetNumber: string;
-      streetName: string;
-      direction: string;
-      city: string;
-      postalCode: string;
-    }
+    coords?: Coordinates
   ) => {
     setFormData({
       ...formData,
       address: address,
     });
     setCoordinates(coords);
-    setAddressFormData(addrData || null);
   };
 
   const handlePackingListChange = (item: string) => {
@@ -146,12 +130,18 @@ export default function AddTrucks(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      // 1. 주소 먼저 생성
+      // Parse the address to extract components
+      const addressParts = formData.address.split(", ");
+      const streetPart = addressParts[0] || "";
+      const city = addressParts[1] || "Calgary";
+      const postalCode = addressParts[2] || "";
+
+      // 1. Create address first
       const addressInsert: TablesInsert<"addresses"> = {
-        street: formData.address,
-        city: addressFormData?.city || "Calgary",
+        street: streetPart,
+        city: city,
         province: "Alberta",
-        postal_code: addressFormData?.postalCode || "",
+        postal_code: postalCode,
         country: "Canada",
         latitude: coordinates?.latitude?.toString() ?? null,
         longitude: coordinates?.longitude?.toString() ?? null,
@@ -171,7 +161,7 @@ export default function AddTrucks(): ReactElement {
         return;
       }
 
-      // 2. 트럭 생성
+      // 2. Create truck
       const truckInsert: TablesInsert<"trucks"> = {
         name: formData.name,
         type: formData.type,
@@ -210,104 +200,123 @@ export default function AddTrucks(): ReactElement {
 
   return (
     <>
-      <div className="add-trucks-page">
-        <h1 className="form-header">Add New Truck</h1>
-        <form onSubmit={handleSubmit} className="truck-form">
-          <div className="input-group">
-            <label htmlFor="name" className="input-label">
-              Truck Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={nameRef}
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="input-field"
-            />
-          </div>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+            Add New Truck
+          </h1>
 
-          <div className="input-group">
-            <label htmlFor="type" className="input-label">
-              Truck Type <span className="text-red-500">*</span>
-            </label>
-            <select
-              ref={typeRef}
-              id="type"
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
-              className="input-field"
-            >
-              <option value="">Select Truck Type</option>
-              {truckTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="capacity" className="input-label">
-              Capacity <span className="text-red-500">*</span>
-            </label>
-            <select
-              ref={capacityRef}
-              id="capacity"
-              name="capacity"
-              value={formData.capacity}
-              onChange={handleChange}
-              className="input-field"
-            >
-              <option value="">Select Capacity</option>
-              {capacityOptions.map((capacity) => (
-                <option key={capacity} value={capacity}>
-                  {capacity}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">
-              Address <span className="text-red-500">*</span>
-            </label>
-            <AddressForm
-              ref={addressFormRef}
-              value={formData.address}
-              onChange={handleAddressChange}
-            />
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">Packing List</label>
-            <div className="packing-list-grid">
-              {packingListOptions.map((item) => (
-                <label key={item} className="packing-list-item">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Truck Name <span className="text-red-500">*</span>
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={formData.packingList.includes(item)}
-                    onChange={() => handlePackingListChange(item)}
-                    className="packing-list-checkbox"
+                    ref={nameRef}
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter truck name"
                   />
-                  <span className="packing-list-text">{item}</span>
-                </label>
-              ))}
+                </div>
+
+                <div>
+                  <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+                    Truck Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    ref={typeRef}
+                    id="type"
+                    name="type"
+                    value={formData.type}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select truck type</option>
+                    {truckTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-1">
+                    Capacity <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    ref={capacityRef}
+                    id="capacity"
+                    name="capacity"
+                    value={formData.capacity}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select capacity</option>
+                    {capacityOptions.map((capacity) => (
+                      <option key={capacity} value={capacity}>
+                        {capacity}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                    Shop Location <span className="text-red-500">*</span>
+                  </label>
+                  <ShopLocationDropdown
+                    value={formData.address}
+                    onChange={handleShopLocationChange}
+                    placeholder="Select shop location"
+                    required={true}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Packing List
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {packingListOptions.map((item) => (
+                      <label key={item} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.packingList.includes(item)}
+                          onChange={() => handlePackingListChange(item)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm">{item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <button type="submit" className="button" disabled={isSubmitting}>
-            {isSubmitting ? "Adding Truck..." : "Add Truck"}
-          </button>
-        </form>
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+              >
+                {isSubmitting ? "Adding..." : "Add Truck"}
+              </button>
+            </div>
 
-        {success && (
-          <div className="success-message">
-            <p>{success}</p>
-          </div>
-        )}
+            {success && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                {success}
+              </div>
+            )}
+          </form>
+        </div>
       </div>
 
       <ErrorModal

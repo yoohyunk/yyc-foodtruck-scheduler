@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ErrorModal from "@/app/components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validateRequired, createValidationRule, sanitizeFormData, commonValidationRules } from "@/app/lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validateRequired, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
 
 type Role = "Admin" | "Employee";
 

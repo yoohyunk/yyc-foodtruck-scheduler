@@ -15,7 +15,7 @@ import { TutorialHighlight } from "../../components/TutorialHighlight";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, validateTimeRange, createValidationRule, sanitizeFormData, commonValidationRules } from "@/app/lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, validateTimeRange, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
 
 // Import components
 import EmployeeSelectionModal from "./components/EmployeeSelectionModal";

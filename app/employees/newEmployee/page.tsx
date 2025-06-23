@@ -3,7 +3,7 @@
 import React, { useState, FormEvent, ReactElement, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ErrorModal from "../../components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validateRequired, validateNumber, createValidationRule } from "../../lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validateRequired, validateNumber, createValidationRule } from "../../../lib/formValidation";
 
 export default function InviteEmployee(): ReactElement {
   const router = useRouter();

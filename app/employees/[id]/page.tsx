@@ -16,7 +16,7 @@ import { TutorialHighlight } from "../../components/TutorialHighlight";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import { wagesApi } from "@/lib/supabase/wages";
 import ErrorModal from "../../components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, createValidationRule } from "../../lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, createValidationRule } from "../../../lib/formValidation";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();

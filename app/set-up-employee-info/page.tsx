@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "../../database.types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import ErrorModal from "@/app/components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, createValidationRule, sanitizeFormData, commonValidationRules } from "@/app/lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
 
 // Use Supabase types
 type EmployeeInfo = Tables<"employees"> & { wage?: string };

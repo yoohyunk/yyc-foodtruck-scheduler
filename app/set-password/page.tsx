@@ -4,7 +4,7 @@ import React, { useEffect, useState, ReactElement, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ErrorModal from "@/app/components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validatePassword, createValidationRule, sanitizeFormData, commonValidationRules } from "@/app/lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validatePassword, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
 
 export default function SetPasswordPage(): ReactElement {
   const router = useRouter();

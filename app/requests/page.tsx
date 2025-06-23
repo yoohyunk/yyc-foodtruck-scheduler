@@ -2,7 +2,7 @@
 
 import React, { useState, FormEvent, ChangeEvent, ReactElement, useRef } from "react";
 import ErrorModal from "../components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, createValidationRule } from "../lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, createValidationRule } from "../../lib/formValidation";
 
 interface TimeOffRequestFormData {
   type: string;

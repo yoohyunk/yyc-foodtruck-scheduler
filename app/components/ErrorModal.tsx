@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { ValidationError, scrollToFirstError } from "../lib/formValidation";
+import { ValidationError, scrollToFirstError } from "../../lib/formValidation";
 
 interface ErrorModalProps {
   isOpen: boolean;

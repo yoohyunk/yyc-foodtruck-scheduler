@@ -3,7 +3,7 @@ import { EventFormData } from "@/app/types";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ErrorModal from "@/app/components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, validateTimeRange, createValidationRule, sanitizeFormData, commonValidationRules } from "@/app/lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, validateTimeRange, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
 
 interface EditEventModalProps {
   isOpen: boolean;

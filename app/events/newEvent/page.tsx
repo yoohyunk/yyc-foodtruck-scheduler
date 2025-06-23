@@ -17,7 +17,7 @@ import ErrorModal from "@/app/components/ErrorModal";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, validateDate, validateTimeRange, createValidationRule, getEmptyFieldNames } from "../../lib/formValidation";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, validateDate, validateTimeRange, createValidationRule, getEmptyFieldNames } from "../../../lib/formValidation";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
