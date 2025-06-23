@@ -1,188 +1,350 @@
 "use client";
-import { useState, FormEvent, ChangeEvent, ReactElement } from "react";
-import { FiCalendar } from "react-icons/fi";
-import { TimeOffRequest, TimeOffRequestFormData } from "../types";
+import { useState, useEffect, ReactElement } from "react";
+import { FiCalendar, FiUser, FiClock } from "react-icons/fi";
+import { TimeOffRequest } from "../types";
+import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
+import { employeesApi } from "@/lib/supabase/employees";
+import { Employee } from "../types";
 
-export default function TimeOff(): ReactElement {
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [requests, setRequests] = useState<TimeOffRequest[]>([
-    {
-      date: "2024-11-13",
-      type: "Sick Leave",
-      duration: "Full Day",
-      status: "Approved",
-      reason: "Flu",
-    },
-    {
-      date: "2024-11-15",
-      type: "Personal",
-      duration: "Half Day (AM)",
-      status: "Pending",
-      reason: "Errand",
-    },
-  ]);
+export default function RequestsPage(): ReactElement {
+  const [requests, setRequests] = useState<TimeOffRequest[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>("All");
 
-  const [formData, setFormData] = useState<TimeOffRequestFormData>({
-    date: "",
-    type: "Vacation",
-    duration: "Full Day",
-    reason: "",
-  });
+  // Fetch all time off requests and employees
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const newRequest: TimeOffRequest = { ...formData, status: "Pending" };
-    setRequests([...requests, newRequest]);
-    setFormData({
-      date: "",
-      type: "Vacation",
-      duration: "Full Day",
-      reason: "",
+        // Fetch all time off requests
+        const requestsData = await timeOffRequestsApi.getAllTimeOffRequests();
+        setRequests(requestsData);
+
+        // Fetch all employees for employee details
+        const employeesData = await employeesApi.getAllEmployees();
+        setEmployees(employeesData);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load time off requests.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleStatusUpdate = async (requestId: string, newStatus: string) => {
+    try {
+      await timeOffRequestsApi.updateTimeOffRequest(requestId, {
+        status: newStatus,
+      });
+
+      // Update local state
+      setRequests(
+        requests.map((request) =>
+          request.id === requestId ? { ...request, status: newStatus } : request
+        )
+      );
+    } catch (err) {
+      console.error("Error updating request status:", err);
+      alert("Failed to update request status. Please try again.");
+    }
+  };
+
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!confirm("Are you sure you want to delete this request?")) {
+      return;
+    }
+
+    try {
+      await timeOffRequestsApi.deleteTimeOffRequest(requestId);
+      setRequests(requests.filter((request) => request.id !== requestId));
+    } catch (err) {
+      console.error("Error deleting request:", err);
+      alert("Failed to delete request. Please try again.");
+    }
+  };
+
+  const getEmployeeName = (employeeId: string | null) => {
+    if (!employeeId) return "Unknown Employee";
+    const employee = employees.find((emp) => emp.employee_id === employeeId);
+    return employee
+      ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
+          "Unknown Name"
+      : "Unknown Employee";
+  };
+
+  const formatDateTime = (dateTimeString: string) => {
+    const date = new Date(dateTimeString);
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
-    setShowModal(false);
   };
 
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const formatDateOnly = (dateTimeString: string) => {
+    const date = new Date(dateTimeString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
+
+  const calculateDuration = (startDateTime: string, endDateTime: string) => {
+    const start = new Date(startDateTime);
+    const end = new Date(endDateTime);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+
+    // Calculate days, hours, and minutes
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(
+      (diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    );
+    const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+
+    // Format the duration string
+    let duration = "";
+
+    if (diffDays > 0) {
+      duration += `${diffDays} day${diffDays > 1 ? "s" : ""}`;
+      if (diffHours > 0) {
+        duration += ` ${diffHours} hour${diffHours > 1 ? "s" : ""}`;
+      }
+    } else if (diffHours > 0) {
+      duration += `${diffHours} hour${diffHours > 1 ? "s" : ""}`;
+      if (diffMinutes > 0) {
+        duration += ` ${diffMinutes} minute${diffMinutes > 1 ? "s" : ""}`;
+      }
+    } else {
+      duration += `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""}`;
+    }
+
+    return duration;
+  };
+
+  const filteredRequests =
+    filterStatus === "All"
+      ? requests
+      : requests.filter((request) => request.status === filterStatus);
+
+  if (isLoading) {
+    return (
+      <div className="requests-page">
+        <h2 className="text-2xl text-primary-dark mb-4">
+          Time-Off Requests Management
+        </h2>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
+          <span className="ml-2 text-gray-600">
+            Loading time off requests...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="requests-page">
+        <h2 className="text-2xl text-primary-dark mb-4">
+          Time-Off Requests Management
+        </h2>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">My Time-Off Requests</h2>
+    <div className="requests-page">
+      <h2 className="text-2xl text-primary-dark mb-4">
+        Time-Off Requests Management
+      </h2>
+
+      {/* Filter Buttons */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <button
-          onClick={() => setShowModal(true)}
-          className="bg-white text-black border border-black px-4 py-2 rounded hover:bg-gray-100 transition"
+          className={`button ${filterStatus === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setFilterStatus("All")}
         >
-          + Request Time-Off
+          <div className="flex items-center justify-center">
+            <FiCalendar
+              className={`mr-2 ${filterStatus === "All" ? "text-white" : "text-blue-500"}`}
+            />
+            <span>All ({requests.length})</span>
+          </div>
+        </button>
+        <button
+          className={`button ${filterStatus === "Pending" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setFilterStatus("Pending")}
+        >
+          <div className="flex items-center justify-center">
+            <FiClock
+              className={`mr-2 ${filterStatus === "Pending" ? "text-white" : "text-yellow-500"}`}
+            />
+            <span>
+              Pending ({requests.filter((r) => r.status === "Pending").length})
+            </span>
+          </div>
+        </button>
+        <button
+          className={`button ${filterStatus === "Approved" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setFilterStatus("Approved")}
+        >
+          <div className="flex items-center justify-center">
+            <FiUser
+              className={`mr-2 ${filterStatus === "Approved" ? "text-white" : "text-green-500"}`}
+            />
+            <span>
+              Approved ({requests.filter((r) => r.status === "Approved").length}
+              )
+            </span>
+          </div>
+        </button>
+        <button
+          className={`button ${filterStatus === "Rejected" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setFilterStatus("Rejected")}
+        >
+          <div className="flex items-center justify-center">
+            <FiUser
+              className={`mr-2 ${filterStatus === "Rejected" ? "text-white" : "text-red-500"}`}
+            />
+            <span>
+              Rejected ({requests.filter((r) => r.status === "Rejected").length}
+              )
+            </span>
+          </div>
         </button>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full  rounded-lg overflow-hidden">
-          <thead className="bg-gray-100 text-left text-sm text-gray-600">
-            <tr>
-              <th className="p-3">Date</th>
-              <th className="p-3">Type</th>
-              <th className="p-3">Duration</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((item, index) => (
-              <tr key={index} className="text-sm">
-                <td className="p-3">
-                  <div className="flex items-center gap-2">
-                    <FiCalendar size={16} />
-                    <span className="inline-block">{item.date}</span>
+      <div className="grid gap-4">
+        {filteredRequests.length > 0 ? (
+          filteredRequests.map((request) => (
+            <div
+              key={request.id}
+              className="employee-card bg-white p-6 rounded shadow relative"
+            >
+              {/* Header Row */}
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center ">
+                  <div>
+                    <div className="flex items-center gap-4">
+                      <FiUser className="text-gray-400 mr-3 text-lg" />
+                      <h3 className="font-semibold text-lg text-gray-800">
+                        {getEmployeeName(request.employee_id)}
+                      </h3>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                        {request.type}
+                      </span>
+                    </div>
+                    {/* Reason Section */}
+                    {request.reason && (
+                      <div className="bg-gray-50 p-3 rounded-lg flex gap-2">
+                        <div className="flex items-center mb-2">
+                          <span className="font-medium text-gray-700">
+                            Reason for Time Off:
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {request.reason}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </td>
-                <td className="p-3">{item.type}</td>
-                <td className="p-3">{item.duration}</td>
-                <td className="p-3">
-                  <span
-                    className={`badge ${
-                      item.status === "Approved"
-                        ? "bg-green-100 text-green-600"
-                        : item.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-600"
-                          : "bg-red-100 text-red-600"
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={request.status}
+                    onChange={(e) =>
+                      handleStatusUpdate(request.id, e.target.value)
+                    }
+                    className={`px-3 py-1 rounded text-sm font-medium border-none focus:outline-none focus:ring-2 focus:ring-primary-dark ${
+                      request.status === "Approved"
+                        ? "bg-green-100 text-green-800"
+                        : request.status === "Rejected"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
                     }`}
                   >
-                    {item.status}
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                  <button
+                    onClick={() => handleDeleteRequest(request.id)}
+                    className="delete-button"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+              {/* Date and Time Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="flex items-center mb-2">
+                    <FiCalendar className="text-blue-500 mr-2" />
+                    <span className="font-medium text-gray-700">
+                      Start Date & Time
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    {formatDateTime(request.start_datetime)}
                   </span>
-                </td>
-                <td className="p-3">{item.reason}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="flex items-center mb-2">
+                    <FiCalendar className="text-blue-500 mr-2" />
+                    <span className="font-medium text-gray-700">
+                      End Date & Time
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    {formatDateTime(request.end_datetime)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Duration Calculation */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span>
+                    Duration:{" "}
+                    {calculateDuration(
+                      request.start_datetime,
+                      request.end_datetime
+                    )}
+                  </span>
+                  <span>
+                    Requested on: {formatDateOnly(request.created_at)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            No time off requests found.
+          </div>
+        )}
       </div>
-
-      {/* Inline Form */}
-      {showModal && (
-        <div className="mt-6 bg-white p-6 rounded-lg shadow">
-          <h3 className="text-xl font-bold mb-4">Request Time-Off</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block mb-1 text-sm font-medium">Date</label>
-              <input
-                type="date"
-                name="date"
-                required
-                className="w-full border p-2 rounded"
-                value={formData.date}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Type of Leave
-              </label>
-              <select
-                name="type"
-                className="w-full border p-2 rounded"
-                value={formData.type}
-                onChange={handleInputChange}
-              >
-                <option>Vacation</option>
-                <option>Sick Leave</option>
-                <option>Personal</option>
-                <option>Emergency</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium">Duration</label>
-              <select
-                name="duration"
-                className="w-full border p-2 rounded"
-                value={formData.duration}
-                onChange={handleInputChange}
-              >
-                <option>Full Day</option>
-                <option>Half Day (AM)</option>
-                <option>Half Day (PM)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium">Reason</label>
-              <textarea
-                name="reason"
-                rows={3}
-                className="w-full border p-2 rounded"
-                placeholder="Optional"
-                value={formData.reason}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="bg-white text-black border border-black px-4 py-2 rounded hover:bg-gray-100 transition"
-              >
-                Submit Request
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
     </div>
   );
 }
