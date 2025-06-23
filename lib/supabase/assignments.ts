@@ -1,5 +1,5 @@
 import { createClient } from "./client";
-import { Employee, Truck } from "@/app/types";
+import { Employee } from "@/app/types";
 import { calculateDistance, getCoordinates } from "@/app/AlgApi/distance";
 import { eventsApi } from "./events";
 
