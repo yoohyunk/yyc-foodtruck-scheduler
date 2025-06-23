@@ -115,7 +115,7 @@ export type Database = {
           employee_id?: string;
           employee_type?: string | null;
           first_name?: string | null;
-          is_available: boolean;
+          is_available?: boolean;
           is_pending?: boolean;
           last_name?: string | null;
           user_email?: string | null;
@@ -149,12 +149,16 @@ export type Database = {
       events: {
         Row: {
           address_id: string | null;
+          contact_email: string | null;
+          contact_name: string | null;
+          contact_phone: string | null;
           created_at: string;
           created_by: string | null;
           description: string | null;
           end_date: string;
           expected_budget: number | null;
           id: string;
+          is_prepaid: boolean;
           number_of_driver_needed: number | null;
           number_of_servers_needed: number | null;
           start_date: string;
@@ -162,12 +166,16 @@ export type Database = {
         };
         Insert: {
           address_id?: string | null;
+          contact_email?: string | null;
+          contact_name?: string | null;
+          contact_phone?: string | null;
           created_at?: string;
           created_by?: string | null;
           description?: string | null;
           end_date: string;
           expected_budget?: number | null;
           id?: string;
+          is_prepaid?: boolean;
           number_of_driver_needed?: number | null;
           number_of_servers_needed?: number | null;
           start_date: string;
@@ -175,12 +183,16 @@ export type Database = {
         };
         Update: {
           address_id?: string | null;
+          contact_email?: string | null;
+          contact_name?: string | null;
+          contact_phone?: string | null;
           created_at?: string;
           created_by?: string | null;
           description?: string | null;
           end_date?: string;
           expected_budget?: number | null;
           id?: string;
+          is_prepaid?: boolean;
           number_of_driver_needed?: number | null;
           number_of_servers_needed?: number | null;
           start_date?: string;
