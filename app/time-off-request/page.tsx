@@ -21,6 +21,7 @@ export default function TimeOffRequestPage(): ReactElement {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
   const { shouldHighlight } = useTutorial();
 
   const handleInputChange = (
@@ -33,6 +34,44 @@ export default function TimeOffRequestPage(): ReactElement {
       ...formData,
       [name]: value,
     });
+
+    // Clear date error when user starts typing
+    setDateError(null);
+
+    // Validate dates
+    if (name === "start_datetime" && value) {
+      const selectedDate = new Date(value);
+      const currentDate = new Date();
+
+      if (selectedDate < currentDate) {
+        setDateError("Start date and time cannot be in the past.");
+        return;
+      }
+    }
+
+    if (name === "end_datetime" && value) {
+      const selectedDate = new Date(value);
+      const currentDate = new Date();
+
+      if (selectedDate < currentDate) {
+        setDateError("End date and time cannot be in the past.");
+        return;
+      }
+    }
+
+    // If start datetime changes, ensure end datetime is not before it
+    if (name === "start_datetime" && value && formData.end_datetime) {
+      if (new Date(value) >= new Date(formData.end_datetime)) {
+        // Set end datetime to 1 hour after start datetime
+        const startDate = new Date(value);
+        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Add 1 hour
+        const endDateTimeLocal = endDate.toISOString().slice(0, 16);
+        setFormData((prev) => ({
+          ...prev,
+          end_datetime: endDateTimeLocal,
+        }));
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,8 +125,21 @@ export default function TimeOffRequestPage(): ReactElement {
       formData.end_datetime &&
       formData.reason.trim() &&
       formData.type &&
-      new Date(formData.start_datetime) < new Date(formData.end_datetime)
+      new Date(formData.start_datetime) < new Date(formData.end_datetime) &&
+      new Date(formData.start_datetime) >= new Date() &&
+      !dateError
     );
+  };
+
+  // Get current datetime in local format for min attribute
+  const getCurrentDateTimeLocal = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   return (
@@ -100,6 +152,12 @@ export default function TimeOffRequestPage(): ReactElement {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {dateError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800">{dateError}</p>
           </div>
         )}
 
@@ -123,6 +181,7 @@ export default function TimeOffRequestPage(): ReactElement {
                 onChange={handleInputChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent"
+                min={getCurrentDateTimeLocal()}
               />
             </div>
           </TutorialHighlight>
@@ -145,6 +204,7 @@ export default function TimeOffRequestPage(): ReactElement {
                 value={formData.end_datetime}
                 onChange={handleInputChange}
                 required
+                min={formData.start_datetime || getCurrentDateTimeLocal()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent"
               />
             </div>
