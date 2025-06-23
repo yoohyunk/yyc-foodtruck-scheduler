@@ -68,16 +68,73 @@ export default function LoginPage(): ReactElement {
       return;
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: sanitizedData.email,
-      password: sanitizedData.password,
-    });
+    try {
+      // Attempt to sign in with email/password
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: sanitizedData.email,
+        password: sanitizedData.password,
+      });
 
-    if (signInError) {
-      setError(signInError.message);
+      if (signInError) {
+        setValidationErrors([
+          {
+            field: "auth",
+            message: signInError.message,
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
+        setLoading(false);
+        return;
+      }
+
+      // Check if user exists in employees table
+      if (authData.user) {
+        const { data: employeeData, error: employeeError } = await supabase
+          .from("employees")
+          .select("*")
+          .eq("user_id", authData.user.id)
+          .single();
+
+        if (employeeError && employeeError.code !== "PGRST116") {
+          // PGRST116 means no rows returned, which is expected for new users
+          setValidationErrors([
+            {
+              field: "employee",
+              message: "Error checking employee status. Please try again.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
+          setLoading(false);
+          return;
+        }
+
+        if (!employeeData) {
+          // User doesn't exist in employees table - redirect to setup
+          router.push("/set-up-employee-info");
+          return;
+        }
+
+        // User exists - redirect based on role
+        if (employeeData.employee_type === "Admin") {
+          router.push("/");
+        } else {
+          router.push("/");
+        }
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setValidationErrors([
+        {
+          field: "auth",
+          message: "An unexpected error occurred. Please try again.",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+    } finally {
       setLoading(false);
-    } else {
-      router.push("/");
     }
   };
 
@@ -87,7 +144,7 @@ export default function LoginPage(): ReactElement {
         <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-10 space-y-6 border border-gray-100">
           <div className="flex justify-center">
             <Image
-              src="/images/dfe0cb48-d05f-4f02-88be-7302537507d9.jpg"
+              src="/yyctrucks.jpg"
               alt="YYC Food Trucks"
               width={100}
               height={100}

@@ -162,6 +162,7 @@ export type Database = {
           number_of_driver_needed: number | null;
           number_of_servers_needed: number | null;
           start_date: string;
+          status: string | null;
           title: string | null;
         };
         Insert: {
@@ -179,6 +180,7 @@ export type Database = {
           number_of_driver_needed?: number | null;
           number_of_servers_needed?: number | null;
           start_date: string;
+          status?: string | null;
           title?: string | null;
         };
         Update: {
@@ -196,6 +198,7 @@ export type Database = {
           number_of_driver_needed?: number | null;
           number_of_servers_needed?: number | null;
           start_date?: string;
+          status?: string | null;
           title?: string | null;
         };
         Relationships: [
@@ -217,6 +220,7 @@ export type Database = {
           reason: string | null;
           start_datetime: string;
           status: string;
+          type: string | null;
         };
         Insert: {
           created_at?: string;
@@ -226,6 +230,7 @@ export type Database = {
           reason?: string | null;
           start_datetime: string;
           status?: string;
+          type?: string | null;
         };
         Update: {
           created_at?: string;
@@ -235,6 +240,7 @@ export type Database = {
           reason?: string | null;
           start_datetime?: string;
           status?: string;
+          type?: string | null;
         };
         Relationships: [
           {
@@ -343,7 +349,7 @@ export type Database = {
         Row: {
           created_at: string;
           employee_id: string | null;
-          end_date: string;
+          end_date: string | null;
           hourly_wage: number;
           id: string;
           start_date: string;
@@ -351,7 +357,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           employee_id?: string | null;
-          end_date: string;
+          end_date?: string | null;
           hourly_wage?: number;
           id?: string;
           start_date: string;
@@ -359,7 +365,7 @@ export type Database = {
         Update: {
           created_at?: string;
           employee_id?: string | null;
-          end_date?: string;
+          end_date?: string | null;
           hourly_wage?: number;
           id?: string;
           start_date?: string;

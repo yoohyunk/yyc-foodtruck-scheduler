@@ -34,6 +34,7 @@ import {
   validateTimeRange,
   createValidationRule,
 } from "../../../lib/formValidation";
+import { assignmentsApi } from "@/lib/supabase/assignments";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -414,12 +415,6 @@ export default function AddEventPage(): ReactElement {
     try {
       // Get the required number of servers
       const requiredServers = parseInt(formData.requiredServers);
-
-      // Ensure coordinates exist (validation already checked this)
-      if (!coordinates) {
-        throw new Error("Coordinates are required");
-      }
-
       // Create event data with address
       const eventData = {
         title: formData.name,
@@ -434,6 +429,7 @@ export default function AddEventPage(): ReactElement {
         number_of_driver_needed: truckAssignments.length,
         number_of_servers_needed: requiredServers,
         is_prepaid: formData.isPrepaid,
+        status: "Pending",
         // Address data to be created first
         addressData: {
           street: formData.street,
@@ -459,6 +455,19 @@ export default function AddEventPage(): ReactElement {
           end_time: assignment.end_time,
         });
       }
+
+      // Auto-assign servers (closest ones first)
+      const selectedServerIds = availableServers
+        .slice(0, requiredServers)
+        .map((server) => server.employee_id);
+
+      await assignmentsApi.createServerAssignments(
+        newEvent.id,
+        selectedServerIds,
+        formData.date,
+        formData.time,
+        formData.endTime
+      );
 
       // Redirect to the specific event page
       window.location.href = `/events/${newEvent.id}`;

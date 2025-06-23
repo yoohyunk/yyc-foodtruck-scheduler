@@ -155,6 +155,27 @@ export const eventsApi = {
       }
     }
   },
+
+  async updateEventStatus(id: string, status: string): Promise<Event> {
+    const { data, error } = await supabase
+      .from("events")
+      .update({ status })
+      .eq("id", id)
+      .select(
+        `
+        *,
+        addresses (*)
+      `
+      )
+      .single();
+
+    if (error) {
+      console.error("Error updating event status:", error);
+      throw error;
+    }
+
+    return data;
+  },
 };
 
 export const truckAssignmentsApi = {

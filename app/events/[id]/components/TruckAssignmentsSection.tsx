@@ -6,9 +6,9 @@ import {
   getTruckTypeColor,
   getTruckTypeBadge,
 } from "@/app/types";
-import { TutorialHighlight } from "../../../components/TutorialHighlight";
-import { extractTime } from "../../utils";
 import { useRouter } from "next/navigation";
+import { TutorialHighlight } from "../../../components/TutorialHighlight";
+
 
 interface TruckAssignmentsSectionProps {
   truckAssignments: TruckAssignment[];
