@@ -697,25 +697,62 @@ export default function EventDetailsPage(): ReactElement {
       {/* Assignments Grid - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
         {/* Server Assignments Section */}
-        <ServerAssignmentsSection serverAssignments={serverAssignments} />
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".server-assignments-section")}
+        >
+          <div className="server-assignments-section">
+            <ServerAssignmentsSection serverAssignments={serverAssignments} />
+          </div>
+        </TutorialHighlight>
 
         {/* Truck Assignments Section */}
-        {truckAssignments.length > 0 ? (
-          <TruckAssignmentsSection
-            trucks={trucks}
-            truckAssignments={truckAssignments}
-            employees={employees}
-          />
-        ) : (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 className="text-xl font-semibold mb-4 text-gray-800">
-              Truck Assignments
-            </h3>
-            <p className="text-gray-500">
-              No trucks assigned to this event yet.
-            </p>
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".truck-assignments-section")}
+        >
+          <div className="truck-assignments-section">
+            {truckAssignments.length > 0 ? (
+              <TruckAssignmentsSection
+                trucks={trucks}
+                truckAssignments={truckAssignments}
+                employees={employees}
+                shouldHighlight={shouldHighlight}
+              />
+            ) : (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                  Truck Assignments
+                </h3>
+                <p className="text-gray-500">
+                  No trucks assigned to this event yet.
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </TutorialHighlight>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="mt-6 flex gap-4">
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".edit-event-button")}
+        >
+          <button
+            className="button bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 edit-event-button"
+            onClick={handleEditEvent}
+          >
+            Edit Event
+          </button>
+        </TutorialHighlight>
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".delete-event-button")}
+        >
+          <button
+            className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            Delete Event
+          </button>
+        </TutorialHighlight>
       </div>
 
       {/* Edit Event Modal */}
