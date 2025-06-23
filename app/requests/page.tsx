@@ -13,7 +13,6 @@ import {
   validateForm,
   ValidationRule,
   ValidationError,
-  validateNumber,
   createValidationRule,
 } from "../../lib/formValidation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +24,7 @@ interface TimeOffRequestFormData {
   reason: string;
   [key: string]: unknown;
 }
-import { FiCalendar, FiUser, FiClock } from "react-icons/fi";
+import { FiCalendar } from "react-icons/fi";
 import { TimeOffRequest } from "../types";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 import { employeesApi } from "@/lib/supabase/employees";
@@ -36,8 +35,6 @@ export default function RequestsPage(): ReactElement {
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>("All");
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<TimeOffRequestFormData>({
     type: "",
@@ -47,7 +44,7 @@ export default function RequestsPage(): ReactElement {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [success, setSuccess] = useState("");
+  const [success, setSuccess] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
@@ -55,26 +52,20 @@ export default function RequestsPage(): ReactElement {
   // Refs for form fields
   const typeRef = useRef<HTMLSelectElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
-  const durationRef = useRef<HTMLSelectElement>(null);
+  const durationRef = useRef<HTMLInputElement>(null);
   const reasonRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch all time off requests and employees
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
-        setError(null);
-
-        // Fetch all time off requests
-        const requestsData = await timeOffRequestsApi.getAllTimeOffRequests();
+        const [requestsData, employeesData] = await Promise.all([
+          timeOffRequestsApi.getAllTimeOffRequests(),
+          employeesApi.getAllEmployees(),
+        ]);
         setRequests(requestsData);
-
-        // Fetch all employees for employee details
-        const employeesData = await employeesApi.getAllEmployees();
         setEmployees(employeesData);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load time off requests.");
+      } catch (error) {
+        console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -88,145 +79,62 @@ export default function RequestsPage(): ReactElement {
       await timeOffRequestsApi.updateTimeOffRequest(requestId, {
         status: newStatus,
       });
-
-      // Update local state
-      setRequests(
-        requests.map((request) =>
-          request.id === requestId ? { ...request, status: newStatus } : request
-        )
-      );
-    } catch (err) {
-      console.error("Error updating request status:", err);
-      alert("Failed to update request status. Please try again.");
+      // Refresh the requests list
+      const updatedRequests = await timeOffRequestsApi.getAllTimeOffRequests();
+      setRequests(updatedRequests);
+    } catch (error) {
+      console.error("Error updating request status:", error);
     }
   };
 
   const handleDeleteRequest = async (requestId: string) => {
-    if (!confirm("Are you sure you want to delete this request?")) {
-      return;
-    }
-
     try {
       await timeOffRequestsApi.deleteTimeOffRequest(requestId);
-      setRequests(requests.filter((request) => request.id !== requestId));
-    } catch (err) {
-      console.error("Error deleting request:", err);
-      alert("Failed to delete request. Please try again.");
+      // Refresh the requests list
+      const updatedRequests = await timeOffRequestsApi.getAllTimeOffRequests();
+      setRequests(updatedRequests);
+    } catch (error) {
+      console.error("Error deleting request:", error);
     }
-  };
-
-  const getEmployeeName = (employeeId: string | null) => {
-    if (!employeeId) return "Unknown Employee";
-    const employee = employees.find((emp) => emp.employee_id === employeeId);
-    return employee
-      ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
-          "Unknown Name"
-      : "Unknown Employee";
-  };
-
-  const requestTypes = ["Vacation", "Sick Leave", "Personal Day", "Other"];
-  const durationOptions = ["Half Day", "Full Day", "Multiple Days"];
-  
-  const formatDateTime = (dateTimeString: string) => {
-    const date = new Date(dateTimeString);
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const formatDateOnly = (dateTimeString: string) => {
-    const date = new Date(dateTimeString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return new Date(dateTimeString).toLocaleDateString();
   };
 
   const calculateDuration = (startDateTime: string, endDateTime: string) => {
     const start = new Date(startDateTime);
     const end = new Date(endDateTime);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffInMs = end.getTime() - start.getTime();
+    const diffInHours = diffInMs / (1000 * 60 * 60);
+    const diffInDays = diffInHours / 24;
 
-    // Calculate days, hours, and minutes
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor(
-      (diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-    );
-    const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
-
-    // Format the duration string
-    let duration = "";
-
-    if (diffDays > 0) {
-      duration += `${diffDays} day${diffDays > 1 ? "s" : ""}`;
-      if (diffHours > 0) {
-        duration += ` ${diffHours} hour${diffHours > 1 ? "s" : ""}`;
-      }
-    } else if (diffHours > 0) {
-      duration += `${diffHours} hour${diffHours > 1 ? "s" : ""}`;
-      if (diffMinutes > 0) {
-        duration += ` ${diffMinutes} minute${diffMinutes > 1 ? "s" : ""}`;
-      }
+    if (diffInDays >= 1) {
+      return `${Math.floor(diffInDays)} day${Math.floor(diffInDays) !== 1 ? "s" : ""}`;
     } else {
-      duration += `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""}`;
+      return `${Math.floor(diffInHours)} hour${Math.floor(diffInHours) !== 1 ? "s" : ""}`;
     }
-
-    return duration;
   };
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setValidationErrors([]);
 
-    // Check if user is authenticated
-    if (!user) {
-      setValidationErrors([
-        {
-          field: "auth",
-          message: "You must be logged in to submit a time-off request.",
-          element: null,
-        },
-      ]);
-      setShowErrorModal(true);
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Get employee ID from user
-    const currentEmployee = employees.find((emp) => emp.user_id === user.id);
-    if (!currentEmployee) {
-      setValidationErrors([
-        {
-          field: "employee",
-          message: "Employee profile not found. Please contact administrator.",
-          element: null,
-        },
-      ]);
-      setShowErrorModal(true);
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Validate form data
     const validationRules: ValidationRule[] = [
       createValidationRule(
         "type",
         true,
         undefined,
-        "Type of leave is required.",
+        "Request type is required.",
         typeRef.current
       ),
       createValidationRule(
@@ -243,6 +151,13 @@ export default function RequestsPage(): ReactElement {
         "Duration is required.",
         durationRef.current
       ),
+      createValidationRule(
+        "reason",
+        true,
+        undefined,
+        "Reason is required.",
+        reasonRef.current
+      ),
     ];
 
     const validationErrors = validateForm(formData, validationRules);
@@ -250,24 +165,33 @@ export default function RequestsPage(): ReactElement {
 
     if (validationErrors.length > 0) {
       setShowErrorModal(true);
-      setIsSubmitting(false);
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      // Create time off request
-      const timeOffRequestData = {
-        employee_id: currentEmployee.employee_id,
+      const employee = employees.find((emp) => emp.user_email === user?.email);
+      if (!employee) {
+        throw new Error("Employee not found");
+      }
+
+      const startDateTime = new Date(formData.date);
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setHours(
+        startDateTime.getHours() + parseInt(formData.duration)
+      );
+
+      await timeOffRequestsApi.createTimeOffRequest({
+        employee_id: employee.employee_id,
+        start_datetime: startDateTime.toISOString(),
+        end_datetime: endDateTime.toISOString(),
+        reason: formData.reason,
         type: formData.type,
-        start_datetime: `${formData.date}T00:00:00`,
-        end_datetime: `${formData.date}T23:59:59`,
-        reason: formData.reason || "",
         status: "Pending",
-      };
+      });
 
-      await timeOffRequestsApi.createTimeOffRequest(timeOffRequestData);
-
-      // Reset form and close modal
+      setSuccess("Time off request submitted successfully!");
       setFormData({
         type: "",
         date: "",
@@ -275,13 +199,12 @@ export default function RequestsPage(): ReactElement {
         reason: "",
       });
       setShowModal(false);
-      setSuccess("Time-off request submitted successfully!");
 
-      // Refresh requests
+      // Refresh the requests list
       const updatedRequests = await timeOffRequestsApi.getAllTimeOffRequests();
       setRequests(updatedRequests);
-    } catch (err) {
-      console.error("Error submitting request:", err);
+    } catch (error) {
+      console.error("Error submitting request:", error);
       setValidationErrors([
         {
           field: "submit",
@@ -297,211 +220,198 @@ export default function RequestsPage(): ReactElement {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-lg text-gray-500">Loading time-off requests...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center mt-10">
-        <p className="text-red-500 text-lg">{error}</p>
-        <button onClick={() => window.location.reload()} className="button mt-4">
-          Try Again
-        </button>
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-lg text-gray-500">Loading requests...</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="max-w-5xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">My Time-Off Requests</h2>
+      <div className="requests-page">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Time Off Requests</h1>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-white text-black border border-black px-4 py-2 rounded hover:bg-gray-100 transition"
+            className="button bg-blue-600 text-white"
           >
-            + Request Time-Off
+            <FiCalendar className="mr-2" />
+            New Request
           </button>
         </div>
 
-        {/* Success Message */}
         {success && (
-          <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
-            {success}
+          <div className="success-message">
+            <p>{success}</p>
           </div>
         )}
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full rounded-lg overflow-hidden">
-            <thead className="bg-gray-100 text-left text-sm text-gray-600">
-              <tr>
-                <th className="p-3">Date</th>
-                <th className="p-3">Type</th>
-                <th className="p-3">Duration</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Reason</th>
-                <th className="p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((item, index) => (
-                <tr key={index} className="text-sm border-b border-gray-200">
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <FiCalendar size={16} />
-                      <span className="inline-block">
-                        {formatDateOnly(item.start_datetime)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="p-3">{item.type}</td>
-                  <td className="p-3">
-                    {calculateDuration(item.start_datetime, item.end_datetime)}
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`badge ${
-                        item.status === "Approved"
-                          ? "bg-green-100 text-green-600"
-                          : item.status === "Pending"
-                            ? "bg-yellow-100 text-yellow-600"
-                            : "bg-red-100 text-red-600"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="p-3">{item.reason || "No reason provided"}</td>
-                  <td className="p-3">
-                    <div className="flex gap-2">
-                      {item.status === "Pending" && (
-                        <>
-                          <button
-                            onClick={() => handleStatusUpdate(item.id, "Approved")}
-                            className="text-green-600 hover:text-green-800"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleStatusUpdate(item.id, "Denied")}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            Deny
-                          </button>
-                        </>
-                      )}
+        <div className="requests-list">
+          {requests.map((request) => {
+            const employee = employees.find(
+              (emp) => emp.employee_id === request.employee_id
+            );
+
+            return (
+              <div key={request.id} className="request-card">
+                <div className="request-header">
+                  <h3 className="request-title">
+                    {employee
+                      ? `${employee.first_name} ${employee.last_name}`
+                      : "Unknown Employee"}
+                  </h3>
+                  <span
+                    className={`request-status request-status-${request.status.toLowerCase()}`}
+                  >
+                    {request.status}
+                  </span>
+                </div>
+                <div className="request-details">
+                  <p>
+                    <strong>Type:</strong> {request.type}
+                  </p>
+                  <p>
+                    <strong>Date:</strong>{" "}
+                    {formatDateOnly(request.start_datetime)}
+                  </p>
+                  <p>
+                    <strong>Duration:</strong>{" "}
+                    {calculateDuration(
+                      request.start_datetime,
+                      request.end_datetime
+                    )}
+                  </p>
+                  {request.reason && (
+                    <p>
+                      <strong>Reason:</strong> {request.reason}
+                    </p>
+                  )}
+                </div>
+                <div className="request-actions">
+                  {request.status === "Pending" && (
+                    <>
                       <button
-                        onClick={() => handleDeleteRequest(item.id)}
-                        className="text-red-600 hover:text-red-800"
+                        onClick={() =>
+                          handleStatusUpdate(request.id, "Approved")
+                        }
+                        className="button bg-green-600 text-white"
                       >
-                        Delete
+                        Approve
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      <button
+                        onClick={() =>
+                          handleStatusUpdate(request.id, "Rejected")
+                        }
+                        className="button bg-red-600 text-white"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => handleDeleteRequest(request.id)}
+                    className="button bg-gray-600 text-white"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Inline Form */}
+        {/* New Request Modal */}
         {showModal && (
-          <div className="mt-6 bg-white p-6 rounded-lg shadow">
-            <h3 className="text-xl font-bold mb-4">Request Time-Off</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block mb-1 text-sm font-medium">
-                  Type of Leave <span className="text-red-500">*</span>
-                </label>
-                <select
-                  ref={typeRef}
-                  name="type"
-                  className="w-full border p-2 rounded"
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select type</option>
-                  {requestTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className="modal-overlay">
+            <div className="modal-container">
+              <h3 className="modal-title">New Time Off Request</h3>
+              <form onSubmit={handleSubmit} className="modal-body">
+                <div className="input-group">
+                  <label htmlFor="type" className="input-label">
+                    Request Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    ref={typeRef}
+                    id="type"
+                    name="type"
+                    value={formData.type}
+                    onChange={handleInputChange}
+                    className="input-field"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Vacation">Vacation</option>
+                    <option value="Sick Leave">Sick Leave</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block mb-1 text-sm font-medium">
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  ref={dateRef}
-                  type="date"
-                  name="date"
-                  required
-                  className="w-full border p-2 rounded"
-                  value={formData.date}
-                  onChange={handleInputChange}
-                />
-              </div>
+                <div className="input-group">
+                  <label htmlFor="date" className="input-label">
+                    Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    ref={dateRef}
+                    type="date"
+                    id="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleInputChange}
+                    className="input-field"
+                  />
+                </div>
 
-              <div>
-                <label className="block mb-1 text-sm font-medium">
-                  Duration <span className="text-red-500">*</span>
-                </label>
-                <select
-                  ref={durationRef}
-                  name="duration"
-                  className="w-full border p-2 rounded"
-                  value={formData.duration}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select duration</option>
-                  {durationOptions.map((duration) => (
-                    <option key={duration} value={duration}>
-                      {duration}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div className="input-group">
+                  <label htmlFor="duration" className="input-label">
+                    Duration (hours) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    ref={durationRef}
+                    type="number"
+                    id="duration"
+                    name="duration"
+                    value={formData.duration}
+                    onChange={handleInputChange}
+                    min="1"
+                    max="24"
+                    className="input-field"
+                  />
+                </div>
 
-              <div>
-                <label className="block mb-1 text-sm font-medium">Reason</label>
-                <textarea
-                  ref={reasonRef}
-                  name="reason"
-                  rows={3}
-                  className="w-full border p-2 rounded"
-                  placeholder="Optional"
-                  value={formData.reason}
-                  onChange={handleInputChange}
-                />
-              </div>
+                <div className="input-group">
+                  <label htmlFor="reason" className="input-label">
+                    Reason <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    ref={reasonRef}
+                    id="reason"
+                    name="reason"
+                    value={formData.reason}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="input-field"
+                  />
+                </div>
 
-              <div className="flex justify-end gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded hover:bg-gray-100"
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-white text-black border border-black px-4 py-2 rounded hover:bg-gray-100 transition disabled:opacity-50"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Request"}
-                </button>
-              </div>
-            </form>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="btn-secondary"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Request"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>

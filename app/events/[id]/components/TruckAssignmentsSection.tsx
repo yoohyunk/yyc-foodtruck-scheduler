@@ -1,14 +1,8 @@
 import React from "react";
-import {
-  Employee,
-  Truck,
-  TruckAssignment,
-  getTruckTypeColor,
-  getTruckTypeBadge,
-} from "@/app/types";
+import { Employee, Truck, TruckAssignment } from "@/app/types";
 import { useRouter } from "next/navigation";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
-
+import { extractTime } from "../../utils";
 
 interface TruckAssignmentsSectionProps {
   truckAssignments: TruckAssignment[];

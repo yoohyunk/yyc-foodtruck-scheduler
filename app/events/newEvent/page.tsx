@@ -70,7 +70,6 @@ export default function AddEventPage(): ReactElement {
   const [truckAssignments, setTruckAssignments] = useState<TruckAssignment[]>(
     []
   );
-  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showHelpPopup, setShowHelpPopup] = useState(false);
   const addressFormRef = useRef<AddressFormRef>(null);
@@ -415,6 +414,28 @@ export default function AddEventPage(): ReactElement {
     try {
       // Get the required number of servers
       const requiredServers = parseInt(formData.requiredServers);
+
+      // Get available servers for auto-assignment (preserving origin/main functionality)
+      const availableServers = await assignmentsApi.getAvailableServers(
+        formData.date,
+        formData.time,
+        formData.endTime,
+        formData.location
+      );
+
+      if (availableServers.length < requiredServers) {
+        setValidationErrors([
+          {
+            field: "servers",
+            message: `Not enough available servers. Required: ${requiredServers}, Available: ${availableServers.length}. Please check server availability or reduce the required number.`,
+            element: requiredServersRef.current,
+          },
+        ]);
+        setShowErrorModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       // Create event data with address
       const eventData = {
         title: formData.name,
@@ -437,8 +458,8 @@ export default function AddEventPage(): ReactElement {
           province: formData.province,
           postal_code: formData.postalCode,
           country: formData.country,
-          latitude: coordinates.latitude.toString(),
-          longitude: coordinates.longitude.toString(),
+          latitude: coordinates?.latitude?.toString() || "",
+          longitude: coordinates?.longitude?.toString() || "",
         },
       };
 
@@ -456,7 +477,7 @@ export default function AddEventPage(): ReactElement {
         });
       }
 
-      // Auto-assign servers (closest ones first)
+      // Auto-assign servers (closest ones first) - using availability-checked servers
       const selectedServerIds = availableServers
         .slice(0, requiredServers)
         .map((server) => server.employee_id);
@@ -473,10 +494,15 @@ export default function AddEventPage(): ReactElement {
       window.location.href = `/events/${newEvent.id}`;
     } catch (error) {
       console.error("Error creating event:", error);
-      setFormErrors([
-        error instanceof Error
-          ? error.message
-          : "Failed to create event. Please try again.",
+      setValidationErrors([
+        {
+          field: "submit",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to create event. Please try again.",
+          element: null,
+        },
       ]);
       setShowErrorModal(true);
       setIsSubmitting(false);
@@ -691,9 +717,7 @@ export default function AddEventPage(): ReactElement {
               Check the boxes for trucks you want to include in this event, then
               assign a driver to each selected truck.
             </p>
-            <div
-              className={`truck-assignment-list space-y-4 ${formErrors.includes("Please select at least one truck and assign a driver to it.") || formErrors.includes("Please assign a driver to all selected trucks.") ? "border-red-500" : ""}`}
-            >
+            <div className="truck-assignment-list space-y-4">
               {trucks.map((truck) => {
                 const assignedDriver = getAssignedDriverForTruck(truck.id);
                 const availableDrivers = getAvailableDrivers();

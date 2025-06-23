@@ -70,10 +70,11 @@ export default function LoginPage(): ReactElement {
 
     try {
       // Attempt to sign in with email/password
-      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: sanitizedData.email,
-        password: sanitizedData.password,
-      });
+      const { data: authData, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: sanitizedData.email,
+          password: sanitizedData.password,
+        });
 
       if (signInError) {
         setValidationErrors([
