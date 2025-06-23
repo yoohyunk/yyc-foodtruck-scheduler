@@ -16,7 +16,15 @@ import { TutorialHighlight } from "../../components/TutorialHighlight";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import { wagesApi } from "@/lib/supabase/wages";
 import ErrorModal from "../../components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, createValidationRule } from "../../../lib/formValidation";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  validateEmail,
+  validatePhone,
+  validateNumber,
+  createValidationRule,
+} from "../../../lib/formValidation";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();
@@ -24,7 +32,6 @@ export default function EditEmployeePage(): ReactElement {
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const { shouldHighlight } = useTutorial();
   const addressFormRef = useRef<AddressFormRef>(null);
@@ -66,7 +73,9 @@ export default function EditEmployeePage(): ReactElement {
     "Sunday",
   ];
 
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   // Fetch employee details
   useEffect(() => {
@@ -240,20 +249,56 @@ export default function EditEmployeePage(): ReactElement {
     console.log("Form submission started");
 
     const validationRules: ValidationRule[] = [
-      createValidationRule("first_name", true, undefined, "First name is required.", firstNameRef.current),
-      createValidationRule("last_name", true, undefined, "Last name is required.", lastNameRef.current),
-      createValidationRule("role", true, undefined, "Role is required.", roleRef.current),
-      createValidationRule("email", true, validateEmail, "Please enter a valid email address.", emailRef.current),
-      createValidationRule("phone", true, validatePhone, "Please enter a valid phone number.", phoneRef.current),
-      createValidationRule("wage", true, (value: any) => validateNumber(value, 0), "Wage is required and must be a positive number.", wageRef.current),
+      createValidationRule(
+        "first_name",
+        true,
+        undefined,
+        "First name is required.",
+        firstNameRef.current
+      ),
+      createValidationRule(
+        "last_name",
+        true,
+        undefined,
+        "Last name is required.",
+        lastNameRef.current
+      ),
+      createValidationRule(
+        "role",
+        true,
+        undefined,
+        "Role is required.",
+        roleRef.current
+      ),
+      createValidationRule(
+        "email",
+        true,
+        (value: unknown) => typeof value === "string" && validateEmail(value),
+        "Please enter a valid email address.",
+        emailRef.current
+      ),
+      createValidationRule(
+        "phone",
+        true,
+        (value: unknown) => typeof value === "string" && validatePhone(value),
+        "Please enter a valid phone number.",
+        phoneRef.current
+      ),
+      createValidationRule(
+        "wage",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 0),
+        "Wage is required and must be a positive number.",
+        wageRef.current
+      ),
     ];
 
     const validationErrors = validateForm(formData, validationRules);
     setValidationErrors(validationErrors);
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
-      setFormErrors(errorMessages);
       setShowErrorModal(true);
       return;
     }
@@ -339,8 +384,6 @@ export default function EditEmployeePage(): ReactElement {
 
         if (addressError) {
           console.error("Error updating address:", addressError);
-          setFormErrors(["Failed to update address."]);
-          setShowErrorModal(true);
           return;
         }
         addressId = existingEmployee.address_id;
@@ -366,8 +409,6 @@ export default function EditEmployeePage(): ReactElement {
 
         if (addressError) {
           console.error("Error creating address:", addressError);
-          setFormErrors(["Failed to create address."]);
-          setShowErrorModal(true);
           return;
         }
         addressId = newAddress.id;
@@ -428,8 +469,6 @@ export default function EditEmployeePage(): ReactElement {
 
           if (existingEmployeeWithPhone) {
             console.error("Phone number already used by another employee");
-            setFormErrors(["This phone number is already used by another employee. Please use a different phone number."]);
-            setShowErrorModal(true);
             return;
           } else {
             updateData.user_phone = formData.phone;
@@ -461,8 +500,6 @@ export default function EditEmployeePage(): ReactElement {
         console.error("Error details:", employeeError.details);
         console.error("Error hint:", employeeError.hint);
         console.error("Error message:", employeeError.message);
-        setFormErrors(["Failed to update employee."]);
-        setShowErrorModal(true);
         return;
       }
 
@@ -538,8 +575,7 @@ export default function EditEmployeePage(): ReactElement {
       router.push("/employees");
     } catch (error) {
       console.error("Error updating employee:", error);
-      setFormErrors(["An error occurred while updating the employee."]);
-      setShowErrorModal(true);
+      return;
     }
   };
 
@@ -617,7 +653,9 @@ export default function EditEmployeePage(): ReactElement {
 
           {/* Address */}
           <div>
-            <label className="block font-medium">Address <span className="text-red-500">*</span></label>
+            <label className="block font-medium">
+              Address <span className="text-red-500">*</span>
+            </label>
             <AddressForm
               ref={addressFormRef}
               value={formData.address}

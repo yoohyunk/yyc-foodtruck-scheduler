@@ -33,6 +33,7 @@ export interface EventFormData {
   country: string;
   latitude?: string;
   longitude?: string;
+  [key: string]: unknown;
 }
 
 export interface EmployeeFormData {
@@ -53,6 +54,7 @@ export interface EmployeeFormData {
   country: string;
   latitude?: string;
   longitude?: string;
+  [key: string]: unknown;
 }
 
 export interface TutorialStep {

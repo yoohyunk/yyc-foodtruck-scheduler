@@ -13,14 +13,22 @@ import { TablesInsert } from "@/database.types";
 import ShopLocationDropdown from "@/app/components/ShopLocationDropdown";
 import { Coordinates } from "@/app/types";
 import ErrorModal from "../../components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateNumber, createValidationRule, sanitizeFormData } from "../../../lib/formValidation";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  createValidationRule,
+  validateNumber,
+} from "../../../lib/formValidation";
 
 interface TruckFormData {
   name: string;
   type: string;
   capacity: string;
+  isAvailable: boolean;
   address: string;
   packingList: string[];
+  [key: string]: unknown;
 }
 
 export default function AddTrucks(): ReactElement {
@@ -31,6 +39,7 @@ export default function AddTrucks(): ReactElement {
     name: "",
     type: "",
     capacity: "",
+    isAvailable: true,
     address: "",
     packingList: [],
   });
@@ -38,7 +47,6 @@ export default function AddTrucks(): ReactElement {
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [success, setSuccess] = useState("");
 
@@ -74,7 +82,9 @@ export default function AddTrucks(): ReactElement {
     "Fire Extinguisher",
   ];
 
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -86,10 +96,7 @@ export default function AddTrucks(): ReactElement {
     });
   };
 
-  const handleShopLocationChange = (
-    address: string,
-    coords?: Coordinates
-  ) => {
+  const handleShopLocationChange = (address: string, coords?: Coordinates) => {
     setFormData({
       ...formData,
       address: address,
@@ -108,21 +115,37 @@ export default function AddTrucks(): ReactElement {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setFormErrors([]);
-    setSuccess("");
 
     const validationRules: ValidationRule[] = [
-      createValidationRule("name", true, undefined, "Truck name is required.", nameRef.current),
-      createValidationRule("type", true, undefined, "Truck type is required.", typeRef.current),
-      createValidationRule("capacity", true, (value: any) => validateNumber(value, 1), "Capacity is required and must be at least 1.", capacityRef.current),
+      createValidationRule(
+        "name",
+        true,
+        undefined,
+        "Truck name is required.",
+        nameRef.current
+      ),
+      createValidationRule(
+        "type",
+        true,
+        undefined,
+        "Truck type is required.",
+        typeRef.current
+      ),
+      createValidationRule(
+        "capacity",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 1),
+        "Capacity is required and must be at least 1.",
+        capacityRef.current
+      ),
     ];
 
     const validationErrors = validateForm(formData, validationRules);
     setValidationErrors(validationErrors);
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
-      setFormErrors(errorMessages);
       setShowErrorModal(true);
       return;
     }
@@ -155,7 +178,6 @@ export default function AddTrucks(): ReactElement {
 
       if (addressError) {
         console.error("Error creating address:", addressError);
-        setFormErrors(["Failed to create address."]);
         setShowErrorModal(true);
         setIsSubmitting(false);
         return;
@@ -168,10 +190,10 @@ export default function AddTrucks(): ReactElement {
         capacity: formData.capacity,
         address_id: address.id,
         packing_list: formData.packingList,
-        is_available: true,
+        is_available: formData.isAvailable,
       };
 
-      const { data: truck, error: truckError } = await supabase
+      const { error: truckError } = await supabase
         .from("trucks")
         .insert(truckInsert)
         .select()
@@ -179,7 +201,6 @@ export default function AddTrucks(): ReactElement {
 
       if (truckError) {
         console.error("Error creating truck:", truckError);
-        setFormErrors(["Failed to create truck."]);
         setShowErrorModal(true);
         setIsSubmitting(false);
         return;
@@ -189,9 +210,7 @@ export default function AddTrucks(): ReactElement {
       setTimeout(() => {
         router.push("/trucks");
       }, 2000);
-    } catch (error) {
-      console.error("Error adding truck:", error);
-      setFormErrors(["An error occurred while adding the truck."]);
+    } catch {
       setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
@@ -210,7 +229,10 @@ export default function AddTrucks(): ReactElement {
             <div className="bg-white p-6 rounded-lg shadow">
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Truck Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -226,7 +248,10 @@ export default function AddTrucks(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="type"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Truck Type <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -247,7 +272,10 @@ export default function AddTrucks(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="capacity"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Capacity <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -268,7 +296,10 @@ export default function AddTrucks(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="location"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Shop Location <span className="text-red-500">*</span>
                   </label>
                   <ShopLocationDropdown

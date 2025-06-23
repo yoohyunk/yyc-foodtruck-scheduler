@@ -1,14 +1,27 @@
 "use client";
 
-import React, { useState, FormEvent, ChangeEvent, ReactElement, useRef } from "react";
+import React, {
+  useState,
+  FormEvent,
+  ChangeEvent,
+  ReactElement,
+  useRef,
+} from "react";
 import ErrorModal from "../components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, createValidationRule } from "../../lib/formValidation";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  validateNumber,
+  createValidationRule,
+} from "../../lib/formValidation";
 
 interface TimeOffRequestFormData {
   type: string;
   date: string;
   duration: string;
   reason: string;
+  [key: string]: unknown;
 }
 
 export default function TimeOff(): ReactElement {
@@ -20,10 +33,11 @@ export default function TimeOff(): ReactElement {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [success, setSuccess] = useState("");
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   // Refs for form fields
   const typeRef = useRef<HTMLSelectElement>(null);
@@ -46,25 +60,51 @@ export default function TimeOff(): ReactElement {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setFormErrors([]);
-    setSuccess("");
 
     const validationRules: ValidationRule[] = [
-      createValidationRule("type", true, undefined, "Request type is required.", typeRef.current),
-      createValidationRule("date", true, (value: any) => {
-        const date = new Date(value);
-        return date > new Date();
-      }, "Date is required and must be in the future.", dateRef.current),
-      createValidationRule("duration", true, undefined, "Duration is required.", durationRef.current),
-      createValidationRule("reason", true, undefined, "Reason is required.", reasonRef.current),
+      createValidationRule(
+        "type",
+        true,
+        undefined,
+        "Request type is required.",
+        typeRef.current
+      ),
+      createValidationRule(
+        "date",
+        true,
+        (value: unknown) => {
+          if (typeof value !== "string") return false;
+          const date = new Date(value);
+          return date > new Date();
+        },
+        "Date must be in the future.",
+        dateRef.current
+      ),
+      createValidationRule(
+        "duration",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 1),
+        "Duration is required and must be at least 1.",
+        durationRef.current
+      ),
+      createValidationRule(
+        "reason",
+        true,
+        undefined,
+        "Reason is required.",
+        reasonRef.current
+      ),
     ];
 
-    const validationErrors = validateForm(formData, validationRules);
+    const validationErrors = validateForm(
+      formData as Record<string, unknown>,
+      validationRules
+    );
     setValidationErrors(validationErrors);
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
-      setFormErrors(errorMessages);
       setShowErrorModal(true);
       return;
     }
@@ -92,10 +132,16 @@ export default function TimeOff(): ReactElement {
             Submit Time-Off Request
           </h1>
 
-          <form onSubmit={handleSubmit} className="bg-white shadow-lg rounded-lg p-6">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white shadow-lg rounded-lg p-6"
+          >
             <div className="space-y-6">
               <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="type"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Request Type <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -116,7 +162,10 @@ export default function TimeOff(): ReactElement {
               </div>
 
               <div>
-                <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="date"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Request Date <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -131,7 +180,10 @@ export default function TimeOff(): ReactElement {
               </div>
 
               <div>
-                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="duration"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Duration <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -152,7 +204,10 @@ export default function TimeOff(): ReactElement {
               </div>
 
               <div>
-                <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="reason"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Reason <span className="text-red-500">*</span>
                 </label>
                 <textarea

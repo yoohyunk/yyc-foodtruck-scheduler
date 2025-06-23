@@ -3,7 +3,6 @@ import { EventFormData } from "@/app/types";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ErrorModal from "@/app/components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, validateTimeRange, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
 
 interface EditEventModalProps {
   isOpen: boolean;
@@ -23,7 +22,6 @@ interface EditEventModalProps {
   showErrorModal?: boolean;
   onCloseErrorModal?: () => void;
   onScrollToFirstError?: () => void;
-  validationErrors?: ValidationError[];
 }
 
 export default function EditEventModal({
@@ -43,20 +41,19 @@ export default function EditEventModal({
   formErrors = [],
   showErrorModal = false,
   onCloseErrorModal,
-  validationErrors,
 }: EditEventModalProps) {
-  if (!isOpen) return null;
-
-  // Refs for form fields
+  // Move all useRef calls to the top level
   const nameRef = useRef<HTMLInputElement>(null);
-  const dateRef = useRef<HTMLDivElement>(null);
-  const startTimeRef = useRef<HTMLDivElement>(null);
-  const endTimeRef = useRef<HTMLDivElement>(null);
-  const locationRef = useRef<HTMLInputElement>(null);
-  const requiredServersRef = useRef<HTMLInputElement>(null);
   const contactNameRef = useRef<HTMLInputElement>(null);
   const contactEmailRef = useRef<HTMLInputElement>(null);
   const contactPhoneRef = useRef<HTMLInputElement>(null);
+  const requiredServersRef = useRef<HTMLInputElement>(null);
+  const dateRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef<HTMLDivElement>(null);
+  const endTimeRef = useRef<HTMLDivElement>(null);
+  const locationRef = useRef<HTMLInputElement>(null);
+
+  if (!isOpen) return null;
 
   return (
     <>
@@ -98,7 +95,7 @@ export default function EditEventModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Start Time <span className="text-red-500">*</span>
                 </label>
-                <div ref={startTimeRef}>
+                <div ref={timeRef}>
                   <DatePicker
                     selected={selectedTime}
                     onChange={onTimeChange}
@@ -249,7 +246,7 @@ export default function EditEventModal({
         <ErrorModal
           isOpen={showErrorModal}
           onClose={onCloseErrorModal}
-          errors={formErrors as any}
+          errors={formErrors.map((msg) => ({ field: "", message: msg }))}
         />
       )}
     </>

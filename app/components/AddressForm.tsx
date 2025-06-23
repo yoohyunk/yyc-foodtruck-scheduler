@@ -91,7 +91,10 @@ const getFullAddress = (data: {
   `${data.streetNumber} ${data.streetName}${data.direction && data.direction !== "None" ? " " + data.direction : ""}, ${data.city}, ${data.postalCode}`;
 
 const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
-  ({ value, onChange, required = false, className = "", onCheckAddress }, ref) => {
+  (
+    { value, onChange, required = false, className = "", onCheckAddress },
+    ref
+  ) => {
     const [formData, setFormData] = useState<AddressFormData>({
       streetNumber: "",
       streetName: "",
@@ -181,21 +184,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       },
     }));
 
-    // Format postal code as user types
-    const formatPostalCode = (input: string): string => {
-      // Remove all non-alphanumeric characters
-      const cleaned = input.replace(/[^A-Za-z0-9]/g, "");
-
-      // Convert to uppercase
-      const upper = cleaned.toUpperCase();
-
-      // Format as A1A 1A1
-      if (upper.length > 3) {
-        return `${upper.slice(0, 3)} ${upper.slice(3, 6)}`;
-      }
-      return upper;
-    };
-
     // Validate postal code format
     const validatePostalCode = (code: string): boolean => {
       if (!code || code.trim() === "") return true; // Optional: empty is valid
@@ -219,7 +207,9 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     };
 
     // Handler for street number change (allow spaces, no stripping/collapsing)
-    const handleStreetNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleStreetNumberChange = (
+      e: React.ChangeEvent<HTMLInputElement>
+    ) => {
       const value = e.target.value; // allow spaces as typed
       setFormData((prev) => ({ ...prev, streetNumber: value }));
     };
@@ -298,7 +288,9 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     // Geocode address using Nominatim
     const geocodeAddress = async () => {
       // Validate required fields first
-      const isValid = validateStreetNumber(formData.streetNumber) && validateStreetName(formData.streetName);
+      const isValid =
+        validateStreetNumber(formData.streetNumber) &&
+        validateStreetName(formData.streetName);
       if (!isValid) {
         setShowErrors(true);
         setValidation((prev) => ({
@@ -306,11 +298,13 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           streetNumber: validateStreetNumber(formData.streetNumber),
           streetName: validateStreetName(formData.streetName),
         }));
-        setErrorMessagesModal(["Please enter a valid street number and street name."]);
+        setErrorMessagesModal([
+          "Please enter a valid street number and street name.",
+        ]);
         setShowErrorModal(true);
         setCheckStatus("error");
         setCheckMessage("Please enter a valid street number and street name.");
-        if (typeof onCheckAddress === 'function') onCheckAddress();
+        if (typeof onCheckAddress === "function") onCheckAddress();
         return;
       }
       setIsChecking(true);
@@ -346,7 +340,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         setCheckMessage("Error validating address. Please try again.");
       } finally {
         setIsChecking(false);
-        if (typeof onCheckAddress === 'function') onCheckAddress();
+        if (typeof onCheckAddress === "function") onCheckAddress();
       }
     };
 
@@ -401,7 +395,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             <select
               name="direction"
               value={formData.direction}
-              onChange={e => {
+              onChange={(e) => {
                 const value = e.target.value;
                 setFormData((prev) => ({ ...prev, direction: value }));
               }}
@@ -421,7 +415,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         <select
           name="city"
           value={formData.city}
-          onChange={e => {
+          onChange={(e) => {
             const value = e.target.value;
             setFormData((prev) => ({ ...prev, city: value }));
           }}
@@ -483,7 +477,10 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         <ErrorModal
           isOpen={showErrorModal}
           onClose={() => setShowErrorModal(false)}
-          errors={errorMessagesModal.map(msg => ({ field: "address", message: msg }))}
+          errors={errorMessagesModal.map((msg) => ({
+            field: "address",
+            message: msg,
+          }))}
         />
         <style jsx>{`
           @keyframes spin {

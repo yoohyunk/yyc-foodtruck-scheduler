@@ -8,7 +8,6 @@ import {
   FiLogOut,
   FiUsers,
   FiCalendar,
-  FiPlus,
   FiHome,
   FiMenu,
   FiX,
@@ -37,7 +36,6 @@ export default function Header(): React.ReactElement {
   const [visibleCount, setVisibleCount] = useState(mainNavLinks.length);
   const [showHamburger, setShowHamburger] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
-  const tabRefs = useRef<(HTMLElement | null)[]>([]);
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const [tabWidths, setTabWidths] = useState<number[]>([]);
@@ -74,10 +72,10 @@ export default function Header(): React.ReactElement {
       const containerWidth = navRef.current.parentElement?.offsetWidth || 0;
       const logoWidth = 220;
       const authWidth = 140;
-      const hamburgerWidth = 60;
       const padding = 80;
       const SAFETY_BUFFER = 80; // Increased buffer for more conservative hiding
-      const availableWidth = containerWidth - logoWidth - authWidth - padding - SAFETY_BUFFER;
+      const availableWidth =
+        containerWidth - logoWidth - authWidth - padding - SAFETY_BUFFER;
       let used = 0;
       let count = 0;
       for (let i = 0; i < tabWidths.length; i++) {
@@ -114,10 +112,7 @@ export default function Header(): React.ReactElement {
     <header className="header">
       <nav className="nav-container">
         {/* Logo Section */}
-        <TutorialHighlight
-          isHighlighted={highlightLogo}
-          className="logo"
-        >
+        <TutorialHighlight isHighlighted={highlightLogo} className="logo">
           <Link href="/" className="logo-link">
             <Image
               src="/yyctrucks.jpg"
@@ -126,17 +121,12 @@ export default function Header(): React.ReactElement {
               height={48}
               className="logo-img"
             />
-            <span className="logo-text">
-              YYC Food Trucks
-            </span>
+            <span className="logo-text">YYC Food Trucks</span>
           </Link>
         </TutorialHighlight>
 
         {/* Centered Navigation Links */}
-        <div
-          ref={navRef}
-          className="nav-links"
-        >
+        <div ref={navRef} className="nav-links">
           <div className="nav-links-container">
             {mainNavLinks.map((link, i) => (
               <Link
@@ -153,14 +143,25 @@ export default function Header(): React.ReactElement {
         </div>
 
         {/* Hidden measurement container for tab widths */}
-        <div style={{ position: "absolute", left: -9999, top: 0, visibility: "hidden", height: 0, overflow: "hidden" }}>
+        <div
+          style={{
+            position: "absolute",
+            left: -9999,
+            top: 0,
+            visibility: "hidden",
+            height: 0,
+            overflow: "hidden",
+          }}
+        >
           <div className="nav-links-container">
             {mainNavLinks.map((link, i) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className="nav-link"
-                ref={el => { measureRefs.current[i] = el as HTMLElement; }}
+                ref={(el) => {
+                  measureRefs.current[i] = el as HTMLElement;
+                }}
               >
                 <span className="nav-icon">{link.icon}</span>
                 <span className="nav-text">{link.name}</span>
@@ -174,24 +175,18 @@ export default function Header(): React.ReactElement {
           {/* Desktop Auth Section */}
           <div className="auth-section">
             {user ? (
-              <button
-                onClick={signOut}
-                className="auth-button"
-              >
+              <button onClick={signOut} className="auth-button">
                 <FiLogOut />
                 <span>Logout</span>
               </button>
             ) : (
-              <Link
-                href="/login"
-                className="auth-button"
-              >
+              <Link href="/login" className="auth-button">
                 <FiHome />
                 <span>Login</span>
               </Link>
             )}
           </div>
-          
+
           {/* Hamburger menu - show only when needed */}
           {showHamburger && (
             <button
@@ -204,14 +199,14 @@ export default function Header(): React.ReactElement {
           )}
         </div>
       </nav>
-      
+
       {/* Mobile/Overflow Menu Overlay */}
       {isMenuOpen && (
         <div className="mobile-menu-overlay" onClick={closeMenu}>
           <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-nav-links">
               {/* Main navigation links that don't fit */}
-              {mainNavLinks.map((link, i) => (
+              {mainNavLinks.map((link, i) =>
                 i >= visibleCount ? (
                   <Link
                     key={link.href}
@@ -224,8 +219,8 @@ export default function Header(): React.ReactElement {
                     <span>{link.name}</span>
                   </Link>
                 ) : null
-              ))}
-              
+              )}
+
               {/* Quick Actions Section */}
               <div className="mobile-quick-actions">
                 <h4 className="mobile-section-title">Quick Actions</h4>
@@ -247,7 +242,7 @@ export default function Header(): React.ReactElement {
                 })}
               </div>
             </div>
-            
+
             <div className="mobile-auth-section">
               {user ? (
                 <button

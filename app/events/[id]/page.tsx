@@ -1,7 +1,7 @@
 "use client";
 import "../../globals.css";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, ReactElement, useRef } from "react";
+import { useEffect, useState, ReactElement } from "react";
 import { extractDate, extractTime } from "../utils";
 import {
   Event,
@@ -15,7 +15,14 @@ import { TutorialHighlight } from "../../components/TutorialHighlight";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, validateTimeRange, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
+import {
+  validateForm,
+  ValidationRule,
+  validateNumber,
+  createValidationRule,
+  scrollToFirstError,
+  sanitizeFormData,
+} from "@/lib/formValidation";
 
 // Import components
 import EmployeeSelectionModal from "./components/EmployeeSelectionModal";
@@ -339,7 +346,7 @@ export default function EventDetailsPage(): ReactElement {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return; // Prevent multiple submissions
-    
+
     setError(null);
     setFormErrors([]);
 
@@ -355,17 +362,44 @@ export default function EventDetailsPage(): ReactElement {
     // Validate form data
     const validationRules: ValidationRule[] = [
       createValidationRule("name", true, undefined, "Event name is required."),
-      createValidationRule("date", true, validateDate, "Please select a valid date."),
-      createValidationRule("time", true, validateDate, "Please select a valid start time."),
-      createValidationRule("endTime", true, validateDate, "Please select a valid end time."),
-      createValidationRule("location", true, undefined, "Location is required."),
-      createValidationRule("requiredServers", true, (value: any) => {
-        const num = parseInt(value, 10);
-        return !isNaN(num) && num > 0;
-      }, "Required servers must be a positive number."),
+      createValidationRule(
+        "date",
+        true,
+        (value: unknown) => value instanceof Date || value === null,
+        "Please select a valid date."
+      ),
+      createValidationRule(
+        "time",
+        true,
+        (value: unknown) => value instanceof Date || value === null,
+        "Please select a valid start time."
+      ),
+      createValidationRule(
+        "endTime",
+        true,
+        (value: unknown) => value instanceof Date || value === null,
+        "Please select a valid end time."
+      ),
+      createValidationRule(
+        "location",
+        true,
+        undefined,
+        "Location is required."
+      ),
+      createValidationRule(
+        "requiredServers",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 0),
+        "Required servers must be a positive number."
+      ),
     ];
 
-    const validationErrors = validateForm(sanitizedData, validationRules);
+    const validationErrors = validateForm(
+      sanitizedData as Record<string, unknown>,
+      validationRules
+    );
 
     // Validate time range
     if (selectedTime && selectedEndTime && selectedTime >= selectedEndTime) {
@@ -377,7 +411,7 @@ export default function EventDetailsPage(): ReactElement {
     }
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
+      const errorMessages = validationErrors.map((error) => error.message);
       setFormErrors(errorMessages);
       setShowErrorModal(true);
       return;
@@ -400,30 +434,59 @@ export default function EventDetailsPage(): ReactElement {
 
       setEvent(updatedEvent);
       setEditModalOpen(false);
-    } catch (err: any) {
-      console.error("Error updating event:", err);
-      setError(err.message || "Failed to update event. Please try again.");
-    } finally {
+    } catch (error) {
+      console.error("Error updating event:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      setFormErrors([errorMessage]);
+      setShowErrorModal(true);
       setIsSubmitting(false);
     }
   };
 
   const handleScrollToFirstError = () => {
     const sanitizedData = sanitizeFormData(editFormData);
-    
+
     const validationRules: ValidationRule[] = [
       createValidationRule("name", true, undefined, "Event name is required."),
-      createValidationRule("date", true, validateDate, "Please select a valid date."),
-      createValidationRule("time", true, validateDate, "Please select a valid start time."),
-      createValidationRule("endTime", true, validateDate, "Please select a valid end time."),
-      createValidationRule("location", true, undefined, "Location is required."),
-      createValidationRule("requiredServers", true, (value: any) => {
-        const num = parseInt(value, 10);
-        return !isNaN(num) && num > 0;
-      }, "Required servers must be a positive number."),
+      createValidationRule(
+        "date",
+        true,
+        (value: unknown) => value instanceof Date || value === null,
+        "Please select a valid date."
+      ),
+      createValidationRule(
+        "time",
+        true,
+        (value: unknown) => value instanceof Date || value === null,
+        "Please select a valid start time."
+      ),
+      createValidationRule(
+        "endTime",
+        true,
+        (value: unknown) => value instanceof Date || value === null,
+        "Please select a valid end time."
+      ),
+      createValidationRule(
+        "location",
+        true,
+        undefined,
+        "Location is required."
+      ),
+      createValidationRule(
+        "requiredServers",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 0),
+        "Required servers must be a positive number."
+      ),
     ];
 
-    const validationErrors = validateForm(sanitizedData, validationRules);
+    const validationErrors = validateForm(
+      sanitizedData as Record<string, unknown>,
+      validationRules
+    );
 
     // Validate time range
     if (selectedTime && selectedEndTime && selectedTime >= selectedEndTime) {

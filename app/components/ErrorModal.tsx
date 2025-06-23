@@ -28,7 +28,10 @@ export default function ErrorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: "rgba(255,255,255,0.7)" }}>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ background: "rgba(255,255,255,0.7)" }}
+    >
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 border-4 border-red-500">
         <div className="p-6">
           {/* Header */}
@@ -43,12 +46,14 @@ export default function ErrorModal({
           <div className="mb-6">
             <ul className="space-y-2 max-h-64 overflow-y-auto">
               {errors.map((error, index) => (
-                <li 
-                  key={index} 
+                <li
+                  key={index}
                   className="flex items-start space-x-2 text-red-700 bg-red-50 p-3 rounded-lg border border-red-200"
                 >
                   <span className="text-red-500 font-bold mt-0.5">•</span>
-                  <span className="text-sm leading-relaxed">{error.message}</span>
+                  <span className="text-sm leading-relaxed">
+                    {error.message}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -67,4 +72,4 @@ export default function ErrorModal({
       </div>
     </div>
   );
-} 
+}

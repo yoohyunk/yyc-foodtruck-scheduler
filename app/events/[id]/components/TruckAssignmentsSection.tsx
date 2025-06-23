@@ -1,5 +1,11 @@
 import React from "react";
-import { Employee, Truck, TruckAssignment, getTruckTypeColor, getTruckTypeBadge } from "@/app/types";
+import {
+  Employee,
+  Truck,
+  TruckAssignment,
+  getTruckTypeColor,
+  getTruckTypeBadge,
+} from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 import { extractTime } from "../../utils";
 
@@ -32,13 +38,17 @@ export default function TruckAssignmentsSection({
           );
 
           return (
-            <div 
-              key={assignment.id} 
+            <div
+              key={assignment.id}
               className={`truck-card border rounded-lg p-4 ${getTruckTypeColor(truck?.type || "")}`}
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="truck-title font-semibold text-lg">{truck?.name || "Unknown Truck"}</h3>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${getTruckTypeBadge(truck?.type || "")}`}>
+                <h3 className="truck-title font-semibold text-lg">
+                  {truck?.name || "Unknown Truck"}
+                </h3>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${getTruckTypeBadge(truck?.type || "")}`}
+                >
                   {truck?.type || "Unknown"}
                 </span>
               </div>

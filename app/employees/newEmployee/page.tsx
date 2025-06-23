@@ -3,14 +3,22 @@
 import React, { useState, FormEvent, ReactElement, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ErrorModal from "../../components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validateRequired, validateNumber, createValidationRule } from "../../../lib/formValidation";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  validateEmail,
+  validateNumber,
+  createValidationRule,
+} from "../../../lib/formValidation";
 
 export default function InviteEmployee(): ReactElement {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   // Refs for form fields
   const firstNameRef = useRef<HTMLInputElement>(null);
@@ -21,7 +29,6 @@ export default function InviteEmployee(): ReactElement {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    setFormErrors([]);
 
     const formData = {
       firstName: firstNameRef.current?.value.trim() || "",
@@ -32,19 +39,49 @@ export default function InviteEmployee(): ReactElement {
     };
 
     const validationRules: ValidationRule[] = [
-      createValidationRule("firstName", true, undefined, "First name is required.", firstNameRef.current),
-      createValidationRule("lastName", true, undefined, "Last name is required.", lastNameRef.current),
-      createValidationRule("email", true, validateEmail, "Please enter a valid email address.", emailRef.current),
-      createValidationRule("employeeType", true, undefined, "Employee type is required.", employeeTypeRef.current),
-      createValidationRule("wage", true, (value: any) => validateNumber(value, 0), "Wage is required and must be a positive number.", wageRef.current),
+      createValidationRule(
+        "firstName",
+        true,
+        undefined,
+        "First name is required.",
+        firstNameRef.current
+      ),
+      createValidationRule(
+        "lastName",
+        true,
+        undefined,
+        "Last name is required.",
+        lastNameRef.current
+      ),
+      createValidationRule(
+        "email",
+        true,
+        (value: unknown) => typeof value === "string" && validateEmail(value),
+        "Please enter a valid email address.",
+        emailRef.current
+      ),
+      createValidationRule(
+        "employeeType",
+        true,
+        undefined,
+        "Employee type is required.",
+        employeeTypeRef.current
+      ),
+      createValidationRule(
+        "wage",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 0),
+        "Wage is required and must be a positive number.",
+        wageRef.current
+      ),
     ];
 
     const validationErrors = validateForm(formData, validationRules);
     setValidationErrors(validationErrors);
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
-      setFormErrors(errorMessages);
       setShowErrorModal(true);
       return;
     }
@@ -69,38 +106,12 @@ export default function InviteEmployee(): ReactElement {
       if (response.ok) {
         router.push("/employees");
       } else {
-        const errorData = await response.json();
-        setFormErrors([errorData.message || "Failed to invite employee."]);
         setShowErrorModal(true);
       }
-    } catch (error) {
-      setFormErrors(["An error occurred while inviting the employee."]);
+    } catch {
       setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleScrollToFirstError = () => {
-    const formData = {
-      firstName: firstNameRef.current?.value.trim() || "",
-      lastName: lastNameRef.current?.value.trim() || "",
-      email: emailRef.current?.value.trim() || "",
-      employeeType: employeeTypeRef.current?.value || "",
-      wage: wageRef.current?.value || "",
-    };
-
-    const validationRules: ValidationRule[] = [
-      createValidationRule("firstName", true, undefined, "First name is required.", firstNameRef.current),
-      createValidationRule("lastName", true, undefined, "Last name is required.", lastNameRef.current),
-      createValidationRule("email", true, validateEmail, "Please enter a valid email address.", emailRef.current),
-      createValidationRule("employeeType", true, undefined, "Employee type is required.", employeeTypeRef.current),
-      createValidationRule("wage", true, (value: any) => validateNumber(value, 0), "Wage is required and must be a positive number.", wageRef.current),
-    ];
-
-    const validationErrors = validateForm(formData, validationRules);
-    if (validationErrors.length > 0) {
-      scrollToFirstError(validationErrors);
     }
   };
 

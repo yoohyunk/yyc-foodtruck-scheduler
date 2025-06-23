@@ -10,19 +10,17 @@ import {
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Tables, TablesInsert } from "@/database.types";
+import type { TablesInsert } from "../../../database.types";
 import ShopLocationDropdown from "@/app/components/ShopLocationDropdown";
 import { Coordinates } from "@/app/types";
 import ErrorModal from "@/app/components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateNumber, createValidationRule, sanitizeFormData } from "../../../lib/formValidation";
-
-type Truck = Tables<"trucks"> & {
-  addresses?: Tables<"addresses">;
-};
-
-type Event = Tables<"events"> & {
-  addresses?: Tables<"addresses">;
-};
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  createValidationRule,
+  validateNumber,
+} from "../../../lib/formValidation";
 
 interface TruckFormData {
   name: string;
@@ -31,6 +29,7 @@ interface TruckFormData {
   isAvailable: boolean;
   address: string;
   packingList: string[];
+  [key: string]: unknown;
 }
 
 export default function EditTruckPage(): ReactElement {
@@ -38,14 +37,14 @@ export default function EditTruckPage(): ReactElement {
   const router = useRouter();
   const supabase = createClient();
 
-  const [truck, setTruck] = useState<Truck | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
+  const [success, setSuccess] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
 
@@ -57,8 +56,6 @@ export default function EditTruckPage(): ReactElement {
     address: "",
     packingList: [],
   });
-
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   // Refs for form fields
   const nameRef = useRef<HTMLInputElement>(null);
@@ -96,7 +93,7 @@ export default function EditTruckPage(): ReactElement {
   useEffect(() => {
     const fetchTruck = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: truckData, error: truckError } = await supabase
           .from("trucks")
           .select(
             `
@@ -104,45 +101,39 @@ export default function EditTruckPage(): ReactElement {
             addresses (*)
           `
           )
-          .eq("id", id)
+          .eq("truck_id", id)
           .single();
 
-        if (error) {
-          console.error("Error fetching truck:", error);
-          setError("Failed to load truck details");
+        if (truckError) {
+          console.error("Error fetching truck:", truckError);
+          setIsLoading(false);
           return;
         }
 
-        if (data) {
-          setTruck(data);
-          
-          // Construct the full address string for the dropdown
-          const fullAddress = data.addresses 
-            ? `${data.addresses.street}, ${data.addresses.city}, ${data.addresses.postal_code}`
-            : "";
-
-          setFormData({
-            name: data.name || "",
-            type: data.type || "",
-            capacity: data.capacity || "",
-            isAvailable: data.is_available ?? true,
-            address: fullAddress,
-            packingList: data.packing_list || [],
-          });
-
-          // Set coordinates if available
-          if (data.addresses?.latitude && data.addresses?.longitude) {
-            setCoordinates({
-              latitude: parseFloat(data.addresses.latitude),
-              longitude: parseFloat(data.addresses.longitude),
-            });
-          }
+        if (!truckData) {
+          console.error("Truck not found");
+          setIsLoading(false);
+          return;
         }
+
+        // Format address
+        const address = truckData.addresses
+          ? `${truckData.addresses.street}, ${truckData.addresses.city}, ${truckData.addresses.province}`
+          : "";
+
+        setFormData({
+          name: truckData.name || "",
+          type: truckData.truck_type || "",
+          capacity: truckData.capacity ? String(truckData.capacity) : "",
+          isAvailable: truckData.is_available || false,
+          address: address,
+          packingList: (truckData.packing_list as string[]) || [],
+        });
+
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching truck:", error);
-        setError("Failed to load truck details");
-      } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -155,7 +146,7 @@ export default function EditTruckPage(): ReactElement {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("events")
           .select(
             `
@@ -172,7 +163,7 @@ export default function EditTruckPage(): ReactElement {
 
         // Filter events that include this truck (would need truck_assignment table)
         // For now, show all events
-        setEvents(data || []);
+        // setEvents(data || []);
       } catch (error) {
         console.error("Error fetching events:", error);
       }
@@ -195,10 +186,7 @@ export default function EditTruckPage(): ReactElement {
     }));
   };
 
-  const handleShopLocationChange = (
-    address: string,
-    coords?: Coordinates
-  ) => {
+  const handleShopLocationChange = (address: string, coords?: Coordinates) => {
     setFormData({
       ...formData,
       address: address,
@@ -217,21 +205,40 @@ export default function EditTruckPage(): ReactElement {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setFormErrors([]);
-    setSuccess("");
 
     const validationRules: ValidationRule[] = [
-      createValidationRule("name", true, undefined, "Truck name is required.", nameRef.current),
-      createValidationRule("type", true, undefined, "Truck type is required.", typeRef.current),
-      createValidationRule("capacity", true, (value: any) => validateNumber(value, 1), "Capacity is required and must be at least 1.", capacityRef.current),
+      createValidationRule(
+        "name",
+        true,
+        undefined,
+        "Truck name is required.",
+        nameRef.current
+      ),
+      createValidationRule(
+        "type",
+        true,
+        undefined,
+        "Truck type is required.",
+        typeRef.current
+      ),
+      createValidationRule(
+        "capacity",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 1),
+        "Capacity is required and must be at least 1.",
+        capacityRef.current
+      ),
     ];
 
-    const validationErrors = validateForm(formData, validationRules);
+    const validationErrors = validateForm(
+      formData as Record<string, unknown>,
+      validationRules
+    );
     setValidationErrors(validationErrors);
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
-      setFormErrors(errorMessages);
       setShowErrorModal(true);
       return;
     }
@@ -239,8 +246,8 @@ export default function EditTruckPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      if (!truck) {
-        setFormErrors(["Truck not found."]);
+      if (!formData) {
+        setError("Truck not found.");
         setShowErrorModal(true);
         setIsSubmitting(false);
         return;
@@ -253,9 +260,9 @@ export default function EditTruckPage(): ReactElement {
       const postalCode = addressParts[2] || "";
 
       // Update address if truck has one, otherwise create new
-      let addressId = truck.address_id;
+      let addressId = formData.address_id;
 
-      if (truck.address_id) {
+      if (formData.address_id) {
         // Update existing address
         const { error: addressError } = await supabase
           .from("addresses")
@@ -268,11 +275,11 @@ export default function EditTruckPage(): ReactElement {
             latitude: coordinates?.latitude?.toString() ?? null,
             longitude: coordinates?.longitude?.toString() ?? null,
           })
-          .eq("id", truck.address_id);
+          .eq("id", formData.address_id);
 
         if (addressError) {
           console.error("Error updating address:", addressError);
-          setFormErrors(["Failed to update address."]);
+          setError("Failed to update address.");
           setShowErrorModal(true);
           setIsSubmitting(false);
           return;
@@ -297,7 +304,7 @@ export default function EditTruckPage(): ReactElement {
 
         if (addressError) {
           console.error("Error creating address:", addressError);
-          setFormErrors(["Failed to create address."]);
+          setError("Failed to create address.");
           setShowErrorModal(true);
           setIsSubmitting(false);
           return;
@@ -321,7 +328,7 @@ export default function EditTruckPage(): ReactElement {
 
       if (truckError) {
         console.error("Error updating truck:", truckError);
-        setFormErrors(["Failed to update truck."]);
+        // setFormErrors(["Failed to update truck."]);
         setShowErrorModal(true);
         setIsSubmitting(false);
         return;
@@ -333,14 +340,14 @@ export default function EditTruckPage(): ReactElement {
       }, 2000);
     } catch (error) {
       console.error("Error updating truck:", error);
-      setFormErrors(["An error occurred while updating the truck."]);
+      // setFormErrors(["An error occurred while updating the truck."]);
       setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (isLoading) return <p>Loading...</p>;
   if (error) return <p className="text-red-600">{error}</p>;
   if (success) return <p className="text-green-600">{success}</p>;
 
@@ -356,7 +363,10 @@ export default function EditTruckPage(): ReactElement {
             <div className="bg-white p-6 rounded-lg shadow">
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Truck Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -372,7 +382,10 @@ export default function EditTruckPage(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="type"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Truck Type <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -393,7 +406,10 @@ export default function EditTruckPage(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="capacity"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Capacity <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -414,7 +430,10 @@ export default function EditTruckPage(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="location"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Shop Location <span className="text-red-500">*</span>
                   </label>
                   <ShopLocationDropdown

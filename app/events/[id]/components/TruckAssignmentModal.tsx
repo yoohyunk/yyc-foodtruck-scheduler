@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Employee, Truck, TruckAssignment, getTruckTypeColor, getTruckTypeBadge } from "@/app/types";
+import {
+  Employee,
+  Truck,
+  getTruckTypeColor,
+  getTruckTypeBadge,
+} from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 
 interface TruckAssignmentModalProps {
@@ -105,7 +110,10 @@ export default function TruckAssignmentModal({
               {trucks.map((truck, index) => {
                 const isSelected = selectedTrucks.has(truck.id);
                 const assignedDriver = getAssignedDriverForTruck(truck.id);
-                const selectedDriverId = driverAssignments.get(truck.id) || assignedDriver?.employee_id || "";
+                const selectedDriverId =
+                  driverAssignments.get(truck.id) ||
+                  assignedDriver?.employee_id ||
+                  "";
 
                 return (
                   <TutorialHighlight
@@ -117,7 +125,9 @@ export default function TruckAssignmentModal({
                       )
                     }
                   >
-                    <div className={`truck-assignment border rounded-lg p-4 ${getTruckTypeColor(truck.type)}`}>
+                    <div
+                      className={`truck-assignment border rounded-lg p-4 ${getTruckTypeColor(truck.type)}`}
+                    >
                       {/* Truck Selection Checkbox */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">
@@ -125,16 +135,20 @@ export default function TruckAssignmentModal({
                             type="checkbox"
                             id={`truck-${truck.id}`}
                             checked={isSelected}
-                            onChange={(e) => handleTruckSelection(truck.id, e.target.checked)}
+                            onChange={(e) =>
+                              handleTruckSelection(truck.id, e.target.checked)
+                            }
                             className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
-                          <label 
+                          <label
                             htmlFor={`truck-${truck.id}`}
                             className="font-semibold text-lg cursor-pointer"
                           >
                             {truck.name}
                           </label>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getTruckTypeBadge(truck.type)}`}>
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${getTruckTypeBadge(truck.type)}`}
+                          >
                             {truck.type}
                           </span>
                         </div>

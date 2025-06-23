@@ -6,7 +6,14 @@ import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ErrorModal from "@/app/components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validateRequired, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  createValidationRule,
+  sanitizeFormData,
+  commonValidationRules,
+} from "@/lib/formValidation";
 
 type Role = "Admin" | "Employee";
 
@@ -18,11 +25,12 @@ export default function LoginPage(): ReactElement {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [role, setRole] = useState<Role>("Admin");
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   // Refs for form fields
   const emailRef = useRef<HTMLInputElement>(null);
@@ -32,7 +40,6 @@ export default function LoginPage(): ReactElement {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setFormErrors([]);
 
     // Sanitize form data
     const formData = { email, password };
@@ -41,15 +48,21 @@ export default function LoginPage(): ReactElement {
     // Validate form data
     const validationRules: ValidationRule[] = [
       commonValidationRules.email(emailRef.current),
-      createValidationRule("password", true, undefined, "Password is required.", passwordRef.current),
+      createValidationRule(
+        "password",
+        true,
+        undefined,
+        "Password is required.",
+        passwordRef.current
+      ),
     ];
 
     const validationErrors = validateForm(sanitizedData, validationRules);
     setValidationErrors(validationErrors);
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
-      setFormErrors(errorMessages);
+      const errorMessages = validationErrors.map((error) => error.message);
+      setError(errorMessages[0]);
       setShowErrorModal(true);
       setLoading(false);
       return;
@@ -68,21 +81,6 @@ export default function LoginPage(): ReactElement {
     }
   };
 
-  const handleScrollToFirstError = () => {
-    const formData = { email, password };
-    const sanitizedData = sanitizeFormData(formData);
-    
-    const validationRules: ValidationRule[] = [
-      commonValidationRules.email(emailRef.current),
-      createValidationRule("password", true, undefined, "Password is required.", passwordRef.current),
-    ];
-
-    const validationErrors = validateForm(sanitizedData, validationRules);
-    if (validationErrors.length > 0) {
-      scrollToFirstError(validationErrors);
-    }
-  };
-
   return (
     <>
       <div className="w-full min-h-screen bg-gradient-to-br from-green-100 via-yellow-100 to-green-200 flex items-center justify-center px-4">
@@ -97,11 +95,16 @@ export default function LoginPage(): ReactElement {
             />
           </div>
 
-          <h2 className="text-3xl font-bold text-center text-green-800">Login</h2>
+          <h2 className="text-3xl font-bold text-center text-green-800">
+            Login
+          </h2>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Email <span className="text-red-500">*</span>
               </label>
               <input
@@ -117,7 +120,10 @@ export default function LoginPage(): ReactElement {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -166,7 +172,9 @@ export default function LoginPage(): ReactElement {
               </button>
             </div>
 
-            {error && <p className="text-red-500 text-center text-sm">{error}</p>}
+            {error && (
+              <p className="text-red-500 text-center text-sm">{error}</p>
+            )}
 
             <button
               type="submit"

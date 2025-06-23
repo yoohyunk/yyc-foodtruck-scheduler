@@ -4,7 +4,13 @@ import React, { useEffect, useState, ReactElement, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ErrorModal from "@/app/components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validatePassword, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  sanitizeFormData,
+  commonValidationRules,
+} from "../../lib/formValidation";
 
 export default function SetPasswordPage(): ReactElement {
   const router = useRouter();
@@ -14,9 +20,10 @@ export default function SetPasswordPage(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   // Refs for form fields
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -59,7 +66,6 @@ export default function SetPasswordPage(): ReactElement {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setFormErrors([]);
 
     // Sanitize form data
     const formData = { password };
@@ -74,32 +80,18 @@ export default function SetPasswordPage(): ReactElement {
     setValidationErrors(validationErrors);
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
-      setFormErrors(errorMessages);
       setShowErrorModal(true);
       return;
     }
 
-    const { error: updateError } = await supabase.auth.updateUser({ password: sanitizedData.password });
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: sanitizedData.password,
+    });
     if (updateError) {
       console.error("Password update error:", updateError);
       setError(updateError.message);
     } else {
       router.push("/set-up-employee-info");
-    }
-  };
-
-  const handleScrollToFirstError = () => {
-    const formData = { password };
-    const sanitizedData = sanitizeFormData(formData);
-    
-    const validationRules: ValidationRule[] = [
-      commonValidationRules.password(passwordRef.current),
-    ];
-
-    const validationErrors = validateForm(sanitizedData, validationRules);
-    if (validationErrors.length > 0) {
-      scrollToFirstError(validationErrors);
     }
   };
 

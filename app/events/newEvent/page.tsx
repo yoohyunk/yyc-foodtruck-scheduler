@@ -8,7 +8,14 @@ import React, {
   FormEvent,
   useRef,
 } from "react";
-import { EventFormData, Truck, Employee, TruckAssignment, getTruckTypeColor, getTruckTypeBadge } from "@/app/types";
+import {
+  EventFormData,
+  Truck,
+  Employee,
+  TruckAssignment,
+  getTruckTypeColor,
+  getTruckTypeBadge,
+} from "@/app/types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -17,7 +24,16 @@ import ErrorModal from "@/app/components/ErrorModal";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, validateDate, validateTimeRange, createValidationRule, getEmptyFieldNames } from "../../../lib/formValidation";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  validateEmail,
+  validatePhone,
+  validateNumber,
+  validateTimeRange,
+  createValidationRule,
+} from "../../../lib/formValidation";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -61,13 +77,14 @@ export default function AddEventPage(): ReactElement {
 
   // Refs for form fields
   const nameRef = useRef<HTMLInputElement>(null);
-  const dateRef = useRef<any>(null);
-  const timeRef = useRef<any>(null);
-  const endTimeRef = useRef<any>(null);
-  const requiredServersRef = useRef<HTMLInputElement>(null);
   const contactNameRef = useRef<HTMLInputElement>(null);
   const contactEmailRef = useRef<HTMLInputElement>(null);
   const contactPhoneRef = useRef<HTMLInputElement>(null);
+  const requiredServersRef = useRef<HTMLInputElement>(null);
+  const dateRef = useRef<DatePicker>(null);
+  const timeRef = useRef<DatePicker>(null);
+  const endTimeRef = useRef<DatePicker>(null);
+  const locationRef = useRef<HTMLInputElement>(null);
 
   // Add a state to track address validity
   const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
@@ -185,7 +202,7 @@ export default function AddEventPage(): ReactElement {
         created_at: new Date().toISOString(),
       };
       setTruckAssignments([...truckAssignments, newAssignment]);
-     
+
       setFormData({
         ...formData,
         trucks: [...formData.trucks, truckId],
@@ -196,7 +213,9 @@ export default function AddEventPage(): ReactElement {
   const handleTruckSelection = (truckId: string, isSelected: boolean) => {
     if (isSelected) {
       // Add truck to assignments if not already present
-      if (!truckAssignments.some((assignment) => assignment.truck_id === truckId)) {
+      if (
+        !truckAssignments.some((assignment) => assignment.truck_id === truckId)
+      ) {
         const newAssignment: TruckAssignment = {
           id: `temp-${Date.now()}`,
           truck_id: truckId,
@@ -251,18 +270,77 @@ export default function AddEventPage(): ReactElement {
 
   const validateFormData = (): ValidationError[] => {
     const validationRules: ValidationRule[] = [
-      createValidationRule("name", true, undefined, "Event name is required.", nameRef.current),
-      createValidationRule("date", true, undefined, "Date is required.", dateRef.current),
-      createValidationRule("time", true, undefined, "Start time is required.", timeRef.current),
-      createValidationRule("endTime", true, undefined, "End time is required.", endTimeRef.current),
-      createValidationRule("location", true, undefined, "Location is required.", null),
-      createValidationRule("requiredServers", true, (value: any) => validateNumber(value, 1), "Number of servers is required and must be at least 1.", requiredServersRef.current),
-      createValidationRule("contactName", true, undefined, "Contact name is required.", contactNameRef.current),
-      createValidationRule("contactEmail", true, validateEmail, "Please enter a valid email address.", contactEmailRef.current),
-      createValidationRule("contactPhone", true, validatePhone, "Please enter a valid phone number.", contactPhoneRef.current),
+      createValidationRule(
+        "name",
+        true,
+        undefined,
+        "Event name is required.",
+        nameRef.current
+      ),
+      createValidationRule(
+        "date",
+        true,
+        undefined,
+        "Date is required.",
+        dateRef.current?.input
+      ),
+      createValidationRule(
+        "time",
+        true,
+        undefined,
+        "Start time is required.",
+        timeRef.current?.input
+      ),
+      createValidationRule(
+        "endTime",
+        true,
+        undefined,
+        "End time is required.",
+        endTimeRef.current?.input
+      ),
+      createValidationRule(
+        "location",
+        true,
+        undefined,
+        "Location is required.",
+        locationRef.current
+      ),
+      createValidationRule(
+        "requiredServers",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 1),
+        "Number of servers is required and must be at least 1.",
+        requiredServersRef.current
+      ),
+      createValidationRule(
+        "contactName",
+        true,
+        undefined,
+        "Contact name is required.",
+        contactNameRef.current
+      ),
+      createValidationRule(
+        "contactEmail",
+        true,
+        (value: unknown) => typeof value === "string" && validateEmail(value),
+        "Please enter a valid email address.",
+        contactEmailRef.current
+      ),
+      createValidationRule(
+        "contactPhone",
+        true,
+        (value: unknown) => typeof value === "string" && validatePhone(value),
+        "Please enter a valid phone number.",
+        contactPhoneRef.current
+      ),
     ];
 
-    const errors = validateForm(formData, validationRules);
+    const errors = validateForm(
+      formData as Record<string, unknown>,
+      validationRules
+    );
 
     // Additional custom validations
     if (selectedDate && selectedTime && selectedEndTime) {
@@ -270,13 +348,15 @@ export default function AddEventPage(): ReactElement {
         errors.push({
           field: "timeRange",
           message: "End time must be after start time.",
-          element: endTimeRef.current,
+          element: endTimeRef.current?.input,
         });
       }
     }
 
     // Check truck assignments
-    const trucksWithoutDrivers = truckAssignments.filter(assignment => !assignment.driver_id);
+    const trucksWithoutDrivers = truckAssignments.filter(
+      (assignment) => !assignment.driver_id
+    );
     if (trucksWithoutDrivers.length > 0) {
       errors.push({
         field: "truckAssignments",
@@ -302,7 +382,12 @@ export default function AddEventPage(): ReactElement {
     const validationErrors = validateFormData();
 
     // Check for valid coordinates/address
-    if (!coordinates || coordinates.latitude === undefined || coordinates.longitude === undefined || isAddressValid === false) {
+    if (
+      !coordinates ||
+      coordinates.latitude === undefined ||
+      coordinates.longitude === undefined ||
+      isAddressValid === false
+    ) {
       validationErrors.push({
         field: "address",
         message: "Please check address.",
@@ -311,7 +396,7 @@ export default function AddEventPage(): ReactElement {
     }
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
+      const errorMessages = validationErrors.map((error) => error.message);
       setFormErrors(errorMessages);
       setShowErrorModal(true);
       return;
@@ -388,13 +473,6 @@ export default function AddEventPage(): ReactElement {
     }
   };
 
-  const handleScrollToFirstError = () => {
-    const validationErrors = validateFormData();
-    if (validationErrors.length > 0) {
-      scrollToFirstError(validationErrors);
-    }
-  };
-
   return (
     <>
       <div className="create-event-page">
@@ -410,7 +488,6 @@ export default function AddEventPage(): ReactElement {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              
             />
           </div>
 
@@ -596,7 +673,9 @@ export default function AddEventPage(): ReactElement {
           </div>
 
           <div className="input-group">
-            <label className="input-label">Assign Trucks & Drivers <span className="text-red-500">*</span></label>
+            <label className="input-label">
+              Assign Trucks & Drivers <span className="text-red-500">*</span>
+            </label>
             <p className="text-sm text-gray-600 mb-3">
               Check the boxes for trucks you want to include in this event, then
               assign a driver to each selected truck.
@@ -698,19 +777,35 @@ export default function AddEventPage(): ReactElement {
             {/* Summary of selected trucks */}
             {truckAssignments.length > 0 && (
               <div className="mt-4 p-3 bg-green-50 rounded border border-green-200">
-                <h4 className="font-medium text-green-800 mb-2">Selected Trucks ({truckAssignments.length}):</h4>
+                <h4 className="font-medium text-green-800 mb-2">
+                  Selected Trucks ({truckAssignments.length}):
+                </h4>
                 <ul className="space-y-1">
                   {truckAssignments.map((assignment) => {
-                    const truck = trucks.find(t => t.id === assignment.truck_id);
-                    const driver = employees.find(e => e.employee_id === assignment.driver_id);
-                    
+                    const truck = trucks.find(
+                      (t) => t.id === assignment.truck_id
+                    );
+                    const driver = employees.find(
+                      (e) => e.employee_id === assignment.driver_id
+                    );
+
                     return (
-                      <li key={assignment.truck_id} className="text-sm text-green-700 flex items-center gap-2">
+                      <li
+                        key={assignment.truck_id}
+                        className="text-sm text-green-700 flex items-center gap-2"
+                      >
                         <span>• {truck?.name}</span>
-                        <span className={`px-1 py-0.5 rounded text-xs font-medium ${getTruckTypeBadge(truck?.type || "")}`}>
+                        <span
+                          className={`px-1 py-0.5 rounded text-xs font-medium ${getTruckTypeBadge(truck?.type || "")}`}
+                        >
                           {truck?.type}
                         </span>
-                        <span>- Driver: {driver ? `${driver.first_name} ${driver.last_name}` : 'No driver assigned'}</span>
+                        <span>
+                          - Driver:{" "}
+                          {driver
+                            ? `${driver.first_name} ${driver.last_name}`
+                            : "No driver assigned"}
+                        </span>
                       </li>
                     );
                   })}
@@ -749,17 +844,17 @@ export default function AddEventPage(): ReactElement {
           </button>
         </form>
       </div>
-      
+
       {isAddressValid && addressValidationMsg && (
         <p className="text-green-600">{addressValidationMsg}</p>
       )}
-      
+
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
-        errors={formErrors.map(msg => ({ field: "form", message: msg }))}
+        errors={formErrors.map((msg) => ({ field: "form", message: msg }))}
       />
-      
+
       <HelpPopup
         isOpen={showHelpPopup}
         onClose={() => setShowHelpPopup(false)}

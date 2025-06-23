@@ -24,7 +24,7 @@ const SHOP_LOCATIONS: ShopLocation[] = [
     coordinates: { latitude: 51.0845, longitude: -114.0721 }, // Approximate coordinates for NE Calgary
   },
   {
-    name: "South Shop", 
+    name: "South Shop",
     address: "8734-3919 Brandon Street SE, Calgary, T2G 4A7",
     coordinates: { latitude: 50.9781, longitude: -114.0721 }, // Approximate coordinates for SE Calgary
   },
@@ -42,7 +42,9 @@ export default function ShopLocationDropdown({
   // Parse the current value to determine which shop is selected
   useEffect(() => {
     if (value) {
-      const shop = SHOP_LOCATIONS.find(location => location.address === value);
+      const shop = SHOP_LOCATIONS.find(
+        (location) => location.address === value
+      );
       setSelectedShop(shop?.name || "");
     } else {
       setSelectedShop("");
@@ -52,9 +54,11 @@ export default function ShopLocationDropdown({
   const handleShopChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const shopName = e.target.value;
     setSelectedShop(shopName);
-    
+
     if (shopName) {
-      const shop = SHOP_LOCATIONS.find(location => location.name === shopName);
+      const shop = SHOP_LOCATIONS.find(
+        (location) => location.name === shopName
+      );
       if (shop) {
         onChange(shop.address, shop.coordinates);
       }
@@ -78,12 +82,13 @@ export default function ShopLocationDropdown({
           </option>
         ))}
       </select>
-      
+
       {selectedShop && (
         <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-600">
-          <strong>Address:</strong> {SHOP_LOCATIONS.find(s => s.name === selectedShop)?.address}
+          <strong>Address:</strong>{" "}
+          {SHOP_LOCATIONS.find((s) => s.name === selectedShop)?.address}
         </div>
       )}
     </div>
   );
-} 
+}

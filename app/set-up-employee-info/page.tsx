@@ -1,12 +1,24 @@
 "use client";
 
-import React, { useEffect, useState, ChangeEvent, ReactElement, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  ChangeEvent,
+  ReactElement,
+  useRef,
+} from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "../../database.types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import ErrorModal from "@/app/components/ErrorModal";
-import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, createValidationRule, sanitizeFormData, commonValidationRules } from "@/lib/formValidation";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  createValidationRule,
+  commonValidationRules,
+} from "../../lib/formValidation";
 
 // Use Supabase types
 type EmployeeInfo = Tables<"employees"> & { wage?: string };
@@ -20,9 +32,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   const [employee, setEmployee] = useState<EmployeeInfo>({
     employee_id: "",
@@ -72,8 +85,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
   // Add state for address validity and validation message
   const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
-  const [addressValidationMsg, setAddressValidationMsg] = useState<string>("");
-  const [addressCoords, setAddressCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [addressCoords, setAddressCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -263,13 +278,6 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     const { name, value } = e.target;
     setEmployee((prev) => ({ ...prev, [name]: value }));
   };
-  const handleAddressChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setAddress((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
   const handleDaySelection = (day: string) => {
     setEmployee((prev) => {
       const avail = (prev.availability as string[]) || [];
@@ -292,17 +300,22 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setFormErrors([]);
 
     // Sanitize form data
-    const sanitizedEmployee = sanitizeFormData(employee);
-    const sanitizedAddress = sanitizeFormData(address);
+    const sanitizedEmployee = employee;
+    const sanitizedAddress = address;
 
     // Validate form data
     const validationRules: ValidationRule[] = [
       commonValidationRules.firstName(firstNameRef.current),
       commonValidationRules.lastName(lastNameRef.current),
-      createValidationRule("employee_type", true, undefined, "Role is required.", roleRef.current),
+      createValidationRule(
+        "employee_type",
+        true,
+        undefined,
+        "Role is required.",
+        roleRef.current
+      ),
       commonValidationRules.email(emailRef.current),
       commonValidationRules.phone(phoneRef.current),
       commonValidationRules.number("wage", 0, undefined, wageRef.current),
@@ -312,7 +325,12 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     setValidationErrors(validationErrors);
 
     // Require valid coordinates (Check Address must be clicked and succeed)
-    if (!addressCoords || addressCoords.latitude === undefined || addressCoords.longitude === undefined || isAddressValid === false) {
+    if (
+      !addressCoords ||
+      addressCoords.latitude === undefined ||
+      addressCoords.longitude === undefined ||
+      isAddressValid === false
+    ) {
       validationErrors.push({
         field: "address",
         message: "Please check address.",
@@ -321,8 +339,6 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     }
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map(error => error.message);
-      setFormErrors(errorMessages);
       setShowErrorModal(true);
       return;
     }
@@ -470,7 +486,11 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
       if (employeeUpdateError) {
         console.error("Error updating employee:", employeeUpdateError);
-        setError(`Failed to update employee: ${employeeUpdateError.message}`);
+        const errorMessage =
+          employeeUpdateError instanceof Error
+            ? employeeUpdateError.message
+            : "An unknown error occurred";
+        setError(errorMessage);
         return;
       }
 
@@ -529,9 +549,11 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
       setTimeout(() => {
         router.push("/");
       }, 2000);
-    } catch (err: any) {
-      console.error("Error updating profile:", err);
-      setError(err instanceof Error ? err.message : "An error occurred");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      setError(errorMessage);
     }
   };
 
@@ -550,11 +572,16 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           <form onSubmit={handleSubmit} className="space-y-6 p-4">
             {/* Personal Information Section */}
             <div className="personal-info-section bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Personal Information</h2>
-              
+              <h2 className="text-xl font-semibold mb-4">
+                Personal Information
+              </h2>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="first_name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     First Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -569,7 +596,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="last_name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Last Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -584,7 +614,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="employee_type" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="employee_type"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Role <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -603,7 +636,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="wage" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="wage"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Hourly Wage <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -620,7 +656,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="user_email" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="user_email"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Email <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -635,7 +674,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                 </div>
 
                 <div>
-                  <label htmlFor="user_phone" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="user_phone"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Phone <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -653,10 +695,16 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
             {/* Address Section */}
             <div className="address-form bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Address Information</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                Address Information
+              </h2>
               <AddressForm
                 ref={addressFormRef}
-                value={address.street ? `${address.street}, ${address.city || "Calgary"}, ${address.postal_code || ""}` : ""}
+                value={
+                  address.street
+                    ? `${address.street}, ${address.city || "Calgary"}, ${address.postal_code || ""}`
+                    : ""
+                }
                 onChange={(addressString, coords) => {
                   // Only update address state on successful Check Address
                   const parts = addressString.split(", ");
@@ -672,7 +720,6 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                   });
                   setAddressCoords(coords || null);
                   setIsAddressValid(!!coords);
-                  setAddressValidationMsg(coords ? "Address is valid!" : "");
                 }}
               />
             </div>
@@ -684,7 +731,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={Array.isArray(employee.availability) && employee.availability.length === daysOfWeek.length}
+                    checked={
+                      Array.isArray(employee.availability) &&
+                      employee.availability.length === daysOfWeek.length
+                    }
                     onChange={handleSelectAll}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
@@ -694,7 +744,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                   <label key={day} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
-                      checked={Array.isArray(employee.availability) && employee.availability.includes(day)}
+                      checked={
+                        Array.isArray(employee.availability) &&
+                        employee.availability.includes(day)
+                      }
                       onChange={() => handleDaySelection(day)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
