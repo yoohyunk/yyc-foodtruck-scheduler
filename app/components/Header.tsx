@@ -8,7 +8,6 @@ import {
   FiLogOut,
   FiUsers,
   FiCalendar,
-  FiPlus,
   FiHome,
   FiMenu,
   FiX,
@@ -115,7 +114,9 @@ export default function Header(): React.ReactElement {
                       : "text-white"
                   }`}
                   ref={(el) => {
+                    // Handle the ref properly for Next.js Link component
                     if (el) {
+                      // Find the actual anchor element within the Link
                       const anchorElement = el.querySelector("a") || el;
                       tabRefs.current[i] = anchorElement as HTMLElement;
                     } else {
