@@ -7,46 +7,63 @@ import { FiUsers, FiCalendar, FiTruck, FiClock } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { useTutorial } from "./tutorial/TutorialContext";
 import { TutorialHighlight } from "./components/TutorialHighlight";
+import { eventsApi } from "@/lib/supabase/events";
+import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 
 export default function Home(): ReactElement {
   const [hoveredLink, setHoveredLink] = useState<number | null>(null);
   const [events, setEvents] = useState<HomePageEvent[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { shouldHighlight } = useTutorial();
 
-  // Fetch upcoming events
+  // Fetch data from Supabase
   useEffect(() => {
-    fetch("/events.json")
-      .then((response) => response.json())
-      .then((data: HomePageEvent[]) => {
-        if (Array.isArray(data)) {
-          const upcomingEvents = data.filter(
-            (event) => new Date(event.startTime) >= new Date()
-          );
-          setEvents(upcomingEvents.slice(0, 5)); // Show only the next 5 events
-        } else {
-          setEvents([]);
-        }
-      })
-      .catch(() => {
-        setEvents([]);
-      });
-  }, []);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
 
-  // Fetch time-off requests
-  useEffect(() => {
-    fetch("/timeOffRequests.json")
-      .then((response) => response.json())
-      .then((data: TimeOffRequest[]) => {
-        const upcomingRequests = data.filter(
-          (request) => new Date(request.date) >= new Date()
-        );
-        setTimeOffRequests(upcomingRequests.slice(0, 3)); // Show only the next 3 requests
-      })
-      .catch(() => {
+        // Fetch upcoming events
+        const eventsData = await eventsApi.getAllEvents();
+        const upcomingEvents = eventsData
+          .filter((event) => new Date(event.start_date) >= new Date())
+          .slice(0, 6)
+          .map((event) => ({
+            title: event.title || "Untitled Event",
+            startTime: new Date(event.start_date).toLocaleDateString(),
+            location: event.description || "Location not set",
+          }));
+
+        setEvents(upcomingEvents);
+
+        // Fetch time-off requests
+        const requestsData = await timeOffRequestsApi.getAllTimeOffRequests();
+        const upcomingRequests = requestsData
+          .filter((request) => new Date(request.start_datetime) >= new Date())
+          .slice(0, 4)
+          .map((request) => ({
+            id: request.id,
+            employee_id: request.employee_id,
+            start_datetime: request.start_datetime,
+            end_datetime: request.end_datetime,
+            reason: request.reason,
+            type: request.type || "Time Off",
+            status: request.status,
+            created_at: request.created_at,
+          }));
+
+        setTimeOffRequests(upcomingRequests);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setEvents([]);
         setTimeOffRequests([]);
-      });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const links: NavLink[] = [
@@ -99,7 +116,9 @@ export default function Home(): ReactElement {
           <section data-section="upcoming-events">
             <h2 className="section-title">Upcoming Events</h2>
             <div className="grid gap-4">
-              {events.length > 0 ? (
+              {isLoading ? (
+                <p className="text-gray-500">Loading events...</p>
+              ) : events.length > 0 ? (
                 events.map((event, index) => (
                   <div key={index} className="section-card">
                     <h3 className="section-card-title">{event.title}</h3>
@@ -126,19 +145,39 @@ export default function Home(): ReactElement {
           <section data-section="timeoff-requests">
             <h2 className="section-title">Time-Off Requests</h2>
             <div className="grid gap-4">
-              {timeOffRequests.length > 0 ? (
+              {isLoading ? (
+                <p className="text-gray-500">Loading requests...</p>
+              ) : timeOffRequests.length > 0 ? (
                 timeOffRequests.map((request, index) => (
                   <div key={index} className="section-card">
                     <h3 className="section-card-title">{request.type}</h3>
                     <p className="section-card-text">
-                      <strong>Start Date:</strong> {request.date}
+                      <strong>Start Date:</strong>{" "}
+                      {new Date(request.start_datetime).toLocaleDateString()}
                     </p>
                     <p className="section-card-text">
-                      <strong>Duration:</strong> {request.duration}
+                      <strong>End Date:</strong>{" "}
+                      {new Date(request.end_datetime).toLocaleDateString()}
                     </p>
                     <p className="section-card-text">
-                      <strong>Reason:</strong> {request.reason}
+                      <strong>Status:</strong>
+                      <span
+                        className={`ml-2 px-2 py-1 rounded text-xs ${
+                          request.status === "Approved"
+                            ? "bg-green-100 text-green-800"
+                            : request.status === "Rejected"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {request.status}
+                      </span>
                     </p>
+                    {request.reason && (
+                      <p className="section-card-text">
+                        <strong>Reason:</strong> {request.reason}
+                      </p>
+                    )}
                   </div>
                 ))
               ) : (

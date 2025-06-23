@@ -4,10 +4,13 @@ import { TutorialHighlight } from "../../../components/TutorialHighlight";
 import { calculateDistance } from "../../../AlgApi/distance";
 import { wagesApi } from "@/lib/supabase/wages";
 import { Tables } from "@/database.types";
+import { createClient } from "@/lib/supabase/client";
 
 interface EmployeeWithDistanceAndWage extends Employee {
   distance?: number;
   currentWage?: number;
+  isAvailable?: boolean;
+  availabilityReason?: string;
 }
 
 interface EmployeeSelectionModalProps {
@@ -16,12 +19,84 @@ interface EmployeeSelectionModalProps {
   employees: Employee[];
   assignedEmployees: Employee[];
   isLoadingEmployees: boolean;
-  event: { addresses?: Tables<"addresses">; number_of_servers_needed?: number };
+  event: {
+    id?: string;
+    addresses?: Tables<"addresses">;
+    number_of_servers_needed?: number;
+    start_date?: string;
+    end_date?: string;
+  };
   onEmployeeSelection: (employee: Employee) => void;
   shouldHighlight: (selector: string) => boolean;
   employeeFilter: string;
   onFilterChange: (filter: string) => void;
 }
+
+// Memoized employee item component to prevent unnecessary re-renders
+const EmployeeItem = React.memo(
+  ({
+    employee,
+    isAssigned,
+    isDisabled,
+    onSelection,
+    shouldHighlight,
+    index,
+    formatDistance,
+    formatWage,
+  }: {
+    employee: EmployeeWithDistanceAndWage;
+    isAssigned: boolean;
+    isDisabled: boolean;
+    onSelection: (employee: Employee) => void;
+    shouldHighlight: (selector: string) => boolean;
+    index: number;
+    formatDistance: (distance: number | undefined) => string;
+    formatWage: (wage: number | undefined) => string;
+  }) => (
+    <TutorialHighlight
+      key={employee.employee_id}
+      isHighlighted={
+        index === 0 &&
+        shouldHighlight(".modal-body .employee-checkbox:first-child")
+      }
+    >
+      <label
+        className={`employee-label w-full flex items-center justify-between px-0 ${
+          isAssigned ? "employee-label-selected" : ""
+        } ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+      >
+        <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
+          <div>
+            <span className="font-semibold" style={{ whiteSpace: "nowrap" }}>
+              {employee.first_name} {employee.last_name}
+            </span>
+            <span className="text-sm text-gray-500 ml-2">
+              ({employee.employee_type || "Unknown"})
+            </span>
+            {!employee.isAvailable && employee.availabilityReason && (
+              <div className="text-xs text-red-600 mt-1">
+                ⚠️ {employee.availabilityReason}
+              </div>
+            )}
+          </div>
+          <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
+            <span className="mr-4">{formatDistance(employee.distance)}</span>
+            <span>{formatWage(employee.currentWage)}</span>
+          </div>
+        </div>
+        <input
+          type="checkbox"
+          className="employee-checkbox mr-3"
+          checked={isAssigned}
+          onChange={() => !isDisabled && onSelection(employee)}
+          disabled={isDisabled || !employee.isAvailable}
+        />
+      </label>
+    </TutorialHighlight>
+  )
+);
+
+EmployeeItem.displayName = "EmployeeItem";
 
 export default function EmployeeSelectionModal({
   isOpen,
@@ -40,6 +115,102 @@ export default function EmployeeSelectionModal({
   >([]);
   const [isLoadingDistances, setIsLoadingDistances] = useState(false);
   const [sortByDistance, setSortByDistance] = useState(false);
+  const supabase = createClient();
+
+  // Memoize assigned employee IDs for faster lookups
+  const assignedEmployeeIds = useMemo(
+    () => new Set(assignedEmployees.map((emp) => emp.employee_id)),
+    [assignedEmployees]
+  );
+
+  // Check employee availability for the event
+  const checkEmployeeAvailability = useCallback(
+    async (employee: Employee) => {
+      if (!event.start_date || !event.end_date) {
+        return { isAvailable: true, reason: "" };
+      }
+
+      const eventStart = new Date(event.start_date);
+      const eventEnd = new Date(event.end_date);
+      const dayOfWeek = eventStart.getDay();
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const eventDay = dayNames[dayOfWeek];
+
+      // Check day availability
+      const availability = employee.availability as string[] | null;
+      if (!availability || !availability.includes(eventDay)) {
+        return {
+          isAvailable: false,
+          reason: `Not available on ${eventDay}`,
+        };
+      }
+
+      // Check for time off conflicts
+      const { data: timeOffRequests } = await supabase
+        .from("time_off_request")
+        .select("*")
+        .eq("employee_id", employee.employee_id)
+        .eq("status", "Accepted");
+
+      if (timeOffRequests && timeOffRequests.length > 0) {
+        const hasTimeOffConflict = timeOffRequests.some((request) => {
+          const requestStart = new Date(request.start_datetime);
+          const requestEnd = new Date(request.end_datetime);
+
+          return (
+            (requestStart <= eventStart && requestEnd > eventStart) ||
+            (requestStart < eventEnd && requestEnd >= eventEnd) ||
+            (requestStart >= eventStart && requestEnd <= eventEnd)
+          );
+        });
+
+        if (hasTimeOffConflict) {
+          return {
+            isAvailable: false,
+            reason: "Has approved time off during this period",
+          };
+        }
+      }
+
+      // Check for other event conflicts
+      const { data: otherAssignments } = await supabase
+        .from("assignments")
+        .select("start_date, end_date")
+        .eq("employee_id", employee.employee_id)
+        .neq("event_id", event.id || "");
+
+      if (otherAssignments && otherAssignments.length > 0) {
+        const hasEventConflict = otherAssignments.some((assignment) => {
+          const assignmentStart = new Date(assignment.start_date);
+          const assignmentEnd = new Date(assignment.end_date);
+
+          return (
+            (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
+            (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
+            (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
+          );
+        });
+
+        if (hasEventConflict) {
+          return {
+            isAvailable: false,
+            reason: "Assigned to another event during this time",
+          };
+        }
+      }
+
+      return { isAvailable: true, reason: "" };
+    },
+    [event, supabase]
+  );
 
   const calculateDistancesAndWages = useCallback(async () => {
     setIsLoadingDistances(true);
@@ -89,10 +260,15 @@ export default function EmployeeSelectionModal({
             }
           }
 
+          // Check availability
+          const availability = await checkEmployeeAvailability(employee);
+
           return {
             ...employee,
             distance,
             currentWage,
+            isAvailable: availability.isAvailable,
+            availabilityReason: availability.reason,
           };
         })
       );
@@ -103,7 +279,7 @@ export default function EmployeeSelectionModal({
     } finally {
       setIsLoadingDistances(false);
     }
-  }, [employees, event]);
+  }, [employees, event, checkEmployeeAvailability]);
 
   // Calculate distances and get wages when modal opens
   useEffect(() => {
@@ -112,16 +288,16 @@ export default function EmployeeSelectionModal({
     }
   }, [isOpen, event, employees, calculateDistancesAndWages]);
 
-  const formatDistance = (distance: number | undefined) => {
+  const formatDistance = useCallback((distance: number | undefined) => {
     if (distance === undefined) return "N/A";
     if (distance < 1) return `${(distance * 1000).toFixed(0)}m`;
     return `${distance.toFixed(1)}km`;
-  };
+  }, []);
 
-  const formatWage = (wage: number | undefined) => {
+  const formatWage = useCallback((wage: number | undefined) => {
     if (wage === undefined) return "N/A";
     return `$${wage.toFixed(2)}/hr`;
-  };
+  }, []);
 
   const sortedAndFilteredEmployees = useMemo(() => {
     const processedEmployees = employeesWithDistance.filter(
@@ -157,6 +333,10 @@ export default function EmployeeSelectionModal({
           style={{ flexShrink: 0, padding: "2rem 2rem 0.75rem 2rem" }}
         >
           Select Employees
+          <span className="text-sm font-normal text-gray-600 ml-2">
+            ({assignedEmployees.length}/{event.number_of_servers_needed}{" "}
+            assigned)
+          </span>
         </h3>
         <div
           className="modal-body"
@@ -177,23 +357,31 @@ export default function EmployeeSelectionModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Filter by Type
               </label>
-              <select
-                value={employeeFilter}
-                onChange={(e) => onFilterChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".employee-filter-dropdown")}
               >
-                <option value="all">All Employees</option>
-                <option value="Server">Server Only</option>
-                <option value="Driver">Driver Only</option>
-                <option value="Manager">Manager Only</option>
-              </select>
+                <select
+                  value={employeeFilter}
+                  onChange={(e) => onFilterChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 employee-filter-dropdown"
+                >
+                  <option value="all">All Employees</option>
+                  <option value="Server">Server Only</option>
+                  <option value="Driver">Driver Only</option>
+                  <option value="Manager">Manager Only</option>
+                </select>
+              </TutorialHighlight>
             </div>
-            <button
-              onClick={() => setSortByDistance((prev) => !prev)}
-              className="btn-secondary"
+            <TutorialHighlight
+              isHighlighted={shouldHighlight(".sort-by-distance-button")}
             >
-              {sortByDistance ? "Clear Sort" : "Sort by Distance"}
-            </button>
+              <button
+                onClick={() => setSortByDistance((prev) => !prev)}
+                className="btn-secondary sort-by-distance-button"
+              >
+                {sortByDistance ? "Clear Sort" : "Sort by Distance"}
+              </button>
+            </TutorialHighlight>
           </div>
 
           <div
@@ -203,62 +391,41 @@ export default function EmployeeSelectionModal({
             {isLoadingEmployees || isLoadingDistances ? (
               <p className="text-gray-500">Loading employees...</p>
             ) : sortedAndFilteredEmployees.length > 0 ? (
-              sortedAndFilteredEmployees.map((employee, index) => (
-                <TutorialHighlight
-                  key={employee.employee_id}
-                  isHighlighted={
-                    index === 0 &&
-                    shouldHighlight(
-                      ".modal-body .employee-checkbox:first-child"
-                    )
-                  }
-                >
-                  <label
-                    className={`employee-label w-full flex items-center justify-between px-0 ${
-                      assignedEmployees.some(
-                        (e) => e.employee_id === employee.employee_id
-                      )
-                        ? "employee-label-selected"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
-                      <div>
-                        <span
-                          className="font-semibold"
-                          style={{ whiteSpace: "nowrap" }}
-                        >
-                          {employee.first_name} {employee.last_name}
-                        </span>
-                        <span className="text-sm text-gray-500 ml-2">
-                          ({employee.employee_type || "Unknown"})
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
-                        <span className="mr-4">
-                          {formatDistance(employee.distance)}
-                        </span>
-                        <span>{formatWage(employee.currentWage)}</span>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="employee-checkbox mr-3"
-                      checked={assignedEmployees.some(
-                        (e) => e.employee_id === employee.employee_id
-                      )}
-                      onChange={() => onEmployeeSelection(employee)}
-                      disabled={
-                        !assignedEmployees.some(
-                          (e) => e.employee_id === employee.employee_id
-                        ) &&
-                        assignedEmployees.length >=
-                          (event.number_of_servers_needed || 0)
-                      }
+              <>
+                {assignedEmployees.length >=
+                  (event.number_of_servers_needed || 0) && (
+                  <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+                    <p className="text-green-800 text-sm">
+                      ✅ Maximum number of servers (
+                      {event.number_of_servers_needed}) assigned. You can
+                      unassign servers to add different ones.
+                    </p>
+                  </div>
+                )}
+                {sortedAndFilteredEmployees.map((employee, index) => {
+                  const isAssigned = assignedEmployeeIds.has(
+                    employee.employee_id
+                  );
+                  const maxReached =
+                    assignedEmployees.length >=
+                    (event.number_of_servers_needed || 0);
+                  const isDisabled = !isAssigned && maxReached;
+
+                  return (
+                    <EmployeeItem
+                      key={employee.employee_id}
+                      employee={employee}
+                      isAssigned={isAssigned}
+                      isDisabled={isDisabled}
+                      onSelection={onEmployeeSelection}
+                      shouldHighlight={shouldHighlight}
+                      index={index}
+                      formatDistance={formatDistance}
+                      formatWage={formatWage}
                     />
-                  </label>
-                </TutorialHighlight>
-              ))
+                  );
+                })}
+              </>
             ) : (
               <p className="text-gray-500">No employees available.</p>
             )}
@@ -277,9 +444,13 @@ export default function EmployeeSelectionModal({
               Close
             </button>
           </TutorialHighlight>
-          <button className="btn-primary" onClick={onClose}>
-            Save
-          </button>
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".modal-footer button.btn-primary")}
+          >
+            <button className="btn-primary" onClick={onClose}>
+              Save
+            </button>
+          </TutorialHighlight>
         </div>
       </div>
     </div>

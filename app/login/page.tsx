@@ -46,9 +46,7 @@ export default function LoginPage(): ReactElement {
     if (!emp) {
       const { error: insertError } = await supabase.from("employees").insert({
         user_id: userId,
-        employee_type: "Admin",
-        last_name: "김",
-        first_name: "유현",
+        user_email: username,
       });
       if (insertError) {
         setError(insertError.message);
