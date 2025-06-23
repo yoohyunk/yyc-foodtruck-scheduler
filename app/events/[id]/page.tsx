@@ -20,7 +20,6 @@ import {
   ValidationRule,
   validateNumber,
   createValidationRule,
-  scrollToFirstError,
   sanitizeFormData,
 } from "@/lib/formValidation";
 
@@ -51,8 +50,6 @@ export default function EventDetailsPage(): ReactElement {
   const [isLoadingEvent, setIsLoadingEvent] = useState<boolean>(true);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
-  const [showErrorModal, setShowErrorModal] = useState(false);
   const { shouldHighlight } = useTutorial();
 
   // Edit form state
@@ -348,7 +345,6 @@ export default function EventDetailsPage(): ReactElement {
     if (isSubmitting) return; // Prevent multiple submissions
 
     setError(null);
-    setFormErrors([]);
 
     if (!event?.id) {
       console.error("Event ID is missing");
@@ -411,94 +407,9 @@ export default function EventDetailsPage(): ReactElement {
     }
 
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map((error) => error.message);
-      setFormErrors(errorMessages);
-      setShowErrorModal(true);
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const updatedEvent = await eventsApi.updateEvent(event.id, {
-        title: sanitizedData.name,
-        start_date: `${sanitizedData.date}T${sanitizedData.time}`,
-        end_date: `${sanitizedData.date}T${sanitizedData.endTime}`,
-        description: sanitizedData.location,
-        number_of_servers_needed: parseInt(sanitizedData.requiredServers, 10),
-        contact_name: sanitizedData.contactName || null,
-        contact_email: sanitizedData.contactEmail || null,
-        contact_phone: sanitizedData.contactPhone || null,
-        is_prepaid: editFormData.isPrepaid,
-      });
-
-      setEvent(updatedEvent);
-      setEditModalOpen(false);
-    } catch (error) {
-      console.error("Error updating event:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred";
-      setFormErrors([errorMessage]);
-      setShowErrorModal(true);
+      setError(validationErrors[0].message);
       setIsSubmitting(false);
-    }
-  };
-
-  const handleScrollToFirstError = () => {
-    const sanitizedData = sanitizeFormData(editFormData);
-
-    const validationRules: ValidationRule[] = [
-      createValidationRule("name", true, undefined, "Event name is required."),
-      createValidationRule(
-        "date",
-        true,
-        (value: unknown) => value instanceof Date || value === null,
-        "Please select a valid date."
-      ),
-      createValidationRule(
-        "time",
-        true,
-        (value: unknown) => value instanceof Date || value === null,
-        "Please select a valid start time."
-      ),
-      createValidationRule(
-        "endTime",
-        true,
-        (value: unknown) => value instanceof Date || value === null,
-        "Please select a valid end time."
-      ),
-      createValidationRule(
-        "location",
-        true,
-        undefined,
-        "Location is required."
-      ),
-      createValidationRule(
-        "requiredServers",
-        true,
-        (value: unknown) =>
-          (typeof value === "string" || typeof value === "number") &&
-          validateNumber(value, 0),
-        "Required servers must be a positive number."
-      ),
-    ];
-
-    const validationErrors = validateForm(
-      sanitizedData as Record<string, unknown>,
-      validationRules
-    );
-
-    // Validate time range
-    if (selectedTime && selectedEndTime && selectedTime >= selectedEndTime) {
-      validationErrors.push({
-        field: "endTime",
-        message: "End time must be after start time.",
-        element: null,
-      });
-    }
-
-    if (validationErrors.length > 0) {
-      scrollToFirstError(validationErrors);
+      return;
     }
   };
 
@@ -723,10 +634,6 @@ export default function EventDetailsPage(): ReactElement {
           selectedEndTime={selectedEndTime}
           isSubmitting={isSubmitting}
           setEditFormData={setEditFormData}
-          formErrors={formErrors}
-          showErrorModal={showErrorModal}
-          onCloseErrorModal={() => setShowErrorModal(false)}
-          onScrollToFirstError={handleScrollToFirstError}
         />
       )}
 

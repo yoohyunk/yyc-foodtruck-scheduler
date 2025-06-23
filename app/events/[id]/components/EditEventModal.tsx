@@ -1,8 +1,16 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { EventFormData } from "@/app/types";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ErrorModal from "@/app/components/ErrorModal";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  validateEmail,
+  validateNumber,
+  createValidationRule,
+} from "@/lib/formValidation";
 
 interface EditEventModalProps {
   isOpen: boolean;
@@ -18,10 +26,6 @@ interface EditEventModalProps {
   onEndTimeChange: (time: Date | null) => void;
   onSubmit: (e: React.FormEvent) => void;
   setEditFormData: (data: EventFormData) => void;
-  formErrors?: string[];
-  showErrorModal?: boolean;
-  onCloseErrorModal?: () => void;
-  onScrollToFirstError?: () => void;
 }
 
 export default function EditEventModal({
@@ -38,9 +42,6 @@ export default function EditEventModal({
   onEndTimeChange,
   onSubmit,
   setEditFormData,
-  formErrors = [],
-  showErrorModal = false,
-  onCloseErrorModal,
 }: EditEventModalProps) {
   // Move all useRef calls to the top level
   const nameRef = useRef<HTMLInputElement>(null);
@@ -53,14 +54,112 @@ export default function EditEventModal({
   const endTimeRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLInputElement>(null);
 
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
+
   if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationRules: ValidationRule[] = [
+      createValidationRule(
+        "name",
+        true,
+        undefined,
+        "Event name is required.",
+        nameRef.current
+      ),
+      createValidationRule(
+        "date",
+        true,
+        undefined,
+        "Date is required.",
+        dateRef.current
+      ),
+      createValidationRule(
+        "time",
+        true,
+        undefined,
+        "Start time is required.",
+        timeRef.current
+      ),
+      createValidationRule(
+        "endTime",
+        true,
+        undefined,
+        "End time is required.",
+        endTimeRef.current
+      ),
+      createValidationRule(
+        "location",
+        true,
+        undefined,
+        "Location is required.",
+        locationRef.current
+      ),
+      createValidationRule(
+        "requiredServers",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 1),
+        "Number of servers is required and must be at least 1.",
+        requiredServersRef.current
+      ),
+      createValidationRule(
+        "contactName",
+        false,
+        undefined,
+        undefined,
+        contactNameRef.current
+      ),
+      createValidationRule(
+        "contactEmail",
+        false,
+        (value: unknown) =>
+          typeof value === "string" && (value === "" || validateEmail(value)),
+        "Please enter a valid email address.",
+        contactEmailRef.current
+      ),
+      createValidationRule(
+        "contactPhone",
+        false,
+        undefined,
+        undefined,
+        contactPhoneRef.current
+      ),
+    ];
+
+    const errors = validateForm(
+      formData as Record<string, unknown>,
+      validationRules
+    );
+
+    // Additional custom validation: end time after start time
+    if (selectedTime && selectedEndTime && selectedTime >= selectedEndTime) {
+      errors.push({
+        field: "endTime",
+        message: "End time must be after start time.",
+        element: endTimeRef.current,
+      });
+    }
+
+    setValidationErrors(errors);
+    if (errors.length > 0) {
+      setShowErrorModal(true);
+      return;
+    }
+    onSubmit(e);
+  };
 
   return (
     <>
       <div className="modal-overlay">
         <div className="modal-container max-w-2xl">
           <h3 className="modal-title">Edit Event</h3>
-          <form onSubmit={onSubmit} className="modal-body">
+          <form onSubmit={handleSubmit} className="modal-body">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -140,7 +239,6 @@ export default function EditEventModal({
                   value={formData.location}
                   onChange={onFormChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
                 />
               </div>
 
@@ -156,7 +254,6 @@ export default function EditEventModal({
                   onChange={onFormChange}
                   min="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
                 />
               </div>
 
@@ -222,33 +319,32 @@ export default function EditEventModal({
                 </label>
               </div>
             </div>
+            <div className="modal-footer">
+              <button
+                className="btn-secondary"
+                onClick={onClose}
+                disabled={isSubmitting}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
           </form>
-          <div className="modal-footer">
-            <button
-              className="btn-secondary"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              className="btn-primary"
-              onClick={onSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
         </div>
       </div>
 
-      {showErrorModal && onCloseErrorModal && (
-        <ErrorModal
-          isOpen={showErrorModal}
-          onClose={onCloseErrorModal}
-          errors={formErrors.map((msg) => ({ field: "", message: msg }))}
-        />
-      )}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        errors={validationErrors}
+      />
     </>
   );
 }

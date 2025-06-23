@@ -74,6 +74,9 @@ export default function AddEventPage(): ReactElement {
   const [showHelpPopup, setShowHelpPopup] = useState(false);
   const addressFormRef = useRef<AddressFormRef>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   // Refs for form fields
   const nameRef = useRef<HTMLInputElement>(null);
@@ -268,6 +271,12 @@ export default function AddEventPage(): ReactElement {
     return valid;
   };
 
+  // Handler for address errors from AddressForm
+  const handleAddressError = (errors: ValidationError[]) => {
+    setValidationErrors(errors);
+    setShowErrorModal(true);
+  };
+
   const validateFormData = (): ValidationError[] => {
     const validationRules: ValidationRule[] = [
       createValidationRule(
@@ -373,6 +382,20 @@ export default function AddEventPage(): ReactElement {
       });
     }
 
+    // Check for valid coordinates/address
+    if (
+      !coordinates ||
+      coordinates.latitude === undefined ||
+      coordinates.longitude === undefined ||
+      isAddressValid === false
+    ) {
+      errors.push({
+        field: "address",
+        message: "Please check address.",
+        element: null,
+      });
+    }
+
     return errors;
   };
 
@@ -381,43 +404,21 @@ export default function AddEventPage(): ReactElement {
 
     const validationErrors = validateFormData();
 
-    // Check for valid coordinates/address
-    if (
-      !coordinates ||
-      coordinates.latitude === undefined ||
-      coordinates.longitude === undefined ||
-      isAddressValid === false
-    ) {
-      validationErrors.push({
-        field: "address",
-        message: "Please check address.",
-        element: null,
-      });
-    }
-
     if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map((error) => error.message);
-      setFormErrors(errorMessages);
+      setValidationErrors(validationErrors);
       setShowErrorModal(true);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Check for valid coordinates before proceeding
-      if (
-        !coordinates ||
-        coordinates.latitude === undefined ||
-        coordinates.longitude === undefined
-      ) {
-        setFormErrors(["Please check address."]);
-        setShowErrorModal(true);
-        setIsSubmitting(false);
-        return;
-      }
-
       // Get the required number of servers
       const requiredServers = parseInt(formData.requiredServers);
+
+      // Ensure coordinates exist (validation already checked this)
+      if (!coordinates) {
+        throw new Error("Coordinates are required");
+      }
 
       // Create event data with address
       const eventData = {
@@ -523,6 +524,7 @@ export default function AddEventPage(): ReactElement {
               onChange={handleLocationChange}
               placeholder="Enter event location"
               onCheckAddress={handleCheckAddress}
+              onAddressError={handleAddressError}
             />
           </div>
 
@@ -852,7 +854,7 @@ export default function AddEventPage(): ReactElement {
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
-        errors={formErrors.map((msg) => ({ field: "form", message: msg }))}
+        errors={validationErrors}
       />
 
       <HelpPopup

@@ -29,6 +29,7 @@ interface TruckFormData {
   isAvailable: boolean;
   address: string;
   packingList: string[];
+  address_id?: string;
   [key: string]: unknown;
 }
 
@@ -42,8 +43,6 @@ export default function EditTruckPage(): ReactElement {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
-  const [success, setSuccess] = useState<string>("");
-  const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
@@ -106,12 +105,28 @@ export default function EditTruckPage(): ReactElement {
 
         if (truckError) {
           console.error("Error fetching truck:", truckError);
+          setValidationErrors([
+            {
+              field: "general",
+              message: "Failed to load truck details. Please try again.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
           setIsLoading(false);
           return;
         }
 
         if (!truckData) {
           console.error("Truck not found");
+          setValidationErrors([
+            {
+              field: "general",
+              message: "Truck not found.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
           setIsLoading(false);
           return;
         }
@@ -128,49 +143,26 @@ export default function EditTruckPage(): ReactElement {
           isAvailable: truckData.is_available || false,
           address: address,
           packingList: (truckData.packing_list as string[]) || [],
+          address_id: truckData.address_id,
         });
 
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching truck:", error);
+        setValidationErrors([
+          {
+            field: "general",
+            message: "An error occurred while loading truck details.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
         setIsLoading(false);
       }
     };
 
     if (id) {
       fetchTruck();
-    }
-  }, [id, supabase]);
-
-  // Fetch events associated with the truck
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const { error } = await supabase
-          .from("events")
-          .select(
-            `
-            *,
-            addresses (*)
-          `
-          )
-          .order("start_date", { ascending: true });
-
-        if (error) {
-          console.error("Error fetching events:", error);
-          return;
-        }
-
-        // Filter events that include this truck (would need truck_assignment table)
-        // For now, show all events
-        // setEvents(data || []);
-      } catch (error) {
-        console.error("Error fetching events:", error);
-      }
-    };
-
-    if (id) {
-      fetchEvents();
     }
   }, [id, supabase]);
 
@@ -246,13 +238,6 @@ export default function EditTruckPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      if (!formData) {
-        setError("Truck not found.");
-        setShowErrorModal(true);
-        setIsSubmitting(false);
-        return;
-      }
-
       // Parse the address to extract components
       const addressParts = formData.address.split(", ");
       const streetPart = addressParts[0] || "";
@@ -279,7 +264,13 @@ export default function EditTruckPage(): ReactElement {
 
         if (addressError) {
           console.error("Error updating address:", addressError);
-          setError("Failed to update address.");
+          setValidationErrors([
+            {
+              field: "address",
+              message: "Failed to update address. Please try again.",
+              element: null,
+            },
+          ]);
           setShowErrorModal(true);
           setIsSubmitting(false);
           return;
@@ -304,7 +295,13 @@ export default function EditTruckPage(): ReactElement {
 
         if (addressError) {
           console.error("Error creating address:", addressError);
-          setError("Failed to create address.");
+          setValidationErrors([
+            {
+              field: "address",
+              message: "Failed to create address. Please try again.",
+              element: null,
+            },
+          ]);
           setShowErrorModal(true);
           setIsSubmitting(false);
           return;
@@ -324,187 +321,175 @@ export default function EditTruckPage(): ReactElement {
           packing_list: formData.packingList,
           is_available: formData.isAvailable,
         })
-        .eq("id", id);
+        .eq("truck_id", id);
 
       if (truckError) {
         console.error("Error updating truck:", truckError);
-        // setFormErrors(["Failed to update truck."]);
+        setValidationErrors([
+          {
+            field: "truck",
+            message: "Failed to update truck. Please try again.",
+            element: null,
+          },
+        ]);
         setShowErrorModal(true);
         setIsSubmitting(false);
         return;
       }
 
-      setSuccess("Truck updated successfully!");
-      setTimeout(() => {
-        router.push("/trucks");
-      }, 2000);
+      // Success - redirect to trucks page
+      router.push("/trucks");
     } catch (error) {
       console.error("Error updating truck:", error);
-      // setFormErrors(["An error occurred while updating the truck."]);
+      setValidationErrors([
+        {
+          field: "general",
+          message: "An unexpected error occurred. Please try again.",
+          element: null,
+        },
+      ]);
       setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) return <p>Loading...</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
-  if (success) return <p className="text-green-600">{success}</p>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-lg text-gray-500">Loading truck details...</p>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-2xl mx-auto px-4">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-            Edit Truck
-          </h1>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="name"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Truck Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    ref={nameRef}
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter truck name"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="type"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Truck Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    ref={typeRef}
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select truck type</option>
-                    {truckTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="capacity"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Capacity <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    ref={capacityRef}
-                    id="capacity"
-                    name="capacity"
-                    value={formData.capacity}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select capacity</option>
-                    {capacityOptions.map((capacity) => (
-                      <option key={capacity} value={capacity}>
-                        {capacity}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="location"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Shop Location <span className="text-red-500">*</span>
-                  </label>
-                  <ShopLocationDropdown
-                    value={formData.address}
-                    onChange={handleShopLocationChange}
-                    placeholder="Select shop location"
-                    required={true}
-                  />
-                </div>
-
-                <div>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isAvailable"
-                      name="isAvailable"
-                      checked={formData.isAvailable}
-                      onChange={handleChange}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">
-                      Available for assignments
-                    </span>
-                  </label>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Packing List
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {packingListOptions.map((item) => (
-                      <label key={item} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.packingList.includes(item)}
-                          onChange={() => handlePackingListChange(item)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm">{item}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center space-x-4">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400"
-              >
-                {isSubmitting ? "Updating..." : "Update Truck"}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push("/trucks")}
-                className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-
-            {success && (
-              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-                {success}
-              </div>
-            )}
-          </form>
+      <div className="edit-truck-page">
+        <div className="flex justify-between items-center mb-4">
+          <button className="button" onClick={() => router.back()}>
+            &larr; Back
+          </button>
         </div>
+
+        <h1 className="form-header">Edit Truck</h1>
+        <form onSubmit={handleSubmit} className="truck-form">
+          <div className="input-group">
+            <label htmlFor="name" className="input-label">
+              Truck Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={nameRef}
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Enter truck name"
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="type" className="input-label">
+              Truck Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={typeRef}
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Select truck type</option>
+              {truckTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="capacity" className="input-label">
+              Capacity <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={capacityRef}
+              id="capacity"
+              name="capacity"
+              value={formData.capacity}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Select capacity</option>
+              {capacityOptions.map((capacity) => (
+                <option key={capacity} value={capacity}>
+                  {capacity}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="location" className="input-label">
+              Shop Location <span className="text-red-500">*</span>
+            </label>
+            <ShopLocationDropdown
+              value={formData.address}
+              onChange={handleShopLocationChange}
+              placeholder="Select shop location"
+              required={false}
+            />
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Availability</label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isAvailable"
+                name="isAvailable"
+                checked={formData.isAvailable}
+                onChange={handleChange}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Available for assignments
+              </span>
+            </div>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Packing List</label>
+            <div className="packing-list-grid">
+              {packingListOptions.map((item) => (
+                <label key={item} className="packing-list-item">
+                  <input
+                    type="checkbox"
+                    checked={formData.packingList.includes(item)}
+                    onChange={() => handlePackingListChange(item)}
+                    className="packing-list-checkbox"
+                  />
+                  <span className="packing-list-text">{item}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-center space-x-4">
+            <button type="submit" className="button" disabled={isSubmitting}>
+              {isSubmitting ? "Updating..." : "Update Truck"}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/trucks")}
+              className="button bg-gray-500 hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
 
       <ErrorModal

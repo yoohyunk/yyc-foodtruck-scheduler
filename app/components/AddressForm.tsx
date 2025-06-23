@@ -5,7 +5,6 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import ErrorModal from "./ErrorModal";
 
 interface AddressFormProps {
   value: string;
@@ -17,6 +16,7 @@ interface AddressFormProps {
   required?: boolean;
   className?: string;
   onCheckAddress?: () => boolean;
+  onAddressError?: (errors: ValidationError[]) => void;
 }
 
 interface AddressFormData {
@@ -39,6 +39,12 @@ interface AddressErrorMessages {
   streetName: string;
   postalCode: string;
   direction: string;
+}
+
+interface ValidationError {
+  field: string;
+  message: string;
+  element: HTMLInputElement | null;
 }
 
 export interface AddressFormRef {
@@ -92,7 +98,14 @@ const getFullAddress = (data: {
 
 const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
   (
-    { value, onChange, required = false, className = "", onCheckAddress },
+    {
+      value,
+      onChange,
+      required = false,
+      className = "",
+      onCheckAddress,
+      onAddressError,
+    },
     ref
   ) => {
     const [formData, setFormData] = useState<AddressFormData>({
@@ -124,9 +137,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     );
     const [checkMessage, setCheckMessage] = useState<string>("");
     const [isChecking, setIsChecking] = useState(false);
-
-    const [showErrorModal, setShowErrorModal] = useState(false);
-    const [errorMessagesModal, setErrorMessagesModal] = useState<string[]>([]);
 
     const streetNumberRef = useRef<HTMLInputElement>(null);
     const streetNameRef = useRef<HTMLInputElement>(null);
@@ -298,13 +308,27 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           streetNumber: validateStreetNumber(formData.streetNumber),
           streetName: validateStreetName(formData.streetName),
         }));
-        setErrorMessagesModal([
-          "Please enter a valid street number and street name.",
-        ]);
-        setShowErrorModal(true);
         setCheckStatus("error");
         setCheckMessage("Please enter a valid street number and street name.");
         if (typeof onCheckAddress === "function") onCheckAddress();
+        if (typeof onAddressError === "function") {
+          const errors: ValidationError[] = [];
+          if (!validateStreetNumber(formData.streetNumber)) {
+            errors.push({
+              field: "streetNumber",
+              message: "Please enter a valid street number (e.g., 123 or 123A)",
+              element: streetNumberRef.current,
+            });
+          }
+          if (!validateStreetName(formData.streetName)) {
+            errors.push({
+              field: "streetName",
+              message: "Please enter a valid street name",
+              element: streetNameRef.current,
+            });
+          }
+          onAddressError(errors);
+        }
         return;
       }
       setIsChecking(true);
@@ -334,10 +358,28 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         } else {
           setCheckStatus("error");
           setCheckMessage("Address not found. Please check your input.");
+          if (typeof onAddressError === "function") {
+            onAddressError([
+              {
+                field: "address",
+                message: "Address not found. Please check your input.",
+                element: streetNameRef.current,
+              },
+            ]);
+          }
         }
       } catch {
         setCheckStatus("error");
         setCheckMessage("Error validating address. Please try again.");
+        if (typeof onAddressError === "function") {
+          onAddressError([
+            {
+              field: "address",
+              message: "Error validating address. Please try again.",
+              element: streetNameRef.current,
+            },
+          ]);
+        }
       } finally {
         setIsChecking(false);
         if (typeof onCheckAddress === "function") onCheckAddress();
@@ -474,14 +516,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         {checkStatus === "error" && (
           <p className="text-red-500 text-sm mt-1">{checkMessage}</p>
         )}
-        <ErrorModal
-          isOpen={showErrorModal}
-          onClose={() => setShowErrorModal(false)}
-          errors={errorMessagesModal.map((msg) => ({
-            field: "address",
-            message: msg,
-          }))}
-        />
         <style jsx>{`
           @keyframes spin {
             to {

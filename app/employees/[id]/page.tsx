@@ -243,6 +243,12 @@ export default function EditEmployeePage(): ReactElement {
     }
   };
 
+  // Handler for address errors from AddressForm
+  const handleAddressError = (errors: ValidationError[]) => {
+    setValidationErrors(errors);
+    setShowErrorModal(true);
+  };
+
   // Handle form submission
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -660,8 +666,8 @@ export default function EditEmployeePage(): ReactElement {
               ref={addressFormRef}
               value={formData.address}
               onChange={handleAddressChange}
-              required
               className="input-field"
+              onAddressError={handleAddressError}
             />
           </div>
 

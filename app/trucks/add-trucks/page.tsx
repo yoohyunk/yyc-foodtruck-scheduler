@@ -45,10 +45,11 @@ export default function AddTrucks(): ReactElement {
   });
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [success, setSuccess] = useState("");
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   // Refs for form fields
   const nameRef = useRef<HTMLInputElement>(null);
@@ -82,17 +83,14 @@ export default function AddTrucks(): ReactElement {
     "Fire Extinguisher",
   ];
 
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
-    []
-  );
-
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setFormData({
       ...formData,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -178,6 +176,13 @@ export default function AddTrucks(): ReactElement {
 
       if (addressError) {
         console.error("Error creating address:", addressError);
+        setValidationErrors([
+          {
+            field: "address",
+            message: "Failed to create address. Please try again.",
+            element: null,
+          },
+        ]);
         setShowErrorModal(true);
         setIsSubmitting(false);
         return;
@@ -201,16 +206,29 @@ export default function AddTrucks(): ReactElement {
 
       if (truckError) {
         console.error("Error creating truck:", truckError);
+        setValidationErrors([
+          {
+            field: "truck",
+            message: "Failed to create truck. Please try again.",
+            element: null,
+          },
+        ]);
         setShowErrorModal(true);
         setIsSubmitting(false);
         return;
       }
 
-      setSuccess("Truck added successfully!");
-      setTimeout(() => {
-        router.push("/trucks");
-      }, 2000);
-    } catch {
+      // Success - redirect to trucks page
+      router.push("/trucks");
+    } catch (error) {
+      console.error("Error creating truck:", error);
+      setValidationErrors([
+        {
+          field: "general",
+          message: "An unexpected error occurred. Please try again.",
+          element: null,
+        },
+      ]);
       setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
@@ -219,135 +237,123 @@ export default function AddTrucks(): ReactElement {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-2xl mx-auto px-4">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-            Add New Truck
-          </h1>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="name"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Truck Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    ref={nameRef}
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter truck name"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="type"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Truck Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    ref={typeRef}
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select truck type</option>
-                    {truckTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="capacity"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Capacity <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    ref={capacityRef}
-                    id="capacity"
-                    name="capacity"
-                    value={formData.capacity}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select capacity</option>
-                    {capacityOptions.map((capacity) => (
-                      <option key={capacity} value={capacity}>
-                        {capacity}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="location"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Shop Location <span className="text-red-500">*</span>
-                  </label>
-                  <ShopLocationDropdown
-                    value={formData.address}
-                    onChange={handleShopLocationChange}
-                    placeholder="Select shop location"
-                    required={true}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Packing List
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {packingListOptions.map((item) => (
-                      <label key={item} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.packingList.includes(item)}
-                          onChange={() => handlePackingListChange(item)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm">{item}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400"
-              >
-                {isSubmitting ? "Adding..." : "Add Truck"}
-              </button>
-            </div>
-
-            {success && (
-              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-                {success}
-              </div>
-            )}
-          </form>
+      <div className="create-truck-page">
+        <div className="flex justify-between items-center mb-4">
+          <button className="button" onClick={() => router.back()}>
+            &larr; Back
+          </button>
         </div>
+
+        <h1 className="form-header">Add New Truck</h1>
+        <form onSubmit={handleSubmit} className="truck-form">
+          <div className="input-group">
+            <label htmlFor="name" className="input-label">
+              Truck Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={nameRef}
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Enter truck name"
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="type" className="input-label">
+              Truck Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={typeRef}
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Select truck type</option>
+              {truckTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="capacity" className="input-label">
+              Capacity <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={capacityRef}
+              id="capacity"
+              name="capacity"
+              value={formData.capacity}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Select capacity</option>
+              {capacityOptions.map((capacity) => (
+                <option key={capacity} value={capacity}>
+                  {capacity}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="location" className="input-label">
+              Shop Location <span className="text-red-500">*</span>
+            </label>
+            <ShopLocationDropdown
+              value={formData.address}
+              onChange={handleShopLocationChange}
+              placeholder="Select shop location"
+              required={false}
+            />
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Availability</label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isAvailable"
+                name="isAvailable"
+                checked={formData.isAvailable}
+                onChange={handleChange}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Available for assignments
+              </span>
+            </div>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Packing List</label>
+            <div className="packing-list-grid">
+              {packingListOptions.map((item) => (
+                <label key={item} className="packing-list-item">
+                  <input
+                    type="checkbox"
+                    checked={formData.packingList.includes(item)}
+                    onChange={() => handlePackingListChange(item)}
+                    className="packing-list-checkbox"
+                  />
+                  <span className="packing-list-text">{item}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button type="submit" className="button" disabled={isSubmitting}>
+            {isSubmitting ? "Adding..." : "Add Truck"}
+          </button>
+        </form>
       </div>
 
       <ErrorModal

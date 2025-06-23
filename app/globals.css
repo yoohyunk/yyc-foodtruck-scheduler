@@ -711,14 +711,29 @@ textarea:focus {
 }
 
 .employee-form,
-.event-form,
+.event-form {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
 .truck-form {
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
-  background: var(--white);
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px var(--shadow);
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.create-truck-page,
+.edit-truck-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
 .packing-list-grid {
@@ -1918,8 +1933,7 @@ button[title="Delete Employee"]:hover {
   }
 
   .employee-form,
-  .event-form,
-  .truck-form {
+  .event-form {
     padding: 1rem;
     margin: 1rem;
   }

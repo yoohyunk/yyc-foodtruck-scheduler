@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { ValidationError, scrollToFirstError } from "../../lib/formValidation";
+import React from "react";
+import { ValidationError } from "../../lib/formValidation";
 
 interface ErrorModalProps {
   isOpen: boolean;
@@ -16,15 +16,6 @@ export default function ErrorModal({
   errors,
   title = "Please fix the following errors:",
 }: ErrorModalProps) {
-  useEffect(() => {
-    if (isOpen && errors && errors.length > 0) {
-      // Scroll to the first error element when modal opens
-      setTimeout(() => {
-        scrollToFirstError(errors);
-      }, 300);
-    }
-  }, [isOpen, errors]);
-
   if (!isOpen) return null;
 
   return (
