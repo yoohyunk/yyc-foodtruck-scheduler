@@ -133,7 +133,7 @@ export default function Events(): ReactElement {
       {/* Date and Distance Filters */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".additional-filters")}
-        className="additional-filters grid grid-cols-2 gap-4 mb-6"
+        className="additional-filters grid grid-cols-2 gap-4 mb-6 p-4"
       >
         {/* Date Filter */}
         <div>
@@ -185,7 +185,7 @@ export default function Events(): ReactElement {
                 isHighlighted={shouldHighlight(
                   `.event-card:nth-child(${index + 1})`
                 )}
-                className="event-card bg-secondary-light p-4 rounded shadow"
+                className="employee-card bg-white p-4 rounded shadow relative"
               >
                 <h3 className="text-lg font-semibold">{event.title}</h3>
                 <p>

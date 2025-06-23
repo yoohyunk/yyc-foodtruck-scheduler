@@ -21,7 +21,7 @@ export default function TruckAssignmentsSection({
   return (
     <TutorialHighlight
       isHighlighted={shouldHighlight(".truck-assignments-section")}
-      className="assigned-section truck-assignments-section mt-8"
+      className="assigned-section truck-assignments-section mt-8 w-full"
     >
       <h2 className="assigned-section-title">Truck Assignments</h2>
       <div className="assigned-grid">

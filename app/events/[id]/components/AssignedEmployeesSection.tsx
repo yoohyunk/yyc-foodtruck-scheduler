@@ -20,7 +20,7 @@ export default function AssignedEmployeesSection({
   return (
     <TutorialHighlight
       isHighlighted={shouldHighlight(".assigned-employees-section")}
-      className="assigned-section assigned-employees-section mt-8"
+      className="assigned-section assigned-employees-section mt-8 w-full"
     >
       <h2 className="assigned-section-title">Assigned Employees</h2>
       <div className="assigned-grid">

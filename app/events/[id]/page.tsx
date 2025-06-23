@@ -335,19 +335,25 @@ export default function EventDetailsPage(): ReactElement {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!event?.id) return;
-
+    if (isSubmitting) return; // Prevent multiple submissions
     setIsSubmitting(true);
+
+    if (!event?.id) {
+      console.error("Event ID is missing");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const updatedEvent = await eventsApi.updateEvent(event.id, {
         title: editFormData.name,
         start_date: `${editFormData.date}T${editFormData.time}`,
         end_date: `${editFormData.date}T${editFormData.endTime}`,
         description: editFormData.location,
+        number_of_servers_needed: parseInt(editFormData.requiredServers, 10),
         contact_name: editFormData.contactName,
         contact_email: editFormData.contactEmail,
         contact_phone: editFormData.contactPhone,
-        number_of_servers_needed: parseInt(editFormData.requiredServers),
         is_prepaid: editFormData.isPrepaid,
       });
 
@@ -363,104 +369,121 @@ export default function EventDetailsPage(): ReactElement {
 
   if (isLoadingEvent) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="flex items-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
-          <span className="ml-2 text-gray-600">Loading event details...</span>
-        </div>
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-lg text-gray-500">Loading event details...</p>
       </div>
     );
   }
 
-  if (error || !event) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <p className="text-lg text-gray-500 mb-4">
-            {error || "Event not found"}
-          </p>
-          <button
-            onClick={() => router.push("/events")}
-            className="px-4 py-2 bg-primary-dark text-white rounded hover:bg-primary-medium"
-          >
-            Back to Events
-          </button>
-        </div>
+      <div className="text-center mt-10">
+        <p className="text-red-500 text-lg">{error}</p>
+        <button onClick={() => router.push("/events")} className="button mt-4">
+          Back to Events
+        </button>
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="text-center mt-10">
+        <p className="text-lg text-gray-500">Event not found.</p>
+        <button onClick={() => router.push("/events")} className="button mt-4">
+          Back to Events
+        </button>
       </div>
     );
   }
 
   return (
-    <TutorialHighlight
-      isHighlighted={shouldHighlight(".event-details-page")}
-      className="event-details-page"
-    >
-      <button className="button" onClick={() => router.back()}>
-        &larr; Back
-      </button>
-
-      <TutorialHighlight
-        isHighlighted={shouldHighlight(".event-detail-card")}
-        className="event-detail-card"
-      >
-        <h1 className="event-detail-title">{event.title}</h1>
-        <div className="event-detail-info-container">
-          <p className="event-detail-info">
-            <span className="info-label">Date:</span>{" "}
-            {event.start_date && event.end_date
-              ? extractDate(event.start_date, event.end_date)
-              : "Date not set"}
-          </p>
-          <p className="event-detail-info">
-            <span className="info-label">Time:</span>{" "}
-            {event.start_date && event.end_date
-              ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
-              : "Time not set"}
-          </p>
-          <p className="event-detail-info">
-            <span className="info-label">Location:</span>{" "}
-            {event.description || "Location not set"}
-          </p>
-          <p className="event-detail-info">
-            <span className="info-label">Required Servers:</span>{" "}
-            {event.number_of_servers_needed || 0}
-          </p>
-          <p className="event-detail-info">
-            <span className="info-label">Required Drivers:</span>{" "}
-            {event.number_of_driver_needed || 0}
-          </p>
-          {event.contact_name && (
-            <p className="event-detail-info">
-              <span className="info-label">Contact Name:</span>{" "}
-              {event.contact_name}
-            </p>
-          )}
-          {event.contact_email && (
-            <p className="event-detail-info">
-              <span className="info-label">Contact Email:</span>{" "}
-              {event.contact_email}
-            </p>
-          )}
-          {event.contact_phone && (
-            <p className="event-detail-info">
-              <span className="info-label">Contact Phone:</span>{" "}
-              {event.contact_phone}
-            </p>
-          )}
-          <p className="event-detail-info">
-            <span className="info-label">Payment Status:</span>{" "}
-            <span
-              className={`px-2 py-1 rounded text-sm ${
-                event.is_prepaid
-                  ? "bg-green-100 text-green-800"
-                  : "bg-yellow-100 text-yellow-800"
-              }`}
-            >
-              {event.is_prepaid ? "Prepaid" : "Pending Payment"}
-            </span>
-          </p>
+    <div className="flex flex-col gap-6 items-center w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+        <div className="md:col-span-2">
+          <div className="event-detail-card">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold">{event.title}</h1>
+              <div className="flex gap-4">
+                <button
+                  onClick={handleEditEvent}
+                  className="edit-button"
+                  title="Edit Event"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={() => setDeleteModalOpen(true)}
+                  className="delete-button"
+                  title="Delete Event"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+            <div className="event-detail-info-container">
+              <p className="event-detail-info">
+                <strong className="info-label">Date:</strong>
+                <span className="info-text">
+                  {extractDate(event.start_date, event.end_date)}
+                </span>
+              </p>
+              <p className="event-detail-info">
+                <strong className="info-label">Time:</strong>
+                <span className="info-text">
+                  {event.start_date && event.end_date
+                    ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
+                    : "Time not set"}
+                </span>
+              </p>
+              <p className="event-detail-info">
+                <strong className="info-label">Location:</strong>
+                <span className="info-text">
+                  {event.description || "Location not set"}
+                </span>
+              </p>
+              <p className="event-detail-info">
+                <strong className="info-label">Required Servers:</strong>
+                <span className="info-text">
+                  {event.number_of_servers_needed || 0}
+                </span>
+              </p>
+              <p className="event-detail-info">
+                <strong className="info-label">Required Drivers:</strong>
+                <span className="info-text">
+                  {event.number_of_driver_needed || 0}
+                </span>
+              </p>
+              {event.contact_name && (
+                <p className="event-detail-info">
+                  <strong className="info-label">Contact Name:</strong>
+                  <span className="info-text">{event.contact_name}</span>
+                </p>
+              )}
+              {event.contact_email && (
+                <p className="event-detail-info">
+                  <strong className="info-label">Contact Email:</strong>
+                  <span className="info-text">{event.contact_email}</span>
+                </p>
+              )}
+              {event.contact_phone && (
+                <p className="event-detail-info">
+                  <strong className="info-label">Contact Phone:</strong>
+                  <span className="info-text">{event.contact_phone}</span>
+                </p>
+              )}
+              <p className="event-detail-info">
+                <strong className="info-label">Payment Status:</strong>
+                <span
+                  className={`px-2 py-1 rounded text-sm ${event.is_prepaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
+                >
+                  {event.is_prepaid ? "Prepaid" : "Pending Payment"}
+                </span>
+              </p>
+            </div>
+          </div>
         </div>
-      </TutorialHighlight>
+      </div>
 
       {/* Assign Staff and Trucks Buttons */}
       <div className="mt-6 flex gap-4">
@@ -485,16 +508,6 @@ export default function EventDetailsPage(): ReactElement {
           </button>
         </TutorialHighlight>
         <TutorialHighlight
-          isHighlighted={shouldHighlight(".edit-event-button")}
-        >
-          <button
-            className="button bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 edit-event-button"
-            onClick={handleEditEvent}
-          >
-            Edit Event
-          </button>
-        </TutorialHighlight>
-        <TutorialHighlight
           isHighlighted={shouldHighlight(".update-payment-button")}
         >
           <button
@@ -502,16 +515,6 @@ export default function EventDetailsPage(): ReactElement {
             onClick={() => handleUpdatePaymentStatus()}
           >
             {event.is_prepaid ? "Mark as Pending Payment" : "Mark as Prepaid"}
-          </button>
-        </TutorialHighlight>
-        <TutorialHighlight
-          isHighlighted={shouldHighlight(".delete-event-button")}
-        >
-          <button
-            className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
-            onClick={() => setDeleteModalOpen(true)}
-          >
-            Delete Event
           </button>
         </TutorialHighlight>
       </div>
@@ -600,6 +603,6 @@ export default function EventDetailsPage(): ReactElement {
           shouldHighlight={shouldHighlight}
         />
       )}
-    </TutorialHighlight>
+    </div>
   );
 }
