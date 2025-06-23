@@ -7,6 +7,7 @@ export type Event = Tables<"events"> & {
 };
 export type Employee = Tables<"employees"> & {
   addresses?: Tables<"addresses">;
+  currentWage?: number;
 };
 export type Truck = Tables<"trucks">;
 export type TruckAssignment = Tables<"truck_assignment">;
@@ -25,6 +26,26 @@ export interface EventFormData {
   trucks: string[];
   isPrepaid: boolean;
   // Address fields
+  street: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  latitude?: string;
+  longitude?: string;
+}
+
+export interface EmployeeFormData {
+  first_name: string;
+  last_name: string;
+  address: string;
+  role: string;
+  email: string;
+  phone: string;
+  wage: string;
+  isAvailable: boolean;
+  availability: string[];
+  // Address fields for AddressForm
   street: string;
   city: string;
   province: string;

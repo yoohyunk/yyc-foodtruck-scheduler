@@ -4,13 +4,12 @@ import { TablesInsert, TablesUpdate } from "@/database.types";
 const supabase = createClient();
 
 export const wagesApi = {
-  // Get current wage for an employee (most recent active wage)
+  // Get current wage for an employee (most recent wage)
   async getCurrentWage(employeeId: string) {
     const { data, error } = await supabase
       .from("wage")
       .select("*")
       .eq("employee_id", employeeId)
-      .is("end_date", null) // No end date means it's still active
       .order("start_date", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -40,18 +39,36 @@ export const wagesApi = {
   },
 
   // Create a new wage record
-  async createWage(wageData: TablesInsert<"wage">) {
+  async createWage(
+    wageData: Omit<TablesInsert<"wage">, "end_date"> & {
+      end_date?: string | null;
+    }
+  ) {
+    console.log("Creating wage with data:", wageData);
+
+    // If end_date is not provided, set it to null or a default value
+    const wageDataWithDefaults = {
+      ...wageData,
+      end_date: wageData.end_date || null,
+    };
+
+    console.log("Wage data with defaults:", wageDataWithDefaults);
+
     const { data, error } = await supabase
       .from("wage")
-      .insert(wageData)
+      .insert(wageDataWithDefaults)
       .select()
       .single();
 
     if (error) {
       console.error("Error creating wage:", error);
+      console.error("Error details:", error.details);
+      console.error("Error hint:", error.hint);
+      console.error("Error message:", error.message);
       throw error;
     }
 
+    console.log("Wage created successfully:", data);
     return data;
   },
 
