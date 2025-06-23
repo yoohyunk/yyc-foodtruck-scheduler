@@ -357,23 +357,31 @@ export default function EmployeeSelectionModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Filter by Type
               </label>
-              <select
-                value={employeeFilter}
-                onChange={(e) => onFilterChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".employee-filter-dropdown")}
               >
-                <option value="all">All Employees</option>
-                <option value="Server">Server Only</option>
-                <option value="Driver">Driver Only</option>
-                <option value="Manager">Manager Only</option>
-              </select>
+                <select
+                  value={employeeFilter}
+                  onChange={(e) => onFilterChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 employee-filter-dropdown"
+                >
+                  <option value="all">All Employees</option>
+                  <option value="Server">Server Only</option>
+                  <option value="Driver">Driver Only</option>
+                  <option value="Manager">Manager Only</option>
+                </select>
+              </TutorialHighlight>
             </div>
-            <button
-              onClick={() => setSortByDistance((prev) => !prev)}
-              className="btn-secondary"
+            <TutorialHighlight
+              isHighlighted={shouldHighlight(".sort-by-distance-button")}
             >
-              {sortByDistance ? "Clear Sort" : "Sort by Distance"}
-            </button>
+              <button
+                onClick={() => setSortByDistance((prev) => !prev)}
+                className="btn-secondary sort-by-distance-button"
+              >
+                {sortByDistance ? "Clear Sort" : "Sort by Distance"}
+              </button>
+            </TutorialHighlight>
           </div>
 
           <div
@@ -436,9 +444,13 @@ export default function EmployeeSelectionModal({
               Close
             </button>
           </TutorialHighlight>
-          <button className="btn-primary" onClick={onClose}>
-            Save
-          </button>
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".modal-footer button.btn-primary")}
+          >
+            <button className="btn-primary" onClick={onClose}>
+              Save
+            </button>
+          </TutorialHighlight>
         </div>
       </div>
     </div>
