@@ -35,7 +35,9 @@ export default function Employees(): ReactElement {
             address_id,
             user_id,
             user_email,
-            user_phone
+            user_phone,
+            created_at,
+            is_pending
           `
           )
           .neq("employee_type", "pending");
@@ -57,39 +59,88 @@ export default function Employees(): ReactElement {
           .select("*")
           .in("id", addressIds);
 
-        // Get wage information
-        const { data: wageData } = await supabase
+        // Get wage information - first check if there are any wages at all
+        const { data: allWagesCheck, error: wageCheckError } = await supabase
+          .from("wage")
+          .select("*");
+
+        console.log("All wages in database:", allWagesCheck);
+        console.log("Wage check error:", wageCheckError);
+
+        // Get wage information - get all wages and find the most recent one for each employee
+        console.log(
+          "Employee IDs to fetch wages for:",
+          data.map((emp) => emp.employee_id)
+        );
+
+        const { data: allWages, error: wageError } = await supabase
           .from("wage")
           .select("*")
           .in(
             "employee_id",
             data.map((emp) => emp.employee_id)
-          );
+          )
+          .order("start_date", { ascending: false });
+
+        if (wageError) {
+          console.error("Error fetching wages:", wageError);
+        }
+
+        console.log("All wages fetched:", allWages);
+        console.log("Wage error:", wageError);
+
+        // Create a map of employee_id to their most recent wage
+        const wageMap = new Map();
+        if (allWages) {
+          allWages.forEach((wage) => {
+            console.log(
+              `Processing wage for employee ${wage.employee_id}:`,
+              wage
+            );
+            if (!wageMap.has(wage.employee_id)) {
+              wageMap.set(wage.employee_id, wage);
+            }
+          });
+        }
+
+        console.log("Final wage map:", wageMap);
+        console.log("Wage map entries:", Array.from(wageMap.entries()));
 
         const formattedEmployees = data.map((emp) => {
           const address = addressesData?.find(
             (addr) => addr.id === emp.address_id
           );
-          const wage = wageData?.find((w) => w.employee_id === emp.employee_id);
+          const wage = wageMap.get(emp.employee_id);
+
+          console.log(`Employee ${emp.employee_id} - found wage:`, wage);
+          console.log(
+            `Employee ${emp.employee_id} - wage hourly_wage:`,
+            wage?.hourly_wage
+          );
 
           return {
-            id: emp.employee_id,
-            first_name: emp.first_name || "",
-            last_name: emp.last_name || "",
-            address: address
-              ? `${address.street}, ${address.city}, ${address.province}`
-              : "",
-            role: emp.employee_type || "",
-            email: emp.user_email || "",
-            phone: emp.user_phone || "",
-            wage: wage?.hourly_wage || 0,
-            isAvailable: emp.is_available || false,
-            availability: emp.availability || [],
+            ...emp,
+            created_at: emp.created_at || new Date().toISOString(),
+            is_pending: emp.is_pending || false,
+            addresses: address
+              ? {
+                  id: address.id,
+                  street: address.street,
+                  city: address.city,
+                  province: address.province,
+                  postal_code: address.postal_code,
+                  country: address.country,
+                  latitude: address.latitude,
+                  longitude: address.longitude,
+                  created_at: address.created_at,
+                }
+              : undefined,
+            currentWage: wage?.hourly_wage || 0,
           };
         });
 
-        setEmployees(formattedEmployees);
-        setFilteredEmployees(formattedEmployees);
+        setEmployees(formattedEmployees as Employee[]);
+        setFilteredEmployees(formattedEmployees as Employee[]);
       } catch (err) {
         console.error("Unexpected error:", err);
       }
@@ -104,7 +155,7 @@ export default function Employees(): ReactElement {
       setFilteredEmployees(employees);
     } else {
       setFilteredEmployees(
-        employees.filter((employee) => employee.role === activeFilter)
+        employees.filter((employee) => employee.employee_type === activeFilter)
       );
     }
   }, [activeFilter, employees]);
@@ -124,7 +175,7 @@ export default function Employees(): ReactElement {
       const { data: employeeData, error: fetchError } = await supabase
         .from("employees")
         .select("employee_id, address_id")
-        .eq("employee_id", employeeToDelete.id)
+        .eq("employee_id", employeeToDelete.employee_id)
         .single();
 
       if (fetchError) {
@@ -167,7 +218,7 @@ export default function Employees(): ReactElement {
       const { error: employeeError } = await supabase
         .from("employees")
         .delete()
-        .eq("employee_id", employeeToDelete.id);
+        .eq("employee_id", employeeToDelete.employee_id);
 
       console.log("Delete result:", { error: employeeError });
 
@@ -179,7 +230,7 @@ export default function Employees(): ReactElement {
 
       // Update local state
       const updatedEmployees = employees.filter(
-        (emp) => emp.id !== employeeToDelete.id
+        (emp) => emp.employee_id !== employeeToDelete.employee_id
       );
       setEmployees(updatedEmployees);
       setFilteredEmployees(updatedEmployees);
@@ -260,7 +311,7 @@ export default function Employees(): ReactElement {
 
             return (
               <TutorialHighlight
-                key={employee.id}
+                key={employee.employee_id}
                 isHighlighted={highlightEmployeeCard}
                 className="employee-card bg-white p-4 rounded shadow relative"
               >
@@ -269,7 +320,9 @@ export default function Employees(): ReactElement {
                   <TutorialHighlight isHighlighted={highlightEditButton}>
                     <button
                       className="edit-button"
-                      onClick={() => router.push(`/employees/${employee.id}`)}
+                      onClick={() =>
+                        router.push(`/employees/${employee.employee_id}`)
+                      }
                       title="Edit Employee"
                     >
                       ✏️
@@ -287,43 +340,44 @@ export default function Employees(): ReactElement {
                 </div>
 
                 <h3 className="text-lg font-semibold">
-                  {employee.first_name}
-                  {employee.last_name}
+                  {employee.first_name} {employee.last_name}
                 </h3>
                 <p>
-                  <strong>Role:</strong> {employee.role}
+                  <strong>Role:</strong> {employee.employee_type}
                 </p>
                 <p>
-                  <strong>Address:</strong> {employee.address}
+                  <strong>Address:</strong> {employee.addresses?.street},{" "}
+                  {employee.addresses?.city}, {employee.addresses?.province}
                 </p>
                 <p>
                   <strong>Email:</strong>{" "}
                   <a
-                    href={`mailto:${employee.email}`}
+                    href={`mailto:${employee.user_email}`}
                     className="text-blue-500"
                   >
-                    {employee.email}
+                    {employee.user_email}
                   </a>
                 </p>
                 <p>
-                  <strong>Phone:</strong> {employee.phone}
+                  <strong>Phone:</strong> {employee.user_phone}
                 </p>
                 <p>
-                  <strong>Wage:</strong> ${employee.wage}/hr
+                  <strong>Wage:</strong> ${employee.currentWage || 0}/hr
                 </p>
                 <p>
                   <strong>Status:</strong>{" "}
                   <span
                     className={
-                      employee.isAvailable ? "text-green-500" : "text-red-500"
+                      employee.is_available ? "text-green-500" : "text-red-500"
                     }
                   >
-                    {employee.isAvailable ? "Available" : "Unavailable"}
+                    {employee.is_available ? "Available" : "Unavailable"}
                   </span>
                 </p>
                 <p>
                   <strong>Availability:</strong>{" "}
-                  {employee.availability && employee.availability.length > 0 ? (
+                  {Array.isArray(employee.availability) &&
+                  employee.availability.length > 0 ? (
                     <span className="text-primary-medium">
                       {employee.availability.join(", ")}
                     </span>

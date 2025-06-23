@@ -6,28 +6,36 @@ import { extractDate, extractTime } from "./utils";
 import { Event } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
+import { eventsApi } from "@/lib/supabase/events";
 
 export default function Events(): ReactElement {
   const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("All"); // Default filter is "All"
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
 
-  // Fetch events from events.json
+  // Fetch events from Supabase
   useEffect(() => {
-    fetch("/events.json")
-      .then((response) => {
-        if (!response.ok)
-          throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-      })
-      .then((data: Event[]) => {
+    const fetchEvents = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await eventsApi.getAllEvents();
         setEvents(data);
         setFilteredEvents(data); // Initially show all events
-      })
-      .catch((error) => console.error("Error fetching events:", error));
+      } catch (err) {
+        console.error("Error fetching events:", err);
+        setError("Failed to load events. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvents();
   }, []);
 
   // Filter events based on the active filter and date
@@ -37,22 +45,61 @@ export default function Events(): ReactElement {
     // Apply status filter
     if (activeFilter !== "All") {
       filtered = filtered.filter((event) => {
-        const isPending =
-          !event.trucks ||
-          event.trucks.length === 0 ||
-          !event.assignedStaff ||
-          event.assignedStaff.length < event.requiredServers;
+        // Check if event has required fields for status determination
+        const hasRequiredServers =
+          event.number_of_servers_needed && event.number_of_servers_needed > 0;
+        const hasRequiredDrivers =
+          event.number_of_driver_needed && event.number_of_driver_needed > 0;
+
+        // For now, we'll consider an event as pending if it needs servers or drivers
+        // This will need to be updated when assignments are properly implemented
+        const isPending = hasRequiredServers || hasRequiredDrivers;
+
         return activeFilter === "Pending" ? isPending : !isPending;
       });
     }
 
     // Apply date filter
     if (selectedDate) {
-      filtered = filtered.filter((event) => event.startTime === selectedDate);
+      filtered = filtered.filter((event) => {
+        const eventDate = event.start_date
+          ? new Date(event.start_date).toISOString().split("T")[0]
+          : "";
+        return eventDate === selectedDate;
+      });
     }
 
     setFilteredEvents(filtered);
   }, [activeFilter, selectedDate, events]);
+
+  if (isLoading) {
+    return (
+      <div className="events-page">
+        <h2 className="text-2xl text-primary-dark mb-4">Event Management</h2>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
+          <span className="ml-2 text-gray-600">Loading events...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="events-page">
+        <h2 className="text-2xl text-primary-dark mb-4">Event Management</h2>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="events-page">
@@ -84,7 +131,7 @@ export default function Events(): ReactElement {
       {/* Date and Distance Filters */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".additional-filters")}
-        className="additional-filters grid grid-cols-2 gap-4 mb-6"
+        className="additional-filters grid grid-cols-2 gap-4 mb-6 p-4"
       >
         {/* Date Filter */}
         <div>
@@ -118,47 +165,74 @@ export default function Events(): ReactElement {
                   shouldHighlight(`.event-card:nth-child(1) .button`))) ||
               false;
 
+            // Determine event status based on Supabase schema
+            const hasRequiredServers =
+              event.number_of_servers_needed &&
+              event.number_of_servers_needed > 0;
+            const hasRequiredDrivers =
+              event.number_of_driver_needed &&
+              event.number_of_driver_needed > 0;
+
+            // For now, we'll consider an event as pending if it needs servers or drivers
+            // This will need to be updated when assignments are properly implemented
+            const isPending = hasRequiredServers || hasRequiredDrivers;
+
             return (
               <TutorialHighlight
                 key={event.id}
                 isHighlighted={shouldHighlight(
                   `.event-card:nth-child(${index + 1})`
                 )}
-                className="event-card bg-secondary-light p-4 rounded shadow"
+                className="employee-card bg-white p-4 rounded shadow relative"
               >
                 <h3 className="text-lg font-semibold">{event.title}</h3>
                 <p>
                   <strong>Date:</strong>{" "}
-                  {extractDate(event.startTime, event.endTime)}
+                  {event.start_date && event.end_date
+                    ? extractDate(event.start_date, event.end_date)
+                    : "Date not set"}
                 </p>
                 <p>
-                  <strong>Time:</strong> {extractTime(event.startTime)} -{" "}
-                  {extractTime(event.endTime)}
+                  <strong>Time:</strong>{" "}
+                  {event.start_date && event.end_date
+                    ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
+                    : "Time not set"}
                 </p>
                 <p>
-                  <strong>Location:</strong> {event.location}
+                  <strong>Location:</strong>{" "}
+                  {event.description || "Location not set"}
                 </p>
                 <p>
-                  <strong>Required Servers:</strong> {event.requiredServers}
+                  <strong>Required Servers:</strong>{" "}
+                  {event.number_of_servers_needed || 0}
+                </p>
+                <p>
+                  <strong>Required Drivers:</strong>{" "}
+                  {event.number_of_driver_needed || 0}
+                </p>
+                {event.contact_name && (
+                  <p>
+                    <strong>Contact:</strong> {event.contact_name}
+                  </p>
+                )}
+                <p>
+                  <strong>Payment:</strong>{" "}
+                  <span
+                    className={`px-2 py-1 rounded text-xs ${
+                      event.is_prepaid
+                        ? "bg-green-100 text-green-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {event.is_prepaid ? "Prepaid" : "Pending"}
+                  </span>
                 </p>
                 <p>
                   <strong>Status:</strong>{" "}
                   <span
-                    className={
-                      !event.trucks ||
-                      event.trucks.length === 0 ||
-                      !event.assignedStaff ||
-                      event.assignedStaff.length < event.requiredServers
-                        ? "text-yellow-500"
-                        : "text-green-500"
-                    }
+                    className={isPending ? "text-yellow-500" : "text-green-500"}
                   >
-                    {!event.trucks ||
-                    event.trucks.length === 0 ||
-                    !event.assignedStaff ||
-                    event.assignedStaff.length < event.requiredServers
-                      ? "Pending"
-                      : "Scheduled"}
+                    {isPending ? "Pending" : "Scheduled"}
                   </span>
                 </p>
                 <TutorialHighlight isHighlighted={highlightViewDetailsButton}>

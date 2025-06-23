@@ -1,0 +1,287 @@
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { Employee } from "@/app/types";
+import { TutorialHighlight } from "../../../components/TutorialHighlight";
+import { calculateDistance } from "../../../AlgApi/distance";
+import { wagesApi } from "@/lib/supabase/wages";
+import { Tables } from "@/database.types";
+
+interface EmployeeWithDistanceAndWage extends Employee {
+  distance?: number;
+  currentWage?: number;
+}
+
+interface EmployeeSelectionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  employees: Employee[];
+  assignedEmployees: Employee[];
+  isLoadingEmployees: boolean;
+  event: { addresses?: Tables<"addresses">; number_of_servers_needed?: number };
+  onEmployeeSelection: (employee: Employee) => void;
+  shouldHighlight: (selector: string) => boolean;
+  employeeFilter: string;
+  onFilterChange: (filter: string) => void;
+}
+
+export default function EmployeeSelectionModal({
+  isOpen,
+  onClose,
+  employees,
+  assignedEmployees,
+  isLoadingEmployees,
+  event,
+  onEmployeeSelection,
+  shouldHighlight,
+  employeeFilter,
+  onFilterChange,
+}: EmployeeSelectionModalProps) {
+  const [employeesWithDistance, setEmployeesWithDistance] = useState<
+    EmployeeWithDistanceAndWage[]
+  >([]);
+  const [isLoadingDistances, setIsLoadingDistances] = useState(false);
+  const [sortByDistance, setSortByDistance] = useState(false);
+
+  const calculateDistancesAndWages = useCallback(async () => {
+    setIsLoadingDistances(true);
+    try {
+      const eventAddress = event.addresses;
+      if (!eventAddress) return;
+
+      const employeesWithData = await Promise.all(
+        employees.map(async (employee) => {
+          let distance = undefined;
+          let currentWage = undefined;
+
+          // Get employee's current wage
+          try {
+            const wage = await wagesApi.getCurrentWage(employee.employee_id);
+            currentWage = wage?.hourly_wage;
+          } catch (error) {
+            console.error(
+              `Error fetching wage for employee ${employee.employee_id}:`,
+              error
+            );
+          }
+
+          // Calculate distance if employee has address
+          if (
+            employee.addresses?.latitude &&
+            employee.addresses?.longitude &&
+            eventAddress?.latitude &&
+            eventAddress?.longitude
+          ) {
+            try {
+              const employeeCoords = {
+                lat: parseFloat(employee.addresses.latitude as string),
+                lng: parseFloat(employee.addresses.longitude as string),
+              };
+              const eventCoords = {
+                lat: parseFloat(eventAddress.latitude as string),
+                lng: parseFloat(eventAddress.longitude as string),
+              };
+
+              distance = await calculateDistance(employeeCoords, eventCoords);
+            } catch (error) {
+              console.error(
+                `Error calculating distance for employee ${employee.employee_id}:`,
+                error
+              );
+            }
+          }
+
+          return {
+            ...employee,
+            distance,
+            currentWage,
+          };
+        })
+      );
+
+      setEmployeesWithDistance(employeesWithData);
+    } catch (error) {
+      console.error("Error calculating distances and wages:", error);
+    } finally {
+      setIsLoadingDistances(false);
+    }
+  }, [employees, event]);
+
+  // Calculate distances and get wages when modal opens
+  useEffect(() => {
+    if (isOpen && event?.addresses && employees.length > 0) {
+      calculateDistancesAndWages();
+    }
+  }, [isOpen, event, employees, calculateDistancesAndWages]);
+
+  const formatDistance = (distance: number | undefined) => {
+    if (distance === undefined) return "N/A";
+    if (distance < 1) return `${(distance * 1000).toFixed(0)}m`;
+    return `${distance.toFixed(1)}km`;
+  };
+
+  const formatWage = (wage: number | undefined) => {
+    if (wage === undefined) return "N/A";
+    return `$${wage.toFixed(2)}/hr`;
+  };
+
+  const sortedAndFilteredEmployees = useMemo(() => {
+    const processedEmployees = employeesWithDistance.filter(
+      (employee) =>
+        employeeFilter === "all" || employee.employee_type === employeeFilter
+    );
+
+    if (sortByDistance) {
+      processedEmployees.sort(
+        (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
+      );
+    }
+    return processedEmployees;
+  }, [employeesWithDistance, employeeFilter, sortByDistance]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div
+        className="modal-container"
+        style={{
+          width: "90vw",
+          maxWidth: "950px",
+          height: "70vh",
+          display: "flex",
+          flexDirection: "column",
+          padding: 0,
+        }}
+      >
+        <h3
+          className="modal-title"
+          style={{ flexShrink: 0, padding: "2rem 2rem 0.75rem 2rem" }}
+        >
+          Select Employees
+        </h3>
+        <div
+          className="modal-body"
+          style={{
+            flexGrow: 1,
+            overflow: "hidden",
+            padding: "0 2rem",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Employee Filter and Sort */}
+          <div
+            className="flex justify-between items-end mb-6"
+            style={{ flexShrink: 0 }}
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Type
+              </label>
+              <select
+                value={employeeFilter}
+                onChange={(e) => onFilterChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Employees</option>
+                <option value="Server">Server Only</option>
+                <option value="Driver">Driver Only</option>
+                <option value="Manager">Manager Only</option>
+              </select>
+            </div>
+            <button
+              onClick={() => setSortByDistance((prev) => !prev)}
+              className="btn-secondary"
+            >
+              {sortByDistance ? "Clear Sort" : "Sort by Distance"}
+            </button>
+          </div>
+
+          <div
+            className="employee-list-container"
+            style={{ flexGrow: 1, overflowY: "auto" }}
+          >
+            {isLoadingEmployees || isLoadingDistances ? (
+              <p className="text-gray-500">Loading employees...</p>
+            ) : sortedAndFilteredEmployees.length > 0 ? (
+              sortedAndFilteredEmployees.map((employee, index) => (
+                <TutorialHighlight
+                  key={employee.employee_id}
+                  isHighlighted={
+                    index === 0 &&
+                    shouldHighlight(
+                      ".modal-body .employee-checkbox:first-child"
+                    )
+                  }
+                >
+                  <label
+                    className={`employee-label w-full flex items-center justify-between px-0 ${
+                      assignedEmployees.some(
+                        (e) => e.employee_id === employee.employee_id
+                      )
+                        ? "employee-label-selected"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
+                      <div>
+                        <span
+                          className="font-semibold"
+                          style={{ whiteSpace: "nowrap" }}
+                        >
+                          {employee.first_name} {employee.last_name}
+                        </span>
+                        <span className="text-sm text-gray-500 ml-2">
+                          ({employee.employee_type || "Unknown"})
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
+                        <span className="mr-4">
+                          {formatDistance(employee.distance)}
+                        </span>
+                        <span>{formatWage(employee.currentWage)}</span>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="employee-checkbox mr-3"
+                      checked={assignedEmployees.some(
+                        (e) => e.employee_id === employee.employee_id
+                      )}
+                      onChange={() => onEmployeeSelection(employee)}
+                      disabled={
+                        !assignedEmployees.some(
+                          (e) => e.employee_id === employee.employee_id
+                        ) &&
+                        assignedEmployees.length >=
+                          (event.number_of_servers_needed || 0)
+                      }
+                    />
+                  </label>
+                </TutorialHighlight>
+              ))
+            ) : (
+              <p className="text-gray-500">No employees available.</p>
+            )}
+          </div>
+        </div>
+        <div
+          className="modal-footer"
+          style={{ flexShrink: 0, padding: "1.5rem 2rem" }}
+        >
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(
+              ".modal-footer button.btn-secondary"
+            )}
+          >
+            <button className="btn-secondary" onClick={onClose}>
+              Close
+            </button>
+          </TutorialHighlight>
+          <button className="btn-primary" onClick={onClose}>
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

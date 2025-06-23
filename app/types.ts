@@ -1,18 +1,38 @@
 import { ReactNode } from "react";
+import { Tables } from "@/database.types";
 
-// Employee types
-export interface Employee {
-  id: number;
-  first_name: string;
-  last_name: string;
-  address: string;
-  coordinates?: Coordinates;
-  role: string;
-  email: string;
-  phone: string;
-  wage: number;
-  isAvailable: boolean;
-  availability: string[];
+// Supabase table types
+export type Event = Tables<"events"> & {
+  addresses?: Tables<"addresses">;
+};
+export type Employee = Tables<"employees"> & {
+  addresses?: Tables<"addresses">;
+  currentWage?: number;
+};
+export type Truck = Tables<"trucks">;
+export type TruckAssignment = Tables<"truck_assignment">;
+export type Address = Tables<"addresses">;
+
+export interface EventFormData {
+  name: string;
+  date: string;
+  time: string;
+  endTime: string;
+  location: string;
+  requiredServers: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  trucks: string[];
+  isPrepaid: boolean;
+  // Address fields
+  street: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  latitude?: string;
+  longitude?: string;
 }
 
 export interface EmployeeFormData {
@@ -22,76 +42,62 @@ export interface EmployeeFormData {
   role: string;
   email: string;
   phone: string;
-  wage: string; // Form data uses string for wage input
+  wage: string;
   isAvailable: boolean;
   availability: string[];
+  // Address fields for AddressForm
+  street: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  latitude?: string;
+  longitude?: string;
 }
 
-// Event types
-export interface Event {
+export interface TutorialStep {
   id: string;
   title: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  coordinates?: Coordinates;
-  trucks: string[];
-  assignedStaff: string[];
-  requiredServers: number;
-  status: string;
+  content: string;
+  selector: string;
+  position: "top" | "bottom" | "left" | "right";
 }
 
-export interface EventFormData {
-  name: string;
-  date: string;
-  time: string;
-  endTime?: string;
-  location: string;
-  requiredServers: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
-  trucks: string[];
+export interface QuickAction {
+  title: string;
+  description: string;
+  href: string;
+  icon: ReactNode;
 }
 
-// Truck types
-export interface Truck {
-  id: string;
-  name: string;
-  type: string;
-  capacity: string;
-  status: string;
-  driver?: {
-    name: string;
-  };
-  location: string;
-  isAvailable: boolean;
-}
-
-export interface TruckFormData extends Omit<Truck, "id" | "driver"> {
-  driver: string; // Form data uses string for driver input
-}
-
-// Time off request types
-export interface TimeOffRequest {
-  date: string;
-  type: string;
-  duration: string;
-  status: "Approved" | "Pending" | "Rejected";
-  reason: string;
-}
-
-export type TimeOffRequestFormData = Omit<TimeOffRequest, "status">;
-
-// Common types
-export interface Coordinates {
-  latitude: number;
-  longitude: number;
-}
-
-// Navigation types
 export interface NavLink {
   name: string;
   href: string;
-  icon: ReactNode;
+  icon: React.ReactElement;
+}
+
+export interface TimeOffRequest {
+  type: string;
+  date: string;
+  duration: string;
+  reason: string;
+  status: string;
+}
+
+export interface TimeOffRequestFormData {
+  date: string;
+  type: string;
+  duration: string;
+  reason: string;
+}
+
+export interface HomePageEvent {
+  title: string;
+  startTime: string;
+  location: string;
+}
+
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
 }
