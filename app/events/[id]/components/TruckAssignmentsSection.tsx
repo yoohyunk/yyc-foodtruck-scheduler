@@ -8,66 +8,139 @@ import {
 } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 import { extractTime } from "../../utils";
+import { useRouter } from "next/navigation";
 
 interface TruckAssignmentsSectionProps {
   truckAssignments: TruckAssignment[];
   trucks: Truck[];
   employees: Employee[];
-  shouldHighlight: (selector: string) => boolean;
+  shouldHighlight?: (selector: string) => boolean;
 }
 
 export default function TruckAssignmentsSection({
   truckAssignments,
   trucks,
   employees,
-  shouldHighlight,
+  shouldHighlight = () => false,
 }: TruckAssignmentsSectionProps) {
-  if (truckAssignments.length === 0) return null;
+  const router = useRouter();
+
+  const handleTruckClick = (truckId: string) => {
+    router.push(`/trucks/${truckId}`);
+  };
+
+  const handleDriverClick = (driverId: string) => {
+    router.push(`/employees/${driverId}`);
+  };
+
+  if (truckAssignments.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 className="text-xl font-semibold mb-4 text-gray-800">
+          Truck Assignments
+        </h3>
+        <p className="text-gray-500">No trucks assigned to this event yet.</p>
+      </div>
+    );
+  }
 
   return (
-    <TutorialHighlight
-      isHighlighted={shouldHighlight(".truck-assignments-section")}
-      className="assigned-section truck-assignments-section mt-8 w-full"
-    >
-      <h2 className="assigned-section-title">Truck Assignments</h2>
-      <div className="assigned-grid">
-        {truckAssignments.map((assignment) => {
+    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h3 className="text-xl font-semibold mb-4 text-gray-800">
+        Truck Assignments ({truckAssignments.length})
+      </h3>
+      <div className="space-y-3">
+        {truckAssignments.map((assignment, index) => {
           const truck = trucks.find((t) => t.id === assignment.truck_id);
           const driver = employees.find(
             (e) => e.employee_id === assignment.driver_id
           );
 
           return (
-            <div
+            <TutorialHighlight
               key={assignment.id}
-              className={`truck-card border rounded-lg p-4 ${getTruckTypeColor(truck?.type || "")}`}
+              isHighlighted={
+                index === 0 &&
+                shouldHighlight(
+                  ".truck-assignments-section .truck-card:first-child"
+                )
+              }
             >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="truck-title font-semibold text-lg">
-                  {truck?.name || "Unknown Truck"}
-                </h3>
-                <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${getTruckTypeBadge(truck?.type || "")}`}
-                >
-                  {truck?.type || "Unknown"}
-                </span>
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors truck-card">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <span className="text-orange-600 font-semibold">🚛</span>
+                    </div>
+                    <div>
+                      <TutorialHighlight
+                        isHighlighted={
+                          index === 0 &&
+                          shouldHighlight(
+                            ".truck-assignments-section .truck-name:first-child"
+                          )
+                        }
+                      >
+                        <h4
+                          className="font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors truck-name"
+                          onClick={() => truck && handleTruckClick(truck.id)}
+                        >
+                          {truck?.name || "Unknown Truck"}
+                        </h4>
+                      </TutorialHighlight>
+                      <p className="text-sm text-gray-500">
+                        Type: {truck?.type || "Unknown"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Assigned
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500">Driver:</span>
+                      <span className="ml-2 text-gray-900">
+                        {driver ? (
+                          <TutorialHighlight
+                            isHighlighted={
+                              index === 0 &&
+                              shouldHighlight(
+                                ".truck-assignments-section .driver-name:first-child"
+                              )
+                            }
+                          >
+                            <span
+                              className="cursor-pointer hover:text-blue-600 transition-colors underline driver-name"
+                              onClick={() =>
+                                handleDriverClick(driver.employee_id)
+                              }
+                            >
+                              {driver.first_name} {driver.last_name}
+                            </span>
+                          </TutorialHighlight>
+                        ) : (
+                          "No driver assigned"
+                        )}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Time:</span>
+                      <span className="ml-2 text-gray-900">
+                        {extractTime(assignment.start_time)} -{" "}
+                        {extractTime(assignment.end_time)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="truck-info">
-                Driver:{" "}
-                {driver
-                  ? `${driver.first_name} ${driver.last_name}`
-                  : "No driver assigned"}
-              </p>
-              <p className="truck-info text-sm text-gray-600">
-                Start: {extractTime(assignment.start_time)}
-              </p>
-              <p className="truck-info text-sm text-gray-600">
-                End: {extractTime(assignment.end_time)}
-              </p>
-            </div>
+            </TutorialHighlight>
           );
         })}
       </div>
-    </TutorialHighlight>
+    </div>
   );
 }
