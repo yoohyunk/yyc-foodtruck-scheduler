@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 import { TablesInsert } from "@/database.types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import { Coordinates } from "@/app/types";
+import ErrorModal from "../../components/ErrorModal";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateNumber, createValidationRule, sanitizeFormData } from "../../lib/formValidation";
 
 interface TruckFormData {
   name: string;
@@ -44,8 +46,14 @@ export default function AddTrucks(): ReactElement {
   } | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [success, setSuccess] = useState("");
+
+  // Refs for form fields
+  const nameRef = useRef<HTMLInputElement>(null);
+  const typeRef = useRef<HTMLSelectElement>(null);
+  const capacityRef = useRef<HTMLSelectElement>(null);
 
   const truckTypes = ["Food Truck", "Beverage Truck", "Dessert Truck"];
 
@@ -73,6 +81,8 @@ export default function AddTrucks(): ReactElement {
     "First Aid Kit",
     "Fire Extinguisher",
   ];
+
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -112,39 +122,24 @@ export default function AddTrucks(): ReactElement {
     }));
   };
 
-  const validateForm = (): boolean => {
-    if (!formData.name.trim()) {
-      setError("Truck name is required.");
-      return false;
-    }
-    if (!formData.type) {
-      setError("Truck type is required.");
-      return false;
-    }
-    if (!formData.capacity) {
-      setError("Capacity is required.");
-      return false;
-    }
-    if (!formData.address.trim()) {
-      setError("Address is required.");
-      return false;
-    }
-    return true;
-  };
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
+    setFormErrors([]);
     setSuccess("");
 
-    if (!validateForm()) {
-      return;
-    }
+    const validationRules: ValidationRule[] = [
+      createValidationRule("name", true, undefined, "Truck name is required.", nameRef.current),
+      createValidationRule("type", true, undefined, "Truck type is required.", typeRef.current),
+      createValidationRule("capacity", true, (value: any) => validateNumber(value, 1), "Capacity is required and must be at least 1.", capacityRef.current),
+    ];
 
-    // Validate address
-    const isAddressValid = addressFormRef.current?.validate() ?? false;
-    if (!isAddressValid) {
-      setError("Please enter a valid address.");
+    const validationErrors = validateForm(formData, validationRules);
+    setValidationErrors(validationErrors);
+
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors.map(error => error.message);
+      setFormErrors(errorMessages);
+      setShowErrorModal(true);
       return;
     }
 
@@ -169,30 +164,33 @@ export default function AddTrucks(): ReactElement {
         .single();
 
       if (addressError) {
-        setError(`Failed to create address: ${addressError.message}`);
+        console.error("Error creating address:", addressError);
+        setFormErrors(["Failed to create address."]);
+        setShowErrorModal(true);
         setIsSubmitting(false);
         return;
       }
 
-      // 2. 트럭 생성 (address_id 사용)
+      // 2. 트럭 생성
       const truckInsert: TablesInsert<"trucks"> = {
         name: formData.name,
         type: formData.type,
         capacity: formData.capacity,
         address_id: address.id,
+        packing_list: formData.packingList,
         is_available: true,
-        packing_list:
-          formData.packingList.length > 0 ? formData.packingList : null,
       };
 
-      const { error: truckError } = await supabase
+      const { data: truck, error: truckError } = await supabase
         .from("trucks")
         .insert(truckInsert)
         .select()
         .single();
 
       if (truckError) {
-        setError(`Failed to create truck: ${truckError.message}`);
+        console.error("Error creating truck:", truckError);
+        setFormErrors(["Failed to create truck."]);
+        setShowErrorModal(true);
         setIsSubmitting(false);
         return;
       }
@@ -200,143 +198,123 @@ export default function AddTrucks(): ReactElement {
       setSuccess("Truck added successfully!");
       setTimeout(() => {
         router.push("/trucks");
-      }, 1500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      }, 2000);
+    } catch (error) {
+      console.error("Error adding truck:", error);
+      setFormErrors(["An error occurred while adding the truck."]);
+      setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="add-truck-page">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Add New Truck</h1>
-        <button onClick={() => router.back()} className="button">
-          &larr; Back
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Truck Name */}
-        <div className="input-group">
-          <label htmlFor="name" className="input-label">
-            Truck Name *
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="input-field"
-            placeholder="Enter truck name"
-            required
-          />
-        </div>
-
-        {/* Truck Type */}
-        <div className="input-group">
-          <label htmlFor="type" className="input-label">
-            Truck Type *
-          </label>
-          <select
-            id="type"
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="input-field"
-            required
-          >
-            <option value="">Select truck type</option>
-            {truckTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Capacity */}
-        <div className="input-group">
-          <label htmlFor="capacity" className="input-label">
-            Capacity *
-          </label>
-          <select
-            id="capacity"
-            name="capacity"
-            value={formData.capacity}
-            onChange={handleChange}
-            className="input-field"
-            required
-          >
-            <option value="">Select capacity</option>
-            {capacityOptions.map((capacity) => (
-              <option key={capacity} value={capacity}>
-                {capacity}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Address */}
-        <div className="input-group">
-          <label htmlFor="address" className="input-label">
-            Address *
-          </label>
-          <AddressForm
-            value={formData.address}
-            onChange={handleAddressChange}
-            placeholder="Enter truck address"
-            required
-            ref={addressFormRef}
-          />
-        </div>
-
-        {/* Packing List */}
-        <div className="input-group">
-          <label className="input-label">Packing List (Optional)</label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {packingListOptions.map((item) => (
-              <label key={item} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.packingList.includes(item)}
-                  onChange={() => handlePackingListChange(item)}
-                  className="rounded"
-                />
-                <span className="text-sm">{item}</span>
-              </label>
-            ))}
+    <>
+      <div className="add-trucks-page">
+        <h1 className="form-header">Add New Truck</h1>
+        <form onSubmit={handleSubmit} className="truck-form">
+          <div className="input-group">
+            <label htmlFor="name" className="input-label">
+              Truck Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={nameRef}
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="input-field"
+            />
           </div>
-        </div>
 
-        {/* Submit Button */}
-        <div className="flex gap-4">
+          <div className="input-group">
+            <label htmlFor="type" className="input-label">
+              Truck Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={typeRef}
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Select Truck Type</option>
+              {truckTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="capacity" className="input-label">
+              Capacity <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={capacityRef}
+              id="capacity"
+              name="capacity"
+              value={formData.capacity}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Select Capacity</option>
+              {capacityOptions.map((capacity) => (
+                <option key={capacity} value={capacity}>
+                  {capacity}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">
+              Address <span className="text-red-500">*</span>
+            </label>
+            <AddressForm
+              ref={addressFormRef}
+              value={formData.address}
+              onChange={handleAddressChange}
+            />
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Packing List</label>
+            <div className="packing-list-grid">
+              {packingListOptions.map((item) => (
+                <label key={item} className="packing-list-item">
+                  <input
+                    type="checkbox"
+                    checked={formData.packingList.includes(item)}
+                    onChange={() => handlePackingListChange(item)}
+                    className="packing-list-checkbox"
+                  />
+                  <span className="packing-list-text">{item}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <button type="submit" className="button" disabled={isSubmitting}>
             {isSubmitting ? "Adding Truck..." : "Add Truck"}
           </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="button bg-gray-500 hover:bg-gray-600"
-          >
-            Cancel
-          </button>
-        </div>
+        </form>
 
-        {/* Error/Success Messages */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
         {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-            {success}
+          <div className="success-message">
+            <p>{success}</p>
           </div>
         )}
-      </form>
-    </div>
+      </div>
+
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        errors={validationErrors}
+      />
+    </>
   );
 }

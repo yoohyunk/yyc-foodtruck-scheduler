@@ -8,14 +8,16 @@ import React, {
   FormEvent,
   useRef,
 } from "react";
-import { EventFormData, Truck, Employee, TruckAssignment } from "@/app/types";
+import { EventFormData, Truck, Employee, TruckAssignment, getTruckTypeColor, getTruckTypeBadge } from "@/app/types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import HelpPopup from "@/app/components/HelpPopup";
+import ErrorModal from "@/app/components/ErrorModal";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, validateDate, validateTimeRange, createValidationRule, getEmptyFieldNames } from "../../lib/formValidation";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -56,6 +58,20 @@ export default function AddEventPage(): ReactElement {
   const [showHelpPopup, setShowHelpPopup] = useState(false);
   const addressFormRef = useRef<AddressFormRef>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Refs for form fields
+  const nameRef = useRef<HTMLInputElement>(null);
+  const dateRef = useRef<any>(null);
+  const timeRef = useRef<any>(null);
+  const endTimeRef = useRef<any>(null);
+  const requiredServersRef = useRef<HTMLInputElement>(null);
+  const contactNameRef = useRef<HTMLInputElement>(null);
+  const contactEmailRef = useRef<HTMLInputElement>(null);
+  const contactPhoneRef = useRef<HTMLInputElement>(null);
+
+  // Add a state to track address validity
+  const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
+  const [addressValidationMsg, setAddressValidationMsg] = useState<string>("");
 
   // Fetch truck and employee data from Supabase
   useEffect(() => {
@@ -120,52 +136,13 @@ export default function AddEventPage(): ReactElement {
     address: string,
     coords?: { latitude: number; longitude: number }
   ) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       location: address,
-    });
+    }));
     setCoordinates(coords);
-
-    // Parse address string to extract components
-    if (address) {
-      const addressData = parseAddressString(address);
-      setFormData((prev) => ({
-        ...prev,
-        location: address,
-        ...addressData,
-      }));
-    }
-  };
-
-  // Parse address string to extract street, city, province, postal code
-  const parseAddressString = (address: string) => {
-    try {
-      // Expected format: "123 Street Name NW, Calgary, T2N 1N4"
-      const parts = address.split(", ");
-      if (parts.length >= 2) {
-        const streetPart = parts[0];
-        const cityPart = parts[1];
-        const postalCodePart = parts[2] || "";
-
-        return {
-          street: streetPart,
-          city: cityPart,
-          province: "Alberta", // Default for Alberta
-          postalCode: postalCodePart,
-          country: "Canada", // Default for Canada
-        };
-      }
-    } catch (error) {
-      console.error("Error parsing address:", error);
-    }
-
-    return {
-      street: address,
-      city: "Calgary",
-      province: "Alberta",
-      postalCode: "",
-      country: "Canada",
-    };
+    setIsAddressValid(!!coords);
+    setAddressValidationMsg(coords ? "Address is valid!" : "");
   };
 
   const handleTruckAssignment = (truckId: string, driverId: string | null) => {
@@ -203,16 +180,41 @@ export default function AddEventPage(): ReactElement {
         truck_id: truckId,
         driver_id: driverId,
         event_id: null, // Will be set when event is created
-        start_time: `${formData.date}T${formData.time}`,
-        end_time: `${formData.date}T${formData.endTime}`,
+        start_time: formData.time,
+        end_time: formData.endTime,
         created_at: new Date().toISOString(),
       };
       setTruckAssignments([...truckAssignments, newAssignment]);
-      // Also add to formData.trucks
+     
       setFormData({
         ...formData,
         trucks: [...formData.trucks, truckId],
       });
+    }
+  };
+
+  const handleTruckSelection = (truckId: string, isSelected: boolean) => {
+    if (isSelected) {
+      // Add truck to assignments if not already present
+      if (!truckAssignments.some((assignment) => assignment.truck_id === truckId)) {
+        const newAssignment: TruckAssignment = {
+          id: `temp-${Date.now()}`,
+          truck_id: truckId,
+          driver_id: null, // No driver assigned yet
+          event_id: null, // Will be set when event is created
+          start_time: formData.time,
+          end_time: formData.endTime,
+          created_at: new Date().toISOString(),
+        };
+        setTruckAssignments([...truckAssignments, newAssignment]);
+        setFormData({
+          ...formData,
+          trucks: [...formData.trucks, truckId],
+        });
+      }
+    } else {
+      // When truck is deselected, remove assignment
+      handleTruckAssignment(truckId, null);
     }
   };
 
@@ -233,65 +235,90 @@ export default function AddEventPage(): ReactElement {
     );
   };
 
-  const validateForm = (): boolean => {
-    const errorList: string[] = [];
-    if (!formData.name.trim()) errorList.push("Event name is required.");
-    if (!selectedDate) errorList.push("Date is required.");
-    if (!selectedTime) errorList.push("Time is required.");
-    if (!selectedEndTime) errorList.push("End time is required.");
-    const isAddressValid = addressFormRef.current?.validate() ?? false;
-    if (!isAddressValid) errorList.push("Please enter a valid address.");
-    if (formData.requiredServers === "")
-      errorList.push("Number of servers is required.");
-    if (!formData.contactName.trim())
-      errorList.push("Contact name is required.");
-    if (!formData.contactEmail.trim())
-      errorList.push("Contact email is required.");
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail))
-      errorList.push("Please enter a valid email address.");
-    if (!formData.contactPhone.trim())
-      errorList.push("Contact phone is required.");
-    else if (
-      !/^\+?[\d\s-]{10,}$/.test(formData.contactPhone.replace(/\s/g, ""))
-    )
-      errorList.push("Please enter a valid phone number.");
-    if (truckAssignments.length === 0)
-      errorList.push("Please assign at least one truck with a driver.");
-    if (selectedDate && selectedTime && selectedEndTime) {
-      const start = new Date(selectedDate);
-      start.setHours(selectedTime.getHours(), selectedTime.getMinutes());
-      const end = new Date(selectedDate);
-      end.setHours(selectedEndTime.getHours(), selectedEndTime.getMinutes());
-      if (end <= start) errorList.push("End time must be after start time.");
+  // Handler for Check Address button (to be passed to AddressForm)
+  const handleCheckAddress = () => {
+    // Only update state if AddressForm validates
+    const valid = addressFormRef.current?.validate() ?? false;
+    if (valid) {
+      setIsAddressValid(true);
+      setAddressValidationMsg("Address is valid!");
+    } else {
+      setIsAddressValid(false);
+      setAddressValidationMsg("");
     }
-    setFormErrors(errorList);
-    setShowErrorModal(errorList.length > 0);
-    return errorList.length === 0;
+    return valid;
+  };
+
+  const validateFormData = (): ValidationError[] => {
+    const validationRules: ValidationRule[] = [
+      createValidationRule("name", true, undefined, "Event name is required.", nameRef.current),
+      createValidationRule("date", true, undefined, "Date is required.", dateRef.current),
+      createValidationRule("time", true, undefined, "Start time is required.", timeRef.current),
+      createValidationRule("endTime", true, undefined, "End time is required.", endTimeRef.current),
+      createValidationRule("location", true, undefined, "Location is required.", null),
+      createValidationRule("requiredServers", true, (value: any) => validateNumber(value, 1), "Number of servers is required and must be at least 1.", requiredServersRef.current),
+      createValidationRule("contactName", true, undefined, "Contact name is required.", contactNameRef.current),
+      createValidationRule("contactEmail", true, validateEmail, "Please enter a valid email address.", contactEmailRef.current),
+      createValidationRule("contactPhone", true, validatePhone, "Please enter a valid phone number.", contactPhoneRef.current),
+    ];
+
+    const errors = validateForm(formData, validationRules);
+
+    // Additional custom validations
+    if (selectedDate && selectedTime && selectedEndTime) {
+      if (!validateTimeRange(selectedTime, selectedEndTime)) {
+        errors.push({
+          field: "timeRange",
+          message: "End time must be after start time.",
+          element: endTimeRef.current,
+        });
+      }
+    }
+
+    // Check truck assignments
+    const trucksWithoutDrivers = truckAssignments.filter(assignment => !assignment.driver_id);
+    if (trucksWithoutDrivers.length > 0) {
+      errors.push({
+        field: "truckAssignments",
+        message: "Please assign a driver to all selected trucks.",
+        element: null,
+      });
+    }
+
+    if (truckAssignments.length === 0) {
+      errors.push({
+        field: "trucks",
+        message: "Please select at least one truck and assign a driver to it.",
+        element: null,
+      });
+    }
+
+    return errors;
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    const validationErrors = validateFormData();
+
+    // Check for valid coordinates/address
+    if (!coordinates || coordinates.latitude === undefined || coordinates.longitude === undefined || isAddressValid === false) {
+      validationErrors.push({
+        field: "address",
+        message: "Please check address.",
+        element: null,
+      });
+    }
+
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors.map(error => error.message);
+      setFormErrors(errorMessages);
+      setShowErrorModal(true);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Validate required fields
-      if (
-        !formData.name ||
-        !formData.date ||
-        !formData.time ||
-        !formData.location ||
-        !formData.requiredServers
-      ) {
-        setFormErrors(["Please fill in all required fields."]);
-        setShowErrorModal(true);
-        setIsSubmitting(false);
-        return;
-      }
-
       // Check for valid coordinates before proceeding
       if (
         !coordinates ||
@@ -361,6 +388,13 @@ export default function AddEventPage(): ReactElement {
     }
   };
 
+  const handleScrollToFirstError = () => {
+    const validationErrors = validateFormData();
+    if (validationErrors.length > 0) {
+      scrollToFirstError(validationErrors);
+    }
+  };
+
   return (
     <>
       <div className="create-event-page">
@@ -368,7 +402,7 @@ export default function AddEventPage(): ReactElement {
         <form onSubmit={handleSubmit} className="event-form">
           <div className="input-group">
             <label htmlFor="name" className="input-label">
-              Event Name
+              Event Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -376,14 +410,14 @@ export default function AddEventPage(): ReactElement {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              required
+              
             />
           </div>
 
           <div className="input-group">
             <div className="flex justify-between items-center mb-2">
               <label htmlFor="location" className="input-label">
-                Location
+                Location <span className="text-red-500">*</span>
               </label>
               <button
                 type="button"
@@ -411,30 +445,31 @@ export default function AddEventPage(): ReactElement {
               value={formData.location}
               onChange={handleLocationChange}
               placeholder="Enter event location"
-              required
+              onCheckAddress={handleCheckAddress}
             />
           </div>
 
           <div className="input-group">
             <label htmlFor="date" className="input-label">
-              Date
+              Date <span className="text-red-500">*</span>
             </label>
             <DatePicker
+              ref={dateRef}
               selected={selectedDate}
               onChange={handleDateChange}
               dateFormat="MMMM d, yyyy"
               minDate={new Date()}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholderText="Select date"
-              required
             />
           </div>
 
           <div className="input-group">
             <label htmlFor="time" className="input-label">
-              Start Time
+              Start Time <span className="text-red-500">*</span>
             </label>
             <DatePicker
+              ref={timeRef}
               selected={selectedTime}
               onChange={handleTimeChange}
               showTimeSelect
@@ -444,7 +479,6 @@ export default function AddEventPage(): ReactElement {
               dateFormat="h:mm aa"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholderText="Select time"
-              required
               openToDate={new Date()}
               minTime={new Date(0, 0, 0, 0, 0, 0)}
               maxTime={new Date(0, 0, 0, 23, 59, 59)}
@@ -453,9 +487,10 @@ export default function AddEventPage(): ReactElement {
 
           <div className="input-group">
             <label htmlFor="endTime" className="input-label">
-              End Time
+              End Time <span className="text-red-500">*</span>
             </label>
             <DatePicker
+              ref={endTimeRef}
               selected={selectedEndTime}
               onChange={handleEndTimeChange}
               showTimeSelect
@@ -465,7 +500,6 @@ export default function AddEventPage(): ReactElement {
               dateFormat="h:mm aa"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholderText="Select end time"
-              required
               openToDate={new Date()}
               minTime={new Date(0, 0, 0, 0, 0, 0)}
               maxTime={new Date(0, 0, 0, 23, 59, 59)}
@@ -474,9 +508,10 @@ export default function AddEventPage(): ReactElement {
 
           <div className="input-group">
             <label htmlFor="requiredServers" className="input-label">
-              Required Servers
+              Required Servers <span className="text-red-500">*</span>
             </label>
             <input
+              ref={requiredServersRef}
               type="number"
               id="requiredServers"
               name="requiredServers"
@@ -485,52 +520,51 @@ export default function AddEventPage(): ReactElement {
               min="0"
               onWheel={(e) => (e.target as HTMLInputElement).blur()}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
             />
           </div>
 
           <div className="input-group">
             <label htmlFor="contactName" className="input-label">
-              Contact Name
+              Contact Name <span className="text-red-500">*</span>
             </label>
             <input
+              ref={contactNameRef}
               type="text"
               id="contactName"
               name="contactName"
               value={formData.contactName}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
             />
           </div>
 
           <div className="input-group">
             <label htmlFor="contactEmail" className="input-label">
-              Contact Email
+              Contact Email <span className="text-red-500">*</span>
             </label>
             <input
+              ref={contactEmailRef}
               type="email"
               id="contactEmail"
               name="contactEmail"
               value={formData.contactEmail}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
             />
           </div>
 
           <div className="input-group">
             <label htmlFor="contactPhone" className="input-label">
-              Contact Phone
+              Contact Phone <span className="text-red-500">*</span>
             </label>
             <input
+              ref={contactPhoneRef}
               type="tel"
               id="contactPhone"
               name="contactPhone"
               value={formData.contactPhone}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
             />
           </div>
 
@@ -562,23 +596,50 @@ export default function AddEventPage(): ReactElement {
           </div>
 
           <div className="input-group">
-            <label className="input-label">Assign Trucks & Drivers</label>
+            <label className="input-label">Assign Trucks & Drivers <span className="text-red-500">*</span></label>
+            <p className="text-sm text-gray-600 mb-3">
+              Check the boxes for trucks you want to include in this event, then
+              assign a driver to each selected truck.
+            </p>
             <div
-              className={`truck-assignment-list space-y-4 ${formErrors.includes("Please assign at least one truck with a driver.") ? "border-red-500" : ""}`}
+              className={`truck-assignment-list space-y-4 ${formErrors.includes("Please select at least one truck and assign a driver to it.") || formErrors.includes("Please assign a driver to all selected trucks.") ? "border-red-500" : ""}`}
             >
               {trucks.map((truck) => {
                 const assignedDriver = getAssignedDriverForTruck(truck.id);
                 const availableDrivers = getAvailableDrivers();
+                const isTruckSelected = truckAssignments.some(
+                  (assignment) => assignment.truck_id === truck.id
+                );
 
                 return (
                   <div
                     key={truck.id}
-                    className="truck-assignment-item border rounded-lg p-4 bg-gray-50"
+                    className={`truck-assignment-item border rounded-lg p-4 ${getTruckTypeColor(truck.type)}`}
                   >
+                    {/* Truck Selection Checkbox */}
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-lg">
-                        {truck.name} ({truck.type})
-                      </h4>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          id={`truck-${truck.id}`}
+                          checked={isTruckSelected}
+                          onChange={(e) =>
+                            handleTruckSelection(truck.id, e.target.checked)
+                          }
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label
+                          htmlFor={`truck-${truck.id}`}
+                          className="font-semibold text-lg cursor-pointer"
+                        >
+                          {truck.name}
+                        </label>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${getTruckTypeBadge(truck.type)}`}
+                        >
+                          {truck.type}
+                        </span>
+                      </div>
                       <span
                         className={`px-2 py-1 rounded text-sm ${
                           truck.is_available
@@ -590,45 +651,72 @@ export default function AddEventPage(): ReactElement {
                       </span>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Assign Driver:
-                      </label>
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={assignedDriver?.employee_id || ""}
-                        onChange={(e) =>
-                          handleTruckAssignment(
-                            truck.id,
-                            e.target.value || null
-                          )
-                        }
-                      >
-                        <option value="">No driver assigned</option>
-                        {availableDrivers.map((driver) => (
-                          <option
-                            key={driver.employee_id}
-                            value={driver.employee_id}
-                          >
-                            {driver.first_name} {driver.last_name}
-                          </option>
-                        ))}
-                      </select>
+                    {/* Driver Assignment Section - Only show if truck is selected */}
+                    {isTruckSelected && (
+                      <div className="space-y-2 mt-4 p-3 bg-white rounded border">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Assign Driver:
+                        </label>
+                        <select
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={assignedDriver?.employee_id || ""}
+                          onChange={(e) =>
+                            handleTruckAssignment(
+                              truck.id,
+                              e.target.value || null
+                            )
+                          }
+                        >
+                          <option value="">No driver assigned</option>
+                          {availableDrivers.map((driver) => (
+                            <option
+                              key={driver.employee_id}
+                              value={driver.employee_id}
+                            >
+                              {driver.first_name} {driver.last_name} (
+                              {driver.employee_type})
+                            </option>
+                          ))}
+                        </select>
 
-                      {assignedDriver && (
-                        <div className="mt-2 p-2 bg-blue-50 rounded">
-                          <p className="text-sm text-blue-800">
-                            <strong>Assigned Driver:</strong>{" "}
-                            {assignedDriver.first_name}{" "}
-                            {assignedDriver.last_name}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                        {assignedDriver && (
+                          <div className="mt-2 p-2 bg-blue-50 rounded">
+                            <p className="text-sm text-blue-800">
+                              <strong>Assigned Driver:</strong>{" "}
+                              {assignedDriver.first_name}{" "}
+                              {assignedDriver.last_name}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
+
+            {/* Summary of selected trucks */}
+            {truckAssignments.length > 0 && (
+              <div className="mt-4 p-3 bg-green-50 rounded border border-green-200">
+                <h4 className="font-medium text-green-800 mb-2">Selected Trucks ({truckAssignments.length}):</h4>
+                <ul className="space-y-1">
+                  {truckAssignments.map((assignment) => {
+                    const truck = trucks.find(t => t.id === assignment.truck_id);
+                    const driver = employees.find(e => e.employee_id === assignment.driver_id);
+                    
+                    return (
+                      <li key={assignment.truck_id} className="text-sm text-green-700 flex items-center gap-2">
+                        <span>• {truck?.name}</span>
+                        <span className={`px-1 py-0.5 rounded text-xs font-medium ${getTruckTypeBadge(truck?.type || "")}`}>
+                          {truck?.type}
+                        </span>
+                        <span>- Driver: {driver ? `${driver.first_name} ${driver.last_name}` : 'No driver assigned'}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
 
           <button type="submit" className="button" disabled={isSubmitting}>
@@ -661,88 +749,17 @@ export default function AddEventPage(): ReactElement {
           </button>
         </form>
       </div>
-      {showErrorModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.4)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              background: "white",
-              borderRadius: "1.5rem",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-              padding: "2.5rem",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              maxWidth: 400,
-              border: "4px solid #22c55e",
-              fontFamily: "sans-serif",
-            }}
-          >
-            <span style={{ fontSize: "3rem", marginBottom: "0.75rem" }}>
-              🛑
-            </span>
-            <p
-              style={{
-                color: "#15803d",
-                fontWeight: 800,
-                fontSize: "1.25rem",
-                marginBottom: "1rem",
-                textAlign: "center",
-                letterSpacing: "0.03em",
-              }}
-            >
-              Please fix the following errors:
-            </p>
-            <ul
-              style={{
-                textAlign: "left",
-                marginBottom: "1.5rem",
-                color: "#b91c1c",
-                fontSize: "1rem",
-                listStyle: "disc inside",
-                width: "100%",
-              }}
-            >
-              {formErrors.map((err, idx) => (
-                <li key={idx}>{err}</li>
-              ))}
-            </ul>
-            <button
-              style={{
-                padding: "0.5rem 1.5rem",
-                background: "#22c55e",
-                color: "white",
-                fontWeight: 700,
-                borderRadius: "0.5rem",
-                border: "none",
-                boxShadow: "0 2px 8px rgba(34,197,94,0.15)",
-                cursor: "pointer",
-                fontSize: "1rem",
-                transition: "background 0.2s",
-              }}
-              onClick={() => setShowErrorModal(false)}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.background = "#16a34a")
-              }
-              onMouseOut={(e) => (e.currentTarget.style.background = "#22c55e")}
-            >
-              OK
-            </button>
-          </div>
-        </div>
+      
+      {isAddressValid && addressValidationMsg && (
+        <p className="text-green-600">{addressValidationMsg}</p>
       )}
+      
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        errors={formErrors.map(msg => ({ field: "form", message: msg }))}
+      />
+      
       <HelpPopup
         isOpen={showHelpPopup}
         onClose={() => setShowHelpPopup(false)}

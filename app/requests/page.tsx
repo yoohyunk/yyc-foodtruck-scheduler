@@ -1,188 +1,195 @@
 "use client";
-import { useState, FormEvent, ChangeEvent, ReactElement } from "react";
-import { FiCalendar } from "react-icons/fi";
-import { TimeOffRequest, TimeOffRequestFormData } from "../types";
+
+import React, { useState, FormEvent, ChangeEvent, ReactElement, useRef } from "react";
+import ErrorModal from "../components/ErrorModal";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, createValidationRule } from "../lib/formValidation";
+
+interface TimeOffRequestFormData {
+  type: string;
+  date: string;
+  duration: string;
+  reason: string;
+}
 
 export default function TimeOff(): ReactElement {
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [requests, setRequests] = useState<TimeOffRequest[]>([
-    {
-      date: "2024-11-13",
-      type: "Sick Leave",
-      duration: "Full Day",
-      status: "Approved",
-      reason: "Flu",
-    },
-    {
-      date: "2024-11-15",
-      type: "Personal",
-      duration: "Half Day (AM)",
-      status: "Pending",
-      reason: "Errand",
-    },
-  ]);
-
   const [formData, setFormData] = useState<TimeOffRequestFormData>({
+    type: "",
     date: "",
-    type: "Vacation",
-    duration: "Full Day",
+    duration: "",
     reason: "",
   });
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const newRequest: TimeOffRequest = { ...formData, status: "Pending" };
-    setRequests([...requests, newRequest]);
-    setFormData({
-      date: "",
-      type: "Vacation",
-      duration: "Full Day",
-      reason: "",
-    });
-    setShowModal(false);
-  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  // Refs for form fields
+  const typeRef = useRef<HTMLSelectElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+  const durationRef = useRef<HTMLSelectElement>(null);
+  const reasonRef = useRef<HTMLTextAreaElement>(null);
+
+  const requestTypes = ["Vacation", "Sick Leave", "Personal Day", "Other"];
+  const durationOptions = ["Half Day", "Full Day", "Multiple Days"];
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setFormErrors([]);
+    setSuccess("");
+
+    const validationRules: ValidationRule[] = [
+      createValidationRule("type", true, undefined, "Request type is required.", typeRef.current),
+      createValidationRule("date", true, (value: any) => {
+        const date = new Date(value);
+        return date > new Date();
+      }, "Date is required and must be in the future.", dateRef.current),
+      createValidationRule("duration", true, undefined, "Duration is required.", durationRef.current),
+      createValidationRule("reason", true, undefined, "Reason is required.", reasonRef.current),
+    ];
+
+    const validationErrors = validateForm(formData, validationRules);
+    setValidationErrors(validationErrors);
+
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors.map(error => error.message);
+      setFormErrors(errorMessages);
+      setShowErrorModal(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate API call
+    setTimeout(() => {
+      setSuccess("Time-off request submitted successfully!");
+      setFormData({
+        type: "",
+        date: "",
+        duration: "",
+        reason: "",
+      });
+      setIsSubmitting(false);
+    }, 1000);
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">My Time-Off Requests</h2>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-white text-black border border-black px-4 py-2 rounded hover:bg-gray-100 transition"
-        >
-          + Request Time-Off
-        </button>
-      </div>
+    <>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+            Submit Time-Off Request
+          </h1>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full  rounded-lg overflow-hidden">
-          <thead className="bg-gray-100 text-left text-sm text-gray-600">
-            <tr>
-              <th className="p-3">Date</th>
-              <th className="p-3">Type</th>
-              <th className="p-3">Duration</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((item, index) => (
-              <tr key={index} className="text-sm">
-                <td className="p-3">
-                  <div className="flex items-center gap-2">
-                    <FiCalendar size={16} />
-                    <span className="inline-block">{item.date}</span>
-                  </div>
-                </td>
-                <td className="p-3">{item.type}</td>
-                <td className="p-3">{item.duration}</td>
-                <td className="p-3">
-                  <span
-                    className={`badge ${
-                      item.status === "Approved"
-                        ? "bg-green-100 text-green-600"
-                        : item.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-600"
-                          : "bg-red-100 text-red-600"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                </td>
-                <td className="p-3">{item.reason}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          <form onSubmit={handleSubmit} className="bg-white shadow-lg rounded-lg p-6">
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                  Request Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  ref={typeRef}
+                  id="type"
+                  name="type"
+                  value={formData.type}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select request type</option>
+                  {requestTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-      {/* Inline Form */}
-      {showModal && (
-        <div className="mt-6 bg-white p-6 rounded-lg shadow">
-          <h3 className="text-xl font-bold mb-4">Request Time-Off</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block mb-1 text-sm font-medium">Date</label>
-              <input
-                type="date"
-                name="date"
-                required
-                className="w-full border p-2 rounded"
-                value={formData.date}
-                onChange={handleInputChange}
-              />
-            </div>
+              <div>
+                <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+                  Request Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  ref={dateRef}
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Type of Leave
-              </label>
-              <select
-                name="type"
-                className="w-full border p-2 rounded"
-                value={formData.type}
-                onChange={handleInputChange}
-              >
-                <option>Vacation</option>
-                <option>Sick Leave</option>
-                <option>Personal</option>
-                <option>Emergency</option>
-              </select>
-            </div>
+              <div>
+                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+                  Duration <span className="text-red-500">*</span>
+                </label>
+                <select
+                  ref={durationRef}
+                  id="duration"
+                  name="duration"
+                  value={formData.duration}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select duration</option>
+                  {durationOptions.map((duration) => (
+                    <option key={duration} value={duration}>
+                      {duration}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block mb-1 text-sm font-medium">Duration</label>
-              <select
-                name="duration"
-                className="w-full border p-2 rounded"
-                value={formData.duration}
-                onChange={handleInputChange}
-              >
-                <option>Full Day</option>
-                <option>Half Day (AM)</option>
-                <option>Half Day (PM)</option>
-              </select>
-            </div>
+              <div>
+                <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  ref={reasonRef}
+                  id="reason"
+                  name="reason"
+                  value={formData.reason}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Please provide a reason for your time-off request..."
+                />
+              </div>
 
-            <div>
-              <label className="block mb-1 text-sm font-medium">Reason</label>
-              <textarea
-                name="reason"
-                rows={3}
-                className="w-full border p-2 rounded"
-                placeholder="Optional"
-                value={formData.reason}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-              >
-                Cancel
-              </button>
               <button
                 type="submit"
-                className="bg-white text-black border border-black px-4 py-2 rounded hover:bg-gray-100 transition"
+                disabled={isSubmitting}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Request
+                {isSubmitting ? "Submitting..." : "Submit Request"}
               </button>
             </div>
           </form>
+
+          {success && (
+            <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+              {success}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        errors={validationErrors}
+      />
+    </>
   );
 }

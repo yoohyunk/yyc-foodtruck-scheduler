@@ -2,12 +2,17 @@
 
 import React, { useState, FormEvent, ReactElement, useRef } from "react";
 import { useRouter } from "next/navigation";
+import ErrorModal from "../../components/ErrorModal";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validateRequired, validateNumber, createValidationRule } from "../../lib/formValidation";
 
 export default function InviteEmployee(): ReactElement {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
+  // Refs for form fields
   const firstNameRef = useRef<HTMLInputElement>(null);
   const lastNameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -16,131 +21,176 @@ export default function InviteEmployee(): ReactElement {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    setError("");
+    setFormErrors([]);
 
-    const firstName = firstNameRef.current?.value.trim() || "";
-    const lastName = lastNameRef.current?.value.trim() || "";
-    const email = emailRef.current?.value.trim() || "";
-    const employeeType = employeeTypeRef.current?.value || "";
-    const wage = wageRef.current?.value || "";
+    const formData = {
+      firstName: firstNameRef.current?.value.trim() || "",
+      lastName: lastNameRef.current?.value.trim() || "",
+      email: emailRef.current?.value.trim() || "",
+      employeeType: employeeTypeRef.current?.value || "",
+      wage: wageRef.current?.value || "",
+    };
 
-    if (!firstName) {
-      setError("First name is required.");
-      return;
-    }
-    if (!lastName) {
-      setError("Last name is required.");
-      return;
-    }
-    if (!email) {
-      setError("Email is required.");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Please enter a valid email address.");
+    const validationRules: ValidationRule[] = [
+      createValidationRule("firstName", true, undefined, "First name is required.", firstNameRef.current),
+      createValidationRule("lastName", true, undefined, "Last name is required.", lastNameRef.current),
+      createValidationRule("email", true, validateEmail, "Please enter a valid email address.", emailRef.current),
+      createValidationRule("employeeType", true, undefined, "Employee type is required.", employeeTypeRef.current),
+      createValidationRule("wage", true, (value: any) => validateNumber(value, 0), "Wage is required and must be a positive number.", wageRef.current),
+    ];
+
+    const validationErrors = validateForm(formData, validationRules);
+    setValidationErrors(validationErrors);
+
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors.map(error => error.message);
+      setFormErrors(errorMessages);
+      setShowErrorModal(true);
       return;
     }
 
     setIsSubmitting(true);
+
     try {
-      const res = await fetch("/api/invite", {
+      const response = await fetch("/api/employees", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          employeeType,
-          wage,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          employeeType: formData.employeeType,
+          wage: parseFloat(formData.wage),
         }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Invite failed");
 
-      alert(`Invite sent to ${email}!`);
-      router.push("/employees");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      if (response.ok) {
+        router.push("/employees");
+      } else {
+        const errorData = await response.json();
+        setFormErrors([errorData.message || "Failed to invite employee."]);
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      setFormErrors(["An error occurred while inviting the employee."]);
+      setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleScrollToFirstError = () => {
+    const formData = {
+      firstName: firstNameRef.current?.value.trim() || "",
+      lastName: lastNameRef.current?.value.trim() || "",
+      email: emailRef.current?.value.trim() || "",
+      employeeType: employeeTypeRef.current?.value || "",
+      wage: wageRef.current?.value || "",
+    };
+
+    const validationRules: ValidationRule[] = [
+      createValidationRule("firstName", true, undefined, "First name is required.", firstNameRef.current),
+      createValidationRule("lastName", true, undefined, "Last name is required.", lastNameRef.current),
+      createValidationRule("email", true, validateEmail, "Please enter a valid email address.", emailRef.current),
+      createValidationRule("employeeType", true, undefined, "Employee type is required.", employeeTypeRef.current),
+      createValidationRule("wage", true, (value: any) => validateNumber(value, 0), "Wage is required and must be a positive number.", wageRef.current),
+    ];
+
+    const validationErrors = validateForm(formData, validationRules);
+    if (validationErrors.length > 0) {
+      scrollToFirstError(validationErrors);
+    }
+  };
+
   return (
-    <div className="create-employee-page">
-      <h1 className="form-header">Invite Employee</h1>
-      <form onSubmit={handleSubmit} className="employee-form space-y-4">
-        <div className="input-group">
-          <label htmlFor="firstName" className="input-label">
-            First Name
-          </label>
-          <input
-            type="text"
-            id="firstName"
-            ref={firstNameRef}
-            className="input"
-            placeholder="Enter first name"
-            required
-          />
-        </div>
+    <>
+      <div className="create-employee-page">
+        <h1 className="form-header">Invite Employee</h1>
+        <form onSubmit={handleSubmit} className="employee-form">
+          <div className="input-group">
+            <label htmlFor="firstName" className="input-label">
+              First Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={firstNameRef}
+              type="text"
+              id="firstName"
+              name="firstName"
+              className="input-field"
+            />
+          </div>
 
-        <div className="input-group">
-          <label htmlFor="lastName" className="input-label">
-            Last Name
-          </label>
-          <input
-            type="text"
-            id="lastName"
-            ref={lastNameRef}
-            className="input"
-            placeholder="Enter last name"
-            required
-          />
-        </div>
+          <div className="input-group">
+            <label htmlFor="lastName" className="input-label">
+              Last Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={lastNameRef}
+              type="text"
+              id="lastName"
+              name="lastName"
+              className="input-field"
+            />
+          </div>
 
-        <div className="input-group">
-          <label htmlFor="email" className="input-label">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            ref={emailRef}
-            className="input"
-            placeholder="Enter email"
-            required
-          />
-        </div>
+          <div className="input-group">
+            <label htmlFor="email" className="input-label">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={emailRef}
+              type="email"
+              id="email"
+              name="email"
+              className="input-field"
+            />
+          </div>
 
-        <div className="input-group">
-          <label htmlFor="employeeType" className="input-label">
-            Employee Type
-          </label>
-          <select id="employeeType" className="input">
-            <option value="Driver">Driver</option>
-            <option value="Server">Server</option>
-          </select>
-        </div>
+          <div className="input-group">
+            <label htmlFor="employeeType" className="input-label">
+              Employee Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={employeeTypeRef}
+              id="employeeType"
+              name="employeeType"
+              className="input-field"
+            >
+              <option value="">Select Employee Type</option>
+              <option value="Driver">Driver</option>
+              <option value="Server">Server</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
 
-        <div className="input-group">
-          <label htmlFor="wage" className="input-label">
-            Wage
-          </label>
-          <input
-            type="number"
-            id="wage"
-            className="input"
-            placeholder="Enter wage"
-            required
-          />
-        </div>
+          <div className="input-group">
+            <label htmlFor="wage" className="input-label">
+              Hourly Wage <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={wageRef}
+              type="number"
+              id="wage"
+              name="wage"
+              min="0"
+              step="0.01"
+              className="input-field"
+            />
+          </div>
 
-        <button type="submit" className="button w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Sending invite..." : "Send Invite"}
-        </button>
+          <button type="submit" className="button" disabled={isSubmitting}>
+            {isSubmitting ? "Sending Invite..." : "Send Invite"}
+          </button>
+        </form>
+      </div>
 
-        {error && <p className="text-red-600 text-sm text-center">{error}</p>}
-      </form>
-    </div>
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        errors={validationErrors}
+      />
+    </>
   );
 }

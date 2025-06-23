@@ -13,6 +13,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Tables, TablesInsert } from "@/database.types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import { Coordinates } from "@/app/types";
+import ErrorModal from "@/app/components/ErrorModal";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateNumber, createValidationRule, sanitizeFormData } from "../../lib/formValidation";
 
 type Truck = Tables<"trucks"> & {
   addresses?: Tables<"addresses">;
@@ -43,6 +45,8 @@ export default function EditTruckPage(): ReactElement {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
   const [addressFormData, setAddressFormData] = useState<{
@@ -61,6 +65,13 @@ export default function EditTruckPage(): ReactElement {
     address: "",
     packingList: [],
   });
+
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  // Refs for form fields
+  const nameRef = useRef<HTMLInputElement>(null);
+  const typeRef = useRef<HTMLSelectElement>(null);
+  const capacityRef = useRef<HTMLInputElement>(null);
 
   const truckTypes = ["Food Truck", "Beverage Truck", "Dessert Truck"];
 
@@ -219,15 +230,22 @@ export default function EditTruckPage(): ReactElement {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
+    setFormErrors([]);
     setSuccess("");
 
-    if (!truck) return;
+    const validationRules: ValidationRule[] = [
+      createValidationRule("name", true, undefined, "Truck name is required.", nameRef.current),
+      createValidationRule("type", true, undefined, "Truck type is required.", typeRef.current),
+      createValidationRule("capacity", true, (value: any) => validateNumber(value, 1), "Capacity is required and must be at least 1.", capacityRef.current),
+    ];
 
-    // Validate address
-    const isAddressValid = addressFormRef.current?.validate() ?? false;
-    if (!isAddressValid) {
-      setError("Please enter a valid address.");
+    const validationErrors = validateForm(formData, validationRules);
+    setValidationErrors(validationErrors);
+
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors.map(error => error.message);
+      setFormErrors(errorMessages);
+      setShowErrorModal(true);
       return;
     }
 
@@ -235,6 +253,11 @@ export default function EditTruckPage(): ReactElement {
 
     try {
       // Update or create address
+      if (!truck) {
+        setError("Truck not found");
+        return;
+      }
+
       let addressId = truck.address_id;
 
       if (truck.address_id) {
@@ -334,181 +357,183 @@ export default function EditTruckPage(): ReactElement {
   }
 
   return (
-    <div className="edit-truck-page">
-      <div className="flex justify-between items-center mb-6">
-        <button className="button" onClick={() => router.back()}>
-          &larr; Back
-        </button>
+    <>
+      <div className="edit-truck-page">
+        <div className="flex justify-between items-center mb-6">
+          <button className="button" onClick={() => router.back()}>
+            &larr; Back
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Name */}
+          <div className="input-group">
+            <label htmlFor="name" className="input-label">
+              Truck Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={nameRef}
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="input-field"
+            />
+          </div>
+
+          {/* Type */}
+          <div className="input-group">
+            <label htmlFor="type" className="input-label">
+              Truck Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={typeRef}
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Select truck type</option>
+              {truckTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Capacity */}
+          <div className="input-group">
+            <label htmlFor="capacity" className="input-label">
+              Capacity <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              id="capacity"
+              name="capacity"
+              value={formData.capacity}
+              onChange={handleChange}
+              min="1"
+              className="input-field"
+            />
+          </div>
+
+          {/* Availability */}
+          <div className="input-group">
+            <label className="flex items-center space-x-2">
+              <span className="input-label">Available</span>
+              <input
+                type="checkbox"
+                name="isAvailable"
+                checked={formData.isAvailable}
+                onChange={handleChange}
+                className="rounded"
+              />
+            </label>
+          </div>
+
+          {/* Address */}
+          <div className="input-group">
+            <label htmlFor="address" className="input-label">
+              Address *
+            </label>
+            <AddressForm
+              value={formData.address}
+              onChange={handleAddressChange}
+              placeholder="Enter truck address"
+              required
+              ref={addressFormRef}
+            />
+          </div>
+
+          {/* Packing List */}
+          <div className="input-group">
+            <label className="input-label">Packing List (Optional)</label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {packingListOptions.map((item) => (
+                <label key={item} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.packingList.includes(item)}
+                    onChange={() => handlePackingListChange(item)}
+                    className="rounded"
+                  />
+                  <span className="text-sm">{item}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Submit Buttons */}
+          <div className="flex gap-4">
+            <button type="submit" className="button" disabled={isSubmitting}>
+              {isSubmitting ? "Updating..." : "Save Changes"}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="button bg-gray-500 hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {/* Error/Success Messages */}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+              {success}
+            </div>
+          )}
+        </form>
+
+        {/* Upcoming Events */}
+        <section className="mt-8">
+          <h2 className="text-xl font-bold mb-4">Upcoming Events</h2>
+          {events.length > 0 ? (
+            <div className="grid gap-4">
+              {events.map((event) => (
+                <div
+                  key={event.id}
+                  className="event-card bg-white p-4 rounded-lg shadow border"
+                >
+                  <h3 className="text-lg font-semibold">{event.title}</h3>
+                  <p className="mb-1">
+                    <strong>Date:</strong>{" "}
+                    {new Date(event.start_date).toLocaleDateString()}
+                  </p>
+                  <p className="mb-1">
+                    <strong>Time:</strong>{" "}
+                    {new Date(event.start_date).toLocaleTimeString()} -{" "}
+                    {new Date(event.end_date).toLocaleTimeString()}
+                  </p>
+                  <p className="mb-1">
+                    <strong>Location:</strong>{" "}
+                    {event.addresses?.street || "No address"}
+                  </p>
+                  {event.description && (
+                    <p className="text-sm text-gray-600">{event.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No upcoming events for this truck.</p>
+          )}
+        </section>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Name */}
-        <div className="input-group">
-          <label htmlFor="name" className="input-label">
-            Truck Name *
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="input-field"
-            required
-          />
-        </div>
-
-        {/* Type */}
-        <div className="input-group">
-          <label htmlFor="type" className="input-label">
-            Truck Type *
-          </label>
-          <select
-            id="type"
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="input-field"
-            required
-          >
-            <option value="">Select truck type</option>
-            {truckTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Capacity */}
-        <div className="input-group">
-          <label htmlFor="capacity" className="input-label">
-            Capacity *
-          </label>
-          <select
-            id="capacity"
-            name="capacity"
-            value={formData.capacity}
-            onChange={handleChange}
-            className="input-field"
-            required
-          >
-            <option value="">Select capacity</option>
-            {capacityOptions.map((capacity) => (
-              <option key={capacity} value={capacity}>
-                {capacity}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Availability */}
-        <div className="input-group">
-          <label className="flex items-center space-x-2">
-            <span className="input-label">Available</span>
-            <input
-              type="checkbox"
-              name="isAvailable"
-              checked={formData.isAvailable}
-              onChange={handleChange}
-              className="rounded"
-            />
-          </label>
-        </div>
-
-        {/* Address */}
-        <div className="input-group">
-          <label htmlFor="address" className="input-label">
-            Address *
-          </label>
-          <AddressForm
-            value={formData.address}
-            onChange={handleAddressChange}
-            placeholder="Enter truck address"
-            required
-            ref={addressFormRef}
-          />
-        </div>
-
-        {/* Packing List */}
-        <div className="input-group">
-          <label className="input-label">Packing List (Optional)</label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {packingListOptions.map((item) => (
-              <label key={item} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.packingList.includes(item)}
-                  onChange={() => handlePackingListChange(item)}
-                  className="rounded"
-                />
-                <span className="text-sm">{item}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Submit Buttons */}
-        <div className="flex gap-4">
-          <button type="submit" className="button" disabled={isSubmitting}>
-            {isSubmitting ? "Updating..." : "Save Changes"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="button bg-gray-500 hover:bg-gray-600"
-          >
-            Cancel
-          </button>
-        </div>
-
-        {/* Error/Success Messages */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-            {success}
-          </div>
-        )}
-      </form>
-
-      {/* Upcoming Events */}
-      <section className="mt-8">
-        <h2 className="text-xl font-bold mb-4">Upcoming Events</h2>
-        {events.length > 0 ? (
-          <div className="grid gap-4">
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className="event-card bg-white p-4 rounded-lg shadow border"
-              >
-                <h3 className="text-lg font-semibold">{event.title}</h3>
-                <p className="mb-1">
-                  <strong>Date:</strong>{" "}
-                  {new Date(event.start_date).toLocaleDateString()}
-                </p>
-                <p className="mb-1">
-                  <strong>Time:</strong>{" "}
-                  {new Date(event.start_date).toLocaleTimeString()} -{" "}
-                  {new Date(event.end_date).toLocaleTimeString()}
-                </p>
-                <p className="mb-1">
-                  <strong>Location:</strong>{" "}
-                  {event.addresses?.street || "No address"}
-                </p>
-                {event.description && (
-                  <p className="text-sm text-gray-600">{event.description}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500">No upcoming events for this truck.</p>
-        )}
-      </section>
-    </div>
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        errors={validationErrors}
+      />
+    </>
   );
 }

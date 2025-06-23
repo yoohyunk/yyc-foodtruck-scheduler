@@ -1,7 +1,7 @@
 "use client";
 import "../../globals.css";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, ReactElement } from "react";
+import { useEffect, useState, ReactElement, useRef } from "react";
 import { extractDate, extractTime } from "../utils";
 import {
   Event,
@@ -15,6 +15,7 @@ import { TutorialHighlight } from "../../components/TutorialHighlight";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateRequired, validateDate, validateTimeRange, createValidationRule, sanitizeFormData, commonValidationRules } from "@/app/lib/formValidation";
 
 // Import components
 import EmployeeSelectionModal from "./components/EmployeeSelectionModal";
@@ -43,6 +44,8 @@ export default function EventDetailsPage(): ReactElement {
   const [isLoadingEvent, setIsLoadingEvent] = useState<boolean>(true);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const { shouldHighlight } = useTutorial();
 
   // Edit form state
@@ -336,7 +339,9 @@ export default function EventDetailsPage(): ReactElement {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return; // Prevent multiple submissions
-    setIsSubmitting(true);
+    
+    setError(null);
+    setFormErrors([]);
 
     if (!event?.id) {
       console.error("Event ID is missing");
@@ -344,26 +349,93 @@ export default function EventDetailsPage(): ReactElement {
       return;
     }
 
+    // Sanitize form data
+    const sanitizedData = sanitizeFormData(editFormData);
+
+    // Validate form data
+    const validationRules: ValidationRule[] = [
+      createValidationRule("name", true, undefined, "Event name is required."),
+      createValidationRule("date", true, validateDate, "Please select a valid date."),
+      createValidationRule("time", true, validateDate, "Please select a valid start time."),
+      createValidationRule("endTime", true, validateDate, "Please select a valid end time."),
+      createValidationRule("location", true, undefined, "Location is required."),
+      createValidationRule("requiredServers", true, (value: any) => {
+        const num = parseInt(value, 10);
+        return !isNaN(num) && num > 0;
+      }, "Required servers must be a positive number."),
+    ];
+
+    const validationErrors = validateForm(sanitizedData, validationRules);
+
+    // Validate time range
+    if (selectedTime && selectedEndTime && selectedTime >= selectedEndTime) {
+      validationErrors.push({
+        field: "endTime",
+        message: "End time must be after start time.",
+        element: null,
+      });
+    }
+
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors.map(error => error.message);
+      setFormErrors(errorMessages);
+      setShowErrorModal(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
       const updatedEvent = await eventsApi.updateEvent(event.id, {
-        title: editFormData.name,
-        start_date: `${editFormData.date}T${editFormData.time}`,
-        end_date: `${editFormData.date}T${editFormData.endTime}`,
-        description: editFormData.location,
-        number_of_servers_needed: parseInt(editFormData.requiredServers, 10),
-        contact_name: editFormData.contactName,
-        contact_email: editFormData.contactEmail,
-        contact_phone: editFormData.contactPhone,
+        title: sanitizedData.name,
+        start_date: `${sanitizedData.date}T${sanitizedData.time}`,
+        end_date: `${sanitizedData.date}T${sanitizedData.endTime}`,
+        description: sanitizedData.location,
+        number_of_servers_needed: parseInt(sanitizedData.requiredServers, 10),
+        contact_name: sanitizedData.contactName || null,
+        contact_email: sanitizedData.contactEmail || null,
+        contact_phone: sanitizedData.contactPhone || null,
         is_prepaid: editFormData.isPrepaid,
       });
 
       setEvent(updatedEvent);
       setEditModalOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error updating event:", err);
-      alert("Failed to update event. Please try again.");
+      setError(err.message || "Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleScrollToFirstError = () => {
+    const sanitizedData = sanitizeFormData(editFormData);
+    
+    const validationRules: ValidationRule[] = [
+      createValidationRule("name", true, undefined, "Event name is required."),
+      createValidationRule("date", true, validateDate, "Please select a valid date."),
+      createValidationRule("time", true, validateDate, "Please select a valid start time."),
+      createValidationRule("endTime", true, validateDate, "Please select a valid end time."),
+      createValidationRule("location", true, undefined, "Location is required."),
+      createValidationRule("requiredServers", true, (value: any) => {
+        const num = parseInt(value, 10);
+        return !isNaN(num) && num > 0;
+      }, "Required servers must be a positive number."),
+    ];
+
+    const validationErrors = validateForm(sanitizedData, validationRules);
+
+    // Validate time range
+    if (selectedTime && selectedEndTime && selectedTime >= selectedEndTime) {
+      validationErrors.push({
+        field: "endTime",
+        message: "End time must be after start time.",
+        element: null,
+      });
+    }
+
+    if (validationErrors.length > 0) {
+      scrollToFirstError(validationErrors);
     }
   };
 
@@ -588,6 +660,10 @@ export default function EventDetailsPage(): ReactElement {
           selectedEndTime={selectedEndTime}
           isSubmitting={isSubmitting}
           setEditFormData={setEditFormData}
+          formErrors={formErrors}
+          showErrorModal={showErrorModal}
+          onCloseErrorModal={() => setShowErrorModal(false)}
+          onScrollToFirstError={handleScrollToFirstError}
         />
       )}
 

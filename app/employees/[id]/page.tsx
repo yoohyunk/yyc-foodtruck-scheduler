@@ -15,6 +15,8 @@ import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import { wagesApi } from "@/lib/supabase/wages";
+import ErrorModal from "../../components/ErrorModal";
+import { validateForm, ValidationRule, ValidationError, scrollToFirstError, validateEmail, validatePhone, validateRequired, validateNumber, createValidationRule } from "../../lib/formValidation";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();
@@ -22,6 +24,8 @@ export default function EditEmployeePage(): ReactElement {
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const { shouldHighlight } = useTutorial();
   const addressFormRef = useRef<AddressFormRef>(null);
   const [formData, setFormData] = useState<EmployeeFormData>({
@@ -44,6 +48,14 @@ export default function EditEmployeePage(): ReactElement {
     longitude: "",
   });
 
+  // Refs for form fields
+  const firstNameRef = useRef<HTMLInputElement>(null);
+  const lastNameRef = useRef<HTMLInputElement>(null);
+  const roleRef = useRef<HTMLSelectElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const wageRef = useRef<HTMLInputElement>(null);
+
   const daysOfWeek = [
     "Monday",
     "Tuesday",
@@ -53,6 +65,8 @@ export default function EditEmployeePage(): ReactElement {
     "Saturday",
     "Sunday",
   ];
+
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   // Fetch employee details
   useEffect(() => {
@@ -225,6 +239,25 @@ export default function EditEmployeePage(): ReactElement {
     e.preventDefault();
     console.log("Form submission started");
 
+    const validationRules: ValidationRule[] = [
+      createValidationRule("first_name", true, undefined, "First name is required.", firstNameRef.current),
+      createValidationRule("last_name", true, undefined, "Last name is required.", lastNameRef.current),
+      createValidationRule("role", true, undefined, "Role is required.", roleRef.current),
+      createValidationRule("email", true, validateEmail, "Please enter a valid email address.", emailRef.current),
+      createValidationRule("phone", true, validatePhone, "Please enter a valid phone number.", phoneRef.current),
+      createValidationRule("wage", true, (value: any) => validateNumber(value, 0), "Wage is required and must be a positive number.", wageRef.current),
+    ];
+
+    const validationErrors = validateForm(formData, validationRules);
+    setValidationErrors(validationErrors);
+
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors.map(error => error.message);
+      setFormErrors(errorMessages);
+      setShowErrorModal(true);
+      return;
+    }
+
     try {
       // Use structured address data from formData
       const street = formData.street || "";
@@ -306,7 +339,8 @@ export default function EditEmployeePage(): ReactElement {
 
         if (addressError) {
           console.error("Error updating address:", addressError);
-          alert("Failed to update address.");
+          setFormErrors(["Failed to update address."]);
+          setShowErrorModal(true);
           return;
         }
         addressId = existingEmployee.address_id;
@@ -332,7 +366,8 @@ export default function EditEmployeePage(): ReactElement {
 
         if (addressError) {
           console.error("Error creating address:", addressError);
-          alert("Failed to create address.");
+          setFormErrors(["Failed to create address."]);
+          setShowErrorModal(true);
           return;
         }
         addressId = newAddress.id;
@@ -393,9 +428,8 @@ export default function EditEmployeePage(): ReactElement {
 
           if (existingEmployeeWithPhone) {
             console.error("Phone number already used by another employee");
-            alert(
-              "This phone number is already used by another employee. Please use a different phone number."
-            );
+            setFormErrors(["This phone number is already used by another employee. Please use a different phone number."]);
+            setShowErrorModal(true);
             return;
           } else {
             updateData.user_phone = formData.phone;
@@ -427,7 +461,8 @@ export default function EditEmployeePage(): ReactElement {
         console.error("Error details:", employeeError.details);
         console.error("Error hint:", employeeError.hint);
         console.error("Error message:", employeeError.message);
-        alert("Failed to update employee.");
+        setFormErrors(["Failed to update employee."]);
+        setShowErrorModal(true);
         return;
       }
 
@@ -503,7 +538,8 @@ export default function EditEmployeePage(): ReactElement {
       router.push("/employees");
     } catch (error) {
       console.error("Error updating employee:", error);
-      alert("An error occurred while updating the employee.");
+      setFormErrors(["An error occurred while updating the employee."]);
+      setShowErrorModal(true);
     }
   };
 
@@ -554,34 +590,34 @@ export default function EditEmployeePage(): ReactElement {
           {/* Name */}
           <div>
             <label htmlFor="first_name" className="block font-medium">
-              First Name
+              First Name <span className="text-red-500">*</span>
             </label>
             <input
+              ref={firstNameRef}
               type="text"
               id="first_name"
               name="first_name"
               value={formData.first_name}
               onChange={handleChange}
               className="input-field"
-              required
             />
             <label htmlFor="last_name" className="block font-medium">
-              Last Name
+              Last Name <span className="text-red-500">*</span>
             </label>
             <input
+              ref={lastNameRef}
               type="text"
               id="last_name"
               name="last_name"
               value={formData.last_name}
               onChange={handleChange}
               className="input-field"
-              required
             />
           </div>
 
           {/* Address */}
           <div>
-            <label className="block font-medium">Address</label>
+            <label className="block font-medium">Address <span className="text-red-500">*</span></label>
             <AddressForm
               ref={addressFormRef}
               value={formData.address}
@@ -594,15 +630,15 @@ export default function EditEmployeePage(): ReactElement {
           {/* Role */}
           <div>
             <label htmlFor="role" className="block font-medium">
-              Role
+              Role <span className="text-red-500">*</span>
             </label>
             <select
+              ref={roleRef}
               id="role"
               name="role"
               value={formData.role}
               onChange={handleChange}
               className="input-field"
-              required
             >
               <option value="">Select Role</option>
               <option value="Driver">Driver</option>
@@ -614,48 +650,50 @@ export default function EditEmployeePage(): ReactElement {
           {/* Email */}
           <div>
             <label htmlFor="email" className="block font-medium">
-              Email
+              Email <span className="text-red-500">*</span>
             </label>
             <input
+              ref={emailRef}
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               className="input-field"
-              required
             />
           </div>
 
           {/* Phone */}
           <div>
             <label htmlFor="phone" className="block font-medium">
-              Phone
+              Phone <span className="text-red-500">*</span>
             </label>
             <input
+              ref={phoneRef}
               type="tel"
               id="phone"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
               className="input-field"
-              required
             />
           </div>
 
           {/* Wage */}
           <div>
             <label htmlFor="wage" className="block font-medium">
-              Wage
+              Wage <span className="text-red-500">*</span>
             </label>
             <input
+              ref={wageRef}
               type="number"
               id="wage"
               name="wage"
               value={formData.wage}
               onChange={handleChange}
               className="input-field"
-              required
+              min="0"
+              step="0.01"
             />
           </div>
 
@@ -735,6 +773,13 @@ export default function EditEmployeePage(): ReactElement {
           </div>
         </form>
       </TutorialHighlight>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        errors={validationErrors}
+      />
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

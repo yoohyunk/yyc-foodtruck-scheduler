@@ -101,3 +101,34 @@ export interface Coordinates {
   latitude: number;
   longitude: number;
 }
+
+// Utility functions for truck type color coding
+export const getTruckTypeColor = (type: string): string => {
+  switch (type) {
+    case "Food Truck":
+      return "border-orange-300 bg-orange-50";
+    case "Beverage Truck":
+      return "border-blue-300 bg-blue-50";
+    case "Dessert Truck":
+      return "border-pink-300 bg-pink-50";
+    case "Holiday Truck":
+      return "border-purple-300 bg-purple-50";
+    default:
+      return "border-gray-300 bg-gray-50";
+  }
+};
+
+export const getTruckTypeBadge = (type: string): string => {
+  switch (type) {
+    case "Food Truck":
+      return "bg-orange-100 text-orange-800";
+    case "Beverage Truck":
+      return "bg-blue-100 text-blue-800";
+    case "Dessert Truck":
+      return "bg-pink-100 text-pink-800";
+    case "Holiday Truck":
+      return "bg-purple-100 text-purple-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};

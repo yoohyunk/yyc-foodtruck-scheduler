@@ -5,6 +5,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
+import ErrorModal from "./ErrorModal";
 
 interface AddressFormProps {
   value: string;
@@ -15,6 +16,7 @@ interface AddressFormProps {
   placeholder?: string;
   required?: boolean;
   className?: string;
+  onCheckAddress?: () => boolean;
 }
 
 interface AddressFormData {
@@ -86,10 +88,10 @@ const getFullAddress = (data: {
   city: string;
   postalCode: string;
 }) =>
-  `${data.streetNumber} ${expandAbbreviations(data.streetName)}${data.direction && data.direction !== "None" ? " " + data.direction : ""}, ${data.city}, ${data.postalCode}`;
+  `${data.streetNumber} ${data.streetName}${data.direction && data.direction !== "None" ? " " + data.direction : ""}, ${data.city}, ${data.postalCode}`;
 
 const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
-  ({ value, onChange, required = false, className = "" }, ref) => {
+  ({ value, onChange, required = false, className = "", onCheckAddress }, ref) => {
     const [formData, setFormData] = useState<AddressFormData>({
       streetNumber: "",
       streetName: "",
@@ -119,6 +121,9 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     );
     const [checkMessage, setCheckMessage] = useState<string>("");
     const [isChecking, setIsChecking] = useState(false);
+
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorMessagesModal, setErrorMessagesModal] = useState<string[]>([]);
 
     const streetNumberRef = useRef<HTMLInputElement>(null);
     const streetNameRef = useRef<HTMLInputElement>(null);
@@ -213,65 +218,19 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       return name.trim().length > 0;
     };
 
-    // Update parent component with full address
-    const updateParentAddress = (newData: typeof formData) => {
-      const fullAddress = getFullAddress(newData);
-      onChange(fullAddress);
+    // Handler for street number change (allow spaces, no stripping/collapsing)
+    const handleStreetNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value; // allow spaces as typed
+      setFormData((prev) => ({ ...prev, streetNumber: value }));
     };
 
-    // Handle individual field changes
-    const handleChange = (
-      e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    ) => {
-      const { name, value } = e.target;
-
-      const newFormData = {
-        ...formData,
-        [name]: value,
-      };
-      setFormData(newFormData);
-
-      // Validate after state update
-      let isValid = true;
-      let errorMessage = "";
-
-      if (name === "postalCode") {
-        const formattedValue = formatPostalCode(value);
-        isValid = validatePostalCode(formattedValue);
-        errorMessage = isValid
-          ? ""
-          : "Please enter a valid postal code (e.g., T2N 1N4)";
-      } else if (name === "streetNumber") {
-        isValid = validateStreetNumber(value);
-        errorMessage = isValid ? "" : "Please enter a valid street number";
-      } else if (name === "streetName") {
-        isValid = value.trim().length > 0;
-        errorMessage = isValid ? "" : "Please enter a street name";
-      }
-
-      setValidation((prev) => ({
-        ...prev,
-        [name]: isValid,
-      }));
-
-      setErrorMessages((prev) => ({
-        ...prev,
-        [name]: errorMessage,
-      }));
-
-      // Update parent component with the new full address
-      updateParentAddress(newFormData);
-    };
-
-    // Add a specific handler for street name
+    // Handler for street name change (allow spaces, no stripping/collapsing)
     const handleStreetNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      const newFormData = { ...formData, streetName: value };
-      setFormData(newFormData);
-      updateParentAddress(newFormData);
+      const value = e.target.value; // allow spaces as typed
+      setFormData((prev) => ({ ...prev, streetName: value }));
     };
 
-    // Add a blur handler for street name
+    // Handler for street name blur (just validation, no abbreviation expansion)
     const handleStreetNameBlur = () => {
       setShowErrors(true);
       const value = formData.streetName;
@@ -286,19 +245,19 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         ...prev,
         streetName: isValid ? "" : "Please enter a street name",
       }));
-
-      // Parent is already updated by handleStreetNameChange, no need to call here
     };
 
-    // Add a handler for postal code formatting
+    // Handler for postal code formatting (allow spaces, only auto-insert after 3 chars)
     const handlePostalCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-      if (value.length > 3) {
-        value = value.slice(0, 3) + " " + value.slice(3, 6);
+      let value = e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, ""); // allow spaces
+      // Only auto-insert a space after 3 characters if not already present
+      if (value.length === 4 && value[3] !== " ") {
+        value = value.slice(0, 3) + " " + value.slice(3);
       }
-      const newFormData = { ...formData, postalCode: value };
-      setFormData(newFormData);
-      updateParentAddress(newFormData);
+      if (value.length > 6 && value[3] !== " ") {
+        value = value.slice(0, 3) + " " + value.slice(3);
+      }
+      setFormData((prev) => ({ ...prev, postalCode: value }));
     };
 
     // Parse initial value if provided
@@ -338,11 +297,30 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
 
     // Geocode address using Nominatim
     const geocodeAddress = async () => {
+      // Validate required fields first
+      const isValid = validateStreetNumber(formData.streetNumber) && validateStreetName(formData.streetName);
+      if (!isValid) {
+        setShowErrors(true);
+        setValidation((prev) => ({
+          ...prev,
+          streetNumber: validateStreetNumber(formData.streetNumber),
+          streetName: validateStreetName(formData.streetName),
+        }));
+        setErrorMessagesModal(["Please enter a valid street number and street name."]);
+        setShowErrorModal(true);
+        setCheckStatus("error");
+        setCheckMessage("Please enter a valid street number and street name.");
+        if (typeof onCheckAddress === 'function') onCheckAddress();
+        return;
+      }
       setIsChecking(true);
       setCheckStatus(null);
       setCheckMessage("");
-      const fullAddress = getFullAddress(formData);
-
+      // Expand abbreviations ONLY when checking address
+      const expandedStreetName = expandAbbreviations(formData.streetName);
+      const geocodeData = { ...formData, streetName: expandedStreetName };
+      const fullAddress = getFullAddress(geocodeData);
+      setFormData(geocodeData); // update the form with expanded name for consistency
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`;
         const response = await fetch(url, {
@@ -356,30 +334,19 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             latitude: parseFloat(data[0].lat),
             longitude: parseFloat(data[0].lon),
           };
-          if (
-            !coords ||
-            coords.latitude === undefined ||
-            coords.longitude === undefined
-          ) {
-            setCheckStatus("error");
-            setCheckMessage("Please check address.");
-            onChange(fullAddress);
-          } else {
-            setCheckStatus("success");
-            setCheckMessage("Address found and validated!");
-            onChange(fullAddress, coords);
-          }
+          setCheckStatus("success");
+          setCheckMessage("Address found and validated!");
+          onChange(fullAddress, coords); // Pass up to parent
         } else {
           setCheckStatus("error");
           setCheckMessage("Address not found. Please check your input.");
-          onChange(fullAddress);
         }
       } catch {
         setCheckStatus("error");
-        setCheckMessage("Please check address.");
-        onChange(fullAddress);
+        setCheckMessage("Error validating address. Please try again.");
       } finally {
         setIsChecking(false);
+        if (typeof onCheckAddress === 'function') onCheckAddress();
       }
     };
 
@@ -392,9 +359,9 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
               type="text"
               name="streetNumber"
               value={formData.streetNumber}
-              onChange={handleChange}
+              onChange={handleStreetNumberChange}
               onBlur={() => setShowErrors(true)}
-              placeholder="Street Number"
+              placeholder="Street Number *"
               required={required}
               className={`w-full px-3 py-2 border ${
                 showErrors && !validation.streetNumber
@@ -416,7 +383,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
               value={formData.streetName}
               onChange={handleStreetNameChange}
               onBlur={handleStreetNameBlur}
-              placeholder="Street Name"
+              placeholder="Street Name *"
               required={required}
               className={`w-full px-3 py-2 border ${
                 showErrors && !validation.streetName
@@ -434,7 +401,10 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             <select
               name="direction"
               value={formData.direction}
-              onChange={handleChange}
+              onChange={e => {
+                const value = e.target.value;
+                setFormData((prev) => ({ ...prev, direction: value }));
+              }}
               onBlur={() => setShowErrors(true)}
               required={required}
               className={`w-full px-3 py-2 border ${showErrors && !validation.direction ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
@@ -451,7 +421,10 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         <select
           name="city"
           value={formData.city}
-          onChange={handleChange}
+          onChange={e => {
+            const value = e.target.value;
+            setFormData((prev) => ({ ...prev, city: value }));
+          }}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {ALBERTA_CITIES.map((city) => (
@@ -469,7 +442,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             value={formData.postalCode}
             onChange={handlePostalCodeChange}
             onBlur={() => setShowErrors(true)}
-            placeholder="Postal Code"
+            placeholder="Postal Code (Optional)"
             required={false}
             maxLength={7}
             className={`w-full px-3 py-2 border ${
@@ -507,6 +480,11 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         {checkStatus === "error" && (
           <p className="text-red-500 text-sm mt-1">{checkMessage}</p>
         )}
+        <ErrorModal
+          isOpen={showErrorModal}
+          onClose={() => setShowErrorModal(false)}
+          errors={errorMessagesModal.map(msg => ({ field: "address", message: msg }))}
+        />
         <style jsx>{`
           @keyframes spin {
             to {
