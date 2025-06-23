@@ -14,13 +14,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
   }
 
-  const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/set-password?email=${encodeURIComponent(email)}`,
+  // Log environment variables for debugging (remove in production)
+  console.log("Environment check:", {
+    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    appUrl: process.env.NEXT_PUBLIC_APP_URL,
   });
+
+  const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/set-password`;
+  console.log("Redirect URL:", redirectUrl);
+
+  const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo: redirectUrl,
+  });
+
   if (error) {
     console.error("Invite error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  console.log("Invite successful for:", email);
 
   const { data: employeeData, error: employeeError } = await supabase
     .from("employees")
