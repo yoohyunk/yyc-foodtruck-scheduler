@@ -295,7 +295,8 @@ export default function InviteEmployee(): ReactElement {
         onClose={() => setShowErrorModal(false)}
         errors={validationErrors}
         title={
-          validationErrors.length === 1 && validationErrors[0].field === "success"
+          validationErrors.length === 1 &&
+          validationErrors[0].field === "success"
             ? "Success!"
             : "Please fix the following errors:"
         }
