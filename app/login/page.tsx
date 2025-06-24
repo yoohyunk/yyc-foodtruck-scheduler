@@ -95,7 +95,7 @@ export default function LoginPage(): ReactElement {
           <div className="absolute top-0 left-0 w-full h-2 bg-[#00809D]"></div>
           <div className="absolute top-4 right-4 w-8 h-8 bg-[#E78F81] rounded-full opacity-60"></div>
           <div className="absolute bottom-4 left-4 w-6 h-6 bg-[#FFF5CD] rounded-full opacity-60"></div>
-          
+
           <div className="flex flex-col items-center justify-center mb-8">
             <h2 className="w-full text-4xl font-black text-center text-[#00809D]">
               Login
@@ -148,7 +148,10 @@ export default function LoginPage(): ReactElement {
                   <div className="absolute inset-y-0 right-0 w-1 bg-[#FFF5CD] rounded-r-xl"></div>
                 </div>
                 <div className="text-end">
-                  <a href="/forgotpassword" className="text-sm text-[#E78F81] hover:text-[#1a202c] hover:underline font-medium transition-colors duration-300">
+                  <a
+                    href="/forgotpassword"
+                    className="text-sm text-[#E78F81] hover:text-[#1a202c] hover:underline font-medium transition-colors duration-300"
+                  >
                     Forgot your password?
                   </a>
                 </div>
@@ -156,7 +159,9 @@ export default function LoginPage(): ReactElement {
 
               {error && (
                 <div className="bg-[#E78F81] p-4 rounded-xl border-2 border-[#E78F81]">
-                  <p className="text-white text-center text-sm font-bold">{error}</p>
+                  <p className="text-white text-center text-sm font-bold">
+                    {error}
+                  </p>
                 </div>
               )}
 

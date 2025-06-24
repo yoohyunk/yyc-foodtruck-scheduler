@@ -36,19 +36,27 @@ export default function TruckCard({
 }: TruckCardProps): ReactElement {
   return (
     <div className="truck-card">
-      <h3 className="font-bold text-xl mb-2">
-        {truck.name}
-      </h3>
+      <h3 className="font-bold text-xl mb-2">{truck.name}</h3>
       {viewMode === "detailed" && (
         <>
-          <p className="text-sm mb-2"><strong>ID:</strong> T-{String(truck.id).padStart(4, "0")}</p>
-          <p className="text-sm mb-2"><strong>Type:</strong> {truck.type}</p>
-          <p className="text-sm mb-2"><strong>Capacity:</strong> {truck.capacity} items</p>
-          <p className="text-sm mb-3"><strong>Location:</strong> {truck.location}</p>
+          <p className="text-sm mb-2">
+            <strong>ID:</strong> T-{String(truck.id).padStart(4, "0")}
+          </p>
+          <p className="text-sm mb-2">
+            <strong>Type:</strong> {truck.type}
+          </p>
+          <p className="text-sm mb-2">
+            <strong>Capacity:</strong> {truck.capacity} items
+          </p>
+          <p className="text-sm mb-3">
+            <strong>Location:</strong> {truck.location}
+          </p>
         </>
       )}
       <div className="mt-2 mb-3">
-        <div className={`employee-status ${truck.status === "Available" ? 'available' : 'unavailable'}`}>
+        <div
+          className={`employee-status ${truck.status === "Available" ? "available" : "unavailable"}`}
+        >
           {truck.status}
         </div>
       </div>
@@ -69,8 +77,8 @@ export default function TruckCard({
         ) : (
           <div className="error-container p-3">
             <p className="text-sm font-bold">
-            No driver assigned. A driver is required for this truck.
-          </p>
+              No driver assigned. A driver is required for this truck.
+            </p>
           </div>
         )}
       </div>
