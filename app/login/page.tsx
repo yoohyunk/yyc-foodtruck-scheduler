@@ -1,112 +1,57 @@
 "use client";
 
-import React, { useState, ReactElement, useRef } from "react";
+import { useState, FormEvent, ChangeEvent, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import ErrorModal from "@/app/components/ErrorModal";
-import {
-  validateForm,
-  ValidationRule,
-  ValidationError,
-  createValidationRule,
-  sanitizeFormData,
-  commonValidationRules,
-} from "@/lib/formValidation";
 
 export default function LoginPage(): ReactElement {
   const router = useRouter();
-  const supabase = createClient();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [role, setRole] = useState<Role>("Admin");
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
-    []
-  );
-
-  // Refs for form fields
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
-
   const [error, setError] = useState<string>("");
   const supabase = createClient();
-  const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setError("");
 
-    // Sanitize form data
-    const formData = { email, password };
-    const sanitizedData = sanitizeFormData(formData);
-
-    // Validate form data
-    const validationRules: ValidationRule[] = [
-      commonValidationRules.email(emailRef.current),
-      createValidationRule(
-        "password",
-        true,
-        undefined,
-        "Password is required.",
-        passwordRef.current
-      ),
-    ];
-
-    const validationErrors = validateForm(sanitizedData, validationRules);
-    setValidationErrors(validationErrors);
-
-    if (validationErrors.length > 0) {
-      const errorMessages = validationErrors.map((error) => error.message);
-      setError(errorMessages[0]);
-      setShowErrorModal(true);
-      setLoading(false);
+    // 1) Supabase 로그인
+    const { data: sessionData, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email: username,
+        password,
+      });
+    if (signInError || !sessionData.session) {
+      setError(signInError?.message || "Login failed");
       return;
     }
 
-    try {
-      // Attempt to sign in with email/password
-      const { data: authData, error: signInError } =
-        await supabase.auth.signInWithPassword({
-          email: sanitizedData.email,
-          password: sanitizedData.password,
-        });
+    const userId = sessionData.user.id;
+    const { data: emp, error: empError } = await supabase
+      .from("employees")
+      .select("employee_type")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (empError) {
+      setError(empError.message);
+      return;
+    }
 
-      if (signInError) {
-        setValidationErrors([
-          {
-            field: "auth",
-            message: signInError.message,
-            element: null,
-          },
-        ]);
-        setShowErrorModal(true);
-        setLoading(false);
+    if (!emp) {
+      const { error: insertError } = await supabase.from("employees").insert({
+        user_id: userId,
+        user_email: username,
+      });
+      if (insertError) {
+        setError(insertError.message);
         return;
       }
 
-      // Check if user exists in employees table
-      if (authData.user) {
-        const { data: employeeData, error: employeeError } = await supabase
-          .from("employees")
-          .select("*")
-          .eq("user_id", authData.user.id)
-          .single();
-        if (employeeError && employeeError.code !== "PGRST116") {
-          // PGRST116 means no rows returned, which is expected for new users
-          setValidationErrors([
-            {
-              field: "employee",
-              message: "Error checking employee status. Please try again.",
-              element: null,
-            },
-          ]);
-          setShowErrorModal(true);
-          setLoading(false);
-          return;
+      router.push("/admin-dashboard");
+      return;
+    }
 
     if (emp.employee_type === "Admin") {
       router.push("/admin-dashboard");
@@ -115,33 +60,12 @@ export default function LoginPage(): ReactElement {
     }
   };
 
+  const handleUsernameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setUsername(e.target.value);
+  };
 
-        if (!employeeData) {
-          // User doesn't exist in employees table - redirect to setup
-          router.push("/set-up-employee-info");
-          return;
-        }
-
-        // User exists - redirect based on role
-        if (employeeData.employee_type === "Admin") {
-          router.push("/");
-        } else {
-          router.push("/");
-        }
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      setValidationErrors([
-        {
-          field: "auth",
-          message: "An unexpected error occurred. Please try again.",
-          element: null,
-        },
-      ]);
-      setShowErrorModal(true);
-    } finally {
-      setLoading(false);
-    }
+  const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
   };
 
   return (
@@ -224,12 +148,6 @@ export default function LoginPage(): ReactElement {
           </form>
         </div>
       </div>
-
-      <ErrorModal
-        isOpen={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        errors={validationErrors}
-      />
-    </>
+    </div>
   );
 }
