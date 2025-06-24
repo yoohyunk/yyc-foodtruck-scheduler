@@ -1,9 +1,11 @@
 import "./globals.css";
+import AuthGuard from "./components/AuthGuard";
 
 import { ReactNode, ReactElement } from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClientLayoutContent } from "./components/ClientLayoutContent";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,7 +28,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen flex flex-col`}>
-        <ClientLayoutContent>{children}</ClientLayoutContent>
+        <AuthProvider>
+          <AuthGuard>
+            {/* This component will render its children only if the user is authenticated. */}
+            {/* If the user is not authenticated, it redirects to the login page. */}
+            <ClientLayoutContent>{children}</ClientLayoutContent>
+          </AuthGuard>
+        </AuthProvider>
       </body>
     </html>
   );

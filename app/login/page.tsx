@@ -2,7 +2,6 @@
 
 import React, { useState, ReactElement, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import ErrorModal from "@/app/components/ErrorModal";
@@ -14,8 +13,6 @@ import {
   sanitizeFormData,
   commonValidationRules,
 } from "@/lib/formValidation";
-
-type Role = "Admin" | "Employee";
 
 export default function LoginPage(): ReactElement {
   const router = useRouter();
@@ -36,6 +33,8 @@ export default function LoginPage(): ReactElement {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
+  const [error, setError] = useState<string>("");
+  const supabase = createClient();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -96,7 +95,6 @@ export default function LoginPage(): ReactElement {
           .select("*")
           .eq("user_id", authData.user.id)
           .single();
-
         if (employeeError && employeeError.code !== "PGRST116") {
           // PGRST116 means no rows returned, which is expected for new users
           setValidationErrors([
@@ -109,7 +107,14 @@ export default function LoginPage(): ReactElement {
           setShowErrorModal(true);
           setLoading(false);
           return;
-        }
+
+    if (emp.employee_type === "Admin") {
+      router.push("/admin-dashboard");
+    } else {
+      router.push("/");
+    }
+  };
+
 
         if (!employeeData) {
           // User doesn't exist in employees table - redirect to setup
@@ -140,114 +145,83 @@ export default function LoginPage(): ReactElement {
   };
 
   return (
-    <>
-      <div className="w-full min-h-screen bg-gradient-to-br from-green-100 via-yellow-100 to-green-200 flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-10 space-y-6 border border-gray-100">
-          <div className="flex justify-center">
-            <Image
-              src="/yyctrucks.jpg"
-              alt="YYC Food Trucks"
-              width={100}
-              height={100}
-              className="rounded-lg object-contain shadow-md"
-            />
+    <div className="min-h-screen flex">
+      <div className="w-1/4 ">
+        <div
+          className="h-full w-full bg-cover bg-center bg-no-repeat "
+          style={{
+            backgroundImage: "url('/loginBackground.png')",
+          }}
+        />
+      </div>
+
+      <div className="w-3/4 min-h-screen flex items-center justify-center bg-white px-8">
+        <div className="flex flex-col w-full max-w-md min-h-[28rem] bg-white rounded-2xl shadow-2xl p-10 gap-10 border border-gray-100">
+          <div className="flex flex-col items-center justify-center mb-6">
+            <h2 className=" w-full text-3xl font-bold text-center text-green-800 ">
+              Login
+            </h2>
           </div>
 
-          <h2 className="text-3xl font-bold text-center text-green-800">
-            Login
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Email <span className="text-red-500">*</span>
-              </label>
-              <input
-                ref={emailRef}
-                id="email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 bg-[#f1f9ff]"
-                placeholder="Enter your email"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
+          <form
+            onSubmit={handleLogin}
+            className=" flex flex-col justify-between items-center"
+          >
+            <div className="flex flex-col gap-6 flex-grow">
+              <div className="space-y-2 mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Username
+                </label>
                 <input
-                  ref={passwordRef}
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 bg-[#f1f9ff]"
-                  placeholder="Enter your password"
+                  type="text"
+                  value={username}
+                  onChange={handleUsernameChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 bg-[#f1f9ff]"
+                  placeholder="Enter your username"
+                  required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
               </div>
-            </div>
 
-            <div className="flex gap-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={handlePasswordChange}
+                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 bg-[#f1f9ff]"
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                <div className="text-end text-sm text-gray-500">
+                  <a href="/forgotpassword" className="hover:underline">
+                    Forgot your password?
+                  </a>
+                </div>
+              </div>
+
+              {error && (
+                <p className="text-red-500 text-center text-sm">{error}</p>
+              )}
+
               <button
-                type="button"
-                onClick={() => setRole("Employee")}
-                className={`w-1/2 py-2 rounded-lg font-medium border ${
-                  role === "Employee"
-                    ? "bg-green-600 text-white"
-                    : "bg-white border-gray-300 text-gray-700"
-                }`}
+                type="submit"
+                className="w-full min-h-8 bg-green-600 text-white py-6 rounded-lg font-semibold hover:bg-green-700 transition"
               >
-                Employee
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("Admin")}
-                className={`w-1/2 py-2 rounded-lg font-medium border ${
-                  role === "Admin"
-                    ? "bg-green-600 text-white"
-                    : "bg-white border-gray-300 text-gray-700"
-                }`}
-              >
-                Admin
+                Login
               </button>
             </div>
-
-            {error && (
-              <p className="text-red-500 text-center text-sm">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50"
-            >
-              {loading ? "Logging in..." : "Login"}
-            </button>
           </form>
-
-          <div className="text-center text-sm text-gray-500">
-            <a href="/forgotpassword" className="hover:underline">
-              Forgot your password?
-            </a>
-          </div>
         </div>
       </div>
 
