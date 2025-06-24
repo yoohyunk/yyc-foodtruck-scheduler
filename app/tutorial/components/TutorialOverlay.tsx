@@ -362,9 +362,7 @@ export function TutorialOverlay() {
       };
 
       // Add event listener to the Next button
-      const nextButton = document.querySelector(
-        ".tutorial-button-primary"
-      );
+      const nextButton = document.querySelector(".tutorial-button-primary");
       if (nextButton) {
         nextButton.addEventListener("click", handleNextButtonClick);
         return () => {

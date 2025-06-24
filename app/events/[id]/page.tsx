@@ -223,61 +223,6 @@ export default function EventDetailsPage(): ReactElement {
     }
   }, [serverAssignments, employees, assignedEmployees]);
 
-  const handleEmployeeSelection = async (employee: Employee) => {
-    if (!event?.id) return;
-
-    try {
-      const isCurrentlyAssigned = assignedEmployees.some(
-        (e) => e.employee_id === employee.employee_id
-      );
-
-      if (isCurrentlyAssigned) {
-        // Remove assignment
-        const assignmentToRemove = serverAssignments.find(
-          (assignment) => assignment.employee_id === employee.employee_id
-        );
-
-        if (assignmentToRemove) {
-          await assignmentsApi.removeServerAssignment(
-            assignmentToRemove.id,
-            event.id
-          );
-
-          // Update local state
-          setServerAssignments(
-            serverAssignments.filter(
-              (assignment) => assignment.employee_id !== employee.employee_id
-            )
-          );
-        }
-      } else {
-        // Check if we can add more employees
-        if (assignedEmployees.length >= (event.number_of_servers_needed || 0)) {
-          alert(
-            `Maximum number of servers (${event.number_of_servers_needed}) already assigned.`
-          );
-          return;
-        }
-
-        // Add assignment
-        await assignmentsApi.addServerAssignment(
-          event.id,
-          employee.employee_id,
-          event.start_date || new Date().toISOString(),
-          event.end_date || new Date().toISOString()
-        );
-
-        // Refresh server assignments
-        const updatedAssignments =
-          await assignmentsApi.getServerAssignmentsByEventId(event.id);
-        setServerAssignments(updatedAssignments);
-      }
-    } catch (error) {
-      console.error("Error handling employee selection:", error);
-      alert("Failed to update employee assignment. Please try again.");
-    }
-  };
-
   // New handler for saving employee assignments from modal
   const handleSaveEmployeeAssignments = async (
     selectedEmployeeIds: string[]
@@ -791,7 +736,6 @@ export default function EventDetailsPage(): ReactElement {
             onClose={closeEmployeeModal}
             employees={employees}
             assignedEmployees={assignedEmployees}
-            onEmployeeSelection={handleEmployeeSelection}
             onSaveAssignments={handleSaveEmployeeAssignments}
             employeeFilter={employeeFilter}
             onFilterChange={(filter) => setEmployeeFilter(filter)}

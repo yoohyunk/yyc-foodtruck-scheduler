@@ -26,7 +26,6 @@ interface EmployeeSelectionModalProps {
     start_date?: string;
     end_date?: string;
   };
-  onEmployeeSelection: (employee: Employee) => void;
   onSaveAssignments: (selectedEmployeeIds: string[]) => void;
   shouldHighlight: (selector: string) => boolean;
   employeeFilter: string;
@@ -106,7 +105,6 @@ export default function EmployeeSelectionModal({
   assignedEmployees,
   isLoadingEmployees,
   event,
-  onEmployeeSelection,
   onSaveAssignments,
   shouldHighlight,
   employeeFilter,
@@ -133,12 +131,6 @@ export default function EmployeeSelectionModal({
       setSelectedEmployees(newSelectedEmployees);
     }
   }, [isOpen, assignedEmployees]);
-
-  // Memoize assigned employee IDs for faster lookups
-  const assignedEmployeeIds = useMemo(
-    () => new Set(assignedEmployees.map((emp) => emp.employee_id)),
-    [assignedEmployees]
-  );
 
   // Memoize the event key to prevent unnecessary recalculations
   const eventKey = useMemo(() => {
@@ -231,7 +223,7 @@ export default function EmployeeSelectionModal({
 
       return { isAvailable: true, reason: "" };
     },
-    [eventKey, supabase]
+    [event.id, event.start_date, event.end_date, supabase]
   );
 
   const calculateDistancesAndWages = useCallback(async () => {
