@@ -750,10 +750,10 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-center">
+            <div>
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                className="button"
               >
                 Complete Profile
               </button>
