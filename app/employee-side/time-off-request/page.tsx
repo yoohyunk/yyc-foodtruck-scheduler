@@ -2,10 +2,10 @@
 
 import { useState, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-import { TimeOffRequestFormData } from "../types";
+import { TimeOffRequestFormData } from "../../types";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
-import { useTutorial } from "../tutorial/TutorialContext";
-import { TutorialHighlight } from "../components/TutorialHighlight";
+import { useTutorial } from "../../tutorial/TutorialContext";
+import { TutorialHighlight } from "../../components/TutorialHighlight";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 

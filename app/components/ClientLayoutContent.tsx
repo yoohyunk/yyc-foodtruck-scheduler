@@ -17,6 +17,7 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
 
   const noLayoutPaths = ["/login", "/set-password"];
   const isPublicPage = noLayoutPaths.includes(pathname);
+  const isEmployeeSide = pathname.startsWith("/employee-side");
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -28,7 +29,7 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
     }
   }, [pathname, router]);
 
-  if (isPublicPage) {
+  if (isPublicPage || isEmployeeSide) {
     return <>{children}</>;
   }
 

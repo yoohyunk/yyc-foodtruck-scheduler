@@ -1,10 +1,10 @@
 "use client";
-import "../globals.css";
+
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ViewToggle } from "../schedule/components/ViewToggle";
-import { Navigation } from "../schedule/components/Navigation";
-import { Calendar, CalendarEvent } from "../schedule/components/Calendar";
+import { ViewToggle } from "../../schedule/components/ViewToggle";
+import { Navigation } from "../../schedule/components/Navigation";
+import { Calendar, CalendarEvent } from "../../schedule/components/Calendar";
 
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { useAuth } from "@/contexts/AuthContext";
