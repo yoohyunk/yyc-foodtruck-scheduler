@@ -17,7 +17,7 @@ export interface CalendarEvent {
   title: string;
   start: Date;
   end: Date;
-  extendedProps: {
+  extendedProps?: {
     location: string;
     trucks: string[];
     assignedStaff: string[];

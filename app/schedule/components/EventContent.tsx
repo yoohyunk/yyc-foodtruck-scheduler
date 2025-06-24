@@ -17,18 +17,22 @@ export const EventContent = (eventInfo: EventContentArg) => {
           minute: "2-digit",
         })}
       </p>
-      <p className="custom-event-location text-gray-500">
-        {eventInfo.event.extendedProps.location}
-      </p>
-      <p
-        className={`custom-event-status ${
-          eventInfo.event.extendedProps.status === "Scheduled"
-            ? "text-primary-medium"
-            : "text-gray-500"
-        }`}
-      >
-        {eventInfo.event.extendedProps.status}
-      </p>
+      {eventInfo.event.extendedProps && (
+        <>
+          <p className="custom-event-location text-gray-500">
+            {eventInfo.event.extendedProps.location}
+          </p>
+          <p
+            className={`custom-event-status ${
+              eventInfo.event.extendedProps.status === "Scheduled"
+                ? "text-primary-medium"
+                : "text-gray-500"
+            }`}
+          >
+            {eventInfo.event.extendedProps.status}
+          </p>
+        </>
+      )}
     </div>
   );
 };
