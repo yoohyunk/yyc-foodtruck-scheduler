@@ -1083,18 +1083,18 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
     },
     {
       id: "role-selection",
-      title: "Role Selection 👥",
+      title: "Role Assigned by Your Boss 👥",
       content:
-        "Choose your role: Driver (delivers food), Server (serves customers), or Admin (manages the business). Your role determines what tasks you'll be assigned.",
-      target: "select[name='role']",
+        "Your boss (admin) has assigned your role. You can view your role here, but you cannot change it. If you believe your role is incorrect, please contact your manager.",
+      target: "div:has(.personal-info-section) .grid > div:nth-child(3)",
       position: "bottom",
     },
     {
       id: "wage-information",
-      title: "Wage Information 💰",
+      title: "View Your Wage 💰",
       content:
-        "Enter your hourly wage. This information is used for payroll and helps the system optimize staff assignments based on cost.",
-      target: "input[name='wage']",
+        "Your hourly wage has been set by your boss (admin). You can view your wage here, but you cannot edit it. If you have questions about your wage, please contact your manager.",
+      target: "div:has(.personal-info-section) .grid > div:nth-child(4)",
       position: "bottom",
     },
     {
