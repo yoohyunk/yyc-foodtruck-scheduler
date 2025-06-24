@@ -49,12 +49,12 @@ export default function LoginPage(): ReactElement {
         return;
       }
 
-      router.push("/admin-dashboard");
+      router.push("/");
       return;
     }
 
     if (emp.employee_type === "Admin") {
-      router.push("/admin-dashboard");
+      router.push("/");
     } else {
       router.push("/");
     }
