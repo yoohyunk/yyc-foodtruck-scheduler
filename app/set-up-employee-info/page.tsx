@@ -17,7 +17,6 @@ import {
   ValidationRule,
   ValidationError,
   createValidationRule,
-  commonValidationRules,
 } from "../../lib/formValidation";
 
 // Use Supabase types
@@ -78,10 +77,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
   // Refs for form fields
   const firstNameRef = useRef<HTMLInputElement>(null);
   const lastNameRef = useRef<HTMLInputElement>(null);
-  const roleRef = useRef<HTMLSelectElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
-  const wageRef = useRef<HTMLInputElement>(null);
 
   // Add state for address validity and validation message
   const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
@@ -322,7 +319,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
       createValidationRule(
         "user_email",
         true,
-        (value) => typeof value === "string" && /^[^@]+@[^@]+\.[^@]+$/.test(value),
+        (value) =>
+          typeof value === "string" && /^[^@]+@[^@]+\.[^@]+$/.test(value),
         "Please enter a valid email address."
       ),
       createValidationRule(
@@ -626,20 +624,19 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                 </div>
 
                 <div>
-                  <label
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Role
                   </label>
                   <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
-                    {employee.employee_type ? employee.employee_type.charAt(0).toUpperCase() + employee.employee_type.slice(1) : "Not set"}
+                    {employee.employee_type
+                      ? employee.employee_type.charAt(0).toUpperCase() +
+                        employee.employee_type.slice(1)
+                      : "Not set"}
                   </div>
                 </div>
 
                 <div>
-                  <label
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Hourly Wage
                   </label>
                   <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
@@ -751,10 +748,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
             {/* Submit Button */}
             <div>
-              <button
-                type="submit"
-                className="button"
-              >
+              <button type="submit" className="button">
                 Complete Profile
               </button>
             </div>
