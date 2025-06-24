@@ -223,7 +223,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       autoAction: {
         type: "click",
         delay: 300,
-        nextPath: "/employees/1",
+        nextPath: "/employees/{employeeId}",
         waitAfter: 800,
       },
     },
@@ -271,7 +271,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       autoAction: {
         type: "click",
         delay: 800,
-        nextPath: "/events/1",
+        nextPath: "/events/{eventId}",
         waitAfter: 600,
       },
     },
@@ -1184,7 +1184,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       return;
     }
     // No scroll logic here! Only overlay cleanup.
-  }, [currentStep, isActive, getCurrentSteps]);
+  }, [currentStep, isActive]);
 
   // Watch for path changes and resume tutorial if needed
   useEffect(() => {

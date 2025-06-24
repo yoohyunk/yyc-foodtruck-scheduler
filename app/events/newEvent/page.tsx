@@ -16,6 +16,7 @@ import HelpPopup from "@/app/components/HelpPopup";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
+import { assignmentsApi } from "@/lib/supabase/assignments";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -307,6 +308,23 @@ export default function AddEventPage(): ReactElement {
       // Get the required number of servers
       const requiredServers = parseInt(formData.requiredServers);
 
+      // Get available servers for auto-assignment
+      const availableServers = await assignmentsApi.getAvailableServers(
+        formData.date,
+        formData.time,
+        formData.endTime,
+        formData.location
+      );
+
+      if (availableServers.length < requiredServers) {
+        setFormErrors([
+          `Not enough available servers. Required: ${requiredServers}, Available: ${availableServers.length}. Please check server availability or reduce the required number.`,
+        ]);
+        setShowErrorModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       // Create event data with address
       const eventData = {
         title: formData.name,
@@ -321,6 +339,7 @@ export default function AddEventPage(): ReactElement {
         number_of_driver_needed: truckAssignments.length,
         number_of_servers_needed: requiredServers,
         is_prepaid: formData.isPrepaid,
+        status: "Pending",
         // Address data to be created first
         addressData: {
           street: formData.street,
@@ -346,6 +365,19 @@ export default function AddEventPage(): ReactElement {
           end_time: assignment.end_time,
         });
       }
+
+      // Auto-assign servers (closest ones first)
+      const selectedServerIds = availableServers
+        .slice(0, requiredServers)
+        .map((server) => server.employee_id);
+
+      await assignmentsApi.createServerAssignments(
+        newEvent.id,
+        selectedServerIds,
+        formData.date,
+        formData.time,
+        formData.endTime
+      );
 
       // Redirect to the specific event page
       window.location.href = `/events/${newEvent.id}`;

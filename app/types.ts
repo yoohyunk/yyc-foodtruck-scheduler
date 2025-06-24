@@ -77,18 +77,21 @@ export interface NavLink {
 }
 
 export interface TimeOffRequest {
+  id: string;
+  employee_id: string | null;
+  start_datetime: string;
+  end_datetime: string;
+  reason: string | null;
   type: string;
-  date: string;
-  duration: string;
-  reason: string;
   status: string;
+  created_at: string;
 }
 
 export interface TimeOffRequestFormData {
-  date: string;
-  type: string;
-  duration: string;
+  start_datetime: string;
+  end_datetime: string;
   reason: string;
+  type: string;
 }
 
 export interface HomePageEvent {
