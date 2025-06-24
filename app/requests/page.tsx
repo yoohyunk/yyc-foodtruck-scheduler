@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 
 export default function RequestsPage(): ReactElement {
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin } = useAuth();
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
