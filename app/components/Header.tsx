@@ -41,7 +41,6 @@ export default function Header(): React.ReactElement {
   const [tabWidths, setTabWidths] = useState<number[]>([]);
   const measureRefs = useRef<(HTMLElement | null)[]>([]);
 
-
   // Tutorial highlight logic
   const { shouldHighlight } = useTutorial();
   const highlightLogo = shouldHighlight(".logo.TutorialHighlight");
@@ -115,7 +114,6 @@ export default function Header(): React.ReactElement {
         {/* Logo Section */}
         <TutorialHighlight isHighlighted={highlightLogo} className="logo">
           <Link href="/" className="logo-link">
-
             <Image
               src="/yyctrucks.jpg"
               alt="YYC Logo"
