@@ -328,6 +328,50 @@ export const assignmentsApi = {
     }
   },
 
+  // Get all assignments for an employee
+  async getAssignmentsByEmployeeId(employeeId: string): Promise<
+    Array<{
+      id: string;
+      employee_id: string;
+      event_id: string;
+      start_date: string;
+      end_date: string;
+    }>
+  > {
+    const { data, error } = await supabase
+      .from("assignments")
+      .select("*")
+      .eq("employee_id", employeeId);
+
+    if (error) {
+      throw new Error(`Error fetching assignments: ${error.message}`);
+    }
+
+    return data || [];
+  },
+
+  // Get all truck assignments for an employee
+  async getTruckAssignmentsByEmployeeId(employeeId: string): Promise<
+    Array<{
+      id: string;
+      driver_id: string;
+      event_id: string;
+      start_date: string;
+      end_date: string;
+    }>
+  > {
+    const { data, error } = await supabase
+      .from("truck_assignment")
+      .select("*")
+      .eq("driver_id", employeeId);
+
+    if (error) {
+      throw new Error(`Error fetching truck assignments: ${error.message}`);
+    }
+
+    return data || [];
+  },
+
   // Remove a server assignment (for manual unassignment)
   async removeServerAssignment(
     assignmentId: string,
