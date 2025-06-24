@@ -94,6 +94,9 @@ export default function AddEventPage(): ReactElement {
   const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
   const [addressValidationMsg, setAddressValidationMsg] = useState<string>("");
 
+  // State for server warning
+  const [serverWarning, setServerWarning] = useState<string>("");
+
   // Set up autofill detection for all form fields
   useEffect(() => {
     const fields = [
@@ -435,11 +438,12 @@ export default function AddEventPage(): ReactElement {
     }
 
     setIsSubmitting(true);
+    setServerWarning("");
     try {
       // Get the required number of servers
       const requiredServers = parseInt(formData.requiredServers);
 
-      // Get available servers for auto-assignment (preserving origin/main functionality)
+      // Get available servers for auto-assignment
       const availableServers = await assignmentsApi.getAvailableServers(
         formData.date,
         formData.time,
@@ -447,17 +451,14 @@ export default function AddEventPage(): ReactElement {
         formData.location
       );
 
+      // Default event status
+      let eventStatus = "Scheduled";
+      // Only set to Pending if not enough servers
       if (availableServers.length < requiredServers) {
-        setValidationErrors([
-          {
-            field: "servers",
-            message: `Not enough available servers. Required: ${requiredServers}, Available: ${availableServers.length}. Please check server availability or reduce the required number.`,
-            element: requiredServersRef.current,
-          },
-        ]);
-        setShowErrorModal(true);
-        setIsSubmitting(false);
-        return;
+        eventStatus = "Pending";
+        setServerWarning(
+          `Not enough available servers. Required: ${requiredServers}, Available: ${availableServers.length}. Event will be created and marked as Pending.`
+        );
       }
 
       // Create event data with address
@@ -474,7 +475,7 @@ export default function AddEventPage(): ReactElement {
         number_of_driver_needed: truckAssignments.length,
         number_of_servers_needed: requiredServers,
         is_prepaid: formData.isPrepaid,
-        status: "Pending",
+        status: eventStatus,
         // Address data to be created first
         addressData: {
           street: formData.street,
@@ -496,8 +497,8 @@ export default function AddEventPage(): ReactElement {
           truck_id: assignment.truck_id,
           driver_id: assignment.driver_id,
           event_id: newEvent.id,
-          start_time: assignment.start_time,
-          end_time: assignment.end_time,
+          start_time: `${formData.date}T${assignment.start_time}`,
+          end_time: `${formData.date}T${assignment.end_time}`,
         });
       }
 
@@ -517,6 +518,8 @@ export default function AddEventPage(): ReactElement {
       // Redirect to the specific event page
       window.location.href = `/events/${newEvent.id}`;
     } catch (error) {
+      // Only set status to Pending for the not-enough-servers case above
+      // For all other errors, just show the error modal
       console.error("Error creating event:", error);
       setValidationErrors([
         {
@@ -872,6 +875,12 @@ export default function AddEventPage(): ReactElement {
               </div>
             )}
           </div>
+
+          {serverWarning && (
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded">
+              <strong>Warning:</strong> {serverWarning}
+            </div>
+          )}
 
           <button type="submit" className="button" disabled={isSubmitting}>
             {isSubmitting ? (
