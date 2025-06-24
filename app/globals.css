@@ -186,17 +186,21 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* Remove the underline for active nav link */
+/*
 .nav-link-active::after {
   content: "";
+  display: block;
   position: absolute;
+  left: 0;
+  right: 0;
   bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 3px;
-  background: var(--white);
-  border-radius: 2px;
+  height: 4px;
+  background: #fff;
+  border-radius: 2px 2px 0 0;
+  z-index: 2;
 }
+*/
 
 .nav-icon {
   font-size: 1.25rem;
@@ -325,7 +329,6 @@ body {
 
 .mobile-nav-link.nav-link-active {
   background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
   font-weight: 600;
 }
 
