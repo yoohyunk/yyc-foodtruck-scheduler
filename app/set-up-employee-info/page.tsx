@@ -307,18 +307,30 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
     // Validate form data
     const validationRules: ValidationRule[] = [
-      commonValidationRules.firstName(firstNameRef.current),
-      commonValidationRules.lastName(lastNameRef.current),
       createValidationRule(
-        "employee_type",
+        "first_name",
         true,
-        undefined,
-        "Role is required.",
-        roleRef.current
+        (value) => typeof value === "string" && value.trim().length > 0,
+        "Please enter a valid first name."
       ),
-      commonValidationRules.email(emailRef.current),
-      commonValidationRules.phone(phoneRef.current),
-      commonValidationRules.number("wage", 0, undefined, wageRef.current),
+      createValidationRule(
+        "last_name",
+        true,
+        (value) => typeof value === "string" && value.trim().length > 0,
+        "Please enter a valid last name."
+      ),
+      createValidationRule(
+        "user_email",
+        true,
+        (value) => typeof value === "string" && /^[^@]+@[^@]+\.[^@]+$/.test(value),
+        "Please enter a valid email address."
+      ),
+      createValidationRule(
+        "user_phone",
+        true,
+        (value) => typeof value === "string" && value.trim().length > 0,
+        "Please enter a valid phone number."
+      ),
     ];
 
     const validationErrors = validateForm(sanitizedEmployee, validationRules);
@@ -615,44 +627,24 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
                 <div>
                   <label
-                    htmlFor="employee_type"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Role <span className="text-red-500">*</span>
+                    Role
                   </label>
-                  <select
-                    ref={roleRef}
-                    id="employee_type"
-                    name="employee_type"
-                    value={employee.employee_type || ""}
-                    onChange={handleEmployeeChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select role</option>
-                    <option value="driver">Driver</option>
-                    <option value="server">Server</option>
-                    <option value="admin">Admin</option>
-                  </select>
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
+                    {employee.employee_type ? employee.employee_type.charAt(0).toUpperCase() + employee.employee_type.slice(1) : "Not set"}
+                  </div>
                 </div>
 
                 <div>
                   <label
-                    htmlFor="wage"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Hourly Wage <span className="text-red-500">*</span>
+                    Hourly Wage
                   </label>
-                  <input
-                    ref={wageRef}
-                    type="number"
-                    id="wage"
-                    name="wage"
-                    value={employee.wage || ""}
-                    onChange={handleEmployeeChange}
-                    min="0"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700">
+                    {employee.wage ? `$${employee.wage}` : "Not set"}
+                  </div>
                 </div>
 
                 <div>
