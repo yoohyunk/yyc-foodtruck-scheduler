@@ -1638,6 +1638,30 @@ button[title="Delete Employee"]:hover {
 }
 
 /* =========================
+   Truck Selection Components
+========================= */
+.truck-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.truck-label-selected {
+  background-color: var(--secondary-light);
+}
+
+.truck-checkbox {
+  accent-color: var(--primary-medium);
+}
+
+.truck-name {
+  font-size: 0.875rem;
+}
+
+/* =========================
    Tutorial Overlay Styles
 ========================= */
 .tutorial-overlay-section {

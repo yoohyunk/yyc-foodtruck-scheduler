@@ -72,22 +72,30 @@ export function TutorialOverlay() {
 
     const { type, delay, nextPath, waitAfter, extra } =
       currentStepData.autoAction;
+
+    // Use a more stable timeout to prevent multiple executions
     const timeout1 = setTimeout(() => {
+      // Only proceed if the tutorial is still active and on the same step
+      if (!isActive || !currentStepData) return;
+
       const targetElement = document.querySelector(currentStepData.target);
 
       // Special handling for modal checkboxes - these steps should always try to find the checkbox
       if (
         type === "check" &&
-        (currentStepData.id === "select-employee-in-modal" ||
-          currentStepData.id === "select-truck-in-modal")
+        (currentStepData.id === "select-available-employee" ||
+          currentStepData.id === "select-available-truck")
       ) {
         // Wait for modal to open and find the checkbox
         let retryCount = 0;
         const maxRetries = 10;
 
         const findAndClickCheckbox = () => {
+          // Check if tutorial is still active before proceeding
+          if (!isActive || !currentStepData) return;
+
           const checkboxClass =
-            currentStepData.id === "select-employee-in-modal"
+            currentStepData.id === "select-available-employee"
               ? "employee-checkbox"
               : "truck-checkbox";
 
@@ -101,64 +109,168 @@ export function TutorialOverlay() {
             return;
           }
 
-          // Try multiple selectors to find the checkbox
-          const modalCheckbox =
-            document.querySelector(
-              `.modal-body .TutorialHighlight input.${checkboxClass}:first-child`
-            ) ||
-            document.querySelector(
-              `.modal-body input.${checkboxClass}:first-child`
-            ) ||
-            document.querySelector(
-              `.modal-body label:has(input.${checkboxClass}) input:first-child`
-            ) ||
-            document.querySelector(`.${checkboxClass}:first-child`) ||
-            document.querySelector(`input.${checkboxClass}:first-child`);
+          // For employee selection, find an available employee (no warning messages, enabled checkbox)
+          if (currentStepData.id === "select-available-employee") {
+            // Find all employee items in the new modal structure
+            const employeeItems = document.querySelectorAll(
+              ".employee-list-container .employee-label"
+            );
 
-          const checkboxLabel =
-            document.querySelector(
-              `.modal-body .TutorialHighlight label:has(input.${checkboxClass}):first-child`
-            ) ||
-            document.querySelector(
-              `.modal-body label:has(input.${checkboxClass}):first-child`
-            ) ||
-            document.querySelector(
-              `label:has(input.${checkboxClass}):first-child`
-            ) ||
-            document.querySelector(`.modal-body label:first-child`);
+            // Find the first available employee (one without warning messages and with enabled checkbox)
+            let availableEmployeeItem = null;
+            for (let i = 0; i < employeeItems.length; i++) {
+              const item = employeeItems[i];
+              // Check if this employee has warning messages (unavailable)
+              const warningElement = item.querySelector(
+                ".text-xs.text-red-600"
+              );
 
-          if (modalCheckbox) {
-            // Try clicking the label first (this is how users typically interact)
-            if (checkboxLabel) {
-              (checkboxLabel as HTMLElement).click();
-            } else {
-              // Fallback: click the checkbox directly
-              (modalCheckbox as HTMLElement).click();
+              // Skip if there are warning messages
+              if (warningElement) {
+                continue;
+              }
+
+              // Check if checkbox is enabled and not disabled
+              const checkbox = item.querySelector(
+                "input.employee-checkbox"
+              ) as HTMLInputElement;
+
+              if (checkbox && !checkbox.disabled) {
+                availableEmployeeItem = item;
+                break;
+              }
             }
 
-            // Handle modal closing if needed
-            if (extra && extra.closeModal) {
+            if (availableEmployeeItem) {
+              // Add a delay before clicking to make it more natural
               setTimeout(() => {
-                const closeBtn = document.querySelector(
-                  ".modal-footer .btn-secondary, .modal-footer button:first-child"
-                );
-                if (closeBtn) {
-                  (closeBtn as HTMLElement).click();
+                // Check if tutorial is still active before clicking
+                if (!isActive || !currentStepData) return;
+
+                // Click the available employee label
+                (availableEmployeeItem as HTMLElement).click();
+
+                // Handle modal closing if needed
+                if (extra && extra.closeModal) {
+                  setTimeout(() => {
+                    // Check if tutorial is still active before closing modal
+                    if (!isActive || !currentStepData) return;
+
+                    // Find and click the Save button instead of Close
+                    const saveButton = document.querySelector(
+                      ".modal-footer .btn-primary"
+                    );
+                    if (saveButton) {
+                      (saveButton as HTMLElement).click();
+                    }
+                  }, 5000); // 5 seconds delay before saving
                 }
-              }, 800);
+              }, 500); // 500ms delay before clicking
+            } else {
+              retryCount++;
+              if (retryCount < maxRetries) {
+                setTimeout(findAndClickCheckbox, 200);
+              }
             }
-          } else {
-            retryCount++;
-            if (retryCount < maxRetries) {
-              // Try again after a short delay
-              setTimeout(findAndClickCheckbox, 200);
+            return;
+          }
+
+          // For truck selection, find an available truck (green "Available" badge)
+          if (currentStepData.id === "select-available-truck") {
+            // Find all truck assignments
+            const truckAssignments = document.querySelectorAll(
+              ".modal-body .truck-assignment"
+            );
+
+            // Find the first available truck (one with green "Available" badge)
+            let availableTruckAssignment = null;
+            for (const assignment of truckAssignments) {
+              const availabilityBadge = assignment.querySelector(
+                ".bg-green-100.text-green-800"
+              );
+              if (availabilityBadge) {
+                availableTruckAssignment = assignment;
+                break;
+              }
             }
+
+            if (availableTruckAssignment) {
+              // Step 1: Click the truck checkbox to select it
+              setTimeout(() => {
+                // Check if tutorial is still active before clicking
+                if (!isActive || !currentStepData) return;
+
+                // Find and click the checkbox for the available truck
+                const checkbox = availableTruckAssignment.querySelector(
+                  `input.${checkboxClass}`
+                );
+                if (checkbox) {
+                  (checkbox as HTMLElement).click();
+
+                  // Step 2: Wait for driver dropdown to appear and select a driver
+                  setTimeout(() => {
+                    // Check if tutorial is still active before proceeding
+                    if (!isActive || !currentStepData) return;
+
+                    // Find the driver dropdown within this truck assignment
+                    const driverDropdown =
+                      availableTruckAssignment.querySelector(
+                        "select"
+                      ) as HTMLSelectElement;
+
+                    if (driverDropdown && driverDropdown.options.length > 1) {
+                      // Select the first available driver (skip the "No driver assigned" option)
+                      driverDropdown.selectedIndex = 1;
+                      // Trigger change event to update the state
+                      const changeEvent = new Event("change", {
+                        bubbles: true,
+                      });
+                      driverDropdown.dispatchEvent(changeEvent);
+
+                      // Step 3: Wait a bit and then save the assignment
+                      setTimeout(() => {
+                        // Check if tutorial is still active before saving
+                        if (!isActive || !currentStepData) return;
+
+                        // Find and click the Save Assignments button
+                        const saveButton = document.querySelector(
+                          ".modal-footer .btn-primary"
+                        );
+                        if (saveButton) {
+                          (saveButton as HTMLElement).click();
+                        }
+                      }, 1000); // Wait 1 second before saving
+                    } else {
+                      // If no drivers available, just save the truck assignment without a driver
+                      setTimeout(() => {
+                        // Check if tutorial is still active before saving
+                        if (!isActive || !currentStepData) return;
+
+                        // Find and click the Save Assignments button
+                        const saveButton = document.querySelector(
+                          ".modal-footer .btn-primary"
+                        );
+                        if (saveButton) {
+                          (saveButton as HTMLElement).click();
+                        }
+                      }, 1000); // Wait 1 second before saving
+                    }
+                  }, 1000); // Wait 1 second for dropdown to appear
+                }
+              }, 500); // 500ms delay before clicking truck checkbox
+            } else {
+              retryCount++;
+              if (retryCount < maxRetries) {
+                setTimeout(findAndClickCheckbox, 200);
+              }
+            }
+            return;
           }
         };
 
         // Start looking for the checkbox with a longer initial delay for truck modal
         const initialDelay =
-          currentStepData.id === "select-truck-in-modal" ? 500 : 300;
+          currentStepData.id === "select-available-truck" ? 500 : 300;
         setTimeout(findAndClickCheckbox, initialDelay);
         return;
       }
@@ -180,13 +292,16 @@ export function TutorialOverlay() {
         // Handle extra actions like closing modals
         if (extra && extra.closeModal) {
           setTimeout(() => {
+            // Check if tutorial is still active before closing modal
+            if (!isActive || !currentStepData) return;
+
             const closeBtn = document.querySelector(
               ".modal-footer .btn-secondary, .modal-footer button:first-child"
             );
             if (closeBtn) {
               (closeBtn as HTMLElement).click();
             }
-          }, 800);
+          }, 3000);
         }
       }
 
@@ -206,6 +321,9 @@ export function TutorialOverlay() {
         }
         setPendingStepForNavigation(0);
         setTimeout(() => {
+          // Check if tutorial is still active before navigation
+          if (!isActive || !currentStepData) return;
+
           router.push(resolvedPath);
         }, waitAfter || 1000);
       }
@@ -222,8 +340,44 @@ export function TutorialOverlay() {
     router,
   ]);
 
+  // Add effect to handle Next button clicks for modal steps
+  useEffect(() => {
+    if (!isActive || !currentStepData) return;
+
+    // Check if we're on a modal step that needs special handling
+    if (currentStepData.id === "select-available-employee") {
+      // Listen for Next button clicks
+      const handleNextButtonClick = () => {
+        // Check if modal is open
+        const modalOverlay = document.querySelector(".modal-overlay");
+        if (modalOverlay) {
+          // Find and click the Save button to close the modal
+          const saveButton = document.querySelector(
+            ".modal-footer .btn-primary"
+          );
+          if (saveButton) {
+            (saveButton as HTMLElement).click();
+          }
+        }
+      };
+
+      // Add event listener to the Next button
+      const nextButton = document.querySelector(
+        ".tutorial-button-primary"
+      );
+      if (nextButton) {
+        nextButton.addEventListener("click", handleNextButtonClick);
+        return () => {
+          nextButton.removeEventListener("click", handleNextButtonClick);
+        };
+      }
+    }
+  }, [isActive, currentStepData]);
+
   // Only return after all hooks
-  if (!isActive || !currentStepData) return null;
+  if (!isActive || !currentStepData) {
+    return null;
+  }
 
   return (
     <>

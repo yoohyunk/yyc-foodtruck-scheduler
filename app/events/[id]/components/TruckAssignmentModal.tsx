@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Employee,
   Truck,
@@ -6,6 +6,10 @@ import {
   getTruckTypeBadge,
 } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
+
+interface TruckWithAssignment extends Truck {
+  selectedDriverId?: string;
+}
 
 interface TruckAssignmentModalProps {
   isOpen: boolean;
@@ -19,6 +23,141 @@ interface TruckAssignmentModalProps {
   eventStartTime?: string;
   eventEndTime?: string;
 }
+
+// Memoized truck item component to prevent unnecessary re-renders
+const TruckItem = React.memo(
+  ({
+    truck,
+    isSelected,
+    selectedDriverId,
+    onTruckSelection,
+    onDriverAssignment,
+    shouldHighlight,
+    index,
+    availableDrivers,
+    eventStartTime,
+    eventEndTime,
+  }: {
+    truck: TruckWithAssignment;
+    isSelected: boolean;
+    selectedDriverId: string;
+    onTruckSelection: (truckId: string, isSelected: boolean) => void;
+    onDriverAssignment: (truckId: string, driverId: string | null) => void;
+    shouldHighlight: (selector: string) => boolean;
+    index: number;
+    availableDrivers: Employee[];
+    eventStartTime?: string;
+    eventEndTime?: string;
+  }) => (
+    <TutorialHighlight
+      key={truck.id}
+      isHighlighted={
+        index === 0 &&
+        shouldHighlight(".modal-body .truck-checkbox:first-child")
+      }
+    >
+      <div
+        className={`truck-assignment border rounded-lg p-4 ${getTruckTypeColor(truck.type)}`}
+      >
+        {/* Truck Selection Section */}
+        <label
+          className={`truck-label w-full flex items-center justify-between px-0 ${
+            isSelected ? "truck-label-selected" : ""
+          } cursor-pointer`}
+        >
+          <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
+            <div>
+              <span
+                className="font-semibold text-lg"
+                style={{ whiteSpace: "nowrap" }}
+              >
+                {truck.name}
+              </span>
+              <span
+                className={`px-2 py-1 rounded text-xs font-medium ml-2 ${getTruckTypeBadge(truck.type)}`}
+              >
+                {truck.type}
+              </span>
+              <span className="text-sm text-gray-500 ml-2">
+                (Capacity: {truck.capacity})
+              </span>
+            </div>
+            <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
+              <span
+                className={`px-2 py-1 rounded text-sm ${
+                  truck.is_available
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }`}
+              >
+                {truck.is_available ? "Available" : "Unavailable"}
+              </span>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            className="truck-checkbox mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            checked={isSelected}
+            onChange={(e) => onTruckSelection(truck.id, e.target.checked)}
+          />
+        </label>
+
+        {/* Driver Assignment Section - Only show if truck is selected */}
+        {isSelected && (
+          <div className="space-y-2 mt-4 p-3 bg-white rounded border">
+            <label className="block text-sm font-medium text-gray-700">
+              Assign Driver:
+            </label>
+            <select
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={selectedDriverId}
+              onChange={(e) =>
+                onDriverAssignment(truck.id, e.target.value || null)
+              }
+            >
+              <option value="">No driver assigned</option>
+              {availableDrivers.map((driver) => (
+                <option key={driver.employee_id} value={driver.employee_id}>
+                  {driver.first_name} {driver.last_name} ({driver.employee_type}
+                  )
+                </option>
+              ))}
+            </select>
+
+            {selectedDriverId && (
+              <div className="mt-2 p-2 bg-blue-50 rounded">
+                <p className="text-sm text-blue-800">
+                  <strong>Assigned Driver:</strong>{" "}
+                  {
+                    availableDrivers.find(
+                      (d) => d.employee_id === selectedDriverId
+                    )?.first_name
+                  }{" "}
+                  {
+                    availableDrivers.find(
+                      (d) => d.employee_id === selectedDriverId
+                    )?.last_name
+                  }
+                </p>
+              </div>
+            )}
+
+            {/* Event Time Information */}
+            {eventStartTime && eventEndTime && (
+              <div className="mt-2 p-2 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">
+                  <strong>Event Time:</strong> {eventStartTime} - {eventEndTime}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </TutorialHighlight>
+  )
+);
+
+TruckItem.displayName = "TruckItem";
 
 export default function TruckAssignmentModal({
   isOpen,
@@ -36,6 +175,7 @@ export default function TruckAssignmentModal({
   const [driverAssignments, setDriverAssignments] = useState<
     Map<string, string>
   >(new Map());
+  const [truckFilter, setTruckFilter] = useState<string>("all");
 
   // Initialize selected trucks and driver assignments when modal opens
   useEffect(() => {
@@ -55,6 +195,27 @@ export default function TruckAssignmentModal({
       setDriverAssignments(newDriverAssignments);
     }
   }, [isOpen, trucks, getAssignedDriverForTruck]);
+
+  const availableDrivers = getAvailableDrivers();
+
+  const filteredTrucks = useMemo(() => {
+    return trucks.filter(
+      (truck) => truckFilter === "all" || truck.type === truckFilter
+    );
+  }, [trucks, truckFilter]);
+
+  const trucksWithAssignments = useMemo(() => {
+    return filteredTrucks.map((truck) => {
+      const assignedDriver = getAssignedDriverForTruck(truck.id);
+      const selectedDriverId =
+        driverAssignments.get(truck.id) || assignedDriver?.employee_id || "";
+
+      return {
+        ...truck,
+        selectedDriverId,
+      };
+    });
+  }, [filteredTrucks, driverAssignments, getAssignedDriverForTruck]);
 
   if (!isOpen) return null;
 
@@ -84,7 +245,6 @@ export default function TruckAssignmentModal({
     }
 
     setDriverAssignments(newDriverAssignments);
-    // Don't call onTruckAssignment here - wait for Save button
   };
 
   const handleSaveAssignments = () => {
@@ -96,140 +256,103 @@ export default function TruckAssignmentModal({
     onClose();
   };
 
-  const availableDrivers = getAvailableDrivers();
-
   return (
     <div className="modal-overlay">
-      <div className="modal-container max-w-4xl">
-        <h3 className="modal-title">Assign Trucks & Drivers</h3>
-        <div className="modal-body">
-          {isLoadingTrucks ? (
-            <p className="text-gray-500">Loading trucks...</p>
-          ) : trucks.length > 0 ? (
-            <div className="space-y-4">
-              {trucks.map((truck, index) => {
-                const isSelected = selectedTrucks.has(truck.id);
-                const assignedDriver = getAssignedDriverForTruck(truck.id);
-                const selectedDriverId =
-                  driverAssignments.get(truck.id) ||
-                  assignedDriver?.employee_id ||
-                  "";
-
-                return (
-                  <TutorialHighlight
-                    key={truck.id}
-                    isHighlighted={
-                      index === 0 &&
-                      shouldHighlight(
-                        ".modal-body .truck-assignment:first-child"
-                      )
-                    }
-                  >
-                    <div
-                      className={`truck-assignment border rounded-lg p-4 ${getTruckTypeColor(truck.type)}`}
-                    >
-                      {/* Truck Selection Checkbox */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
-                            id={`truck-${truck.id}`}
-                            checked={isSelected}
-                            onChange={(e) =>
-                              handleTruckSelection(truck.id, e.target.checked)
-                            }
-                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <label
-                            htmlFor={`truck-${truck.id}`}
-                            className="font-semibold text-lg cursor-pointer"
-                          >
-                            {truck.name}
-                          </label>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${getTruckTypeBadge(truck.type)}`}
-                          >
-                            {truck.type}
-                          </span>
-                        </div>
-                        <span
-                          className={`px-2 py-1 rounded text-sm ${
-                            truck.is_available
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {truck.is_available ? "Available" : "Unavailable"}
-                        </span>
-                      </div>
-
-                      {/* Driver Assignment Section - Only show if truck is selected */}
-                      {isSelected && (
-                        <div className="space-y-2 mt-4 p-3 bg-white rounded border">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Assign Driver:
-                          </label>
-                          <select
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={selectedDriverId}
-                            onChange={(e) =>
-                              handleDriverAssignment(
-                                truck.id,
-                                e.target.value || null
-                              )
-                            }
-                          >
-                            <option value="">No driver assigned</option>
-                            {availableDrivers.map((driver) => (
-                              <option
-                                key={driver.employee_id}
-                                value={driver.employee_id}
-                              >
-                                {driver.first_name} {driver.last_name} (
-                                {driver.employee_type})
-                              </option>
-                            ))}
-                          </select>
-
-                          {selectedDriverId && (
-                            <div className="mt-2 p-2 bg-blue-50 rounded">
-                              <p className="text-sm text-blue-800">
-                                <strong>Assigned Driver:</strong>{" "}
-                                {
-                                  availableDrivers.find(
-                                    (d) => d.employee_id === selectedDriverId
-                                  )?.first_name
-                                }{" "}
-                                {
-                                  availableDrivers.find(
-                                    (d) => d.employee_id === selectedDriverId
-                                  )?.last_name
-                                }
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Event Time Information */}
-                          {eventStartTime && eventEndTime && (
-                            <div className="mt-2 p-2 bg-gray-50 rounded">
-                              <p className="text-sm text-gray-600">
-                                <strong>Event Time:</strong> {eventStartTime} -{" "}
-                                {eventEndTime}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </TutorialHighlight>
-                );
-              })}
+      <div
+        className="modal-container"
+        style={{
+          width: "90vw",
+          maxWidth: "950px",
+          height: "70vh",
+          display: "flex",
+          flexDirection: "column",
+          padding: 0,
+        }}
+      >
+        <h3
+          className="modal-title"
+          style={{ flexShrink: 0, padding: "2rem 2rem 0.75rem 2rem" }}
+        >
+          Assign Trucks & Drivers
+          <span className="text-sm font-normal text-gray-600 ml-2">
+            ({selectedTrucks.size} truck{selectedTrucks.size !== 1 ? "s" : ""}{" "}
+            selected)
+          </span>
+        </h3>
+        <div
+          className="modal-body"
+          style={{
+            flexGrow: 1,
+            overflow: "hidden",
+            padding: "0 2rem",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Truck Filter */}
+          <div
+            className="flex justify-between items-end mb-6"
+            style={{ flexShrink: 0 }}
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Type
+              </label>
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".truck-filter-dropdown")}
+              >
+                <select
+                  value={truckFilter}
+                  onChange={(e) => setTruckFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 truck-filter-dropdown"
+                >
+                  <option value="all">All Trucks</option>
+                  <option value="Food Truck">Food Trucks Only</option>
+                  <option value="Beverage Truck">Beverage Trucks Only</option>
+                  <option value="Dessert Truck">Dessert Trucks Only</option>
+                  <option value="Holiday Truck">Holiday Trucks Only</option>
+                </select>
+              </TutorialHighlight>
             </div>
-          ) : (
-            <p className="text-gray-500">No trucks available.</p>
-          )}
+          </div>
+
+          <div
+            className="truck-list-container"
+            style={{ flexGrow: 1, overflowY: "auto" }}
+          >
+            {isLoadingTrucks ? (
+              <p className="text-gray-500">Loading trucks...</p>
+            ) : trucksWithAssignments.length > 0 ? (
+              <div className="space-y-4">
+                {trucksWithAssignments.map((truck, index) => {
+                  const isSelected = selectedTrucks.has(truck.id);
+
+                  return (
+                    <TruckItem
+                      key={truck.id}
+                      truck={truck}
+                      isSelected={isSelected}
+                      selectedDriverId={truck.selectedDriverId || ""}
+                      onTruckSelection={handleTruckSelection}
+                      onDriverAssignment={handleDriverAssignment}
+                      shouldHighlight={shouldHighlight}
+                      index={index}
+                      availableDrivers={availableDrivers}
+                      eventStartTime={eventStartTime}
+                      eventEndTime={eventEndTime}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-gray-500">No trucks available.</p>
+            )}
+          </div>
         </div>
-        <div className="modal-footer">
+        <div
+          className="modal-footer"
+          style={{ flexShrink: 0, padding: "1.5rem 2rem" }}
+        >
           <TutorialHighlight
             isHighlighted={shouldHighlight(
               ".modal-footer button.btn-secondary"
@@ -239,14 +362,18 @@ export default function TruckAssignmentModal({
               Cancel
             </button>
           </TutorialHighlight>
-          <button
-            className="btn-primary"
-            onClick={handleSaveAssignments}
-            disabled={selectedTrucks.size === 0}
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".modal-footer button.btn-primary")}
           >
-            Save Assignments ({selectedTrucks.size} truck
-            {selectedTrucks.size !== 1 ? "s" : ""} selected)
-          </button>
+            <button
+              className="btn-primary"
+              onClick={handleSaveAssignments}
+              disabled={selectedTrucks.size === 0}
+            >
+              Save Assignments ({selectedTrucks.size} truck
+              {selectedTrucks.size !== 1 ? "s" : ""} selected)
+            </button>
+          </TutorialHighlight>
         </div>
       </div>
     </div>

@@ -173,7 +173,7 @@ export default function Events(): ReactElement {
                 isHighlighted={shouldHighlight(
                   `.event-card:nth-child(${index + 1})`
                 )}
-                className="employee-card bg-white p-4 rounded shadow relative"
+                className="event-card bg-white p-4 rounded shadow relative"
               >
                 <h3 className="text-lg font-semibold">{event.title}</h3>
                 <p>

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description:
     "A scheduling and workforce-management platform for YYC food truck operations",
   icons: {
-    icon: '/favicon.ico',
+    icon: "/favicon.ico",
   },
 };
 
