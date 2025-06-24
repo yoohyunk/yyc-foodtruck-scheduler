@@ -100,7 +100,7 @@ export default function EditTruckPage(): ReactElement {
             addresses (*)
           `
           )
-          .eq("truck_id", id)
+          .eq("id", id)
           .single();
 
         if (truckError) {
@@ -321,7 +321,7 @@ export default function EditTruckPage(): ReactElement {
           packing_list: formData.packingList,
           is_available: formData.isAvailable,
         })
-        .eq("truck_id", id);
+        .eq("id", id);
 
       if (truckError) {
         console.error("Error updating truck:", truckError);

@@ -331,3 +331,94 @@ export function sanitizeFormData<T extends Record<string, unknown>>(
   // Implement any needed sanitization logic here
   return formData;
 }
+
+// Autofill detection utilities
+export function handleAutofill(
+  element: HTMLInputElement | HTMLSelectElement,
+  callback: (value: string) => void
+): void {
+  // Listen for autofill events
+  element.addEventListener("animationstart", (e) => {
+    const animationEvent = e as AnimationEvent;
+    if (animationEvent.animationName === "onAutoFillStart") {
+      callback(element.value);
+    }
+  });
+
+  // Fallback: check for autofill on focus/blur
+  let originalValue = element.value;
+
+  element.addEventListener("focus", () => {
+    originalValue = element.value;
+  });
+
+  element.addEventListener("blur", () => {
+    if (element.value !== originalValue) {
+      callback(element.value);
+    }
+  });
+
+  // Additional fallback: check periodically for autofill
+  const checkAutofill = () => {
+    if (element.value && element.value !== originalValue) {
+      callback(element.value);
+      originalValue = element.value;
+    }
+  };
+
+  // Check after a short delay to catch autofill
+  setTimeout(checkAutofill, 100);
+  setTimeout(checkAutofill, 500);
+  setTimeout(checkAutofill, 1000);
+}
+
+// CSS for autofill detection
+export const autofillDetectionCSS = `
+  @keyframes onAutoFillStart {
+    from {/**/}
+    to {/**/}
+  }
+  
+  @keyframes onAutoFillCancel {
+    from {/**/}
+    to {/**/}
+  }
+  
+  input:-webkit-autofill {
+    animation-name: onAutoFillStart;
+  }
+  
+  input:not(:-webkit-autofill) {
+    animation-name: onAutoFillCancel;
+  }
+`;
+
+// Enhanced validation that accounts for autofill
+export function validateFormWithAutofill<T extends Record<string, unknown>>(
+  formData: T,
+  rules: ValidationRule[],
+  formElement?: HTMLFormElement
+): ValidationError[] {
+  const errors = validateForm(formData, rules);
+
+  // If we have a form element, check for autofilled fields
+  if (formElement) {
+    const inputs = formElement.querySelectorAll("input, select, textarea");
+    inputs.forEach((input) => {
+      const element = input as HTMLInputElement | HTMLSelectElement;
+      if (element.value && element.dataset.autofilled === "true") {
+        // Remove errors for autofilled fields that have values
+        const fieldName = element.name;
+        const fieldErrors = errors.filter((error) => error.field === fieldName);
+        fieldErrors.forEach((error) => {
+          const index = errors.indexOf(error);
+          if (index > -1) {
+            errors.splice(index, 1);
+          }
+        });
+      }
+    });
+  }
+
+  return errors;
+}

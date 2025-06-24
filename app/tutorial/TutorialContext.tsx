@@ -227,6 +227,14 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         waitAfter: 800,
       },
     },
+    {
+      id: "quick-actions-sidebar",
+      title: "Quick Actions Sidebar ⚡",
+      content:
+        "This sidebar contains quick action buttons for common tasks. Only admins can use these actions to quickly create new shifts, add staff, or create events without navigating through menus.",
+      target: ".sidebar",
+      position: "right",
+    },
   ],
   "/events": [
     {

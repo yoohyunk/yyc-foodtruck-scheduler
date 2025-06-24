@@ -11,6 +11,14 @@ export type Employee = Tables<"employees"> & {
 };
 export type Truck = Tables<"trucks">;
 export type TruckAssignment = Tables<"truck_assignment">;
+export type TruckAssignmentCreate = {
+  id: string;
+  truck_id: string;
+  driver_id: string | null;
+  event_id: string | null;
+  start_time: string;
+  end_time: string;
+};
 export type Address = Tables<"addresses">;
 
 export interface EventFormData {

@@ -16,6 +16,7 @@ import { TutorialHighlight } from "../../components/TutorialHighlight";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import { wagesApi } from "@/lib/supabase/wages";
 import ErrorModal from "../../components/ErrorModal";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   validateForm,
   ValidationRule,
@@ -24,12 +25,14 @@ import {
   validatePhone,
   validateNumber,
   createValidationRule,
+  handleAutofill,
 } from "../../../lib/formValidation";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();
   const router = useRouter();
   const supabase = createClient();
+  const { isAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -76,6 +79,32 @@ export default function EditEmployeePage(): ReactElement {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
+
+  // Set up autofill detection for all form fields
+  useEffect(() => {
+    const fields = [
+      firstNameRef,
+      lastNameRef,
+      roleRef,
+      emailRef,
+      phoneRef,
+      wageRef,
+    ];
+
+    fields.forEach((fieldRef) => {
+      if (fieldRef.current) {
+        handleAutofill(fieldRef.current, () => {
+          // Update form data when autofill is detected
+          const fieldName = fieldRef.current?.name;
+          if (fieldName) {
+            // Trigger a synthetic change event to update form state
+            const event = new Event("change", { bubbles: true });
+            fieldRef.current?.dispatchEvent(event);
+          }
+        });
+      }
+    });
+  }, []);
 
   // Fetch employee details
   useEffect(() => {
@@ -675,6 +704,9 @@ export default function EditEmployeePage(): ReactElement {
           <div>
             <label htmlFor="role" className="block font-medium">
               Role <span className="text-red-500">*</span>
+              {!isAdmin && (
+                <span className="text-yellow-600 ml-2">(Admin Only)</span>
+              )}
             </label>
             <select
               ref={roleRef}
@@ -683,6 +715,7 @@ export default function EditEmployeePage(): ReactElement {
               value={formData.role}
               onChange={handleChange}
               className="input-field"
+              disabled={!isAdmin}
             >
               <option value="">Select Role</option>
               <option value="Driver">Driver</option>
@@ -727,6 +760,9 @@ export default function EditEmployeePage(): ReactElement {
           <div>
             <label htmlFor="wage" className="block font-medium">
               Wage <span className="text-red-500">*</span>
+              {!isAdmin && (
+                <span className="text-yellow-600 ml-2">(Admin Only)</span>
+              )}
             </label>
             <input
               ref={wageRef}
@@ -738,6 +774,7 @@ export default function EditEmployeePage(): ReactElement {
               className="input-field"
               min="0"
               step="0.01"
+              disabled={!isAdmin}
             />
           </div>
 

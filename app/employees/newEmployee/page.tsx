@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useState, FormEvent, ReactElement, useRef } from "react";
+import React, {
+  useState,
+  FormEvent,
+  ReactElement,
+  useRef,
+  useEffect,
+} from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import ErrorModal from "../../components/ErrorModal";
 import {
   validateForm,
@@ -10,10 +17,12 @@ import {
   validateEmail,
   validateNumber,
   createValidationRule,
+  handleAutofill,
 } from "../../../lib/formValidation";
 
 export default function InviteEmployee(): ReactElement {
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
@@ -26,9 +35,50 @@ export default function InviteEmployee(): ReactElement {
   const emailRef = useRef<HTMLInputElement>(null);
   const employeeTypeRef = useRef<HTMLSelectElement>(null);
   const wageRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Set up autofill detection for all form fields
+  useEffect(() => {
+    const fields = [
+      firstNameRef,
+      lastNameRef,
+      emailRef,
+      employeeTypeRef,
+      wageRef,
+    ];
+
+    fields.forEach((fieldRef) => {
+      if (fieldRef.current) {
+        handleAutofill(fieldRef.current, () => {
+          // Update form data when autofill is detected
+          const fieldName = fieldRef.current?.name;
+          console.log(`Autofill detected for field: ${fieldName}`);
+          if (fieldName) {
+            // Trigger a synthetic change event to update form state
+            const event = new Event("change", { bubbles: true });
+            fieldRef.current?.dispatchEvent(event);
+          }
+        });
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
+
+    // Check if user is admin before allowing employee type selection
+    if (!isAdmin) {
+      setValidationErrors([
+        {
+          field: "admin",
+          message:
+            "Only administrators can invite new employees and set employee types.",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+      return;
+    }
 
     const formData = {
       firstName: firstNameRef.current?.value.trim() || "",
@@ -87,9 +137,8 @@ export default function InviteEmployee(): ReactElement {
     }
 
     setIsSubmitting(true);
-
     try {
-      const response = await fetch("/api/employees", {
+      const res = await fetch("/api/invite", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -102,13 +151,21 @@ export default function InviteEmployee(): ReactElement {
           wage: parseFloat(formData.wage),
         }),
       });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Invite failed");
 
-      if (response.ok) {
-        router.push("/employees");
-      } else {
-        setShowErrorModal(true);
-      }
-    } catch {
+      alert(`Invite sent to ${formData.email}!`);
+      router.push("/employees");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
+      setValidationErrors([
+        {
+          field: "submit",
+          message: errorMessage,
+          element: null,
+        },
+      ]);
       setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
@@ -119,7 +176,15 @@ export default function InviteEmployee(): ReactElement {
     <>
       <div className="create-employee-page">
         <h1 className="form-header">Invite Employee</h1>
-        <form onSubmit={handleSubmit} className="employee-form">
+        {!isAdmin && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+            <p className="text-yellow-800">
+              <strong>Access Restricted:</strong> Only administrators can invite
+              new employees and set employee types.
+            </p>
+          </div>
+        )}
+        <form ref={formRef} onSubmit={handleSubmit} className="employee-form">
           <div className="input-group">
             <label htmlFor="firstName" className="input-label">
               First Name <span className="text-red-500">*</span>
@@ -130,6 +195,7 @@ export default function InviteEmployee(): ReactElement {
               id="firstName"
               name="firstName"
               className="input-field"
+              disabled={!isAdmin}
             />
           </div>
 
@@ -143,6 +209,7 @@ export default function InviteEmployee(): ReactElement {
               id="lastName"
               name="lastName"
               className="input-field"
+              disabled={!isAdmin}
             />
           </div>
 
@@ -156,18 +223,23 @@ export default function InviteEmployee(): ReactElement {
               id="email"
               name="email"
               className="input-field"
+              disabled={!isAdmin}
             />
           </div>
 
           <div className="input-group">
             <label htmlFor="employeeType" className="input-label">
               Employee Type <span className="text-red-500">*</span>
+              {!isAdmin && (
+                <span className="text-yellow-600 ml-2">(Admin Only)</span>
+              )}
             </label>
             <select
               ref={employeeTypeRef}
               id="employeeType"
               name="employeeType"
               className="input-field"
+              disabled={!isAdmin}
             >
               <option value="">Select Employee Type</option>
               <option value="Driver">Driver</option>
@@ -179,6 +251,9 @@ export default function InviteEmployee(): ReactElement {
           <div className="input-group">
             <label htmlFor="wage" className="input-label">
               Hourly Wage <span className="text-red-500">*</span>
+              {!isAdmin && (
+                <span className="text-yellow-600 ml-2">(Admin Only)</span>
+              )}
             </label>
             <input
               ref={wageRef}
@@ -188,11 +263,20 @@ export default function InviteEmployee(): ReactElement {
               min="0"
               step="0.01"
               className="input-field"
+              disabled={!isAdmin}
             />
           </div>
 
-          <button type="submit" className="button" disabled={isSubmitting}>
-            {isSubmitting ? "Sending Invite..." : "Send Invite"}
+          <button
+            type="submit"
+            className="button"
+            disabled={isSubmitting || !isAdmin}
+          >
+            {isSubmitting
+              ? "Sending Invite..."
+              : isAdmin
+                ? "Send Invite"
+                : "Admin Access Required"}
           </button>
         </form>
       </div>

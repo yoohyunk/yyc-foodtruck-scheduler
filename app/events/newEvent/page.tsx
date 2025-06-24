@@ -12,7 +12,7 @@ import {
   EventFormData,
   Truck,
   Employee,
-  TruckAssignment,
+  TruckAssignmentCreate,
   getTruckTypeColor,
   getTruckTypeBadge,
 } from "@/app/types";
@@ -33,6 +33,7 @@ import {
   validateNumber,
   validateTimeRange,
   createValidationRule,
+  handleAutofill,
 } from "../../../lib/formValidation";
 import { assignmentsApi } from "@/lib/supabase/assignments";
 
@@ -67,9 +68,9 @@ export default function AddEventPage(): ReactElement {
   >();
   const [trucks, setTrucks] = useState<Truck[]>([]); // State to store truck data
   const [employees, setEmployees] = useState<Employee[]>([]); // State to store employee data
-  const [truckAssignments, setTruckAssignments] = useState<TruckAssignment[]>(
-    []
-  );
+  const [truckAssignments, setTruckAssignments] = useState<
+    TruckAssignmentCreate[]
+  >([]);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showHelpPopup, setShowHelpPopup] = useState(false);
   const addressFormRef = useRef<AddressFormRef>(null);
@@ -92,6 +93,31 @@ export default function AddEventPage(): ReactElement {
   // Add a state to track address validity
   const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
   const [addressValidationMsg, setAddressValidationMsg] = useState<string>("");
+
+  // Set up autofill detection for all form fields
+  useEffect(() => {
+    const fields = [
+      nameRef,
+      contactNameRef,
+      contactEmailRef,
+      contactPhoneRef,
+      requiredServersRef,
+    ];
+
+    fields.forEach((fieldRef) => {
+      if (fieldRef.current) {
+        handleAutofill(fieldRef.current, () => {
+          // Update form data when autofill is detected
+          const fieldName = fieldRef.current?.name;
+          if (fieldName) {
+            // Trigger a synthetic change event to update form state
+            const event = new Event("change", { bubbles: true });
+            fieldRef.current?.dispatchEvent(event);
+          }
+        });
+      }
+    });
+  }, []);
 
   // Fetch truck and employee data from Supabase
   useEffect(() => {
@@ -195,14 +221,13 @@ export default function AddEventPage(): ReactElement {
       }
     } else if (driverId !== null) {
       // Create new assignment
-      const newAssignment: TruckAssignment = {
+      const newAssignment: TruckAssignmentCreate = {
         id: `temp-${Date.now()}`,
         truck_id: truckId,
         driver_id: driverId,
         event_id: null, // Will be set when event is created
         start_time: formData.time,
         end_time: formData.endTime,
-        created_at: new Date().toISOString(),
       };
       setTruckAssignments([...truckAssignments, newAssignment]);
 
@@ -219,14 +244,13 @@ export default function AddEventPage(): ReactElement {
       if (
         !truckAssignments.some((assignment) => assignment.truck_id === truckId)
       ) {
-        const newAssignment: TruckAssignment = {
+        const newAssignment: TruckAssignmentCreate = {
           id: `temp-${Date.now()}`,
           truck_id: truckId,
           driver_id: null, // No driver assigned yet
           event_id: null, // Will be set when event is created
           start_time: formData.time,
           end_time: formData.endTime,
-          created_at: new Date().toISOString(),
         };
         setTruckAssignments([...truckAssignments, newAssignment]);
         setFormData({
