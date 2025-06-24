@@ -154,8 +154,17 @@ export default function InviteEmployee(): ReactElement {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Invite failed");
 
-      alert(`Invite sent to ${formData.email}!`);
-      router.push("/employees");
+      setValidationErrors([
+        {
+          field: "success",
+          message: `Invite sent to ${formData.email}!`,
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+      setTimeout(() => {
+        router.push("/employees");
+      }, 2000);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "An error occurred";
@@ -285,6 +294,11 @@ export default function InviteEmployee(): ReactElement {
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
         errors={validationErrors}
+        title={
+          validationErrors.length === 1 && validationErrors[0].field === "success"
+            ? "Success!"
+            : "Please fix the following errors:"
+        }
       />
     </>
   );
