@@ -5,13 +5,17 @@ import { TimeOffRequest } from "../types";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 import { employeesApi } from "@/lib/supabase/employees";
 import { Employee } from "../types";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function RequestsPage(): ReactElement {
+  const { isAdmin, loading: authLoading } = useAuth();
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("All");
+  const router = useRouter();
 
   // Fetch all time off requests and employees
   useEffect(() => {
@@ -39,6 +43,12 @@ export default function RequestsPage(): ReactElement {
   }, []);
 
   const handleStatusUpdate = async (requestId: string, newStatus: string) => {
+    // Only allow admins to update status
+    if (!isAdmin) {
+      alert("Only administrators can update request status.");
+      return;
+    }
+
     try {
       await timeOffRequestsApi.updateTimeOffRequest(requestId, {
         status: newStatus,
@@ -57,6 +67,12 @@ export default function RequestsPage(): ReactElement {
   };
 
   const handleDeleteRequest = async (requestId: string) => {
+    // Only allow admins to delete requests
+    if (!isAdmin) {
+      alert("Only administrators can delete requests.");
+      return;
+    }
+
     if (!confirm("Are you sure you want to delete this request?")) {
       return;
     }
@@ -173,9 +189,19 @@ export default function RequestsPage(): ReactElement {
 
   return (
     <div className="requests-page">
-      <h2 className="text-2xl text-primary-dark mb-4">
-        Time-Off Requests Management
-      </h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl text-primary-dark">
+          Time-Off Requests Management
+        </h2>
+        {!isAdmin && (
+          <button
+            onClick={() => router.push("/time-off-request")}
+            className="button bg-green-600 hover:bg-green-700 text-white"
+          >
+            + New Request
+          </button>
+        )}
+      </div>
 
       {/* Filter Buttons */}
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -270,29 +296,45 @@ export default function RequestsPage(): ReactElement {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select
-                    value={request.status}
-                    onChange={(e) =>
-                      handleStatusUpdate(request.id, e.target.value)
-                    }
-                    className={`px-3 py-1 rounded text-sm font-medium border-none focus:outline-none focus:ring-2 focus:ring-primary-dark ${
-                      request.status === "Accepted"
-                        ? "bg-green-100 text-green-800"
-                        : request.status === "Rejected"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
-                  <button
-                    onClick={() => handleDeleteRequest(request.id)}
-                    className="delete-button"
-                  >
-                    🗑️
-                  </button>
+                  {isAdmin ? (
+                    <select
+                      value={request.status}
+                      onChange={(e) =>
+                        handleStatusUpdate(request.id, e.target.value)
+                      }
+                      className={`px-3 py-1 rounded text-sm font-medium border-none focus:outline-none focus:ring-2 focus:ring-primary-dark ${
+                        request.status === "Accepted"
+                          ? "bg-green-100 text-green-800"
+                          : request.status === "Rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Accepted">Accepted</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  ) : (
+                    <span
+                      className={`px-3 py-1 rounded text-sm font-medium ${
+                        request.status === "Accepted"
+                          ? "bg-green-100 text-green-800"
+                          : request.status === "Rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {request.status}
+                    </span>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDeleteRequest(request.id)}
+                      className="delete-button"
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
               </div>
 
