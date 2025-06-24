@@ -41,6 +41,7 @@ export default function Header(): React.ReactElement {
   const [tabWidths, setTabWidths] = useState<number[]>([]);
   const measureRefs = useRef<(HTMLElement | null)[]>([]);
 
+
   // Tutorial highlight logic
   const { shouldHighlight } = useTutorial();
   const highlightLogo = shouldHighlight(".logo.TutorialHighlight");
@@ -110,10 +111,11 @@ export default function Header(): React.ReactElement {
 
   return (
     <header className="header">
-      <nav className="nav-container flex items-center justify-between">
+      <nav className="nav-container">
         {/* Logo Section */}
         <TutorialHighlight isHighlighted={highlightLogo} className="logo">
           <Link href="/" className="logo-link">
+
             <Image
               src="/yyctrucks.jpg"
               alt="YYC Logo"
@@ -125,25 +127,53 @@ export default function Header(): React.ReactElement {
           </Link>
         </TutorialHighlight>
 
-        {/* Right Section - Nav Links + Auth */}
-        <div className="flex items-center gap-6 nav-right">
-          {/* Navigation Links */}
-          <div ref={navRef} className="nav-links">
-            <div className="nav-links-container flex items-center gap-4">
-              {mainNavLinks.map((link, i) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`nav-link${isActive(link.href) ? " nav-link-active" : ""}${i >= visibleCount ? " nav-link-hidden" : ""}`}
-                  aria-current={isActive(link.href) ? "page" : undefined}
-                >
-                  <span className="nav-icon">{link.icon}</span>
-                  <span className="nav-text">{link.name}</span>
-                </Link>
-              ))}
-            </div>
+        {/* Centered Navigation Links */}
+        <div ref={navRef} className="nav-links">
+          <div className="nav-links-container">
+            {mainNavLinks.map((link, i) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`nav-link${isActive(link.href) ? " nav-link-active" : ""}${i >= visibleCount ? " nav-link-hidden" : ""}`}
+                aria-current={isActive(link.href) ? "page" : undefined}
+              >
+                <span className="nav-icon">{link.icon}</span>
+                <span className="nav-text">{link.name}</span>
+              </Link>
+            ))}
           </div>
+        </div>
 
+        {/* Hidden measurement container for tab widths */}
+        <div
+          style={{
+            position: "absolute",
+            left: -9999,
+            top: 0,
+            visibility: "hidden",
+            height: 0,
+            overflow: "hidden",
+          }}
+        >
+          <div className="nav-links-container">
+            {mainNavLinks.map((link, i) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="nav-link"
+                ref={(el) => {
+                  measureRefs.current[i] = el as HTMLElement;
+                }}
+              >
+                <span className="nav-icon">{link.icon}</span>
+                <span className="nav-text">{link.name}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Section - Auth & Hamburger */}
+        <div className="nav-right">
           {/* Desktop Auth Section */}
           <div className="auth-section">
             {user ? (
