@@ -28,7 +28,7 @@ const quickActionLinks = [
   { name: "New Shift", href: "/schedule/new", icon: "+" },
   { name: "Add Staff", href: "/employees/newEmployee", icon: "+" },
   { name: "Create Event", href: "/events/newEvent", icon: "+" },
-];
+
 
 export default function Header(): React.ReactElement {
   const { user, signOut } = useAuth();
@@ -40,6 +40,7 @@ export default function Header(): React.ReactElement {
   const pathname = usePathname();
   const [tabWidths, setTabWidths] = useState<number[]>([]);
   const measureRefs = useRef<(HTMLElement | null)[]>([]);
+
 
   // Tutorial highlight logic
   const { shouldHighlight } = useTutorial();
@@ -114,6 +115,7 @@ export default function Header(): React.ReactElement {
         {/* Logo Section */}
         <TutorialHighlight isHighlighted={highlightLogo} className="logo">
           <Link href="/" className="logo-link">
+
             <Image
               src="/yyctrucks.jpg"
               alt="YYC Logo"
@@ -166,7 +168,7 @@ export default function Header(): React.ReactElement {
                 <span className="nav-icon">{link.icon}</span>
                 <span className="nav-text">{link.name}</span>
               </Link>
-            ))}
+            )}
           </div>
         </div>
 
