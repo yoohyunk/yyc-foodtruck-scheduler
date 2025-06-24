@@ -100,8 +100,6 @@ export default function Events(): ReactElement {
 
   return (
     <div className="events-page">
-      <h2 className="text-2xl text-primary-dark mb-4">Event Management</h2>
-
       {/* Filter Buttons */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".filter-buttons")}
