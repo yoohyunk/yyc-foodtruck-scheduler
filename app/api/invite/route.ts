@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  (process as any).env.NEXT_PUBLIC_SUPABASE_URL!,
+  (process as any).env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function POST(request: Request) {
@@ -14,14 +14,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
   }
 
-  // Log environment variables for debugging (remove in production)
-  console.log("Environment check:", {
-    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    appUrl: process.env.NEXT_PUBLIC_APP_URL,
-  });
-
-  const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/set-password`;
+  const redirectUrl = `${(process as any).env.NEXT_PUBLIC_APP_URL}/set-password`;
   console.log("Redirect URL:", redirectUrl);
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
@@ -53,9 +46,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: employeeError.message }, { status: 500 });
   }
 
-  await supabase.from("wages").insert({
+  console.log("Wage value received for insertion:", wage);
+  await supabase.from("wage").insert({
     employee_id: employeeData?.employee_id,
-    wage: wage,
+    hourly_wage: wage,
+    start_date: new Date().toISOString(),
   });
 
   return NextResponse.json({ user: data.user });
