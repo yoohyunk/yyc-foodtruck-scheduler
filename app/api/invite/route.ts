@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Extend the Process interface to include env
-declare global {
-  namespace NodeJS {
-    interface Process {
-      env: Record<string, string | undefined>;
-    }
-  }
-}
-
 // Type-safe environment variable access
 function getEnvVar(key: string): string {
-  const value = process.env[key];
+  const value = (
+    process as unknown as { env: Record<string, string | undefined> }
+  ).env[key];
   if (!value) {
     throw new Error(`Environment variable ${key} is not defined`);
   }
