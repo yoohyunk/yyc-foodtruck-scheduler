@@ -1,9 +1,27 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Extend the Process interface to include env
+declare global {
+  namespace NodeJS {
+    interface Process {
+      env: Record<string, string | undefined>;
+    }
+  }
+}
+
+// Type-safe environment variable access
+function getEnvVar(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Environment variable ${key} is not defined`);
+  }
+  return value;
+}
+
 const supabase = createClient(
-  (process as any).env.NEXT_PUBLIC_SUPABASE_URL!,
-  (process as any).env.SUPABASE_SERVICE_ROLE_KEY!
+  getEnvVar("NEXT_PUBLIC_SUPABASE_URL"),
+  getEnvVar("SUPABASE_SERVICE_ROLE_KEY")
 );
 
 export async function POST(request: Request) {
@@ -14,7 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
   }
 
-  const redirectUrl = `${(process as any).env.NEXT_PUBLIC_APP_URL}/set-password`;
+  const redirectUrl = `${getEnvVar("NEXT_PUBLIC_APP_URL")}/set-password`;
   console.log("Redirect URL:", redirectUrl);
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
