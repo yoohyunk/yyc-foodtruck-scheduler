@@ -110,7 +110,7 @@ export default function ContactPage() {
                         />
                       </svg>
                       <span className="text-gray-700 text-sm">
-                        jen.andrews@yycfoodtrucks.com
+                        jennandrews@mac.com
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -128,7 +128,7 @@ export default function ContactPage() {
                         />
                       </svg>
                       <span className="text-gray-700 text-sm">
-                        (403) 555-0127
+                        (403) 605-8806
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -198,7 +198,7 @@ export default function ContactPage() {
                         />
                       </svg>
                       <span className="text-gray-700 text-sm">
-                        (403) 555-0128
+                        (403) 681-9256
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -273,7 +273,7 @@ export default function ContactPage() {
                         />
                       </svg>
                       <span className="text-gray-700 text-sm">
-                        (403) 555-0129
+                        (403) 608-6587
                       </span>
                     </div>
                     <div className="flex items-center">
