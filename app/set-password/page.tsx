@@ -13,7 +13,17 @@ export default function SetPasswordPage(): ReactElement {
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
 
-  // Parse hash fragment and set session
+  // Helper: validate password strength
+  const isValidPassword = (pwd: string): boolean => {
+    return (
+      pwd.length >= 8 &&
+      /[A-Z]/.test(pwd) &&
+      /[a-z]/.test(pwd) &&
+      /[0-9]/.test(pwd) &&
+      /[^A-Za-z0-9]/.test(pwd)
+    );
+  };
+
   useEffect(() => {
     const hash = window.location.hash;
     if (!hash) {
@@ -50,8 +60,11 @@ export default function SetPasswordPage(): ReactElement {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+
+    if (!isValidPassword(password)) {
+      setError(
+        "Password must be at least 8 characters long, include uppercase and lowercase letters, a number, and a special character."
+      );
       return;
     }
 
