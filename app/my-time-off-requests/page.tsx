@@ -1,60 +1,61 @@
 "use client";
-import { useState, useEffect, ReactElement } from "react";
-import { FiCalendar, FiUser, FiClock } from "react-icons/fi";
+import React, { useState, useEffect } from "react";
+import { FiCalendar, FiClock, FiUser } from "react-icons/fi";
 import { TimeOffRequest } from "../types";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
-import { employeesApi } from "@/lib/supabase/employees";
-import { Employee } from "../types";
+import { useAuth } from "@/contexts/AuthContext";
+import { createClient } from "@/lib/supabase/client";
 
-export default function RequestsPage(): ReactElement {
+export default function MyTimeOffRequestsPage(): React.JSX.Element {
+  const { user, loading: authLoading } = useAuth();
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("All");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const supabase = createClient();
 
-  // Fetch all time off requests and employees
+  // Fetch employee's time off requests
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchRequests = async () => {
+      if (authLoading || !user?.id) {
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
 
-        // Fetch all time off requests
-        const requestsData = await timeOffRequestsApi.getAllTimeOffRequests();
-        setRequests(requestsData);
+        // Get employee ID for current user
+        const { data: employee, error: employeeError } = await supabase
+          .from("employees")
+          .select("employee_id")
+          .eq("user_id", user.id)
+          .single();
 
-        // Fetch all employees for employee details
-        const employeesData = await employeesApi.getAllEmployees();
-        setEmployees(employeesData);
+        if (employeeError || !employee) {
+          setError("Employee information not found.");
+          setRequests([]);
+          return;
+        }
+
+        // Fetch time off requests for this employee
+        const requestsData =
+          await timeOffRequestsApi.getTimeOffRequestsByEmployeeId(
+            employee.employee_id
+          );
+        setRequests(requestsData);
       } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load time off requests.");
+        console.error("Error fetching requests:", err);
+        setError("Failed to load your time off requests.");
+        setRequests([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
-
-  const handleStatusUpdate = async (requestId: string, newStatus: string) => {
-    try {
-      await timeOffRequestsApi.updateTimeOffRequest(requestId, {
-        status: newStatus,
-      });
-
-      // Update local state
-      setRequests(
-        requests.map((request) =>
-          request.id === requestId ? { ...request, status: newStatus } : request
-        )
-      );
-    } catch (err) {
-      console.error("Error updating request status:", err);
-      alert("Failed to update request status. Please try again.");
-    }
-  };
+    fetchRequests();
+  }, [user?.id, authLoading, supabase]);
 
   const handleDeleteRequest = async (requestId: string) => {
     if (!confirm("Are you sure you want to delete this request?")) {
@@ -68,15 +69,6 @@ export default function RequestsPage(): ReactElement {
       console.error("Error deleting request:", err);
       alert("Failed to delete request. Please try again.");
     }
-  };
-
-  const getEmployeeName = (employeeId: string | null) => {
-    if (!employeeId) return "Unknown Employee";
-    const employee = employees.find((emp) => emp.employee_id === employeeId);
-    return employee
-      ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
-          "Unknown Name"
-      : "Unknown Employee";
   };
 
   const formatDateTime = (dateTimeString: string) => {
@@ -131,22 +123,69 @@ export default function RequestsPage(): ReactElement {
     return duration;
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Accepted":
+        return "bg-green-100 text-green-800";
+      case "Rejected":
+        return "bg-red-100 text-red-800";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   const filteredRequests =
     filterStatus === "All"
       ? requests
       : requests.filter((request) => request.status === filterStatus);
 
-  if (isLoading) {
+  // Sort requests by created_at date
+  const sortedRequests = [...filteredRequests].sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime();
+    const dateB = new Date(b.created_at).getTime();
+    return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+  });
+
+  if (authLoading) {
     return (
-      <div className="requests-page">
+      <div className="my-time-off-requests-page">
         <h2 className="text-2xl text-primary-dark mb-4">
-          Time-Off Requests Management
+          My Time-Off Requests
         </h2>
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
-          <span className="ml-2 text-gray-600">
-            Loading time off requests...
-          </span>
+          <span className="ml-2 text-gray-600">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="my-time-off-requests-page">
+        <h2 className="text-2xl text-primary-dark mb-4">
+          My Time-Off Requests
+        </h2>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">
+            Please log in to view your time off requests.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="my-time-off-requests-page">
+        <h2 className="text-2xl text-primary-dark mb-4">
+          My Time-Off Requests
+        </h2>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
+          <span className="ml-2 text-gray-600">Loading your requests...</span>
         </div>
       </div>
     );
@@ -154,9 +193,9 @@ export default function RequestsPage(): ReactElement {
 
   if (error) {
     return (
-      <div className="requests-page">
+      <div className="my-time-off-requests-page">
         <h2 className="text-2xl text-primary-dark mb-4">
-          Time-Off Requests Management
+          My Time-Off Requests
         </h2>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
@@ -172,10 +211,8 @@ export default function RequestsPage(): ReactElement {
   }
 
   return (
-    <div className="requests-page">
-      <h2 className="text-2xl text-primary-dark mb-4">
-        Time-Off Requests Management
-      </h2>
+    <div className="flex flex-col gap-6">
+      <h2 className="text-2xl text-primary-dark mb-4">My Time-Off Requests</h2>
 
       {/* Filter Buttons */}
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -233,30 +270,50 @@ export default function RequestsPage(): ReactElement {
         </button>
       </div>
 
-      {/* Table */}
+      {/* Sort Button */}
+      <div className="flex justify-end mb-4">
+        <button
+          className="button bg-gray-200 text-primary-dark hover:bg-gray-300"
+          onClick={() =>
+            setSortOrder(sortOrder === "newest" ? "oldest" : "newest")
+          }
+        >
+          <div className="flex items-center">
+            <span>
+              Sort by:{" "}
+              {sortOrder === "newest" ? "Newest First" : "Oldest First"}
+            </span>
+          </div>
+        </button>
+      </div>
+
+      {/* Requests List */}
       <div className="grid gap-4">
-        {filteredRequests.length > 0 ? (
-          filteredRequests.map((request) => (
+        {sortedRequests.length > 0 ? (
+          sortedRequests.map((request) => (
             <div
               key={request.id}
               className="employee-card bg-white p-6 rounded shadow relative"
             >
               {/* Header Row */}
               <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center ">
+                <div className="flex items-center">
                   <div>
                     <div className="flex items-center gap-4">
-                      <FiUser className="text-gray-400 mr-3 text-lg" />
-                      <h3 className="font-semibold text-lg text-gray-800">
-                        {getEmployeeName(request.employee_id)}
-                      </h3>
                       <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                         {request.type}
+                      </span>
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                          request.status
+                        )}`}
+                      >
+                        {request.status}
                       </span>
                     </div>
                     {/* Reason Section */}
                     {request.reason && (
-                      <div className="bg-gray-50 p-3 rounded-lg flex gap-2">
+                      <div className="bg-gray-50 p-3 rounded-lg mt-3">
                         <div className="flex items-center mb-2">
                           <span className="font-medium text-gray-700">
                             Reason for Time Off:
@@ -269,34 +326,20 @@ export default function RequestsPage(): ReactElement {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={request.status}
-                    onChange={(e) =>
-                      handleStatusUpdate(request.id, e.target.value)
-                    }
-                    className={`px-3 py-1 rounded text-sm font-medium border-none focus:outline-none focus:ring-2 focus:ring-primary-dark ${
-                      request.status === "Accepted"
-                        ? "bg-green-100 text-green-800"
-                        : request.status === "Rejected"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
+
+                {/* Delete Button - Only show for Pending requests */}
+                {request.status === "Pending" && (
                   <button
                     onClick={() => handleDeleteRequest(request.id)}
-                    className="delete-button"
+                    className="text-red-500 hover:text-red-700 p-2"
+                    title="Delete request"
                   >
                     🗑️
                   </button>
-                </div>
+                )}
               </div>
 
-              {/* Date and Time Information */}
+              {/* Date/Time Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <div className="flex items-center mb-2">
@@ -341,7 +384,9 @@ export default function RequestsPage(): ReactElement {
           ))
         ) : (
           <div className="text-center py-8 text-gray-500">
-            No time off requests found.
+            {filterStatus === "All"
+              ? "You haven't submitted any time off requests yet."
+              : `No ${filterStatus.toLowerCase()} time off requests found.`}
           </div>
         )}
       </div>

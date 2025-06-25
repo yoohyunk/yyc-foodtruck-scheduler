@@ -27,6 +27,11 @@ export default function Events(): ReactElement {
         const data = await eventsApi.getAllEvents();
         setEvents(data);
         setFilteredEvents(data); // Initially show all events
+        // Set global variable for tutorial navigation
+        if (typeof window !== "undefined" && data.length > 0) {
+          (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
+            data[0].id;
+        }
       } catch (err) {
         console.error("Error fetching events:", err);
         setError("Failed to load events. Please try again.");
@@ -45,17 +50,9 @@ export default function Events(): ReactElement {
     // Apply status filter
     if (activeFilter !== "All") {
       filtered = filtered.filter((event) => {
-        // Check if event has required fields for status determination
-        const hasRequiredServers =
-          event.number_of_servers_needed && event.number_of_servers_needed > 0;
-        const hasRequiredDrivers =
-          event.number_of_driver_needed && event.number_of_driver_needed > 0;
-
-        // For now, we'll consider an event as pending if it needs servers or drivers
-        // This will need to be updated when assignments are properly implemented
-        const isPending = hasRequiredServers || hasRequiredDrivers;
-
-        return activeFilter === "Pending" ? isPending : !isPending;
+        // Use actual status from database, default to "Pending" if null
+        const eventStatus = event.status || "Pending";
+        return activeFilter === eventStatus;
       });
     }
 
@@ -103,8 +100,6 @@ export default function Events(): ReactElement {
 
   return (
     <div className="events-page">
-      <h2 className="text-2xl text-primary-dark mb-4">Event Management</h2>
-
       {/* Filter Buttons */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".filter-buttons")}
@@ -133,7 +128,7 @@ export default function Events(): ReactElement {
       {/* Date and Distance Filters */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".additional-filters")}
-        className="additional-filters grid grid-cols-2 gap-4 mb-6 p-4"
+        className="additional-filters grid grid-cols-2 gap-4 mb-6"
       >
         {/* Date Filter */}
         <div>
@@ -167,17 +162,8 @@ export default function Events(): ReactElement {
                   shouldHighlight(`.event-card:nth-child(1) .button`))) ||
               false;
 
-            // Determine event status based on Supabase schema
-            const hasRequiredServers =
-              event.number_of_servers_needed &&
-              event.number_of_servers_needed > 0;
-            const hasRequiredDrivers =
-              event.number_of_driver_needed &&
-              event.number_of_driver_needed > 0;
-
-            // For now, we'll consider an event as pending if it needs servers or drivers
-            // This will need to be updated when assignments are properly implemented
-            const isPending = hasRequiredServers || hasRequiredDrivers;
+            // Use actual status from database, default to "Pending" if null
+            const eventStatus = event.status || "Pending";
 
             return (
               <TutorialHighlight
@@ -232,9 +218,15 @@ export default function Events(): ReactElement {
                 <p>
                   <strong>Status:</strong>{" "}
                   <span
-                    className={isPending ? "text-yellow-500" : "text-green-500"}
+                    className={
+                      eventStatus === "Pending"
+                        ? "text-yellow-500"
+                        : eventStatus === "Cancelled"
+                          ? "text-red-500"
+                          : "text-green-500"
+                    }
                   >
-                    {isPending ? "Pending" : "Scheduled"}
+                    {eventStatus}
                   </span>
                 </p>
                 <TutorialHighlight isHighlighted={highlightViewDetailsButton}>
