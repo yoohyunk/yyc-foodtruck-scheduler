@@ -2,11 +2,13 @@
 
 import React, { useState, FormEvent, ReactElement, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function InviteEmployee(): ReactElement {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const supabase = createClient();
 
   const firstNameRef = useRef<HTMLInputElement>(null);
   const lastNameRef = useRef<HTMLInputElement>(null);
@@ -43,9 +45,21 @@ export default function InviteEmployee(): ReactElement {
 
     setIsSubmitting(true);
     try {
+      // Get the current session
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
       const res = await fetch("/api/invite", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           firstName,
           lastName,

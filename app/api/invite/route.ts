@@ -7,6 +7,42 @@ const supabase = createClient(
 );
 
 export async function POST(request: Request) {
+  // Get the authorization header
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
+
+  // Verify the user's JWT token
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  }
+
+  // Check if user's employee type is Admin
+  const { data: adminCheck, error: adminError } = await supabase
+    .from("employees")
+    .select("employee_type")
+    .eq("user_id", user.id)
+    .single();
+
+  if (adminError || !adminCheck) {
+    return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+  }
+
+  if (adminCheck.employee_type !== "Admin") {
+    return NextResponse.json(
+      { error: "Access denied. Admin privileges required." },
+      { status: 403 }
+    );
+  }
+
   const { email, firstName, lastName, employeeType, wage } =
     await request.json();
 
@@ -41,14 +77,6 @@ export async function POST(request: Request) {
   }
 
   // Log environment variables for debugging (remove in production)
-  console.log("Environment check:", {
-    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    appUrl: process.env.NEXT_PUBLIC_APP_URL,
-  });
-
-  const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/set-password`;
-  console.log("Redirect URL:", redirectUrl);
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
     redirectTo: `https://yyc-foodtruck-scheduler.vercel.app/set-password?email=${encodeURIComponent(email)}`,
