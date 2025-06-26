@@ -15,6 +15,7 @@ import {
   TruckAssignmentCreate,
   getTruckTypeColor,
   getTruckTypeBadge,
+  getTruckBorderColor,
 } from "@/app/types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import DatePicker from "react-datepicker";
@@ -78,6 +79,8 @@ export default function AddEventPage(): ReactElement {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
+  const [isLoadingTrucks, setIsLoadingTrucks] = useState(true);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
 
   // Refs for form fields
   const nameRef = useRef<HTMLInputElement>(null);
@@ -126,6 +129,9 @@ export default function AddEventPage(): ReactElement {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoadingTrucks(true);
+        setIsLoadingEmployees(true);
+        
         // Fetch truck data
         const trucksData = await trucksApi.getAllTrucks();
         setTrucks(trucksData);
@@ -135,6 +141,9 @@ export default function AddEventPage(): ReactElement {
         setEmployees(employeesData);
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setIsLoadingTrucks(false);
+        setIsLoadingEmployees(false);
       }
     };
 
@@ -766,96 +775,109 @@ export default function AddEventPage(): ReactElement {
               Check the boxes for trucks you want to include in this event, then
               assign a driver to each selected truck.
             </p>
-            <div className="truck-assignment-list space-y-4">
-              {trucks.map((truck) => {
-                const assignedDriver = getAssignedDriverForTruck(truck.id);
-                const availableDrivers = getAvailableDrivers();
-                const isTruckSelected = truckAssignments.some(
-                  (assignment) => assignment.truck_id === truck.id
-                );
+            <div className={`truck-assignment-list space-y-4 ${isLoadingTrucks ? 'loading' : ''}`}>
+              {isLoadingTrucks ? (
+                <div className="text-center py-8">
+                  <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                  <p className="text-gray-500">Loading trucks...</p>
+                </div>
+              ) : trucks.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No trucks available. Please add trucks first.</p>
+                </div>
+              ) : (
+                trucks
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((truck) => {
+                    const assignedDriver = getAssignedDriverForTruck(truck.id);
+                    const availableDrivers = getAvailableDrivers();
+                    const isTruckSelected = truckAssignments.some(
+                      (assignment) => assignment.truck_id === truck.id
+                    );
 
-                return (
-                  <div
-                    key={truck.id}
-                    className={`truck-assignment-item border rounded-lg p-4 ${getTruckTypeColor(truck.type)}`}
-                  >
-                    {/* Truck Selection Checkbox */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          id={`truck-${truck.id}`}
-                          checked={isTruckSelected}
-                          onChange={(e) =>
-                            handleTruckSelection(truck.id, e.target.checked)
-                          }
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <label
-                          htmlFor={`truck-${truck.id}`}
-                          className="font-semibold text-lg cursor-pointer"
-                        >
-                          {truck.name}
-                        </label>
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${getTruckTypeBadge(truck.type)}`}
-                        >
-                          {truck.type}
-                        </span>
-                      </div>
-                      <span
-                        className={`px-2 py-1 rounded text-sm ${
-                          truck.is_available
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
+                    return (
+                      <div
+                        key={truck.id}
+                        className="truck-assignment-item border rounded-lg p-4"
+                        style={{
+                          borderLeft: `6px solid ${getTruckBorderColor(truck.type)}`,
+                          borderTop: `4px solid ${getTruckBorderColor(truck.type)}`,
+                          background: `linear-gradient(135deg, ${getTruckBorderColor(truck.type)}25 0%, #ffffff 100%)`
+                        }}
                       >
-                        {truck.is_available ? "Available" : "Unavailable"}
-                      </span>
-                    </div>
-
-                    {/* Driver Assignment Section - Only show if truck is selected */}
-                    {isTruckSelected && (
-                      <div className="space-y-2 mt-4 p-3 bg-white rounded border">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Assign Driver:
-                        </label>
-                        <select
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          value={assignedDriver?.employee_id || ""}
-                          onChange={(e) =>
-                            handleTruckAssignment(
-                              truck.id,
-                              e.target.value || null
-                            )
-                          }
-                        >
-                          <option value="">No driver assigned</option>
-                          {availableDrivers.map((driver) => (
-                            <option
-                              key={driver.employee_id}
-                              value={driver.employee_id}
+                        {/* Truck Selection Checkbox */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id={`truck-${truck.id}`}
+                              checked={isTruckSelected}
+                              onChange={(e) =>
+                                handleTruckSelection(truck.id, e.target.checked)
+                              }
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label
+                              htmlFor={`truck-${truck.id}`}
+                              className="font-semibold text-lg cursor-pointer"
                             >
-                              {driver.first_name} {driver.last_name} (
-                              {driver.employee_type})
-                            </option>
-                          ))}
-                        </select>
+                              {truck.name}
+                            </label>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded text-sm ${
+                              truck.is_available
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {truck.is_available ? "Available" : "Unavailable"}
+                          </span>
+                        </div>
 
-                        {assignedDriver && (
-                          <div className="mt-2 p-2 bg-blue-50 rounded">
-                            <p className="text-sm text-blue-800">
-                              <strong>Assigned Driver:</strong>{" "}
-                              {assignedDriver.first_name}{" "}
-                              {assignedDriver.last_name}
-                            </p>
+                        {/* Driver Assignment Section - Only show if truck is selected */}
+                        {isTruckSelected && (
+                          <div className="space-y-2 mt-4 p-3 bg-white rounded border">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Assign Driver:
+                            </label>
+                            <select
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              value={assignedDriver?.employee_id || ""}
+                              onChange={(e) =>
+                                handleTruckAssignment(
+                                  truck.id,
+                                  e.target.value || null
+                                )
+                              }
+                            >
+                              <option value="">No driver assigned</option>
+                              {availableDrivers.map((driver) => (
+                                <option
+                                  key={driver.employee_id}
+                                  value={driver.employee_id}
+                                >
+                                  {driver.first_name} {driver.last_name} (
+                                  {driver.employee_type})
+                                </option>
+                              ))}
+                            </select>
+
+                            {assignedDriver && (
+                              <div className="mt-2 p-2 bg-blue-50 rounded">
+                                <p className="text-sm text-blue-800">
+                                  <strong>Assigned Driver:</strong>{" "}
+                                  {assignedDriver.first_name}{" "}
+                                  {assignedDriver.last_name}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })
+              )}
             </div>
 
             {/* Summary of selected trucks */}
@@ -879,11 +901,6 @@ export default function AddEventPage(): ReactElement {
                         className="text-sm text-green-700 flex items-center gap-2"
                       >
                         <span>• {truck?.name}</span>
-                        <span
-                          className={`px-1 py-0.5 rounded text-xs font-medium ${getTruckTypeBadge(truck?.type || "")}`}
-                        >
-                          {truck?.type}
-                        </span>
                         <span>
                           - Driver:{" "}
                           {driver

@@ -4,6 +4,7 @@ import {
   Truck,
   getTruckTypeColor,
   getTruckTypeBadge,
+  getTruckBorderColor,
 } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 
@@ -57,7 +58,12 @@ const TruckItem = React.memo(
       }
     >
       <div
-        className={`truck-assignment border rounded-lg p-4 ${getTruckTypeColor(truck.type)}`}
+        className="truck-assignment border rounded-lg p-4"
+        style={{
+          borderLeft: `6px solid ${getTruckBorderColor(truck.type)}`,
+          borderTop: `4px solid ${getTruckBorderColor(truck.type)}`,
+          background: `linear-gradient(135deg, ${getTruckBorderColor(truck.type)}25 0%, #ffffff 100%)`
+        }}
       >
         {/* Truck Selection Section */}
         <label
@@ -66,21 +72,23 @@ const TruckItem = React.memo(
           } cursor-pointer`}
         >
           <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
-            <div>
-              <span
-                className="font-semibold text-lg"
-                style={{ whiteSpace: "nowrap" }}
-              >
-                {truck.name}
-              </span>
-              <span
-                className={`px-2 py-1 rounded text-xs font-medium ml-2 ${getTruckTypeBadge(truck.type)}`}
-              >
-                {truck.type}
-              </span>
-              <span className="text-sm text-gray-500 ml-2">
-                (Capacity: {truck.capacity})
-              </span>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
+                <span className="text-xs font-bold text-gray-700 text-center leading-tight">
+                  {truck.name?.split(' ').map(word => word.charAt(0)).join('').toUpperCase() || 'T'}
+                </span>
+              </div>
+              <div>
+                <span
+                  className="font-semibold text-lg"
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  {truck.name}
+                </span>
+                <span className="text-sm text-gray-500 ml-2">
+                  (Capacity: {truck.capacity})
+                </span>
+              </div>
             </div>
             <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
               <span
@@ -104,7 +112,7 @@ const TruckItem = React.memo(
 
         {/* Driver Assignment Section - Only show if truck is selected */}
         {isSelected && (
-          <div className="space-y-2 mt-4 p-3 bg-white rounded border">
+          <div className="space-y-2 mt-4 p-3 bg-gray-50 rounded border">
             <label className="block text-sm font-medium text-gray-700">
               Assign Driver:
             </label>

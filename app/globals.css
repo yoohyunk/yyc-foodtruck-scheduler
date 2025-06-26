@@ -4459,3 +4459,630 @@ input:not(:-webkit-autofill) {
   border-color: #ffd586;
   transform: translateY(-1px);
 }
+
+/* =========================
+   Truck Assignment Components - Create Event Page
+========================= */
+
+/* Truck Assignment List Container */
+.truck-assignment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+  min-height: 100px;
+}
+
+/* Empty State for Truck List */
+.truck-assignment-list:empty::after {
+  content: "No trucks available. Please add trucks first.";
+  display: block;
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-style: italic;
+  background: #f9fafb;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.75rem;
+}
+
+/* Loading State for Truck List */
+.truck-assignment-list.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.truck-assignment-list.loading::after {
+  content: "Loading trucks...";
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Individual Truck Assignment Item */
+.truck-assignment-item {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.truck-assignment-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #ffd586;
+}
+
+.truck-assignment-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: #cbd5e0;
+}
+
+/* Truck Assignment Item - Food Truck */
+.truck-assignment-item.border-orange-300 {
+  border-left: 6px solid #f97316;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%);
+}
+
+.truck-assignment-item.border-orange-300::before {
+  background: #f97316;
+}
+
+/* Truck Assignment Item - Beverage Truck */
+.truck-assignment-item.border-blue-300 {
+  border-left: 6px solid #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+}
+
+.truck-assignment-item.border-blue-300::before {
+  background: #3b82f6;
+}
+
+/* Truck Assignment Item - Dessert Truck */
+.truck-assignment-item.border-pink-300 {
+  border-left: 6px solid #ec4899;
+  background: linear-gradient(135deg, #fdf2f8 0%, #ffffff 100%);
+}
+
+.truck-assignment-item.border-pink-300::before {
+  background: #ec4899;
+}
+
+/* Truck Assignment Item - Holiday Truck */
+.truck-assignment-item.border-purple-300 {
+  border-left: 6px solid #a855f7;
+  background: linear-gradient(135deg, #faf5ff 0%, #ffffff 100%);
+}
+
+.truck-assignment-item.border-purple-300::before {
+  background: #a855f7;
+}
+
+/* Truck Assignment Item - Default */
+.truck-assignment-item.border-gray-300 {
+  border-left: 6px solid #6b7280;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+}
+
+.truck-assignment-item.border-gray-300::before {
+  background: #6b7280;
+}
+
+/* Truck Selection Header */
+.truck-assignment-item .flex.items-center.justify-between {
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+/* Truck Name and Type Section */
+.truck-assignment-item .flex.items-center.space-x-3 {
+  flex: 1;
+  min-width: 0;
+  gap: 0.75rem;
+}
+
+/* Truck Name Label */
+.truck-assignment-item label.font-semibold.text-lg {
+  color: #1a202c;
+  font-weight: 700;
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.truck-assignment-item label.font-semibold.text-lg:hover {
+  color: #00809d;
+}
+
+/* Truck Type Badge */
+.truck-assignment-item .px-2.py-1.rounded.text-xs.font-medium {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Food Truck Badge */
+.truck-assignment-item .bg-orange-100.text-orange-800 {
+  background: #ffd586 !important;
+  color: #1a202c !important;
+  border-color: #ffd586;
+}
+
+/* Beverage Truck Badge */
+.truck-assignment-item .bg-blue-100.text-blue-800 {
+  background: #ffaaaa !important;
+  color: #1a202c !important;
+  border-color: #ffaaaa;
+}
+
+/* Dessert Truck Badge */
+.truck-assignment-item .bg-pink-100.text-pink-800 {
+  background: #b36a5e !important;
+  color: #ffffff !important;
+  border-color: #b36a5e;
+}
+
+/* Holiday Truck Badge */
+.truck-assignment-item .bg-purple-100.text-purple-800 {
+  background: #ffd586 !important;
+  color: #1a202c !important;
+  border-color: #ffd586;
+}
+
+/* Default Badge */
+.truck-assignment-item .bg-gray-100.text-gray-800 {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+  border-color: #d1d5db;
+}
+
+/* Availability Status */
+.truck-assignment-item .px-2.py-1.rounded.text-sm {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Available Status */
+.truck-assignment-item .bg-green-100.text-green-800 {
+  background: #ffd586 !important;
+  color: #1a202c !important;
+  border-color: #ffd586;
+}
+
+/* Unavailable Status */
+.truck-assignment-item .bg-red-100.text-red-800 {
+  background: #b36a5e !important;
+  color: #ffffff !important;
+  border-color: #b36a5e;
+}
+
+/* Checkbox Styling */
+.truck-assignment-item input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0;
+  padding: 0;
+  accent-color: #00809d;
+  flex-shrink: 0;
+}
+
+.truck-assignment-item input[type="checkbox"]:checked {
+  background: #00809d;
+  border-color: #00809d;
+  box-shadow: 0 2px 8px rgba(0, 128, 157, 0.3);
+}
+
+.truck-assignment-item input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 128, 157, 0.1);
+}
+
+/* Driver Assignment Section */
+.truck-assignment-item .space-y-2.mt-4.p-3.bg-white.rounded.border {
+  background: #f8fafc !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-top: 1rem;
+  transition: all 0.2s ease;
+}
+
+.truck-assignment-item .space-y-2.mt-4.p-3.bg-white.rounded.border:hover {
+  border-color: #cbd5e0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Driver Assignment Label */
+.truck-assignment-item .block.text-sm.font-medium.text-gray-700 {
+  color: #1a202c !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Driver Selection Dropdown */
+.truck-assignment-item select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: #ffffff;
+  color: #1a202c;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+}
+
+.truck-assignment-item select:focus {
+  outline: none;
+  border-color: #00809d;
+  box-shadow: 0 0 0 3px rgba(0, 128, 157, 0.1);
+}
+
+.truck-assignment-item select:hover {
+  border-color: #cbd5e0;
+}
+
+/* Assigned Driver Info */
+.truck-assignment-item .mt-2.p-2.bg-blue-50.rounded {
+  background: #ffd586 !important;
+  border: 1px solid #ffd586;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.truck-assignment-item .text-sm.text-blue-800 {
+  color: #1a202c !important;
+  font-weight: 500;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.truck-assignment-item .text-sm.text-blue-800 strong {
+  color: #00809d;
+  font-weight: 700;
+}
+
+/* Selected Trucks Summary */
+.mt-4.p-3.bg-green-50.rounded.border.border-green-200 {
+  background: #ffd586 !important;
+  border: 2px solid #ffd586 !important;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.font-medium.text-green-800.mb-2 {
+  color: #1a202c !important;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.space-y-1 {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.text-sm.text-green-700.flex.items-center.gap-2 {
+  color: #1a202c !important;
+  font-weight: 500;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.text-sm.text-green-700.flex.items-center.gap-2 span:first-child {
+  font-weight: 600;
+  color: #00809d;
+}
+
+/* Error State for Truck Assignment */
+.truck-assignment-list.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background: #fef2f2;
+  border: 2px dashed #fecaca;
+  border-radius: 0.75rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* Responsive Design for Truck Assignment */
+@media (max-width: 768px) {
+  .truck-assignment-item {
+    padding: 1rem;
+  }
+  
+  .truck-assignment-item .flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .truck-assignment-item .flex.items-center.space-x-3 {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .truck-assignment-item label.font-semibold.text-lg {
+    font-size: 1rem;
+  }
+  
+  .truck-assignment-item .px-2.py-1.rounded.text-xs.font-medium {
+    font-size: 0.625rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .truck-assignment-item .px-2.py-1.rounded.text-sm {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .truck-assignment-item .space-y-2.mt-4.p-3.bg-white.rounded.border {
+    padding: 1rem;
+  }
+  
+  .truck-assignment-item select {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .truck-assignment-item {
+    padding: 0.875rem;
+  }
+  
+  .truck-assignment-item .flex.items-center.space-x-3 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .truck-assignment-item label.font-semibold.text-lg {
+    font-size: 0.95rem;
+  }
+  
+  .text-sm.text-green-700.flex.items-center.gap-2 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+/* =========================
+   Truck Assignment Modal Styles
+========================= */
+
+/* Modal Truck Assignment Items */
+.truck-assignment {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.truck-assignment::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #ffd586;
+}
+
+.truck-assignment:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: #cbd5e0;
+}
+
+/* Modal Truck Assignment - Food Truck */
+.truck-assignment.border-orange-300 {
+  border-left: 6px solid #f97316;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%);
+}
+
+.truck-assignment.border-orange-300::before {
+  background: #f97316;
+}
+
+/* Modal Truck Assignment - Beverage Truck */
+.truck-assignment.border-blue-300 {
+  border-left: 6px solid #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+}
+
+.truck-assignment.border-blue-300::before {
+  background: #3b82f6;
+}
+
+/* Modal Truck Assignment - Dessert Truck */
+.truck-assignment.border-pink-300 {
+  border-left: 6px solid #ec4899;
+  background: linear-gradient(135deg, #fdf2f8 0%, #ffffff 100%);
+}
+
+.truck-assignment.border-pink-300::before {
+  background: #ec4899;
+}
+
+/* Modal Truck Assignment - Holiday Truck */
+.truck-assignment.border-purple-300 {
+  border-left: 6px solid #a855f7;
+  background: linear-gradient(135deg, #faf5ff 0%, #ffffff 100%);
+}
+
+.truck-assignment.border-purple-300::before {
+  background: #a855f7;
+}
+
+/* Modal Truck Assignment - Default */
+.truck-assignment.border-gray-300 {
+  border-left: 6px solid #6b7280;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+}
+
+.truck-assignment.border-gray-300::before {
+  background: #6b7280;
+}
+
+/* Modal Truck Label */
+.truck-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.truck-label:hover {
+  background: rgba(255, 213, 134, 0.1);
+  border-radius: 0.5rem;
+}
+
+.truck-label-selected {
+  background: rgba(255, 213, 134, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+/* Modal Truck Checkbox */
+.truck-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0;
+  padding: 0;
+  accent-color: #00809d;
+}
+
+.truck-checkbox:checked {
+  background: #00809d;
+  border-color: #00809d;
+  box-shadow: 0 2px 8px rgba(0, 128, 157, 0.3);
+}
+
+.truck-checkbox:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 128, 157, 0.1);
+}
+
+/* Modal Truck Filter Dropdown */
+.truck-filter-dropdown {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: #ffffff;
+  color: #1a202c;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+}
+
+.truck-filter-dropdown:focus {
+  outline: none;
+  border-color: #00809d;
+  box-shadow: 0 0 0 3px rgba(0, 128, 157, 0.1);
+}
+
+.truck-filter-dropdown:hover {
+  border-color: #cbd5e0;
+}
+
+/* Truck List Container */
+.truck-list-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.truck-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.truck-list-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.truck-list-container::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+.truck-list-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

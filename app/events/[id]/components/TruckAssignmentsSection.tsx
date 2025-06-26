@@ -1,5 +1,5 @@
 import React from "react";
-import { Employee, Truck, TruckAssignment } from "@/app/types";
+import { Employee, Truck, TruckAssignment, getTruckBorderColor } from "@/app/types";
 import { useRouter } from "next/navigation";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 import { extractTime } from "../../utils";
@@ -60,11 +60,20 @@ export default function TruckAssignmentsSection({
                 )
               }
             >
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors truck-card">
+              <div 
+                className="border rounded-lg p-4 transition-all duration-200 truck-card hover:shadow-md"
+                style={{
+                  borderLeft: `6px solid ${getTruckBorderColor(truck?.type || "")}`,
+                  borderTop: `4px solid ${getTruckBorderColor(truck?.type || "")}`,
+                  background: `linear-gradient(135deg, ${getTruckBorderColor(truck?.type || "")}25 0%, #ffffff 100%)`
+                }}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <span className="text-orange-600 font-semibold">🚛</span>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
+                      <span className="text-xs font-bold text-gray-700 text-center leading-tight">
+                        {truck?.name?.split(' ').map(word => word.charAt(0)).join('').toUpperCase() || 'T'}
+                      </span>
                     </div>
                     <div>
                       <TutorialHighlight
