@@ -14,7 +14,6 @@ import { EmployeeFormData } from "@/app/types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
-import { wagesApi } from "@/lib/supabase/wages";
 import ErrorModal from "../../components/ErrorModal";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -923,12 +922,14 @@ export default function EditEmployeePage(): ReactElement {
         onClose={() => setShowErrorModal(false)}
         errors={validationErrors}
         type={
-          validationErrors.length === 1 && validationErrors[0].field === "success"
+          validationErrors.length === 1 &&
+          validationErrors[0].field === "success"
             ? "success"
             : "error"
         }
         title={
-          validationErrors.length === 1 && validationErrors[0].field === "success"
+          validationErrors.length === 1 &&
+          validationErrors[0].field === "success"
             ? "Success!"
             : undefined
         }

@@ -294,6 +294,12 @@ export default function InviteEmployee(): ReactElement {
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
         errors={validationErrors}
+        type={
+          validationErrors.length === 1 &&
+          validationErrors[0].field === "success"
+            ? "success"
+            : "error"
+        }
         title={
           validationErrors.length === 1 &&
           validationErrors[0].field === "success"
