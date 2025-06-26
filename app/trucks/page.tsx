@@ -41,7 +41,7 @@ export default function Trucks(): ReactElement {
       }
 
       // Sort trucks alphabetically by name
-      const sortedTrucks = (data || []).sort((a, b) => 
+      const sortedTrucks = (data || []).sort((a, b) =>
         a.name.localeCompare(b.name)
       );
 
