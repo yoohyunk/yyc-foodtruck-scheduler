@@ -81,6 +81,9 @@ export default function EditEmployeePage(): ReactElement {
 
   // Set up autofill detection for all form fields
   useEffect(() => {
+    // Only set up autofill detection after loading is complete
+    if (isLoading) return;
+
     const fields = [
       firstNameRef,
       lastNameRef,
@@ -103,7 +106,7 @@ export default function EditEmployeePage(): ReactElement {
         });
       }
     });
-  }, []);
+  }, [isLoading]);
 
   // Fetch employee details
   useEffect(() => {
@@ -135,21 +138,28 @@ export default function EditEmployeePage(): ReactElement {
           return;
         }
 
-        // Get wage data
-        const { data: wageData } = await supabase
+        // Get wage data - get the most recent wage record
+        const { data: wageData, error: wageError } = await supabase
           .from("wage")
           .select("*")
           .eq("employee_id", id)
-          .single();
+          .order("start_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (wageError) {
+          console.error("Error fetching wage data:", wageError);
+        }
+
+        // If no wage data found, log it
+        if (!wageData) {
+          console.log("No wage data found for employee:", id);
+        }
 
         // Format address
         const address = employeeData.addresses
           ? `${employeeData.addresses.street}, ${employeeData.addresses.city}, ${employeeData.addresses.province}`
           : "";
-
-        console.log("Employee data:", employeeData);
-        console.log("Address data:", employeeData.addresses);
-        console.log("Formatted address:", address);
 
         setFormData({
           first_name: employeeData.first_name || "",
@@ -397,10 +407,6 @@ export default function EditEmployeePage(): ReactElement {
 
       if (existingEmployee?.address_id) {
         // Update existing address
-        console.log(
-          "Updating existing address with ID:",
-          existingEmployee.address_id
-        );
         const { error: addressError } = await supabase
           .from("addresses")
           .update({
@@ -417,14 +423,19 @@ export default function EditEmployeePage(): ReactElement {
           .eq("id", existingEmployee.address_id);
 
         if (addressError) {
-          console.error("Error updating address:", addressError);
+          setValidationErrors([
+            {
+              field: "address",
+              message: "Failed to update address. Please try again.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
           return;
         }
         addressId = existingEmployee.address_id;
-        console.log("Address updated successfully");
       } else {
         // Create new address
-        console.log("Creating new address...");
         const { data: newAddress, error: addressError } = await supabase
           .from("addresses")
           .insert({
@@ -442,11 +453,17 @@ export default function EditEmployeePage(): ReactElement {
           .single();
 
         if (addressError) {
-          console.error("Error creating address:", addressError);
+          setValidationErrors([
+            {
+              field: "address",
+              message: "Failed to create address. Please try again.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
           return;
         }
         addressId = newAddress.id;
-        console.log("Created new address with ID:", addressId);
       }
 
       console.log("Final addressId value:", addressId);
@@ -470,10 +487,7 @@ export default function EditEmployeePage(): ReactElement {
         availability: formData.availability,
       };
 
-      console.log("Update data with address_id:", updateData);
-
       // Only update email and phone if they're different from the current ones
-      console.log("Checking email and phone updates...");
       const { data: currentEmployee } = await supabase
         .from("employees")
         .select("user_email, user_phone")
@@ -482,7 +496,6 @@ export default function EditEmployeePage(): ReactElement {
 
       if (formData.email !== currentEmployee?.user_email) {
         updateData.user_email = formData.email;
-        console.log("Email will be updated");
       }
 
       // Check if the new phone number is already used by another employee
@@ -490,10 +503,8 @@ export default function EditEmployeePage(): ReactElement {
         // If current phone is null, we can always update
         if (currentEmployee?.user_phone === null) {
           updateData.user_phone = formData.phone;
-          console.log("Phone will be updated (was null)");
         } else {
           // Check if the new phone number is already used by another employee
-          console.log("Checking if phone number is already used...");
           const { data: existingEmployeeWithPhone } = await supabase
             .from("employees")
             .select("employee_id")
@@ -502,16 +513,22 @@ export default function EditEmployeePage(): ReactElement {
             .single();
 
           if (existingEmployeeWithPhone) {
-            console.error("Phone number already used by another employee");
+            setValidationErrors([
+              {
+                field: "phone",
+                message:
+                  "This phone number is already in use by another employee. Please use a different phone number.",
+                element: phoneRef.current,
+              },
+            ]);
+            setShowErrorModal(true);
             return;
           } else {
             updateData.user_phone = formData.phone;
-            console.log("Phone will be updated");
           }
         }
       } else {
         updateData.user_phone = currentEmployee.user_phone;
-        console.log("Phone unchanged");
       }
 
       console.log("Final update data:", updateData);
@@ -522,7 +539,7 @@ export default function EditEmployeePage(): ReactElement {
       console.log("New phone:", formData.phone);
 
       console.log("Updating employee in database...");
-      const { data: updatedEmployee, error: employeeError } = await supabase
+      const { error: employeeError } = await supabase
         .from("employees")
         .update(updateData)
         .eq("employee_id", id)
@@ -545,11 +562,8 @@ export default function EditEmployeePage(): ReactElement {
         return;
       }
 
-      console.log("Employee updated successfully:", updatedEmployee);
-
       // Verify address update by fetching the updated employee data
-      console.log("Verifying address update...");
-      const { data: verifyEmployee, error: verifyError } = await supabase
+      const { error: verifyError } = await supabase
         .from("employees")
         .select(
           `
@@ -570,10 +584,6 @@ export default function EditEmployeePage(): ReactElement {
 
       if (verifyError) {
         console.error("Error verifying employee update:", verifyError);
-      } else {
-        console.log("Verified employee data:", verifyEmployee);
-        console.log("Address ID after update:", verifyEmployee.address_id);
-        console.log("Address data after update:", verifyEmployee.addresses);
       }
 
       // Wage update with history

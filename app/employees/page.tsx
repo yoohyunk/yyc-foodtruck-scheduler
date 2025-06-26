@@ -17,6 +17,7 @@ export default function Employees(): ReactElement {
   const router = useRouter();
   const supabase = createClient();
   const { shouldHighlight } = useTutorial();
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch employees from employee.json
   useEffect(() => {
@@ -59,20 +60,7 @@ export default function Employees(): ReactElement {
           .select("*")
           .in("id", addressIds);
 
-        // Get wage information - first check if there are any wages at all
-        const { data: allWagesCheck, error: wageCheckError } = await supabase
-          .from("wage")
-          .select("*");
-
-        console.log("All wages in database:", allWagesCheck);
-        console.log("Wage check error:", wageCheckError);
-
         // Get wage information - get all wages and find the most recent one for each employee
-        console.log(
-          "Employee IDs to fetch wages for:",
-          data.map((emp) => emp.employee_id)
-        );
-
         const { data: allWages, error: wageError } = await supabase
           .from("wage")
           .select("*")
@@ -86,37 +74,21 @@ export default function Employees(): ReactElement {
           console.error("Error fetching wages:", wageError);
         }
 
-        console.log("All wages fetched:", allWages);
-        console.log("Wage error:", wageError);
-
         // Create a map of employee_id to their most recent wage
         const wageMap = new Map();
         if (allWages) {
           allWages.forEach((wage) => {
-            console.log(
-              `Processing wage for employee ${wage.employee_id}:`,
-              wage
-            );
             if (!wageMap.has(wage.employee_id)) {
               wageMap.set(wage.employee_id, wage);
             }
           });
         }
 
-        console.log("Final wage map:", wageMap);
-        console.log("Wage map entries:", Array.from(wageMap.entries()));
-
         const formattedEmployees = data.map((emp) => {
           const address = addressesData?.find(
             (addr) => addr.id === emp.address_id
           );
           const wage = wageMap.get(emp.employee_id);
-
-          console.log(`Employee ${emp.employee_id} - found wage:`, wage);
-          console.log(
-            `Employee ${emp.employee_id} - wage hourly_wage:`,
-            wage?.hourly_wage
-          );
 
           return {
             ...emp,
@@ -167,6 +139,31 @@ export default function Employees(): ReactElement {
   }, [activeFilter, employees]);
 
   const handleDeleteClick = (employee: Employee) => {
+    // Debug: Test authentication and permissions
+    console.log("Testing authentication and permissions...");
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      if (error) {
+        console.error("Auth error:", error);
+      } else {
+        console.log("Current user:", user);
+      }
+    });
+
+    // Debug: Test if we can read the employee data
+    console.log("Testing employee data access...");
+    supabase
+      .from("employees")
+      .select("*")
+      .eq("employee_id", employee.employee_id)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Error reading employee data:", error);
+        } else {
+          console.log("Successfully read employee data:", data);
+        }
+      });
+
     setEmployeeToDelete(employee);
     setShowDeleteModal(true);
   };
@@ -174,9 +171,24 @@ export default function Employees(): ReactElement {
   const handleDeleteConfirm = async () => {
     if (!employeeToDelete) return;
 
-    console.log("Attempting to delete employee:", employeeToDelete);
+    console.log("Attempting to delete employee:", employeeToDelete.employee_id);
 
     try {
+      // First, verify the employee exists
+      const { error: checkError } = await supabase
+        .from("employees")
+        .select("employee_id")
+        .eq("employee_id", employeeToDelete.employee_id)
+        .single();
+
+      if (checkError) {
+        console.error("Error checking if employee exists:", checkError);
+        setError(`Employee not found: ${checkError.message}`);
+        return;
+      }
+
+      console.log("Employee exists, proceeding with deletion...");
+
       // First, get the employee data to find related records
       const { data: employeeData, error: fetchError } = await supabase
         .from("employees")
@@ -186,14 +198,15 @@ export default function Employees(): ReactElement {
 
       if (fetchError) {
         console.error("Error fetching employee data:", fetchError);
-        alert("Failed to fetch employee data for deletion.");
+        setError("Failed to fetch employee data for deletion.");
         return;
       }
 
-      console.log("Employee data for deletion:", employeeData);
+      console.log("Employee data fetched:", employeeData);
 
       // Delete wage records
       if (employeeData) {
+        console.log("Deleting wage records...");
         const { error: wageError } = await supabase
           .from("wage")
           .delete()
@@ -201,12 +214,67 @@ export default function Employees(): ReactElement {
 
         if (wageError) {
           console.error("Error deleting wage:", wageError);
+          setError(`Failed to delete wage records: ${wageError.message}`);
+          return;
         } else {
-          console.log("Wage records deleted");
+          console.log("Wage records deleted successfully");
+        }
+
+        // Delete assignments (server assignments to events)
+        console.log("Deleting assignments...");
+        const { error: assignmentsError } = await supabase
+          .from("assignments")
+          .delete()
+          .eq("employee_id", employeeData.employee_id);
+
+        if (assignmentsError) {
+          console.error("Error deleting assignments:", assignmentsError);
+          setError(`Failed to delete assignments: ${assignmentsError.message}`);
+          return;
+        } else {
+          console.log("Assignments deleted successfully");
+        }
+
+        // Delete truck assignments (where employee is a driver)
+        console.log("Deleting truck assignments...");
+        const { error: truckAssignmentsError } = await supabase
+          .from("truck_assignment")
+          .delete()
+          .eq("driver_id", employeeData.employee_id);
+
+        if (truckAssignmentsError) {
+          console.error(
+            "Error deleting truck assignments:",
+            truckAssignmentsError
+          );
+          setError(
+            `Failed to delete truck assignments: ${truckAssignmentsError.message}`
+          );
+          return;
+        } else {
+          console.log("Truck assignments deleted successfully");
+        }
+
+        // Delete time off requests
+        console.log("Deleting time off requests...");
+        const { error: timeOffError } = await supabase
+          .from("time_off_request")
+          .delete()
+          .eq("employee_id", employeeData.employee_id);
+
+        if (timeOffError) {
+          console.error("Error deleting time off requests:", timeOffError);
+          setError(
+            `Failed to delete time off requests: ${timeOffError.message}`
+          );
+          return;
+        } else {
+          console.log("Time off requests deleted successfully");
         }
 
         // Delete address if exists
         if (employeeData.address_id) {
+          console.log("Deleting address:", employeeData.address_id);
           const { error: addressError } = await supabase
             .from("addresses")
             .delete()
@@ -214,23 +282,51 @@ export default function Employees(): ReactElement {
 
           if (addressError) {
             console.error("Error deleting address:", addressError);
+            setError(`Failed to delete address: ${addressError.message}`);
+            return;
           } else {
-            console.log("Address deleted");
+            console.log("Address deleted successfully");
           }
         }
       }
 
       // Finally delete the employee
-      const { error: employeeError } = await supabase
+      console.log("Deleting employee from database...");
+      const { data: deleteResult, error: employeeError } = await supabase
         .from("employees")
         .delete()
-        .eq("employee_id", employeeToDelete.employee_id);
+        .eq("employee_id", employeeToDelete.employee_id)
+        .select();
 
-      console.log("Delete result:", { error: employeeError });
+      console.log("Delete result:", deleteResult);
+      console.log("Delete error:", employeeError);
 
       if (employeeError) {
         console.error("Error deleting employee:", employeeError);
-        alert("Failed to delete employee from database.");
+        setError(
+          `Failed to delete employee from database: ${employeeError.message}`
+        );
+        return;
+      }
+
+      console.log("Employee deleted successfully from database");
+
+      // Verify the employee was actually deleted
+      const { data: verifyEmployee, error: verifyError } = await supabase
+        .from("employees")
+        .select("employee_id")
+        .eq("employee_id", employeeToDelete.employee_id)
+        .single();
+
+      if (verifyError && verifyError.code === "PGRST116") {
+        console.log(
+          "Employee successfully deleted (not found on verification)"
+        );
+      } else if (verifyEmployee) {
+        console.error("Employee still exists after deletion attempt");
+        setError(
+          "Employee deletion failed - employee still exists in database"
+        );
         return;
       }
 
@@ -242,16 +338,63 @@ export default function Employees(): ReactElement {
       setFilteredEmployees(updatedEmployees);
       setShowDeleteModal(false);
       setEmployeeToDelete(null);
-
-      console.log("Employee and all related data deleted successfully");
+      setError(null);
+      console.log("Local state updated successfully");
     } catch (error) {
-      console.error("Error deleting employee:", error);
-      alert("Failed to delete employee. Please try again.");
+      console.error("Unexpected error deleting employee:", error);
+      setError(
+        `Failed to delete employee: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   };
 
   return (
     <div className="employees-page">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+            <div className="ml-auto pl-3">
+              <div className="-mx-1.5 -my-1.5">
+                <button
+                  onClick={() => setError(null)}
+                  className="inline-flex bg-red-50 rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  <span className="sr-only">Dismiss</span>
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filter Buttons */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".filter-buttons")}
