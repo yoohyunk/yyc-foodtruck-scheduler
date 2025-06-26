@@ -56,19 +56,29 @@ export default function Events(): ReactElement {
     // Apply status filter
     if (activeFilter !== "All") {
       filtered = filtered.filter((event) => {
-        // Use actual status from database, default to "Pending" if null
         const eventStatus = event.status || "Pending";
         return activeFilter === eventStatus;
       });
     }
 
-    // Apply date filter
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     if (selectedDate) {
+      // If a date is selected, show events for that date (even if in the past)
       filtered = filtered.filter((event) => {
         const eventDate = event.start_date
           ? new Date(event.start_date).toISOString().split("T")[0]
           : "";
         return eventDate === selectedDate;
+      });
+    } else {
+      // No date selected: show only events whose end_date is today or in the future
+      filtered = filtered.filter((event) => {
+        if (!event.end_date) return true;
+        const eventEnd = new Date(event.end_date);
+        eventEnd.setHours(0, 0, 0, 0);
+        return eventEnd >= today;
       });
     }
 
