@@ -444,19 +444,6 @@ export default function Employees(): ReactElement {
         <div className="flex items-center gap-2 md:gap-4">
           <span className="font-medium text-primary-dark">Sort by:</span>
           <button
-            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${sortMode === "last" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
-            style={{
-              backgroundColor:
-                sortMode === "last" ? "var(--primary-dark)" : undefined,
-              borderColor:
-                sortMode === "last" ? "var(--primary-dark)" : undefined,
-              minWidth: 90,
-            }}
-            onClick={() => setSortMode("last")}
-          >
-            Last Name
-          </button>
-          <button
             className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${sortMode === "first" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
             style={{
               backgroundColor:
@@ -468,6 +455,19 @@ export default function Employees(): ReactElement {
             onClick={() => setSortMode("first")}
           >
             First Name
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${sortMode === "last" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+            style={{
+              backgroundColor:
+                sortMode === "last" ? "var(--primary-dark)" : undefined,
+              borderColor:
+                sortMode === "last" ? "var(--primary-dark)" : undefined,
+              minWidth: 90,
+            }}
+            onClick={() => setSortMode("last")}
+          >
+            Last Name
           </button>
         </div>
       </div>

@@ -30,6 +30,9 @@ export default function TruckManagementPage() {
   const { shouldHighlight } = useTutorial();
   const supabase = createClient();
 
+  // Hover state for truck cards
+  const [hoveredTruckId, setHoveredTruckId] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchTrucks = async () => {
       try {
@@ -173,211 +176,239 @@ export default function TruckManagementPage() {
             isHighlighted={shouldHighlight(".truck-management")}
             className="grid gap-6 truck-management"
           >
-            {trucks.map((truck, index) => (
-              <TutorialHighlight
-                key={truck.id}
-                isHighlighted={shouldHighlight(
-                  `.truck-card:nth-child(${index + 1})`
-                )}
-                className="border border-gray-200 rounded-lg overflow-hidden truck-card"
-              >
-                {/* Truck Header */}
-                <div className="bg-gray-50 px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {truck.name}
-                      </h3>
-                      <div className="flex items-center mt-1">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(truck.type)}`}
-                        >
-                          {truck.type}
-                        </span>
-                        <span className="text-sm text-gray-500 ml-2">
-                          Capacity: {truck.capacity}
-                        </span>
-                        <div className="w-8"></div>
-                        <span className="text-sm text-gray-500">
-                          Location: {truck.addresses?.street || "No address"}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Status:{" "}
-                        {truck.is_available ? "Available" : "Unavailable"}
-                      </p>
-                    </div>
-                    {/* Arrow Button */}
-                    <TutorialHighlight
-                      isHighlighted={shouldHighlight(
-                        `.truck-card:nth-child(${index + 1}) button[class*='bg-green-800']`
-                      )}
-                    >
-                      <button
-                        onClick={() => toggleTruckExpansion(truck.id)}
-                        className="ml-4 bg-green-800 hover:bg-green-900 text-white p-3 rounded-full transition-colors duration-200 shadow-md"
-                      >
-                        <svg
-                          className={`w-5 h-5 transition-transform duration-200 ${expandedTrucks.has(truck.id) ? "rotate-180" : ""}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 5v14m0 0l-7-7m7 7l7-7"
-                          />
-                        </svg>
-                      </button>
-                    </TutorialHighlight>
-                  </div>
-                </div>
-
-                {/* Dropdown Content */}
-                {expandedTrucks.has(truck.id) && (
-                  <div className="px-6 py-4 border-t border-gray-200">
-                    <h4 className="font-medium text-gray-900 mb-3">
-                      Items to Pack
-                    </h4>
-                    <TutorialHighlight
-                      isHighlighted={shouldHighlight(
-                        `.truck-card:nth-child(${index + 1}) .flex.flex-col.gap-2`
-                      )}
-                      className="flex flex-col gap-2 w-full"
-                    >
-                      {(Array.isArray(truck.packingList)
-                        ? truck.packingList
-                        : []
-                      ).map((item: string, idx: number) => (
-                        <div
-                          key={idx}
-                          className="flex flex-row items-center w-full"
-                        >
-                          <input
-                            type="checkbox"
-                            id={`item-${truck.id}-${idx}`}
-                            className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                            checked={checkedItems[truck.id]?.has(idx) || false}
-                            onChange={() => {
-                              setCheckedItems((prev) => {
-                                const prevSet = prev[truck.id]
-                                  ? new Set<number>(Array.from(prev[truck.id]))
-                                  : new Set<number>();
-                                if (prevSet.has(idx)) {
-                                  prevSet.delete(idx);
-                                } else {
-                                  prevSet.add(idx);
-                                }
-                                return { ...prev, [truck.id]: prevSet };
-                              });
-                            }}
-                          />
-                          <label
-                            htmlFor={`item-${truck.id}-${idx}`}
-                            className="ml-2 text-sm text-gray-800 cursor-pointer select-none w-full text-left"
-                          >
-                            {item}
-                          </label>
-                          <TutorialHighlight
-                            isHighlighted={shouldHighlight(
-                              `.truck-card:nth-child(${index + 1}) button[title='Delete item']`
-                            )}
-                          >
-                            <button
-                              className="ml-2 text-red-600 hover:text-red-800 text-lg font-bold focus:outline-none"
-                              title="Delete item"
-                              onClick={() =>
-                                setDeleteConfirm({ truckId: truck.id, idx })
-                              }
-                              type="button"
+            {trucks.map((truck, index) => {
+              // Determine left border color by truck type using CSS variables
+              let leftBorderColor = 'var(--border)'; // default gray
+              if (truck.type === 'Food Truck') {
+                leftBorderColor = 'var(--accent)'; // pink in palette
+              } else if (truck.type === 'Beverage Truck') {
+                leftBorderColor = 'var(--primary-light)'; // yellow in palette
+              } else if (truck.type === 'Dessert Truck') {
+                leftBorderColor = 'var(--primary-light)'; // match time off button bg
+              }
+              const isHovered = hoveredTruckId === truck.id;
+              return (
+                <div
+                  key={truck.id}
+                  className="truck-card"
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    borderLeft: `10px solid ${leftBorderColor} !important`,
+                    borderTop: 'none', // Remove top border
+                    borderBottomLeftRadius: '1.5rem',
+                    borderTopLeftRadius: '1.5rem',
+                    borderTopRightRadius: '1.5rem',
+                    borderBottomRightRadius: '1.5rem',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onMouseEnter={() => setHoveredTruckId(truck.id)}
+                  onMouseLeave={() => setHoveredTruckId(null)}
+                >
+                  <TutorialHighlight
+                    isHighlighted={shouldHighlight(
+                      `.truck-card:nth-child(${index + 1})`
+                    )}
+                    className="h-full flex flex-col"
+                  >
+                    {/* Truck Header */}
+                    <div className="bg-gray-50 px-6 py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {truck.name}
+                          </h3>
+                          <div className="flex items-center mt-1">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(truck.type)}`}
                             >
-                              ×
-                            </button>
-                          </TutorialHighlight>
+                              {truck.type}
+                            </span>
+                            <span className="text-sm text-gray-500 ml-2">
+                              Capacity: {truck.capacity}
+                            </span>
+                            <div className="w-8"></div>
+                            <span className="text-sm text-gray-500">
+                              Location: {truck.addresses?.street || "No address"}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Status:{" "}
+                            {truck.is_available ? "Available" : "Unavailable"}
+                          </p>
                         </div>
-                      ))}
-                    </TutorialHighlight>
-                    <div className="pt-4 flex gap-2 items-center">
-                      <TutorialHighlight
-                        isHighlighted={shouldHighlight(
-                          `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:first-child`
-                        )}
-                      >
-                        <button
-                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                          onClick={() => {
-                            const packingList = Array.isArray(truck.packingList)
-                              ? truck.packingList
-                              : [];
-                            setCheckedItems((prev) => ({
-                              ...prev,
-                              [truck.id]: new Set(
-                                packingList.map((_, idx) => idx)
-                              ),
-                            }));
-                          }}
-                          type="button"
-                        >
-                          Mark All Packed
-                        </button>
-                      </TutorialHighlight>
-                      {showAddInput[truck.id] ? (
-                        <>
-                          <input
-                            type="text"
-                            value={newItem[truck.id] || ""}
-                            onChange={(e) =>
-                              setNewItem((prev) => ({
-                                ...prev,
-                                [truck.id]: e.target.value,
-                              }))
-                            }
-                            placeholder="Add item..."
-                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                            style={{ minWidth: 0, flex: 1 }}
-                          />
-                          <button
-                            className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
-                            onClick={async () => {
-                              await handleAddItem(truck.id);
-                              setShowAddInput((prev) => ({
-                                ...prev,
-                                [truck.id]: false,
-                              }));
-                            }}
-                            type="button"
-                          >
-                            Save
-                          </button>
-                        </>
-                      ) : (
+                        {/* Arrow Button */}
                         <TutorialHighlight
                           isHighlighted={shouldHighlight(
-                            `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:last-child`
+                            `.truck-card:nth-child(${index + 1}) button[class*='bg-green-800']`
                           )}
                         >
                           <button
-                            style={{ backgroundColor: "var(--primary-dark)" }}
-                            className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
-                            onClick={() =>
-                              setShowAddInput((prev) => ({
-                                ...prev,
-                                [truck.id]: true,
-                              }))
-                            }
-                            type="button"
+                            onClick={() => toggleTruckExpansion(truck.id)}
+                            className="ml-4 bg-green-800 hover:bg-green-900 text-white p-3 rounded-full transition-colors duration-200 shadow-md"
                           >
-                            Add Item
+                            <svg
+                              className={`w-5 h-5 transition-transform duration-200 ${expandedTrucks.has(truck.id) ? "rotate-180" : ""}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 5v14m0 0l-7-7m7 7l7-7"
+                              />
+                            </svg>
                           </button>
                         </TutorialHighlight>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </TutorialHighlight>
-            ))}
+
+                    {/* Dropdown Content */}
+                    {expandedTrucks.has(truck.id) && (
+                      <div className="px-6 py-4 border-t border-gray-200">
+                        <h4 className="font-medium text-gray-900 mb-3">
+                          Items to Pack
+                        </h4>
+                        <TutorialHighlight
+                          isHighlighted={shouldHighlight(
+                            `.truck-card:nth-child(${index + 1}) .flex.flex-col.gap-2`
+                          )}
+                          className="flex flex-col gap-2 w-full"
+                        >
+                          {(Array.isArray(truck.packingList)
+                            ? truck.packingList
+                            : []
+                          ).map((item: string, idx: number) => (
+                            <div
+                              key={idx}
+                              className="flex flex-row items-center w-full"
+                            >
+                              <input
+                                type="checkbox"
+                                id={`item-${truck.id}-${idx}`}
+                                className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                checked={checkedItems[truck.id]?.has(idx) || false}
+                                onChange={() => {
+                                  setCheckedItems((prev) => {
+                                    const prevSet = prev[truck.id]
+                                      ? new Set<number>(Array.from(prev[truck.id]))
+                                      : new Set<number>();
+                                    if (prevSet.has(idx)) {
+                                      prevSet.delete(idx);
+                                    } else {
+                                      prevSet.add(idx);
+                                    }
+                                    return { ...prev, [truck.id]: prevSet };
+                                  });
+                                }}
+                              />
+                              <label
+                                htmlFor={`item-${truck.id}-${idx}`}
+                                className="ml-2 text-sm text-gray-800 cursor-pointer select-none w-full text-left"
+                              >
+                                {item}
+                              </label>
+                              <TutorialHighlight
+                                isHighlighted={shouldHighlight(
+                                  `.truck-card:nth-child(${index + 1}) button[title='Delete item']`
+                                )}
+                              >
+                                <button
+                                  className="ml-2 text-red-600 hover:text-red-800 text-lg font-bold focus:outline-none"
+                                  title="Delete item"
+                                  onClick={() =>
+                                    setDeleteConfirm({ truckId: truck.id, idx })
+                                  }
+                                  type="button"
+                                >
+                                  ×
+                                </button>
+                              </TutorialHighlight>
+                            </div>
+                          ))}
+                        </TutorialHighlight>
+                        <div className="pt-4 flex gap-2 items-center">
+                          <TutorialHighlight
+                            isHighlighted={shouldHighlight(
+                              `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:first-child`
+                            )}
+                          >
+                            <button
+                              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                              onClick={() => {
+                                const packingList = Array.isArray(truck.packingList)
+                                  ? truck.packingList
+                                  : [];
+                                setCheckedItems((prev) => ({
+                                  ...prev,
+                                  [truck.id]: new Set(
+                                    packingList.map((_, idx) => idx)
+                                  ),
+                                }));
+                              }}
+                              type="button"
+                            >
+                              Mark All Packed
+                            </button>
+                          </TutorialHighlight>
+                          {showAddInput[truck.id] ? (
+                            <>
+                              <input
+                                type="text"
+                                value={newItem[truck.id] || ""}
+                                onChange={(e) =>
+                                  setNewItem((prev) => ({
+                                    ...prev,
+                                    [truck.id]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Add item..."
+                                className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                style={{ minWidth: 0, flex: 1 }}
+                              />
+                              <button
+                                className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
+                                onClick={async () => {
+                                  await handleAddItem(truck.id);
+                                  setShowAddInput((prev) => ({
+                                    ...prev,
+                                    [truck.id]: false,
+                                  }));
+                                }}
+                                type="button"
+                              >
+                                Save
+                              </button>
+                            </>
+                          ) : (
+                            <TutorialHighlight
+                              isHighlighted={shouldHighlight(
+                                `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:last-child`
+                              )}
+                            >
+                              <button
+                                style={{ backgroundColor: "var(--primary-dark)" }}
+                                className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
+                                onClick={() =>
+                                  setShowAddInput((prev) => ({
+                                    ...prev,
+                                    [truck.id]: true,
+                                  }))
+                                }
+                                type="button"
+                              >
+                                Add Item
+                              </button>
+                            </TutorialHighlight>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </TutorialHighlight>
+                </div>
+              );
+            })}
           </TutorialHighlight>
 
           {/* Back to Dashboard Button */}
@@ -432,7 +463,6 @@ export default function TruckManagementPage() {
                           }
                           return truck;
                         });
-
                         // Update database
                         const truck = updated.find((t) => t.id === truckId);
                         if (truck) {
@@ -446,7 +476,6 @@ export default function TruckManagementPage() {
                               }
                             });
                         }
-
                         return updated;
                       });
                       setCheckedItems((prev) => {
