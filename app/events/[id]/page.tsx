@@ -553,9 +553,18 @@ export default function EventDetailsPage(): ReactElement {
                    selectedEndTime.getHours(), selectedEndTime.getMinutes()).toISOString()
         : null;
 
+      // Capitalize the event title
+      const capitalizeTitle = (title: string) => {
+        return title
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      };
+
       // Update the event
       const updatedEvent = await eventsApi.updateEvent(event.id, {
-        title: sanitizedData.name,
+        title: capitalizeTitle(sanitizedData.name),
         description: sanitizedData.location,
         start_date: startDateTime || undefined,
         end_date: endDateTime || undefined,

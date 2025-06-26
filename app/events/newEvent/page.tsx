@@ -461,9 +461,18 @@ export default function AddEventPage(): ReactElement {
         );
       }
 
+      // Capitalize the event title
+      const capitalizeTitle = (title: string) => {
+        return title
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      };
+
       // Create event data with address
       const eventData = {
-        title: formData.name,
+        title: capitalizeTitle(formData.name),
         start_date: `${formData.date}T${formData.time}`,
         end_date: `${formData.date}T${formData.endTime}`,
         description: formData.location,
