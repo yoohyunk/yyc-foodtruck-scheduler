@@ -30,9 +30,6 @@ export default function TruckManagementPage() {
   const { shouldHighlight } = useTutorial();
   const supabase = createClient();
 
-  // Hover state for truck cards
-  const [hoveredTruckId, setHoveredTruckId] = useState<string | null>(null);
-
   useEffect(() => {
     const fetchTrucks = async () => {
       try {
@@ -178,31 +175,28 @@ export default function TruckManagementPage() {
           >
             {trucks.map((truck, index) => {
               // Determine left border color by truck type using CSS variables
-              let leftBorderColor = 'var(--border)'; // default gray
-              if (truck.type === 'Food Truck') {
-                leftBorderColor = 'var(--accent)'; // pink in palette
-              } else if (truck.type === 'Beverage Truck') {
-                leftBorderColor = 'var(--primary-light)'; // yellow in palette
-              } else if (truck.type === 'Dessert Truck') {
-                leftBorderColor = 'var(--primary-light)'; // match time off button bg
+              let leftBorderColor = "var(--border)"; // default gray
+              if (truck.type === "Food Truck") {
+                leftBorderColor = "var(--accent)"; // pink in palette
+              } else if (truck.type === "Beverage Truck") {
+                leftBorderColor = "var(--primary-light)"; // yellow in palette
+              } else if (truck.type === "Dessert Truck") {
+                leftBorderColor = "var(--primary-light)"; // match time off button bg
               }
-              const isHovered = hoveredTruckId === truck.id;
               return (
                 <div
                   key={truck.id}
                   className="truck-card"
                   style={{
-                    border: '1px solid #e5e7eb',
+                    border: "1px solid #e5e7eb",
                     borderLeft: `10px solid ${leftBorderColor} !important`,
-                    borderTop: 'none', // Remove top border
-                    borderBottomLeftRadius: '1.5rem',
-                    borderTopLeftRadius: '1.5rem',
-                    borderTopRightRadius: '1.5rem',
-                    borderBottomRightRadius: '1.5rem',
-                    transition: 'border-color 0.2s',
+                    borderTop: "none", // Remove top border
+                    borderBottomLeftRadius: "1.5rem",
+                    borderTopLeftRadius: "1.5rem",
+                    borderTopRightRadius: "1.5rem",
+                    borderBottomRightRadius: "1.5rem",
+                    transition: "border-color 0.2s",
                   }}
-                  onMouseEnter={() => setHoveredTruckId(truck.id)}
-                  onMouseLeave={() => setHoveredTruckId(null)}
                 >
                   <TutorialHighlight
                     isHighlighted={shouldHighlight(
@@ -228,7 +222,8 @@ export default function TruckManagementPage() {
                             </span>
                             <div className="w-8"></div>
                             <span className="text-sm text-gray-500">
-                              Location: {truck.addresses?.street || "No address"}
+                              Location:{" "}
+                              {truck.addresses?.street || "No address"}
                             </span>
                           </div>
                           <p className="text-sm text-gray-600 mt-1">
@@ -288,11 +283,15 @@ export default function TruckManagementPage() {
                                 type="checkbox"
                                 id={`item-${truck.id}-${idx}`}
                                 className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                                checked={checkedItems[truck.id]?.has(idx) || false}
+                                checked={
+                                  checkedItems[truck.id]?.has(idx) || false
+                                }
                                 onChange={() => {
                                   setCheckedItems((prev) => {
                                     const prevSet = prev[truck.id]
-                                      ? new Set<number>(Array.from(prev[truck.id]))
+                                      ? new Set<number>(
+                                          Array.from(prev[truck.id])
+                                        )
                                       : new Set<number>();
                                     if (prevSet.has(idx)) {
                                       prevSet.delete(idx);
@@ -337,7 +336,9 @@ export default function TruckManagementPage() {
                             <button
                               className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
                               onClick={() => {
-                                const packingList = Array.isArray(truck.packingList)
+                                const packingList = Array.isArray(
+                                  truck.packingList
+                                )
                                   ? truck.packingList
                                   : [];
                                 setCheckedItems((prev) => ({
@@ -388,7 +389,9 @@ export default function TruckManagementPage() {
                               )}
                             >
                               <button
-                                style={{ backgroundColor: "var(--primary-dark)" }}
+                                style={{
+                                  backgroundColor: "var(--primary-dark)",
+                                }}
                                 className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
                                 onClick={() =>
                                   setShowAddInput((prev) => ({
