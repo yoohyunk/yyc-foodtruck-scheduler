@@ -2,71 +2,79 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 
-interface Truck {
-  id: number;
-  name: string;
-  type: string;
-  capacity: number;
-  status: string;
-  driver: {
-    id: number;
-    name: string;
-    email: string;
-    phone: string;
-  } | null;
-  location: string;
+type Truck = Tables<"trucks"> & {
+  addresses?: Tables<"addresses">;
   packingList?: string[];
-}
+};
 
 export default function TruckManagementPage() {
   const [trucks, setTrucks] = useState<Truck[]>([]);
-  const [expandedTrucks, setExpandedTrucks] = useState<Set<number>>(new Set());
-  const [newItem, setNewItem] = useState<{ [truckId: number]: string }>({});
+  const [expandedTrucks, setExpandedTrucks] = useState<Set<string>>(new Set());
+  const [newItem, setNewItem] = useState<{ [truckId: string]: string }>({});
   const [showAddInput, setShowAddInput] = useState<{
-    [truckId: number]: boolean;
+    [truckId: string]: boolean;
   }>({});
   const [checkedItems, setCheckedItems] = useState<{
-    [truckId: number]: Set<number>;
+    [truckId: string]: Set<number>;
   }>({});
   const [deleteConfirm, setDeleteConfirm] = useState<{
-    truckId: number;
+    truckId: string;
     idx: number;
   } | null>(null);
+  const [loading, setLoading] = useState(true);
   const { shouldHighlight } = useTutorial();
+  const supabase = createClient();
 
   useEffect(() => {
-    // Load trucks data
-    fetch("/trucks.json")
-      .then((res) => res.json())
-      .then((data) => {
-        // Ensure each truck has a packingList array
-        setTrucks(
-          data.map((truck: Truck) => ({
-            ...truck,
-            packingList: Array.isArray(truck.packingList)
-              ? truck.packingList
-              : [
-                  "Food preparation equipment",
-                  "Cooking utensils and tools",
-                  "Food storage containers",
-                  "Cleaning supplies",
-                  "Safety equipment",
-                  "Cash register and payment system",
-                  "Menu boards and signage",
-                  "First aid kit",
-                  "Fire extinguisher",
-                  "Generator and fuel",
-                ],
-          }))
-        );
-      })
-      .catch((error) => {
+    const fetchTrucks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("trucks")
+          .select(`
+            *,
+            addresses (*)
+          `)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching trucks:", error);
+          return;
+        }
+
+        // Transform data to include packingList from packing_list
+        const transformedTrucks = (data || []).map((truck) => ({
+          ...truck,
+          packingList: Array.isArray(truck.packing_list) 
+            ? truck.packing_list 
+            : [
+                "Food preparation equipment",
+                "Cooking utensils and tools",
+                "Food storage containers",
+                "Cleaning supplies",
+                "Safety equipment",
+                "Cash register and payment system",
+                "Menu boards and signage",
+                "First aid kit",
+                "Fire extinguisher",
+                "Generator and fuel",
+              ],
+        }));
+
+        setTrucks(transformedTrucks);
+      } catch (error) {
         console.error("Error loading trucks:", error);
-      });
-  }, []);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrucks();
+  }, [supabase]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -83,7 +91,7 @@ export default function TruckManagementPage() {
     }
   };
 
-  const toggleTruckExpansion = (truckId: number) => {
+  const toggleTruckExpansion = (truckId: string) => {
     const newExpandedTrucks = new Set(expandedTrucks);
     if (newExpandedTrucks.has(truckId)) {
       newExpandedTrucks.delete(truckId);
@@ -94,9 +102,10 @@ export default function TruckManagementPage() {
   };
 
   // Add item handler
-  const handleAddItem = async (truckId: number) => {
+  const handleAddItem = async (truckId: string) => {
     const item = (newItem[truckId] || "").trim();
     if (!item) return;
+    
     const updatedTrucks = trucks.map((truck) => {
       if (truck.id === truckId) {
         // Avoid duplicates
@@ -111,19 +120,41 @@ export default function TruckManagementPage() {
       }
       return truck;
     });
+    
     setTrucks(updatedTrucks);
     setNewItem((prev) => ({ ...prev, [truckId]: "" }));
-    // Persist to API
+    
+    // Update database
     try {
-      await fetch("/api/trucks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedTrucks),
-      });
+      const truck = updatedTrucks.find(t => t.id === truckId);
+      if (truck) {
+        const { error } = await supabase
+          .from("trucks")
+          .update({ packing_list: truck.packingList })
+          .eq("id", truckId);
+        
+        if (error) {
+          console.error("Failed to update truck packing list:", error);
+        }
+      }
     } catch (err) {
       console.error("Failed to save updated trucks:", err);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg shadow-md p-8">
+            <div className="text-center">
+              <p className="text-lg text-gray-500">Loading trucks...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -166,14 +197,12 @@ export default function TruckManagementPage() {
                         </span>
                         <div className="w-8"></div>
                         <span className="text-sm text-gray-500">
-                          Location: {truck.location}
+                          Location: {truck.addresses?.street || "No address"}
                         </span>
                       </div>
-                      {truck.driver && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Driver: {truck.driver.name} ({truck.driver.phone})
-                        </p>
-                      )}
+                      <p className="text-sm text-gray-600 mt-1">
+                        Status: {truck.is_available ? "Available" : "Unavailable"}
+                      </p>
                     </div>
                     {/* Arrow Button */}
                     <TutorialHighlight
@@ -400,12 +429,21 @@ export default function TruckManagementPage() {
                           }
                           return truck;
                         });
-                        // Persist to API
-                        fetch("/api/trucks", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify(updated),
-                        });
+                        
+                        // Update database
+                        const truck = updated.find(t => t.id === truckId);
+                        if (truck) {
+                          supabase
+                            .from("trucks")
+                            .update({ packing_list: truck.packingList })
+                            .eq("id", truckId)
+                            .then(({ error }) => {
+                              if (error) {
+                                console.error("Failed to update truck:", error);
+                              }
+                            });
+                        }
+                        
                         return updated;
                       });
                       setCheckedItems((prev) => {
