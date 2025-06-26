@@ -142,15 +142,15 @@ export default function AddEventPage(): ReactElement {
 
     // Add focus event listener to refresh data when user navigates back
     const handleFocus = () => {
-      console.log('New event page: Refreshing data on focus');
+      console.log("New event page: Refreshing data on focus");
       fetchData();
     };
 
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
 
     // Cleanup event listener
     return () => {
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 

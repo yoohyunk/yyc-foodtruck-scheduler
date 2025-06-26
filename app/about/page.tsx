@@ -77,19 +77,6 @@ export default function TruckManagementPage() {
     };
 
     fetchTrucks();
-
-    // Add focus event listener to refresh data when user navigates back
-    const handleFocus = () => {
-      console.log('Truck management page: Refreshing data on focus');
-      fetchTrucks();
-    };
-
-    window.addEventListener('focus', handleFocus);
-
-    // Cleanup event listener
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
   }, [supabase]);
 
   const getTypeColor = (type: string) => {
@@ -194,10 +181,8 @@ export default function TruckManagementPage() {
                   key={truck.id}
                   className="truck-card"
                   style={{
-                    borderLeft: `10px solid ${leftBorderColor} !important`,
-                    borderTop: "none",
-                    borderRight: "1px solid #e5e7eb",
-                    borderBottom: "1px solid #e5e7eb",
+                    border: "1px solid #e5e7eb",
+                    borderLeft: `10px solid ${leftBorderColor}`,
                     borderRadius: "1.5rem",
                     transition: "border-color 0.2s",
                   }}

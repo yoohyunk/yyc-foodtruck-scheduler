@@ -10,7 +10,6 @@ import React, {
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Tables } from "@/database.types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 import ErrorModal from "../../components/ErrorModal";
@@ -199,7 +198,10 @@ export default function EditTruckPage(): ReactElement {
       ),
     ];
 
-    const validationErrors = validateForm(formData as Record<string, unknown>, validationRules);
+    const validationErrors = validateForm(
+      formData as Record<string, unknown>,
+      validationRules
+    );
     setValidationErrors(validationErrors);
 
     if (validationErrors.length > 0) {
@@ -216,13 +218,17 @@ export default function EditTruckPage(): ReactElement {
         type: formData.type,
         capacity: formData.capacity,
         is_available: formData.isAvailable,
-        packing_list: formData.packingList.length > 0 ? formData.packingList : null,
+        packing_list:
+          formData.packingList.length > 0 ? formData.packingList : null,
       };
 
       // Debug log
       console.log("Updating truck with id:", id, "payload:", updateData);
 
-      const updatedTruck = await trucksApi.updateTruck(id as string, updateData);
+      const updatedTruck = await trucksApi.updateTruck(
+        id as string,
+        updateData
+      );
 
       if (!updatedTruck) {
         throw new Error("Failed to update truck");
@@ -244,7 +250,10 @@ export default function EditTruckPage(): ReactElement {
       setValidationErrors([
         {
           field: "submit",
-          message: error instanceof Error ? error.message : "Failed to update truck. Please try again.",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to update truck. Please try again.",
           element: null,
         },
       ]);

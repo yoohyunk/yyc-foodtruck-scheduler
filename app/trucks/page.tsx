@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ReactElement } from "react";
+import { useState, useEffect, ReactElement, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/database.types";
@@ -21,8 +21,8 @@ export default function Trucks(): ReactElement {
   const { shouldHighlight } = useTutorial();
   const supabase = createClient();
 
-  // Function to fetch trucks
-  const fetchTrucks = async () => {
+  // Function to fetch trucks - memoized with useCallback
+  const fetchTrucks = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -47,12 +47,12 @@ export default function Trucks(): ReactElement {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   // Fetch trucks on mount
   useEffect(() => {
     fetchTrucks();
-  }, [supabase]);
+  }, [fetchTrucks]);
 
   // Refresh data when user navigates back to this page
   useEffect(() => {
@@ -61,12 +61,12 @@ export default function Trucks(): ReactElement {
       fetchTrucks();
     };
 
-    window.addEventListener('focus', handleFocus);
-    
+    window.addEventListener("focus", handleFocus);
+
     return () => {
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [fetchTrucks]);
 
   // Filter trucks based on the active filter
   useEffect(() => {
@@ -109,19 +109,46 @@ export default function Trucks(): ReactElement {
           All
         </button>
         <button
-          className={`button ${activeFilter === "Food Truck" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className="button"
+          style={{
+            backgroundColor:
+              activeFilter === "Food Truck" ? "var(--primary-dark)" : "#b36a5e",
+            border:
+              activeFilter === "Food Truck" ? undefined : "2px solid #b36a5e",
+            color: activeFilter === "Food Truck" ? "white" : "#1f2937",
+          }}
           onClick={() => setActiveFilter("Food Truck")}
         >
           Food Trucks
         </button>
         <button
-          className={`button ${activeFilter === "Beverage Truck" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className="button"
+          style={{
+            backgroundColor:
+              activeFilter === "Beverage Truck"
+                ? "var(--primary-dark)"
+                : "#fff5cd",
+            border:
+              activeFilter === "Beverage Truck"
+                ? undefined
+                : "2px solid #fff5cd",
+            color: activeFilter === "Beverage Truck" ? "white" : "#1f2937",
+          }}
           onClick={() => setActiveFilter("Beverage Truck")}
         >
           Beverage Trucks
         </button>
         <button
-          className={`button ${activeFilter === "Dessert Truck" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className="button"
+          style={{
+            backgroundColor:
+              activeFilter === "Dessert Truck" ? undefined : "#e78f81",
+            border:
+              activeFilter === "Dessert Truck"
+                ? undefined
+                : "2px solid #e78f81",
+            color: activeFilter === "Dessert Truck" ? "white" : "#1f2937",
+          }}
           onClick={() => setActiveFilter("Dessert Truck")}
         >
           Dessert Trucks
@@ -142,69 +169,70 @@ export default function Trucks(): ReactElement {
                 isHighlighted={shouldHighlight(
                   `.truck-card:nth-child(${index + 1})`
                 )}
-                className="truck-card bg-white p-6 rounded-lg shadow-md relative border"
-                style={{
-                  borderLeft: `10px solid ${leftBorderColor} !important`,
-                  borderTop: "none",
-                  borderRight: "1px solid #e5e7eb",
-                  borderBottom: "1px solid #e5e7eb",
-                  borderRadius: "1.5rem",
-                  transition: "border-color 0.2s",
-                }}
               >
-                {/* Edit Button */}
-                <TutorialHighlight
-                  isHighlighted={shouldHighlight(
-                    `.truck-card:nth-child(${index + 1}) button[title='Edit Truck']`
-                  )}
+                <div
+                  className="truck-card bg-white p-6 rounded-lg shadow-md relative"
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderLeft: `10px solid ${leftBorderColor}`,
+                    borderRadius: "1.5rem",
+                    transition: "border-color 0.2s",
+                  }}
                 >
-                  <button
-                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-                    onClick={() => router.push(`/trucks/${truck.id}`)}
-                    title="Edit Truck"
+                  {/* Edit Button */}
+                  <TutorialHighlight
+                    isHighlighted={shouldHighlight(
+                      `.truck-card:nth-child(${index + 1}) button[title='Edit Truck']`
+                    )}
                   >
-                    ✏️
-                  </button>
-                </TutorialHighlight>
+                    <button
+                      className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                      onClick={() => router.push(`/trucks/${truck.id}`)}
+                      title="Edit Truck"
+                    >
+                      ✏️
+                    </button>
+                  </TutorialHighlight>
 
-                <h3 className="text-xl font-semibold mb-3">{truck.name}</h3>
+                  <h3 className="text-xl font-semibold mb-3">{truck.name}</h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="mb-2">
-                      <strong>Type:</strong> {truck.type}
-                    </p>
-                    <p className="mb-2">
-                      <strong>Capacity:</strong> {truck.capacity}
-                    </p>
-                    <p className="mb-2">
-                      <strong>Status:</strong>{" "}
-                      <span
-                        className={
-                          truck.is_available
-                            ? "text-green-600 font-semibold"
-                            : "text-red-600 font-semibold"
-                        }
-                      >
-                        {truck.is_available ? "Available" : "Unavailable"}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="mb-2">
-                      <strong>Location:</strong>{" "}
-                      {truck.addresses?.street || "No address"}
-                    </p>
-                    {truck.packing_list && truck.packing_list.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
                       <p className="mb-2">
-                        <strong>Equipment:</strong>{" "}
-                        <span className="text-sm text-gray-600">
-                          {truck.packing_list.slice(0, 3).join(", ")}
-                          {truck.packing_list.length > 3 && "..."}
+                        <strong>Type:</strong> {truck.type}
+                      </p>
+                      <p className="mb-2">
+                        <strong>Capacity:</strong> {truck.capacity}
+                      </p>
+                      <p className="mb-2">
+                        <strong>Status:</strong>{" "}
+                        <span
+                          className={
+                            truck.is_available
+                              ? "text-green-600 font-semibold"
+                              : "text-red-600 font-semibold"
+                          }
+                        >
+                          {truck.is_available ? "Available" : "Unavailable"}
                         </span>
                       </p>
-                    )}
+                    </div>
+
+                    <div>
+                      <p className="mb-2">
+                        <strong>Location:</strong>{" "}
+                        {truck.addresses?.street || "No address"}
+                      </p>
+                      {truck.packing_list && truck.packing_list.length > 0 && (
+                        <p className="mb-2">
+                          <strong>Equipment:</strong>{" "}
+                          <span className="text-sm text-gray-600">
+                            {truck.packing_list.slice(0, 3).join(", ")}
+                            {truck.packing_list.length > 3 && "..."}
+                          </span>
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </TutorialHighlight>
