@@ -40,8 +40,13 @@ export default function Trucks(): ReactElement {
         return;
       }
 
-      setTrucks(data || []);
-      setFilteredTrucks(data || []);
+      // Sort trucks alphabetically by name
+      const sortedTrucks = (data || []).sort((a, b) => 
+        a.name.localeCompare(b.name)
+      );
+
+      setTrucks(sortedTrucks);
+      setFilteredTrucks(sortedTrucks);
     } catch (error) {
       console.error("Error fetching trucks:", error);
     } finally {
