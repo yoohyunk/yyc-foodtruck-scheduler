@@ -18,6 +18,7 @@ export default function Employees(): ReactElement {
   const supabase = createClient();
   const { shouldHighlight } = useTutorial();
   const [error, setError] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<"last" | "first">("last");
 
   // Fetch employees from employee.json
   useEffect(() => {
@@ -111,13 +112,40 @@ export default function Employees(): ReactElement {
           };
         });
 
-        setEmployees(formattedEmployees as Employee[]);
-        setFilteredEmployees(formattedEmployees as Employee[]);
+        // Sort employees alphabetically by last name, then first name
+        const sortedEmployees = formattedEmployees.sort((a, b) => {
+          if (sortMode === "last") {
+            const lastA = (a.last_name || "").toLowerCase();
+            const lastB = (b.last_name || "").toLowerCase();
+            if (lastA < lastB) return -1;
+            if (lastA > lastB) return 1;
+            // If last names are equal, sort by first name
+            const firstA = (a.first_name || "").toLowerCase();
+            const firstB = (b.first_name || "").toLowerCase();
+            if (firstA < firstB) return -1;
+            if (firstA > firstB) return 1;
+            return 0;
+          } else {
+            const firstA = (a.first_name || "").toLowerCase();
+            const firstB = (b.first_name || "").toLowerCase();
+            if (firstA < firstB) return -1;
+            if (firstA > firstB) return 1;
+            // If first names are equal, sort by last name
+            const lastA = (a.last_name || "").toLowerCase();
+            const lastB = (b.last_name || "").toLowerCase();
+            if (lastA < lastB) return -1;
+            if (lastA > lastB) return 1;
+            return 0;
+          }
+        });
+
+        setEmployees(sortedEmployees as Employee[]);
+        setFilteredEmployees(sortedEmployees as Employee[]);
         // Set global variable for tutorial navigation
-        if (typeof window !== "undefined" && formattedEmployees.length > 0) {
+        if (typeof window !== "undefined" && sortedEmployees.length > 0) {
           (
             window as { __TUTORIAL_EMPLOYEE_ID?: string }
-          ).__TUTORIAL_EMPLOYEE_ID = formattedEmployees[0].employee_id;
+          ).__TUTORIAL_EMPLOYEE_ID = sortedEmployees[0].employee_id;
         }
       } catch (err) {
         console.error("Unexpected error:", err);
@@ -125,7 +153,7 @@ export default function Employees(): ReactElement {
     };
 
     fetchEmployees();
-  }, [supabase]);
+  }, [supabase, sortMode]);
 
   // Filter employees based on the active filter
   useEffect(() => {
@@ -137,6 +165,36 @@ export default function Employees(): ReactElement {
       );
     }
   }, [activeFilter, employees]);
+
+  // Add a useEffect to re-sort when sortMode changes
+  useEffect(() => {
+    setFilteredEmployees((prev) => {
+      const sorted = [...prev].sort((a, b) => {
+        if (sortMode === "last") {
+          const lastA = (a.last_name || "").toLowerCase();
+          const lastB = (b.last_name || "").toLowerCase();
+          if (lastA < lastB) return -1;
+          if (lastA > lastB) return 1;
+          const firstA = (a.first_name || "").toLowerCase();
+          const firstB = (b.first_name || "").toLowerCase();
+          if (firstA < firstB) return -1;
+          if (firstA > firstB) return 1;
+          return 0;
+        } else {
+          const firstA = (a.first_name || "").toLowerCase();
+          const firstB = (b.first_name || "").toLowerCase();
+          if (firstA < firstB) return -1;
+          if (firstA > firstB) return 1;
+          const lastA = (a.last_name || "").toLowerCase();
+          const lastB = (b.last_name || "").toLowerCase();
+          if (lastA < lastB) return -1;
+          if (lastA > lastB) return 1;
+          return 0;
+        }
+      });
+      return sorted;
+    });
+  }, [sortMode]);
 
   const handleDeleteClick = (employee: Employee) => {
     // Debug: Test authentication and permissions
@@ -350,6 +408,70 @@ export default function Employees(): ReactElement {
 
   return (
     <div className="employees-page">
+      {/* Filter Buttons */}
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".filter-buttons")}
+        className="filter-buttons grid"
+      >
+        <button
+          className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setActiveFilter("All")}
+        >
+          All
+        </button>
+        <button
+          className={`button ${activeFilter === "Driver" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setActiveFilter("Driver")}
+        >
+          Drivers
+        </button>
+        <button
+          className={`button ${activeFilter === "Server" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setActiveFilter("Server")}
+        >
+          Servers
+        </button>
+        <button
+          className={`button ${activeFilter === "Admin" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          onClick={() => setActiveFilter("Admin")}
+        >
+          Admins
+        </button>
+      </TutorialHighlight>
+
+      {/* Sort Toggle - now below filters */}
+      <div className="mb-4 flex justify-end">
+        <div className="flex items-center gap-2 md:gap-4">
+          <span className="font-medium text-primary-dark">Sort by:</span>
+          <button
+            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${sortMode === "last" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+            style={{
+              backgroundColor:
+                sortMode === "last" ? "var(--primary-dark)" : undefined,
+              borderColor:
+                sortMode === "last" ? "var(--primary-dark)" : undefined,
+              minWidth: 90,
+            }}
+            onClick={() => setSortMode("last")}
+          >
+            Last Name
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${sortMode === "first" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+            style={{
+              backgroundColor:
+                sortMode === "first" ? "var(--primary-dark)" : undefined,
+              borderColor:
+                sortMode === "first" ? "var(--primary-dark)" : undefined,
+              minWidth: 90,
+            }}
+            onClick={() => setSortMode("first")}
+          >
+            First Name
+          </button>
+        </div>
+      </div>
+
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
@@ -394,37 +516,6 @@ export default function Employees(): ReactElement {
           </div>
         </div>
       )}
-
-      {/* Filter Buttons */}
-      <TutorialHighlight
-        isHighlighted={shouldHighlight(".filter-buttons")}
-        className="filter-buttons grid"
-      >
-        <button
-          className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
-          onClick={() => setActiveFilter("All")}
-        >
-          All
-        </button>
-        <button
-          className={`button ${activeFilter === "Driver" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
-          onClick={() => setActiveFilter("Driver")}
-        >
-          Drivers
-        </button>
-        <button
-          className={`button ${activeFilter === "Server" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
-          onClick={() => setActiveFilter("Server")}
-        >
-          Servers
-        </button>
-        <button
-          className={`button ${activeFilter === "Admin" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
-          onClick={() => setActiveFilter("Admin")}
-        >
-          Admins
-        </button>
-      </TutorialHighlight>
 
       {/* Employee List */}
       <TutorialHighlight
