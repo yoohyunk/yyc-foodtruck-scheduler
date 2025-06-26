@@ -4844,36 +4844,36 @@ input:not(:-webkit-autofill) {
   .truck-assignment-item {
     padding: 1rem;
   }
-  
+
   .truck-assignment-item .flex.items-center.justify-between {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
-  
+
   .truck-assignment-item .flex.items-center.space-x-3 {
     width: 100%;
     justify-content: space-between;
   }
-  
+
   .truck-assignment-item label.font-semibold.text-lg {
     font-size: 1rem;
   }
-  
+
   .truck-assignment-item .px-2.py-1.rounded.text-xs.font-medium {
     font-size: 0.625rem;
     padding: 0.25rem 0.5rem;
   }
-  
+
   .truck-assignment-item .px-2.py-1.rounded.text-sm {
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;
   }
-  
+
   .truck-assignment-item .space-y-2.mt-4.p-3.bg-white.rounded.border {
     padding: 1rem;
   }
-  
+
   .truck-assignment-item select {
     padding: 0.625rem 0.875rem;
     font-size: 0.8rem;
@@ -4884,17 +4884,17 @@ input:not(:-webkit-autofill) {
   .truck-assignment-item {
     padding: 0.875rem;
   }
-  
+
   .truck-assignment-item .flex.items-center.space-x-3 {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .truck-assignment-item label.font-semibold.text-lg {
     font-size: 0.95rem;
   }
-  
+
   .text-sm.text-green-700.flex.items-center.gap-2 {
     flex-direction: column;
     align-items: flex-start;

@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  Employee,
-  Truck,
-  getTruckTypeColor,
-  getTruckTypeBadge,
-  getTruckBorderColor,
-} from "@/app/types";
+import { Employee, Truck, getTruckBorderColor } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
 
 interface TruckWithAssignment extends Truck {
@@ -62,7 +56,7 @@ const TruckItem = React.memo(
         style={{
           borderLeft: `6px solid ${getTruckBorderColor(truck.type)}`,
           borderTop: `4px solid ${getTruckBorderColor(truck.type)}`,
-          background: `linear-gradient(135deg, ${getTruckBorderColor(truck.type)}25 0%, #ffffff 100%)`
+          background: `linear-gradient(135deg, ${getTruckBorderColor(truck.type)}25 0%, #ffffff 100%)`,
         }}
       >
         {/* Truck Selection Section */}
@@ -75,7 +69,11 @@ const TruckItem = React.memo(
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
                 <span className="text-xs font-bold text-gray-700 text-center leading-tight">
-                  {truck.name?.split(' ').map(word => word.charAt(0)).join('').toUpperCase() || 'T'}
+                  {truck.name
+                    ?.split(" ")
+                    .map((word) => word.charAt(0))
+                    .join("")
+                    .toUpperCase() || "T"}
                 </span>
               </div>
               <div>

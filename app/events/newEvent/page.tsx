@@ -13,8 +13,6 @@ import {
   Truck,
   Employee,
   TruckAssignmentCreate,
-  getTruckTypeColor,
-  getTruckTypeBadge,
   getTruckBorderColor,
 } from "@/app/types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
@@ -80,7 +78,6 @@ export default function AddEventPage(): ReactElement {
     []
   );
   const [isLoadingTrucks, setIsLoadingTrucks] = useState(true);
-  const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
 
   // Refs for form fields
   const nameRef = useRef<HTMLInputElement>(null);
@@ -130,8 +127,7 @@ export default function AddEventPage(): ReactElement {
     const fetchData = async () => {
       try {
         setIsLoadingTrucks(true);
-        setIsLoadingEmployees(true);
-        
+
         // Fetch truck data
         const trucksData = await trucksApi.getAllTrucks();
         setTrucks(trucksData);
@@ -143,7 +139,6 @@ export default function AddEventPage(): ReactElement {
         console.error("Error fetching data:", error);
       } finally {
         setIsLoadingTrucks(false);
-        setIsLoadingEmployees(false);
       }
     };
 
@@ -775,7 +770,9 @@ export default function AddEventPage(): ReactElement {
               Check the boxes for trucks you want to include in this event, then
               assign a driver to each selected truck.
             </p>
-            <div className={`truck-assignment-list space-y-4 ${isLoadingTrucks ? 'loading' : ''}`}>
+            <div
+              className={`truck-assignment-list space-y-4 ${isLoadingTrucks ? "loading" : ""}`}
+            >
               {isLoadingTrucks ? (
                 <div className="text-center py-8">
                   <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
@@ -783,7 +780,9 @@ export default function AddEventPage(): ReactElement {
                 </div>
               ) : trucks.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No trucks available. Please add trucks first.</p>
+                  <p className="text-gray-500">
+                    No trucks available. Please add trucks first.
+                  </p>
                 </div>
               ) : (
                 trucks
@@ -802,7 +801,7 @@ export default function AddEventPage(): ReactElement {
                         style={{
                           borderLeft: `6px solid ${getTruckBorderColor(truck.type)}`,
                           borderTop: `4px solid ${getTruckBorderColor(truck.type)}`,
-                          background: `linear-gradient(135deg, ${getTruckBorderColor(truck.type)}25 0%, #ffffff 100%)`
+                          background: `linear-gradient(135deg, ${getTruckBorderColor(truck.type)}25 0%, #ffffff 100%)`,
                         }}
                       >
                         {/* Truck Selection Checkbox */}
