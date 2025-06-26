@@ -25,12 +25,18 @@ export default function Events(): ReactElement {
         setIsLoading(true);
         setError(null);
         const data = await eventsApi.getAllEvents();
-        setEvents(data);
-        setFilteredEvents(data); // Initially show all events
+        // Sort events by start_date ascending (soonest first)
+        const sorted = [...data].sort((a, b) => {
+          const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+          const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+          return dateA - dateB;
+        });
+        setEvents(sorted);
+        setFilteredEvents(sorted); // Initially show all events
         // Set global variable for tutorial navigation
-        if (typeof window !== "undefined" && data.length > 0) {
+        if (typeof window !== "undefined" && sorted.length > 0) {
           (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
-            data[0].id;
+            sorted[0].id;
         }
       } catch (err) {
         console.error("Error fetching events:", err);
@@ -65,6 +71,13 @@ export default function Events(): ReactElement {
         return eventDate === selectedDate;
       });
     }
+
+    // Sort filtered events by start_date ascending
+    filtered.sort((a, b) => {
+      const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+      const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+      return dateA - dateB;
+    });
 
     setFilteredEvents(filtered);
   }, [activeFilter, selectedDate, events]);
