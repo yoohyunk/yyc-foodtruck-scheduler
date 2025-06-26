@@ -1,35 +1,33 @@
 "use client";
 
-import {
+import React, {
   useState,
   useEffect,
-  FormEvent,
-  ChangeEvent,
   ReactElement,
+  ChangeEvent,
+  FormEvent,
   useRef,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { TablesInsert } from "../../../database.types";
-import ShopLocationDropdown from "@/app/components/ShopLocationDropdown";
-import { Coordinates } from "@/app/types";
-import ErrorModal from "@/app/components/ErrorModal";
+import { Tables } from "@/database.types";
+import { useTutorial } from "../../tutorial/TutorialContext";
+import { TutorialHighlight } from "../../components/TutorialHighlight";
+import ErrorModal from "../../components/ErrorModal";
 import {
   validateForm,
   ValidationRule,
   ValidationError,
   createValidationRule,
-  validateNumber,
 } from "../../../lib/formValidation";
+import { trucksApi } from "@/lib/supabase/trucks";
 
 interface TruckFormData {
   name: string;
   type: string;
   capacity: string;
   isAvailable: boolean;
-  address: string;
   packingList: string[];
-  address_id?: string;
   [key: string]: unknown;
 }
 
@@ -37,39 +35,22 @@ export default function EditTruckPage(): ReactElement {
   const { id } = useParams();
   const router = useRouter();
   const supabase = createClient();
-
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { shouldHighlight } = useTutorial();
 
-  const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
-
-  const [formData, setFormData] = useState<TruckFormData>({
-    name: "",
-    type: "",
-    capacity: "",
-    isAvailable: true,
-    address: "",
-    packingList: [],
-  });
-
-  // Refs for form fields
+  // Add missing refs
   const nameRef = useRef<HTMLInputElement>(null);
   const typeRef = useRef<HTMLSelectElement>(null);
   const capacityRef = useRef<HTMLSelectElement>(null);
 
+  // Add missing arrays
   const truckTypes = ["Food Truck", "Beverage Truck", "Dessert Truck"];
-
-  const capacityOptions = [
-    "Small (1-50 people)",
-    "Medium (51-100 people)",
-    "Large (101-200 people)",
-    "Extra Large (200+ people)",
-  ];
-
+  const capacityOptions = ["Small", "Medium", "Large"];
   const packingListOptions = [
     "Grill",
     "Fryer",
@@ -88,7 +69,15 @@ export default function EditTruckPage(): ReactElement {
     "Fire Extinguisher",
   ];
 
-  // Fetch truck details from Supabase
+  const [formData, setFormData] = useState<TruckFormData>({
+    name: "",
+    type: "",
+    capacity: "",
+    isAvailable: false,
+    packingList: [],
+  });
+
+  // Fetch truck details
   useEffect(() => {
     const fetchTruck = async () => {
       try {
@@ -131,19 +120,15 @@ export default function EditTruckPage(): ReactElement {
           return;
         }
 
-        // Format address
-        const address = truckData.addresses
-          ? `${truckData.addresses.street}, ${truckData.addresses.city}, ${truckData.addresses.province}`
-          : "";
+        // Debug log to confirm loaded truck data
+        console.log("Loaded truck data for edit:", truckData);
 
         setFormData({
           name: truckData.name || "",
-          type: truckData.truck_type || "",
+          type: truckData.type || "",
           capacity: truckData.capacity ? String(truckData.capacity) : "",
           isAvailable: truckData.is_available || false,
-          address: address,
           packingList: (truckData.packing_list as string[]) || [],
-          address_id: truckData.address_id,
         });
 
         setIsLoading(false);
@@ -178,14 +163,6 @@ export default function EditTruckPage(): ReactElement {
     }));
   };
 
-  const handleShopLocationChange = (address: string, coords?: Coordinates) => {
-    setFormData({
-      ...formData,
-      address: address,
-    });
-    setCoordinates(coords);
-  };
-
   const handlePackingListChange = (item: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -216,18 +193,13 @@ export default function EditTruckPage(): ReactElement {
       createValidationRule(
         "capacity",
         true,
-        (value: unknown) =>
-          (typeof value === "string" || typeof value === "number") &&
-          validateNumber(value, 1),
-        "Capacity is required and must be at least 1.",
+        undefined,
+        "Capacity is required.",
         capacityRef.current
       ),
     ];
 
-    const validationErrors = validateForm(
-      formData as Record<string, unknown>,
-      validationRules
-    );
+    const validationErrors = validateForm(formData as Record<string, unknown>, validationRules);
     setValidationErrors(validationErrors);
 
     if (validationErrors.length > 0) {
@@ -238,113 +210,41 @@ export default function EditTruckPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      // Parse the address to extract components
-      const addressParts = formData.address.split(", ");
-      const streetPart = addressParts[0] || "";
-      const city = addressParts[1] || "Calgary";
-      const postalCode = addressParts[2] || "";
+      // Prepare update payload to match DB structure
+      const updateData = {
+        name: formData.name,
+        type: formData.type,
+        capacity: formData.capacity,
+        is_available: formData.isAvailable,
+        packing_list: formData.packingList.length > 0 ? formData.packingList : null,
+      };
 
-      // Update address if truck has one, otherwise create new
-      let addressId = formData.address_id;
+      // Debug log
+      console.log("Updating truck with id:", id, "payload:", updateData);
 
-      if (formData.address_id) {
-        // Update existing address
-        const { error: addressError } = await supabase
-          .from("addresses")
-          .update({
-            street: streetPart,
-            city: city,
-            province: "Alberta",
-            postal_code: postalCode,
-            country: "Canada",
-            latitude: coordinates?.latitude?.toString() ?? null,
-            longitude: coordinates?.longitude?.toString() ?? null,
-          })
-          .eq("id", formData.address_id);
+      const updatedTruck = await trucksApi.updateTruck(id as string, updateData);
 
-        if (addressError) {
-          console.error("Error updating address:", addressError);
-          setValidationErrors([
-            {
-              field: "address",
-              message: "Failed to update address. Please try again.",
-              element: null,
-            },
-          ]);
-          setShowErrorModal(true);
-          setIsSubmitting(false);
-          return;
-        }
-      } else {
-        // Create new address
-        const addressInsert: TablesInsert<"addresses"> = {
-          street: streetPart,
-          city: city,
-          province: "Alberta",
-          postal_code: postalCode,
-          country: "Canada",
-          latitude: coordinates?.latitude?.toString() ?? null,
-          longitude: coordinates?.longitude?.toString() ?? null,
-        };
-
-        const { data: newAddress, error: addressError } = await supabase
-          .from("addresses")
-          .insert(addressInsert)
-          .select()
-          .single();
-
-        if (addressError) {
-          console.error("Error creating address:", addressError);
-          setValidationErrors([
-            {
-              field: "address",
-              message: "Failed to create address. Please try again.",
-              element: null,
-            },
-          ]);
-          setShowErrorModal(true);
-          setIsSubmitting(false);
-          return;
-        }
-
-        addressId = newAddress.id;
+      if (!updatedTruck) {
+        throw new Error("Failed to update truck");
       }
 
-      // Update truck
-      const { error: truckError } = await supabase
-        .from("trucks")
-        .update({
-          name: formData.name,
-          type: formData.type,
-          capacity: formData.capacity,
-          address_id: addressId,
-          packing_list: formData.packingList,
-          is_available: formData.isAvailable,
-        })
-        .eq("id", id);
-
-      if (truckError) {
-        console.error("Error updating truck:", truckError);
-        setValidationErrors([
-          {
-            field: "truck",
-            message: "Failed to update truck. Please try again.",
-            element: null,
-          },
-        ]);
-        setShowErrorModal(true);
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Success - redirect to trucks page
-      router.push("/trucks");
+      setValidationErrors([
+        {
+          field: "success",
+          message: "Truck updated successfully!",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+      setTimeout(() => {
+        router.push("/trucks");
+      }, 1500);
     } catch (error) {
       console.error("Error updating truck:", error);
       setValidationErrors([
         {
-          field: "general",
-          message: "An unexpected error occurred. Please try again.",
+          field: "submit",
+          message: error instanceof Error ? error.message : "Failed to update truck. Please try again.",
           element: null,
         },
       ]);
@@ -363,15 +263,18 @@ export default function EditTruckPage(): ReactElement {
   }
 
   return (
-    <>
-      <div className="edit-truck-page">
-        <div className="flex justify-between items-center mb-4">
-          <button className="button" onClick={() => router.back()}>
-            &larr; Back
-          </button>
-        </div>
+    <TutorialHighlight
+      isHighlighted={shouldHighlight(".edit-truck-page")}
+      className="edit-truck-page"
+    >
+      <div className="flex justify-between items-center mb-4">
+        <button className="button" onClick={() => router.back()}>
+          &larr; Back
+        </button>
+      </div>
 
-        <h1 className="form-header">Edit Truck</h1>
+      <h1 className="form-header">Edit Truck</h1>
+      <TutorialHighlight isHighlighted={shouldHighlight("form")}>
         <form onSubmit={handleSubmit} className="truck-form">
           <div className="input-group">
             <label htmlFor="name" className="input-label">
@@ -432,18 +335,6 @@ export default function EditTruckPage(): ReactElement {
           </div>
 
           <div className="input-group">
-            <label htmlFor="location" className="input-label">
-              Shop Location <span className="text-red-500">*</span>
-            </label>
-            <ShopLocationDropdown
-              value={formData.address}
-              onChange={handleShopLocationChange}
-              placeholder="Select shop location"
-              required={false}
-            />
-          </div>
-
-          <div className="input-group">
             <label className="input-label">Availability</label>
             <div className="flex items-center space-x-2">
               <input
@@ -478,9 +369,13 @@ export default function EditTruckPage(): ReactElement {
           </div>
 
           <div className="flex justify-center space-x-4">
-            <button type="submit" className="button" disabled={isSubmitting}>
-              {isSubmitting ? "Updating..." : "Update Truck"}
-            </button>
+            <TutorialHighlight
+              isHighlighted={shouldHighlight("form button[type='submit']")}
+            >
+              <button type="submit" className="button" disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Update Truck"}
+              </button>
+            </TutorialHighlight>
             <button
               type="button"
               onClick={() => router.push("/trucks")}
@@ -490,13 +385,25 @@ export default function EditTruckPage(): ReactElement {
             </button>
           </div>
         </form>
-      </div>
+      </TutorialHighlight>
 
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
         errors={validationErrors}
+        type={
+          validationErrors.length === 1 &&
+          validationErrors[0].field === "success"
+            ? "success"
+            : "error"
+        }
+        title={
+          validationErrors.length === 1 &&
+          validationErrors[0].field === "success"
+            ? "Success!"
+            : undefined
+        }
       />
-    </>
+    </TutorialHighlight>
   );
 }

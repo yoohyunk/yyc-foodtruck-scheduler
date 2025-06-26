@@ -156,6 +156,19 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchData();
+
+    // Add focus event listener to refresh data when user navigates back
+    const handleFocus = () => {
+      console.log('Event details page: Refreshing data on focus');
+      fetchData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // Fetch truck assignments when event is loaded

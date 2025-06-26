@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
+import { getTruckBorderColor } from "../types";
 
 type Truck = Tables<"trucks"> & {
   addresses?: Tables<"addresses">;
@@ -15,41 +16,57 @@ export default function Trucks(): ReactElement {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filteredTrucks, setFilteredTrucks] = useState<Truck[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("All");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
   const supabase = createClient();
 
-  // Fetch trucks from Supabase
-  useEffect(() => {
-    const fetchTrucks = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("trucks")
-          .select(
-            `
-            *,
-            addresses (*)
+  // Function to fetch trucks
+  const fetchTrucks = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("trucks")
+        .select(
           `
-          )
-          .order("created_at", { ascending: false });
+          *,
+          addresses (*)
+        `
+        )
+        .order("created_at", { ascending: false });
 
-        if (error) {
-          console.error("Error fetching trucks:", error);
-          return;
-        }
-
-        setTrucks(data || []);
-        setFilteredTrucks(data || []);
-      } catch (error) {
+      if (error) {
         console.error("Error fetching trucks:", error);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
+      setTrucks(data || []);
+      setFilteredTrucks(data || []);
+    } catch (error) {
+      console.error("Error fetching trucks:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch trucks on mount
+  useEffect(() => {
     fetchTrucks();
   }, [supabase]);
+
+  // Refresh data when user navigates back to this page
+  useEffect(() => {
+    const handleFocus = () => {
+      // Refresh data when the window regains focus (user navigates back)
+      fetchTrucks();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   // Filter trucks based on the active filter
   useEffect(() => {
@@ -117,71 +134,82 @@ export default function Trucks(): ReactElement {
         className="truck-list grid gap-4"
       >
         {filteredTrucks.length > 0 ? (
-          filteredTrucks.map((truck, index) => (
-            <TutorialHighlight
-              key={truck.id}
-              isHighlighted={shouldHighlight(
-                `.truck-card:nth-child(${index + 1})`
-              )}
-              className="truck-card bg-white p-6 rounded-lg shadow-md relative border"
-            >
-              {/* Edit Button */}
+          filteredTrucks.map((truck, index) => {
+            const leftBorderColor = getTruckBorderColor(truck.type);
+            return (
               <TutorialHighlight
+                key={truck.id}
                 isHighlighted={shouldHighlight(
-                  `.truck-card:nth-child(${index + 1}) button[title='Edit Truck']`
+                  `.truck-card:nth-child(${index + 1})`
                 )}
+                className="truck-card bg-white p-6 rounded-lg shadow-md relative border"
+                style={{
+                  borderLeft: `10px solid ${leftBorderColor} !important`,
+                  borderTop: "none",
+                  borderRight: "1px solid #e5e7eb",
+                  borderBottom: "1px solid #e5e7eb",
+                  borderRadius: "1.5rem",
+                  transition: "border-color 0.2s",
+                }}
               >
-                <button
-                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-                  onClick={() => router.push(`/trucks/${truck.id}`)}
-                  title="Edit Truck"
+                {/* Edit Button */}
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(
+                    `.truck-card:nth-child(${index + 1}) button[title='Edit Truck']`
+                  )}
                 >
-                  ✏️
-                </button>
-              </TutorialHighlight>
+                  <button
+                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                    onClick={() => router.push(`/trucks/${truck.id}`)}
+                    title="Edit Truck"
+                  >
+                    ✏️
+                  </button>
+                </TutorialHighlight>
 
-              <h3 className="text-xl font-semibold mb-3">{truck.name}</h3>
+                <h3 className="text-xl font-semibold mb-3">{truck.name}</h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="mb-2">
-                    <strong>Type:</strong> {truck.type}
-                  </p>
-                  <p className="mb-2">
-                    <strong>Capacity:</strong> {truck.capacity}
-                  </p>
-                  <p className="mb-2">
-                    <strong>Status:</strong>{" "}
-                    <span
-                      className={
-                        truck.is_available
-                          ? "text-green-600 font-semibold"
-                          : "text-red-600 font-semibold"
-                      }
-                    >
-                      {truck.is_available ? "Available" : "Unavailable"}
-                    </span>
-                  </p>
-                </div>
-
-                <div>
-                  <p className="mb-2">
-                    <strong>Location:</strong>{" "}
-                    {truck.addresses?.street || "No address"}
-                  </p>
-                  {truck.packing_list && truck.packing_list.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
                     <p className="mb-2">
-                      <strong>Equipment:</strong>{" "}
-                      <span className="text-sm text-gray-600">
-                        {truck.packing_list.slice(0, 3).join(", ")}
-                        {truck.packing_list.length > 3 && "..."}
+                      <strong>Type:</strong> {truck.type}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Capacity:</strong> {truck.capacity}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Status:</strong>{" "}
+                      <span
+                        className={
+                          truck.is_available
+                            ? "text-green-600 font-semibold"
+                            : "text-red-600 font-semibold"
+                        }
+                      >
+                        {truck.is_available ? "Available" : "Unavailable"}
                       </span>
                     </p>
-                  )}
+                  </div>
+
+                  <div>
+                    <p className="mb-2">
+                      <strong>Location:</strong>{" "}
+                      {truck.addresses?.street || "No address"}
+                    </p>
+                    {truck.packing_list && truck.packing_list.length > 0 && (
+                      <p className="mb-2">
+                        <strong>Equipment:</strong>{" "}
+                        <span className="text-sm text-gray-600">
+                          {truck.packing_list.slice(0, 3).join(", ")}
+                          {truck.packing_list.length > 3 && "..."}
+                        </span>
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </TutorialHighlight>
-          ))
+              </TutorialHighlight>
+            );
+          })
         ) : (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg mb-4">No trucks found.</p>

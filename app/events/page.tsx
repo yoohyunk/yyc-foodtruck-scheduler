@@ -47,6 +47,19 @@ export default function Events(): ReactElement {
     };
 
     fetchEvents();
+
+    // Add focus event listener to refresh data when user navigates back
+    const handleFocus = () => {
+      console.log('Events page: Refreshing data on focus');
+      fetchEvents();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // Filter events based on the active filter and date

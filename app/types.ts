@@ -145,3 +145,19 @@ export const getTruckTypeBadge = (type: string): string => {
       return "bg-gray-100 text-gray-800";
   }
 };
+
+// Utility function to get truck border colors based on truck type
+export const getTruckBorderColor = (type: string): string => {
+  switch (type) {
+    case "Food Truck":
+      return "#b36a5e"; // red color (you mentioned red for food truck)
+    case "Beverage Truck":
+      return "#fff5cd"; // yellow color from schedule page (var(--primary-light))
+    case "Dessert Truck":
+      return "#e78f81"; // pink color from pending button (var(--accent))
+    case "Holiday Truck":
+      return "#dc2626"; // purple color to match the badge styling
+    default:
+      return "#6b7280"; // default gray
+  }
+};

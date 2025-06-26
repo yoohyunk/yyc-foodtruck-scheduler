@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
+import { getTruckBorderColor } from "../types";
 
 type Truck = Tables<"trucks"> & {
   addresses?: Tables<"addresses">;
@@ -76,6 +77,19 @@ export default function TruckManagementPage() {
     };
 
     fetchTrucks();
+
+    // Add focus event listener to refresh data when user navigates back
+    const handleFocus = () => {
+      console.log('Truck management page: Refreshing data on focus');
+      fetchTrucks();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [supabase]);
 
   const getTypeColor = (type: string) => {
@@ -174,27 +188,17 @@ export default function TruckManagementPage() {
             className="grid gap-6 truck-management"
           >
             {trucks.map((truck, index) => {
-              // Determine left border color by truck type using CSS variables
-              let leftBorderColor = "var(--border)"; // default gray
-              if (truck.type === "Food Truck") {
-                leftBorderColor = "var(--accent)"; // pink in palette
-              } else if (truck.type === "Beverage Truck") {
-                leftBorderColor = "var(--primary-light)"; // yellow in palette
-              } else if (truck.type === "Dessert Truck") {
-                leftBorderColor = "var(--primary-light)"; // match time off button bg
-              }
+              const leftBorderColor = getTruckBorderColor(truck.type);
               return (
                 <div
                   key={truck.id}
                   className="truck-card"
                   style={{
-                    border: "1px solid #e5e7eb",
                     borderLeft: `10px solid ${leftBorderColor} !important`,
-                    borderTop: "none", // Remove top border
-                    borderBottomLeftRadius: "1.5rem",
-                    borderTopLeftRadius: "1.5rem",
-                    borderTopRightRadius: "1.5rem",
-                    borderBottomRightRadius: "1.5rem",
+                    borderTop: "none",
+                    borderRight: "1px solid #e5e7eb",
+                    borderBottom: "1px solid #e5e7eb",
+                    borderRadius: "1.5rem",
                     transition: "border-color 0.2s",
                   }}
                 >
