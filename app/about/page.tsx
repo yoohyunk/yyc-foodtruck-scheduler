@@ -35,10 +35,12 @@ export default function TruckManagementPage() {
       try {
         const { data, error } = await supabase
           .from("trucks")
-          .select(`
+          .select(
+            `
             *,
             addresses (*)
-          `)
+          `
+          )
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -49,8 +51,8 @@ export default function TruckManagementPage() {
         // Transform data to include packingList from packing_list
         const transformedTrucks = (data || []).map((truck) => ({
           ...truck,
-          packingList: Array.isArray(truck.packing_list) 
-            ? truck.packing_list 
+          packingList: Array.isArray(truck.packing_list)
+            ? truck.packing_list
             : [
                 "Food preparation equipment",
                 "Cooking utensils and tools",
@@ -105,7 +107,7 @@ export default function TruckManagementPage() {
   const handleAddItem = async (truckId: string) => {
     const item = (newItem[truckId] || "").trim();
     if (!item) return;
-    
+
     const updatedTrucks = trucks.map((truck) => {
       if (truck.id === truckId) {
         // Avoid duplicates
@@ -120,19 +122,19 @@ export default function TruckManagementPage() {
       }
       return truck;
     });
-    
+
     setTrucks(updatedTrucks);
     setNewItem((prev) => ({ ...prev, [truckId]: "" }));
-    
+
     // Update database
     try {
-      const truck = updatedTrucks.find(t => t.id === truckId);
+      const truck = updatedTrucks.find((t) => t.id === truckId);
       if (truck) {
         const { error } = await supabase
           .from("trucks")
           .update({ packing_list: truck.packingList })
           .eq("id", truckId);
-        
+
         if (error) {
           console.error("Failed to update truck packing list:", error);
         }
@@ -201,7 +203,8 @@ export default function TruckManagementPage() {
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
-                        Status: {truck.is_available ? "Available" : "Unavailable"}
+                        Status:{" "}
+                        {truck.is_available ? "Available" : "Unavailable"}
                       </p>
                     </div>
                     {/* Arrow Button */}
@@ -429,9 +432,9 @@ export default function TruckManagementPage() {
                           }
                           return truck;
                         });
-                        
+
                         // Update database
-                        const truck = updated.find(t => t.id === truckId);
+                        const truck = updated.find((t) => t.id === truckId);
                         if (truck) {
                           supabase
                             .from("trucks")
@@ -443,7 +446,7 @@ export default function TruckManagementPage() {
                               }
                             });
                         }
-                        
+
                         return updated;
                       });
                       setCheckedItems((prev) => {

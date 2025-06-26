@@ -543,23 +543,35 @@ export default function EventDetailsPage(): ReactElement {
 
     try {
       // Combine date and time to create proper datetime strings
-      const startDateTime = selectedDate && selectedTime 
-        ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 
-                   selectedTime.getHours(), selectedTime.getMinutes()).toISOString()
-        : null;
-      
-      const endDateTime = selectedDate && selectedEndTime 
-        ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 
-                   selectedEndTime.getHours(), selectedEndTime.getMinutes()).toISOString()
-        : null;
+      const startDateTime =
+        selectedDate && selectedTime
+          ? new Date(
+              selectedDate.getFullYear(),
+              selectedDate.getMonth(),
+              selectedDate.getDate(),
+              selectedTime.getHours(),
+              selectedTime.getMinutes()
+            ).toISOString()
+          : null;
+
+      const endDateTime =
+        selectedDate && selectedEndTime
+          ? new Date(
+              selectedDate.getFullYear(),
+              selectedDate.getMonth(),
+              selectedDate.getDate(),
+              selectedEndTime.getHours(),
+              selectedEndTime.getMinutes()
+            ).toISOString()
+          : null;
 
       // Capitalize the event title
       const capitalizeTitle = (title: string) => {
         return title
           .toLowerCase()
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
+          .split(" ")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
       };
 
       // Update the event
@@ -568,7 +580,9 @@ export default function EventDetailsPage(): ReactElement {
         description: sanitizedData.location,
         start_date: startDateTime || undefined,
         end_date: endDateTime || undefined,
-        number_of_servers_needed: parseInt(sanitizedData.requiredServers as string),
+        number_of_servers_needed: parseInt(
+          sanitizedData.requiredServers as string
+        ),
         contact_name: sanitizedData.contactName,
         contact_email: sanitizedData.contactEmail,
         contact_phone: sanitizedData.contactPhone,
