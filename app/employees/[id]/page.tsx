@@ -577,47 +577,69 @@ export default function EditEmployeePage(): ReactElement {
         console.log("Address data after update:", verifyEmployee.addresses);
       }
 
-      // Update wage
+      // Wage update with history
       if (formData.wage) {
         try {
           const newWageValue = parseFloat(formData.wage);
-          const existingWage = await wagesApi.getCurrentWage(id as string);
+          const { data: wageRows, error: wageFetchError } = await supabase
+            .from("wage")
+            .select("*")
+            .eq("employee_id", id)
+            .order("start_date", { ascending: false });
 
-          // Only update or create if the wage has actually changed
-          if (!existingWage || existingWage.hourly_wage !== newWageValue) {
-            if (existingWage) {
-              // Update existing wage
-              console.log(
-                "Wage changed. Updating existing wage with ID:",
-                existingWage.id
-              );
-              await wagesApi.updateWage(existingWage.id, {
-                hourly_wage: newWageValue,
-              });
-            } else {
-              // Create new wage
-              console.log("No existing wage. Creating new wage.");
+          if (wageFetchError) {
+            setValidationErrors([
+              { field: "wage", message: wageFetchError.message, element: null },
+            ]);
+            setShowErrorModal(true);
+          } else {
+            const currentWage =
+              wageRows && wageRows.length > 0 ? wageRows[0] : null;
+            if (!currentWage || currentWage.hourly_wage !== newWageValue) {
+              if (currentWage) {
+                await supabase
+                  .from("wage")
+                  .update({ end_date: new Date().toISOString() })
+                  .eq("id", currentWage.id);
+              }
               const wageData = {
                 employee_id: id as string,
                 hourly_wage: newWageValue,
                 start_date: new Date().toISOString(),
                 end_date: null,
               };
-              await wagesApi.createWage(wageData);
+              await supabase.from("wage").insert(wageData);
             }
-          } else {
-            console.log("Wage is unchanged. Skipping wage update.");
           }
         } catch (wageError) {
-          console.error("Error updating wage:", wageError);
-          // Don't stop the process for wage errors
+          setValidationErrors([
+            {
+              field: "wage",
+              message:
+                wageError instanceof Error
+                  ? wageError.message
+                  : "Error updating wage.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
         }
       }
 
-      alert("Employee updated successfully!");
-      router.push("/employees");
+      // Show success modal instead of alert
+      setValidationErrors([
+        {
+          field: "success",
+          message: "Employee updated successfully!",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+      // Redirect after closing modal
+      setTimeout(() => {
+        router.push("/employees");
+      }, 1500);
     } catch (error) {
-      console.error("Error updating employee:", error);
       setValidationErrors([
         {
           field: "submit",
@@ -642,16 +664,37 @@ export default function EditEmployeePage(): ReactElement {
         .eq("employee_id", id);
 
       if (employeeError) {
-        console.error("Error deleting employee:", employeeError);
-        alert("Failed to delete employee.");
+        setValidationErrors([
+          { field: "delete", message: employeeError.message, element: null },
+        ]);
+        setShowErrorModal(true);
         return;
       }
 
-      // Navigate back to employees list
-      router.push("/employees");
+      // Show success modal and redirect
+      setValidationErrors([
+        {
+          field: "success",
+          message: "Employee deleted successfully!",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+      setTimeout(() => {
+        router.push("/employees");
+      }, 1500);
     } catch (error) {
-      console.error("Error deleting employee:", error);
-      alert("Failed to delete employee. Please try again.");
+      setValidationErrors([
+        {
+          field: "delete",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to delete employee. Please try again.",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
     }
   };
 
@@ -874,11 +917,21 @@ export default function EditEmployeePage(): ReactElement {
         </form>
       </TutorialHighlight>
 
-      {/* Error Modal */}
+      {/* Error/Success Modal */}
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
         errors={validationErrors}
+        type={
+          validationErrors.length === 1 && validationErrors[0].field === "success"
+            ? "success"
+            : "error"
+        }
+        title={
+          validationErrors.length === 1 && validationErrors[0].field === "success"
+            ? "Success!"
+            : undefined
+        }
       />
 
       {/* Delete Confirmation Modal */}

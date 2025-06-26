@@ -8,40 +8,68 @@ interface ErrorModalProps {
   onClose: () => void;
   errors: ValidationError[];
   title?: string;
+  type?: "error" | "success";
 }
 
 export default function ErrorModal({
   isOpen,
   onClose,
   errors,
-  title = "Please fix the following errors:",
+  title,
+  type = "error",
 }: ErrorModalProps) {
   if (!isOpen) return null;
+
+  const isSuccess = type === "success";
+  const borderColor = isSuccess ? "#22c55e" : "#ef4444";
+  const icon = isSuccess ? "✅" : "⚠️";
+  const defaultTitle = isSuccess
+    ? "Success!"
+    : "Please fix the following errors:";
+  const headerColor = isSuccess ? "text-green-600" : "text-red-600";
+  const buttonColor = isSuccess
+    ? "bg-green-500 hover:bg-green-600"
+    : "bg-red-500 hover:bg-red-600";
 
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50 p-4"
       style={{ background: "rgba(255,255,255,0.7)" }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 border-4 border-red-500">
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4"
+        style={{ border: `4px solid ${borderColor}` }}
+      >
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-center mb-4">
-            <div className="text-4xl mr-3">⚠️</div>
-            <h2 className="text-xl font-bold text-red-600 text-center">
-              {title}
+            <div className="text-4xl mr-3">{icon}</div>
+            <h2 className={`text-xl font-bold ${headerColor} text-center`}>
+              {title || defaultTitle}
             </h2>
           </div>
 
-          {/* Error List */}
+          {/* Error/Success List */}
           <div className="mb-6">
             <ul className="space-y-2 max-h-64 overflow-y-auto">
               {errors.map((error, index) => (
                 <li
                   key={index}
-                  className="flex items-start space-x-2 text-red-700 bg-red-50 p-3 rounded-lg border border-red-200"
+                  className={`flex items-start space-x-2 ${
+                    isSuccess
+                      ? "text-green-700 bg-green-50 border-green-200"
+                      : "text-red-700 bg-red-50 border-red-200"
+                  } p-3 rounded-lg border`}
                 >
-                  <span className="text-red-500 font-bold mt-0.5">•</span>
+                  <span
+                    className={
+                      isSuccess
+                        ? "text-green-500 font-bold mt-0.5"
+                        : "text-red-500 font-bold mt-0.5"
+                    }
+                  >
+                    •
+                  </span>
                   <span className="text-sm leading-relaxed">
                     {error.message}
                   </span>
@@ -54,7 +82,7 @@ export default function ErrorModal({
           <div className="flex justify-center">
             <button
               onClick={onClose}
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className={`${buttonColor} text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105`}
             >
               OK
             </button>
