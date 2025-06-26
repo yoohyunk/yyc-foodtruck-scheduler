@@ -132,10 +132,8 @@ export default function AddTrucks(): ReactElement {
       createValidationRule(
         "capacity",
         true,
-        (value: unknown) =>
-          (typeof value === "string" || typeof value === "number") &&
-          validateNumber(value, 1),
-        "Capacity is required and must be at least 1.",
+        (value: unknown) => typeof value === "string" && value.trim() !== "",
+        "Please select a capacity.",
         capacityRef.current
       ),
     ];
