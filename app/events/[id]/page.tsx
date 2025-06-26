@@ -488,19 +488,19 @@ export default function EventDetailsPage(): ReactElement {
       createValidationRule(
         "date",
         true,
-        (value: unknown) => value instanceof Date || value === null,
+        (value: unknown) => typeof value === "string" && value.trim() !== "",
         "Please select a valid date."
       ),
       createValidationRule(
         "time",
         true,
-        (value: unknown) => value instanceof Date || value === null,
+        (value: unknown) => typeof value === "string" && value.trim() !== "",
         "Please select a valid start time."
       ),
       createValidationRule(
         "endTime",
         true,
-        (value: unknown) => value instanceof Date || value === null,
+        (value: unknown) => typeof value === "string" && value.trim() !== "",
         "Please select a valid end time."
       ),
       createValidationRule(
@@ -537,6 +537,43 @@ export default function EventDetailsPage(): ReactElement {
       setError(validationErrors[0].message);
       setIsSubmitting(false);
       return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Combine date and time to create proper datetime strings
+      const startDateTime = selectedDate && selectedTime 
+        ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 
+                   selectedTime.getHours(), selectedTime.getMinutes()).toISOString()
+        : null;
+      
+      const endDateTime = selectedDate && selectedEndTime 
+        ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 
+                   selectedEndTime.getHours(), selectedEndTime.getMinutes()).toISOString()
+        : null;
+
+      // Update the event
+      const updatedEvent = await eventsApi.updateEvent(event.id, {
+        title: sanitizedData.name,
+        description: sanitizedData.location,
+        start_date: startDateTime || undefined,
+        end_date: endDateTime || undefined,
+        number_of_servers_needed: parseInt(sanitizedData.requiredServers as string),
+        contact_name: sanitizedData.contactName,
+        contact_email: sanitizedData.contactEmail,
+        contact_phone: sanitizedData.contactPhone,
+        is_prepaid: sanitizedData.isPrepaid,
+      });
+
+      // Update local state
+      setEvent(updatedEvent);
+      closeEditModal();
+    } catch (err) {
+      console.error("Error updating event:", err);
+      setError("Failed to update event. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
