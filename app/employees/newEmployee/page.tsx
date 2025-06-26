@@ -116,7 +116,7 @@ export default function InviteEmployee(): ReactElement {
           <label htmlFor="employeeType" className="input-label">
             Employee Type
           </label>
-          <select id="employeeType" className="input">
+          <select id="employeeType" ref={employeeTypeRef} className="input">
             <option value="Driver">Driver</option>
             <option value="Server">Server</option>
           </select>
@@ -129,6 +129,7 @@ export default function InviteEmployee(): ReactElement {
           <input
             type="number"
             id="wage"
+            ref={wageRef}
             className="input"
             placeholder="Enter wage"
             required
