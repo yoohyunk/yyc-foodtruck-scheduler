@@ -532,9 +532,17 @@ export default function EditEmployeePage(): ReactElement {
 
       if (employeeError) {
         console.error("Error updating employee:", employeeError);
-        console.error("Error details:", employeeError.details);
-        console.error("Error hint:", employeeError.hint);
-        console.error("Error message:", employeeError.message);
+        setValidationErrors([
+          {
+            field: "submit",
+            message:
+              employeeError instanceof Error
+                ? employeeError.message
+                : "Failed to update employee. Please try again.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
         return;
       }
 
@@ -610,6 +618,17 @@ export default function EditEmployeePage(): ReactElement {
       router.push("/employees");
     } catch (error) {
       console.error("Error updating employee:", error);
+      setValidationErrors([
+        {
+          field: "submit",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to update employee. Please try again.",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
       return;
     }
   };

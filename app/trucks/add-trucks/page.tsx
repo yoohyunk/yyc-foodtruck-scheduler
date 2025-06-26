@@ -18,7 +18,6 @@ import {
   ValidationRule,
   ValidationError,
   createValidationRule,
-  validateNumber,
 } from "../../../lib/formValidation";
 
 interface TruckFormData {

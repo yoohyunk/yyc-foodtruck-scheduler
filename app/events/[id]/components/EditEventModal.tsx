@@ -157,9 +157,16 @@ export default function EditEventModal({
   return (
     <>
       <div className="modal-overlay">
-        <div className="modal-container max-w-2xl">
+        <div
+          className="modal-container max-w-2xl w-full sm:w-11/12 md:w-3/4 lg:w-2/3 xl:w-1/2"
+          style={{ maxWidth: "600px", width: "100%" }}
+        >
           <h3 className="modal-title">Edit Event</h3>
-          <form onSubmit={handleSubmit} className="modal-body">
+          <form
+            onSubmit={handleSubmit}
+            className="modal-body"
+            style={{ maxHeight: "70vh", overflowY: "auto" }}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

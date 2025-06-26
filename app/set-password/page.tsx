@@ -21,7 +21,9 @@ export default function SetPasswordPage() {
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
   const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -59,7 +61,8 @@ export default function SetPasswordPage() {
       {
         field: "password",
         required: true,
-        validator: (value: unknown) => typeof value === "string" && validatePassword(value),
+        validator: (value: unknown) =>
+          typeof value === "string" && validatePassword(value),
         message:
           "Password must be at least 8 characters, include uppercase, lowercase, a number, and a special character.",
         element: passwordRef.current,
