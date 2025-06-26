@@ -212,7 +212,14 @@ export function validateAddress(address: string): boolean {
 
 export function validatePassword(password: string): boolean {
   if (typeof password !== "string") return false;
-  return password.length >= 6; // Minimum 6 characters
+  // At least 8 chars, one uppercase, one lowercase, one number, one special char
+  return (
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[a-z]/.test(password) &&
+    /[0-9]/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
 }
 
 export function validateName(name: string): boolean {
@@ -238,15 +245,6 @@ export const commonValidationRules = {
       true,
       (value: unknown) => typeof value === "string" && validatePhone(value),
       "Please enter a valid phone number.",
-      element
-    ),
-
-  password: (element?: HTMLElement | null) =>
-    createValidationRule(
-      "password",
-      true,
-      (value: unknown) => typeof value === "string" && validatePassword(value),
-      "Password must be at least 6 characters long.",
       element
     ),
 
