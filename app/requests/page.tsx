@@ -1,17 +1,74 @@
 "use client";
-import { useState, useEffect, ReactElement } from "react";
+import { useState, useEffect, ReactElement, useMemo } from "react";
 import { FiCalendar, FiUser, FiClock } from "react-icons/fi";
 import { TimeOffRequest } from "../types";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 import { employeesApi } from "@/lib/supabase/employees";
 import { Employee } from "../types";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import ErrorModal from "../components/ErrorModal";
+import { ValidationError } from "@/lib/formValidation";
 
 export default function RequestsPage(): ReactElement {
+  const { isAdmin } = useAuth();
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("All");
+  const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
+  const router = useRouter();
+
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalErrors, setErrorModalErrors] = useState<ValidationError[]>(
+    []
+  );
+  const [errorModalTitle, setErrorModalTitle] = useState<string>("");
+  const [errorModalType, setErrorModalType] = useState<
+    "error" | "success" | "confirmation"
+  >("error");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  // Error handling helper functions
+  const showError = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("error");
+    setShowErrorModal(true);
+  };
+
+  const showSuccess = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("success");
+    setShowErrorModal(true);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setPendingDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (pendingDeleteId) {
+      try {
+        await timeOffRequestsApi.deleteTimeOffRequest(pendingDeleteId);
+        setRequests(
+          requests.filter((request) => request.id !== pendingDeleteId)
+        );
+        showSuccess("Success", "Request deleted successfully.");
+      } catch (err) {
+        console.error("Error deleting request:", err);
+        showError(
+          "Delete Error",
+          "Failed to delete request. Please try again."
+        );
+      }
+    }
+    setPendingDeleteId(null);
+  };
 
   // Fetch all time off requests and employees
   useEffect(() => {
@@ -39,6 +96,15 @@ export default function RequestsPage(): ReactElement {
   }, []);
 
   const handleStatusUpdate = async (requestId: string, newStatus: string) => {
+    // Only allow admins to update status
+    if (!isAdmin) {
+      showError(
+        "Access Denied",
+        "Only administrators can update request status."
+      );
+      return;
+    }
+
     try {
       await timeOffRequestsApi.updateTimeOffRequest(requestId, {
         status: newStatus,
@@ -50,24 +116,36 @@ export default function RequestsPage(): ReactElement {
           request.id === requestId ? { ...request, status: newStatus } : request
         )
       );
+
+      showSuccess("Success", "Request status updated successfully.");
     } catch (err) {
       console.error("Error updating request status:", err);
-      alert("Failed to update request status. Please try again.");
+      showError(
+        "Update Error",
+        "Failed to update request status. Please try again."
+      );
     }
   };
 
   const handleDeleteRequest = async (requestId: string) => {
-    if (!confirm("Are you sure you want to delete this request?")) {
+    // Only allow admins to delete requests
+    if (!isAdmin) {
+      showError("Access Denied", "Only administrators can delete requests.");
       return;
     }
 
-    try {
-      await timeOffRequestsApi.deleteTimeOffRequest(requestId);
-      setRequests(requests.filter((request) => request.id !== requestId));
-    } catch (err) {
-      console.error("Error deleting request:", err);
-      alert("Failed to delete request. Please try again.");
-    }
+    // Store the request ID for deletion and show confirmation modal
+    setPendingDeleteId(requestId);
+    setErrorModalTitle("Confirm Deletion");
+    setErrorModalErrors([
+      {
+        field: "general",
+        message:
+          "Are you sure you want to delete this request? This action cannot be undone.",
+      },
+    ]);
+    setErrorModalType("confirmation");
+    setShowErrorModal(true);
   };
 
   const getEmployeeName = (employeeId: string | null) => {
@@ -131,10 +209,46 @@ export default function RequestsPage(): ReactElement {
     return duration;
   };
 
-  const filteredRequests =
-    filterStatus === "All"
-      ? requests
-      : requests.filter((request) => request.status === filterStatus);
+  const filteredRequests = useMemo(() => {
+    let filtered = [...requests];
+
+    // Apply status filter
+    if (filterStatus !== "All") {
+      filtered = filtered.filter((request) => request.status === filterStatus);
+    }
+
+    // Apply date filter (only for admin users)
+    if (isAdmin) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate) {
+        // If a date is selected, show requests for that date (even if in the past)
+        filtered = filtered.filter((request) => {
+          const requestDate = new Date(request.start_datetime)
+            .toISOString()
+            .split("T")[0];
+          return requestDate === selectedDate;
+        });
+      } else {
+        // No date selected: show only requests whose end_datetime is today or in the future
+        filtered = filtered.filter((request) => {
+          const requestEnd = new Date(request.end_datetime);
+          requestEnd.setHours(0, 0, 0, 0);
+          return requestEnd >= today;
+        });
+      }
+    }
+
+    // Sort filtered requests by start_datetime ascending (soonest first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.start_datetime).getTime();
+      const dateB = new Date(b.start_datetime).getTime();
+      return dateA - dateB;
+    });
+
+    return filtered;
+  }, [requests, filterStatus, selectedDate, isAdmin]);
 
   if (isLoading) {
     return (
@@ -173,9 +287,11 @@ export default function RequestsPage(): ReactElement {
 
   return (
     <div className="requests-page">
-      <h2 className="text-2xl text-primary-dark mb-4">
-        Time-Off Requests Management
-      </h2>
+      <div className="mb-6">
+        <h2 className="text-2xl text-primary-dark">
+          Time-Off Requests Management
+        </h2>
+      </div>
 
       {/* Filter Buttons */}
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -233,6 +349,54 @@ export default function RequestsPage(): ReactElement {
         </button>
       </div>
 
+      {/* Date Filter - Only for Admin Users */}
+      {isAdmin && (
+        <div className="mb-6">
+          <label
+            htmlFor="date-filter"
+            className="block text-primary-dark font-medium mb-2"
+          >
+            Filter by Date
+          </label>
+          <div className="relative">
+            <input
+              type="date"
+              id="date-filter"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="input-field w-full cursor-pointer"
+              placeholder="Select a date to view past requests"
+            />
+            {selectedDate && (
+              <button
+                onClick={() => setSelectedDate("")}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Spacer div above New Request button */}
+      <div className="h-5"></div>
+
+      {/* New Request Button - full width under filters */}
+      {!isAdmin && (
+        <div className="mt-6 mb-8">
+          <button
+            onClick={() => router.push("/time-off-request")}
+            className="button bg-green-600 hover:bg-green-700 text-white w-full py-3 text-lg font-semibold rounded-lg shadow"
+          >
+            + New Request
+          </button>
+        </div>
+      )}
+
+      {/* Spacer div to ensure visual separation */}
+      <div className="h-8"></div>
+
       {/* Table */}
       <div className="grid gap-4">
         {filteredRequests.length > 0 ? (
@@ -270,29 +434,45 @@ export default function RequestsPage(): ReactElement {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select
-                    value={request.status}
-                    onChange={(e) =>
-                      handleStatusUpdate(request.id, e.target.value)
-                    }
-                    className={`px-3 py-1 rounded text-sm font-medium border-none focus:outline-none focus:ring-2 focus:ring-primary-dark ${
-                      request.status === "Accepted"
-                        ? "bg-green-100 text-green-800"
-                        : request.status === "Rejected"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
-                  <button
-                    onClick={() => handleDeleteRequest(request.id)}
-                    className="delete-button"
-                  >
-                    🗑️
-                  </button>
+                  {isAdmin ? (
+                    <select
+                      value={request.status}
+                      onChange={(e) =>
+                        handleStatusUpdate(request.id, e.target.value)
+                      }
+                      className={`px-3 py-1 rounded text-sm font-medium border-none focus:outline-none focus:ring-2 focus:ring-primary-dark ${
+                        request.status === "Accepted"
+                          ? "bg-green-100 text-green-800"
+                          : request.status === "Rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Accepted">Accepted</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  ) : (
+                    <span
+                      className={`px-3 py-1 rounded text-sm font-medium ${
+                        request.status === "Accepted"
+                          ? "bg-green-100 text-green-800"
+                          : request.status === "Rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {request.status}
+                    </span>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDeleteRequest(request.id)}
+                      className="delete-button"
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -345,6 +525,20 @@ export default function RequestsPage(): ReactElement {
           </div>
         )}
       </div>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={closeErrorModal}
+        errors={errorModalErrors}
+        title={errorModalTitle}
+        type={errorModalType}
+        onConfirm={
+          errorModalType === "confirmation" ? handleConfirmDelete : undefined
+        }
+        confirmText={errorModalType === "confirmation" ? "Delete" : undefined}
+        cancelText={errorModalType === "confirmation" ? "Cancel" : undefined}
+      />
     </div>
   );
 }

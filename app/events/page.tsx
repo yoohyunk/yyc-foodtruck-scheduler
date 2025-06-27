@@ -25,12 +25,18 @@ export default function Events(): ReactElement {
         setIsLoading(true);
         setError(null);
         const data = await eventsApi.getAllEvents();
-        setEvents(data);
-        setFilteredEvents(data); // Initially show all events
+        // Sort events by start_date ascending (soonest first)
+        const sorted = [...data].sort((a, b) => {
+          const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+          const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+          return dateA - dateB;
+        });
+        setEvents(sorted);
+        setFilteredEvents(sorted); // Initially show all events
         // Set global variable for tutorial navigation
-        if (typeof window !== "undefined" && data.length > 0) {
+        if (typeof window !== "undefined" && sorted.length > 0) {
           (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
-            data[0].id;
+            sorted[0].id;
         }
       } catch (err) {
         console.error("Error fetching events:", err);
@@ -41,6 +47,19 @@ export default function Events(): ReactElement {
     };
 
     fetchEvents();
+
+    // Add focus event listener to refresh data when user navigates back
+    const handleFocus = () => {
+      console.log("Events page: Refreshing data on focus");
+      fetchEvents();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   // Filter events based on the active filter and date
@@ -50,21 +69,38 @@ export default function Events(): ReactElement {
     // Apply status filter
     if (activeFilter !== "All") {
       filtered = filtered.filter((event) => {
-        // Use actual status from database, default to "Pending" if null
         const eventStatus = event.status || "Pending";
         return activeFilter === eventStatus;
       });
     }
 
-    // Apply date filter
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     if (selectedDate) {
+      // If a date is selected, show events for that date (even if in the past)
       filtered = filtered.filter((event) => {
         const eventDate = event.start_date
           ? new Date(event.start_date).toISOString().split("T")[0]
           : "";
         return eventDate === selectedDate;
       });
+    } else {
+      // No date selected: show only events whose end_date is today or in the future
+      filtered = filtered.filter((event) => {
+        if (!event.end_date) return true;
+        const eventEnd = new Date(event.end_date);
+        eventEnd.setHours(0, 0, 0, 0);
+        return eventEnd >= today;
+      });
     }
+
+    // Sort filtered events by start_date ascending
+    filtered.sort((a, b) => {
+      const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+      const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+      return dateA - dateB;
+    });
 
     setFilteredEvents(filtered);
   }, [activeFilter, selectedDate, events]);
@@ -171,7 +207,7 @@ export default function Events(): ReactElement {
                 isHighlighted={shouldHighlight(
                   `.event-card:nth-child(${index + 1})`
                 )}
-                className="employee-card bg-white p-4 rounded shadow relative"
+                className="event-card bg-white p-4 rounded shadow relative"
               >
                 <h3 className="text-lg font-semibold">{event.title}</h3>
                 <p>
