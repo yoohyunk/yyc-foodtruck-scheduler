@@ -8,7 +8,10 @@ interface ErrorModalProps {
   onClose: () => void;
   errors: ValidationError[];
   title?: string;
-  type?: "error" | "success";
+  type?: "error" | "success" | "confirmation";
+  onConfirm?: () => void;
+  confirmText?: string;
+  cancelText?: string;
 }
 
 export default function ErrorModal({
@@ -17,19 +20,42 @@ export default function ErrorModal({
   errors,
   title,
   type = "error",
+  onConfirm,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
 }: ErrorModalProps) {
   if (!isOpen) return null;
 
   const isSuccess = type === "success";
-  const borderColor = isSuccess ? "#22c55e" : "#ef4444";
-  const icon = isSuccess ? "✅" : "⚠️";
+  const isConfirmation = type === "confirmation";
+  const borderColor = isSuccess
+    ? "#22c55e"
+    : isConfirmation
+      ? "#ef4444"
+      : "#ef4444";
+  const icon = isSuccess ? "✅" : isConfirmation ? "⚠️" : "⚠️";
   const defaultTitle = isSuccess
     ? "Success!"
-    : "Please fix the following errors:";
-  const headerColor = isSuccess ? "text-green-600" : "text-red-600";
+    : isConfirmation
+      ? "Confirm Action"
+      : "Please fix the following errors:";
+  const headerColor = isSuccess
+    ? "text-green-600"
+    : isConfirmation
+      ? "text-red-600"
+      : "text-red-600";
   const buttonColor = isSuccess
     ? "bg-green-500 hover:bg-green-600"
-    : "bg-red-500 hover:bg-red-600";
+    : isConfirmation
+      ? "bg-red-500 hover:bg-red-600"
+      : "bg-red-500 hover:bg-red-600";
+
+  const handleConfirm = () => {
+    if (onConfirm) {
+      onConfirm();
+    }
+    onClose();
+  };
 
   return (
     <div
@@ -58,14 +84,18 @@ export default function ErrorModal({
                   className={`flex items-start space-x-2 ${
                     isSuccess
                       ? "text-green-700 bg-green-50 border-green-200"
-                      : "text-red-700 bg-red-50 border-red-200"
+                      : isConfirmation
+                        ? "text-red-700 bg-red-50 border-red-200"
+                        : "text-red-700 bg-red-50 border-red-200"
                   } p-3 rounded-lg border`}
                 >
                   <span
                     className={
                       isSuccess
                         ? "text-green-500 font-bold mt-0.5"
-                        : "text-red-500 font-bold mt-0.5"
+                        : isConfirmation
+                          ? "text-red-500 font-bold mt-0.5"
+                          : "text-red-500 font-bold mt-0.5"
                     }
                   >
                     •
@@ -78,13 +108,23 @@ export default function ErrorModal({
             </ul>
           </div>
 
-          {/* Action Button */}
-          <div className="flex justify-center">
+          {/* Action Buttons */}
+          <div
+            className={`flex ${isConfirmation ? "justify-between" : "justify-center"} gap-3`}
+          >
+            {isConfirmation && (
+              <button
+                onClick={onClose}
+                className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                {cancelText}
+              </button>
+            )}
             <button
-              onClick={onClose}
+              onClick={isConfirmation ? handleConfirm : onClose}
               className={`${buttonColor} text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105`}
             >
-              OK
+              {isConfirmation ? confirmText : "OK"}
             </button>
           </div>
         </div>

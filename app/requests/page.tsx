@@ -7,6 +7,8 @@ import { employeesApi } from "@/lib/supabase/employees";
 import { Employee } from "../types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import ErrorModal from "../components/ErrorModal";
+import { ValidationError } from "@/lib/formValidation";
 
 export default function RequestsPage(): ReactElement {
   const { isAdmin } = useAuth();
@@ -17,6 +19,56 @@ export default function RequestsPage(): ReactElement {
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
   const router = useRouter();
+
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalErrors, setErrorModalErrors] = useState<ValidationError[]>(
+    []
+  );
+  const [errorModalTitle, setErrorModalTitle] = useState<string>("");
+  const [errorModalType, setErrorModalType] = useState<
+    "error" | "success" | "confirmation"
+  >("error");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  // Error handling helper functions
+  const showError = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("error");
+    setShowErrorModal(true);
+  };
+
+  const showSuccess = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("success");
+    setShowErrorModal(true);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setPendingDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (pendingDeleteId) {
+      try {
+        await timeOffRequestsApi.deleteTimeOffRequest(pendingDeleteId);
+        setRequests(
+          requests.filter((request) => request.id !== pendingDeleteId)
+        );
+        showSuccess("Success", "Request deleted successfully.");
+      } catch (err) {
+        console.error("Error deleting request:", err);
+        showError(
+          "Delete Error",
+          "Failed to delete request. Please try again."
+        );
+      }
+    }
+    setPendingDeleteId(null);
+  };
 
   // Fetch all time off requests and employees
   useEffect(() => {
@@ -46,7 +98,10 @@ export default function RequestsPage(): ReactElement {
   const handleStatusUpdate = async (requestId: string, newStatus: string) => {
     // Only allow admins to update status
     if (!isAdmin) {
-      alert("Only administrators can update request status.");
+      showError(
+        "Access Denied",
+        "Only administrators can update request status."
+      );
       return;
     }
 
@@ -61,30 +116,36 @@ export default function RequestsPage(): ReactElement {
           request.id === requestId ? { ...request, status: newStatus } : request
         )
       );
+
+      showSuccess("Success", "Request status updated successfully.");
     } catch (err) {
       console.error("Error updating request status:", err);
-      alert("Failed to update request status. Please try again.");
+      showError(
+        "Update Error",
+        "Failed to update request status. Please try again."
+      );
     }
   };
 
   const handleDeleteRequest = async (requestId: string) => {
     // Only allow admins to delete requests
     if (!isAdmin) {
-      alert("Only administrators can delete requests.");
+      showError("Access Denied", "Only administrators can delete requests.");
       return;
     }
 
-    if (!confirm("Are you sure you want to delete this request?")) {
-      return;
-    }
-
-    try {
-      await timeOffRequestsApi.deleteTimeOffRequest(requestId);
-      setRequests(requests.filter((request) => request.id !== requestId));
-    } catch (err) {
-      console.error("Error deleting request:", err);
-      alert("Failed to delete request. Please try again.");
-    }
+    // Store the request ID for deletion and show confirmation modal
+    setPendingDeleteId(requestId);
+    setErrorModalTitle("Confirm Deletion");
+    setErrorModalErrors([
+      {
+        field: "general",
+        message:
+          "Are you sure you want to delete this request? This action cannot be undone.",
+      },
+    ]);
+    setErrorModalType("confirmation");
+    setShowErrorModal(true);
   };
 
   const getEmployeeName = (employeeId: string | null) => {
@@ -464,6 +525,20 @@ export default function RequestsPage(): ReactElement {
           </div>
         )}
       </div>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={closeErrorModal}
+        errors={errorModalErrors}
+        title={errorModalTitle}
+        type={errorModalType}
+        onConfirm={
+          errorModalType === "confirmation" ? handleConfirmDelete : undefined
+        }
+        confirmText={errorModalType === "confirmation" ? "Delete" : undefined}
+        cancelText={errorModalType === "confirmation" ? "Cancel" : undefined}
+      />
     </div>
   );
 }

@@ -8,6 +8,8 @@ import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase/client";
+import ErrorModal from "../components/ErrorModal";
+import { ValidationError } from "@/lib/formValidation";
 
 export default function TimeOffRequestPage(): ReactElement {
   const router = useRouter();
@@ -23,6 +25,35 @@ export default function TimeOffRequestPage(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const { shouldHighlight } = useTutorial();
+
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalErrors, setErrorModalErrors] = useState<ValidationError[]>(
+    []
+  );
+  const [errorModalTitle, setErrorModalTitle] = useState<string>("");
+  const [errorModalType, setErrorModalType] = useState<"error" | "success">(
+    "error"
+  );
+
+  // Error handling helper functions
+  const showError = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("error");
+    setShowErrorModal(true);
+  };
+
+  const showSuccess = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("success");
+    setShowErrorModal(true);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -81,7 +112,10 @@ export default function TimeOffRequestPage(): ReactElement {
 
     try {
       if (!user) {
-        setError("Please log in to submit a time off request.");
+        showError(
+          "Authentication Error",
+          "Please log in to submit a time off request."
+        );
         return;
       }
 
@@ -93,7 +127,8 @@ export default function TimeOffRequestPage(): ReactElement {
         .single();
 
       if (employeeError || !employee) {
-        setError(
+        showError(
+          "Employee Error",
           "Employee information not found. Please contact your administrator."
         );
         return;
@@ -108,12 +143,17 @@ export default function TimeOffRequestPage(): ReactElement {
         status: "Pending",
       });
 
-      // Redirect to success page or show success message
-      alert("Time off request submitted successfully!");
-      router.push("/requests");
+      // Show success message and redirect
+      showSuccess("Success", "Time off request submitted successfully!");
+      setTimeout(() => {
+        router.push("/requests");
+      }, 2000);
     } catch (err) {
       console.error("Error submitting time off request:", err);
-      setError("Failed to submit time off request. Please try again.");
+      showError(
+        "Submission Error",
+        "Failed to submit time off request. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -303,13 +343,22 @@ export default function TimeOffRequestPage(): ReactElement {
           <ul className="text-sm text-blue-700 space-y-1">
             <li>• Please submit your request at least 2 weeks in advance</li>
             <li>• Your request will be reviewed by management</li>
-            <li>• You will be notified of the approval status</li>
+
             <li>
               • Emergency requests may be considered on a case-by-case basis
             </li>
           </ul>
         </div>
       </div>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={closeErrorModal}
+        errors={errorModalErrors}
+        title={errorModalTitle}
+        type={errorModalType}
+      />
     </div>
   );
 }
