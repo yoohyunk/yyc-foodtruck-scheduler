@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, ReactElement } from "react";
+import { useState, useEffect, ReactElement, useMemo } from "react";
 import { FiCalendar, FiUser, FiClock } from "react-icons/fi";
 import { TimeOffRequest } from "../types";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
@@ -15,6 +15,7 @@ export default function RequestsPage(): ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("All");
+  const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
   const router = useRouter();
 
   // Fetch all time off requests and employees
@@ -147,10 +148,46 @@ export default function RequestsPage(): ReactElement {
     return duration;
   };
 
-  const filteredRequests =
-    filterStatus === "All"
-      ? requests
-      : requests.filter((request) => request.status === filterStatus);
+  const filteredRequests = useMemo(() => {
+    let filtered = [...requests];
+
+    // Apply status filter
+    if (filterStatus !== "All") {
+      filtered = filtered.filter((request) => request.status === filterStatus);
+    }
+
+    // Apply date filter (only for admin users)
+    if (isAdmin) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate) {
+        // If a date is selected, show requests for that date (even if in the past)
+        filtered = filtered.filter((request) => {
+          const requestDate = new Date(request.start_datetime)
+            .toISOString()
+            .split("T")[0];
+          return requestDate === selectedDate;
+        });
+      } else {
+        // No date selected: show only requests whose end_datetime is today or in the future
+        filtered = filtered.filter((request) => {
+          const requestEnd = new Date(request.end_datetime);
+          requestEnd.setHours(0, 0, 0, 0);
+          return requestEnd >= today;
+        });
+      }
+    }
+
+    // Sort filtered requests by start_datetime ascending (soonest first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.start_datetime).getTime();
+      const dateB = new Date(b.start_datetime).getTime();
+      return dateA - dateB;
+    });
+
+    return filtered;
+  }, [requests, filterStatus, selectedDate, isAdmin]);
 
   if (isLoading) {
     return (
@@ -250,6 +287,36 @@ export default function RequestsPage(): ReactElement {
           </div>
         </button>
       </div>
+
+      {/* Date Filter - Only for Admin Users */}
+      {isAdmin && (
+        <div className="mb-6">
+          <label
+            htmlFor="date-filter"
+            className="block text-primary-dark font-medium mb-2"
+          >
+            Filter by Date
+          </label>
+          <div className="relative">
+            <input
+              type="date"
+              id="date-filter"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="input-field w-full cursor-pointer"
+              placeholder="Select a date to view past requests"
+            />
+            {selectedDate && (
+              <button
+                onClick={() => setSelectedDate("")}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Spacer div above New Request button */}
       <div className="h-5"></div>
