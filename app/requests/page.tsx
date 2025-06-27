@@ -189,18 +189,10 @@ export default function RequestsPage(): ReactElement {
 
   return (
     <div className="requests-page">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6">
         <h2 className="text-2xl text-primary-dark">
           Time-Off Requests Management
         </h2>
-        {!isAdmin && (
-          <button
-            onClick={() => router.push("/time-off-request")}
-            className="button bg-green-600 hover:bg-green-700 text-white"
-          >
-            + New Request
-          </button>
-        )}
       </div>
 
       {/* Filter Buttons */}
@@ -258,6 +250,24 @@ export default function RequestsPage(): ReactElement {
           </div>
         </button>
       </div>
+
+      {/* Spacer div above New Request button */}
+      <div className="h-5"></div>
+
+      {/* New Request Button - full width under filters */}
+      {!isAdmin && (
+        <div className="mt-6 mb-8">
+          <button
+            onClick={() => router.push("/time-off-request")}
+            className="button bg-green-600 hover:bg-green-700 text-white w-full py-3 text-lg font-semibold rounded-lg shadow"
+          >
+            + New Request
+          </button>
+        </div>
+      )}
+
+      {/* Spacer div to ensure visual separation */}
+      <div className="h-8"></div>
 
       {/* Table */}
       <div className="grid gap-4">
