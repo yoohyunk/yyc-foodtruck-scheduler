@@ -92,14 +92,8 @@ export default function Trucks(): ReactElement {
 
   return (
     <div className="trucks-page">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6">
         <h2 className="text-2xl font-bold">Truck Management</h2>
-        <button
-          onClick={() => router.push("/trucks/add-trucks")}
-          className="button bg-green-600 hover:bg-green-700 text-white"
-        >
-          + Add Truck
-        </button>
       </div>
 
       {/* Filter Buttons */}
@@ -159,6 +153,19 @@ export default function Trucks(): ReactElement {
           Dessert Trucks
         </button>
       </TutorialHighlight>
+
+      {/* Add Truck Button - full width under filters */}
+      <div className="mb-8">
+        <button
+          onClick={() => router.push("/trucks/add-trucks")}
+          className="button bg-green-600 hover:bg-green-700 text-white w-full py-3 text-lg font-semibold rounded-lg shadow"
+        >
+          + Add Truck
+        </button>
+      </div>
+
+      {/* Spacer div to ensure visual separation */}
+      <div className="h-8"></div>
 
       {/* Truck List */}
       <TutorialHighlight
