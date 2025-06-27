@@ -37,6 +37,15 @@ export default function InviteEmployee(): ReactElement {
   const wageRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Function to capitalize first letter of each word
+  const capitalizeWords = (str: string): string => {
+    return str
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   // Set up autofill detection for all form fields
   useEffect(() => {
     const fields = [
@@ -52,7 +61,6 @@ export default function InviteEmployee(): ReactElement {
         handleAutofill(fieldRef.current, () => {
           // Update form data when autofill is detected
           const fieldName = fieldRef.current?.name;
-          console.log(`Autofill detected for field: ${fieldName}`);
           if (fieldName) {
             // Trigger a synthetic change event to update form state
             const event = new Event("change", { bubbles: true });
@@ -80,9 +88,13 @@ export default function InviteEmployee(): ReactElement {
       return;
     }
 
+    // Get form data and capitalize names
+    const rawFirstName = firstNameRef.current?.value.trim() || "";
+    const rawLastName = lastNameRef.current?.value.trim() || "";
+
     const formData = {
-      firstName: firstNameRef.current?.value.trim() || "",
-      lastName: lastNameRef.current?.value.trim() || "",
+      firstName: capitalizeWords(rawFirstName),
+      lastName: capitalizeWords(rawLastName),
       email: emailRef.current?.value.trim() || "",
       employeeType: employeeTypeRef.current?.value || "",
       wage: wageRef.current?.value || "",
