@@ -22,7 +22,9 @@ import {
   validateNumber,
   createValidationRule,
   sanitizeFormData,
+  ValidationError,
 } from "@/lib/formValidation";
+import ErrorModal from "../../components/ErrorModal";
 
 // Import components
 import EmployeeSelectionModal from "./components/EmployeeSelectionModal";
@@ -97,6 +99,16 @@ export default function EventDetailsPage(): ReactElement {
     useState<boolean>(false);
   const [isEditModalOpen, setEditModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
+
+  // Error modal state
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState<boolean>(false);
+  const [errorModalErrors, setErrorModalErrors] = useState<ValidationError[]>(
+    []
+  );
+  const [errorModalTitle, setErrorModalTitle] = useState<string>("");
+  const [errorModalType, setErrorModalType] = useState<"error" | "success">(
+    "error"
+  );
 
   // Memoize modal open/close handlers to prevent re-renders
   const openEmployeeModal = useCallback(() => setEmployeeModalOpen(true), []);
@@ -240,7 +252,10 @@ export default function EventDetailsPage(): ReactElement {
   const handleSaveEmployeeAssignments = async (
     selectedEmployeeIds: string[]
   ) => {
-    if (!event?.id) return;
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
       // Get current assignments
@@ -286,17 +301,44 @@ export default function EventDetailsPage(): ReactElement {
       const updatedAssignments =
         await assignmentsApi.getServerAssignmentsByEventId(event.id);
       setServerAssignments(updatedAssignments);
+
+      showSuccess("Success", "Employee assignments updated successfully.");
     } catch (error) {
       console.error("Error saving employee assignments:", error);
-      alert("Failed to save employee assignments. Please try again.");
+      showError(
+        "Assignment Error",
+        "Failed to save employee assignments. Please try again."
+      );
     }
+  };
+
+  // Error handling helper
+  const showError = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("error");
+    setIsErrorModalOpen(true);
+  };
+
+  const showSuccess = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("success");
+    setIsErrorModalOpen(true);
+  };
+
+  const closeErrorModal = () => {
+    setIsErrorModalOpen(false);
   };
 
   const handleTruckAssignment = async (
     truckId: string,
     driverId: string | null
   ) => {
-    if (!event?.id) return;
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
       const existingAssignment = truckAssignments.find(
@@ -305,7 +347,7 @@ export default function EventDetailsPage(): ReactElement {
 
       if (existingAssignment) {
         if (driverId === null) {
-          // Remove assignment
+          // Remove assignment if no driver is assigned
           await truckAssignmentsApi.deleteTruckAssignment(
             existingAssignment.id
           );
@@ -314,8 +356,9 @@ export default function EventDetailsPage(): ReactElement {
               (assignment) => assignment.truck_id !== truckId
             )
           );
+          showSuccess("Success", "Truck assignment removed successfully.");
         } else {
-          // Update existing assignment
+          // Update existing assignment with new driver
           const updatedAssignment =
             await truckAssignmentsApi.updateTruckAssignment(
               existingAssignment.id,
@@ -326,21 +369,32 @@ export default function EventDetailsPage(): ReactElement {
               assignment.truck_id === truckId ? updatedAssignment : assignment
             )
           );
+          showSuccess("Success", "Truck assignment updated successfully.");
         }
-      } else if (driverId !== null) {
-        // Create new assignment
-        const newAssignment = await truckAssignmentsApi.createTruckAssignment({
-          truck_id: truckId,
-          driver_id: driverId,
-          event_id: event.id,
-          start_time: event.start_date || new Date().toISOString(),
-          end_time: event.end_date || new Date().toISOString(),
-        });
-        setTruckAssignments([...truckAssignments, newAssignment]);
+      } else {
+        // Create new assignment for the truck (with or without driver)
+        // Only create if driverId is not null (truck is selected)
+        if (driverId !== null) {
+          const newAssignment = await truckAssignmentsApi.createTruckAssignment(
+            {
+              truck_id: truckId,
+              driver_id: driverId,
+              event_id: event.id,
+              start_time: event.start_date || new Date().toISOString(),
+              end_time: event.end_date || new Date().toISOString(),
+            }
+          );
+          setTruckAssignments([...truckAssignments, newAssignment]);
+          showSuccess("Success", "Truck assigned successfully.");
+        }
+        // If driverId is null and no existing assignment, do nothing (truck is not selected)
       }
     } catch (err) {
       console.error("Error handling truck assignment:", err);
-      alert("Failed to update truck assignment. Please try again.");
+      showError(
+        "Assignment Error",
+        "Failed to update truck assignment. Please try again."
+      );
     }
   };
 
@@ -362,7 +416,10 @@ export default function EventDetailsPage(): ReactElement {
   };
 
   const handleDeleteEvent = async () => {
-    if (!event?.id) return;
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
       // Delete truck assignments first
@@ -371,39 +428,58 @@ export default function EventDetailsPage(): ReactElement {
       // Delete the event
       await eventsApi.deleteEvent(event.id);
 
+      showSuccess("Success", "Event deleted successfully.");
+
       // Navigate back to events page
       router.push("/events");
     } catch (err) {
       console.error("Error deleting event:", err);
-      alert("Failed to delete event. Please try again.");
+      showError("Delete Error", "Failed to delete event. Please try again.");
     }
   };
 
   const handleUpdatePaymentStatus = async () => {
-    if (!event?.id) return;
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
       const updatedEvent = await eventsApi.updateEvent(event.id, {
         is_prepaid: !event.is_prepaid,
       });
       setEvent(updatedEvent);
+      showSuccess(
+        "Success",
+        `Payment status updated to ${updatedEvent.is_prepaid ? "Prepaid" : "Pending"}.`
+      );
     } catch (err) {
       console.error("Error updating payment status:", err);
-      alert("Failed to update payment status. Please try again.");
+      showError(
+        "Update Error",
+        "Failed to update payment status. Please try again."
+      );
     }
   };
 
   const handleUpdateStatus = async (newStatus: string) => {
-    if (!event?.id) return;
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
       const updatedEvent = await eventsApi.updateEvent(event.id, {
         status: newStatus,
       });
       setEvent(updatedEvent);
+      showSuccess("Success", `Event status updated to ${newStatus}.`);
     } catch (err) {
       console.error("Error updating event status:", err);
-      alert("Failed to update event status. Please try again.");
+      showError(
+        "Update Error",
+        "Failed to update event status. Please try again."
+      );
     }
   };
 
@@ -487,7 +563,7 @@ export default function EventDetailsPage(): ReactElement {
     setError(null);
 
     if (!event?.id) {
-      console.error("Event ID is missing");
+      showError("Error", "Event not found. Please refresh the page.");
       setIsSubmitting(false);
       return;
     }
@@ -547,7 +623,10 @@ export default function EventDetailsPage(): ReactElement {
     }
 
     if (validationErrors.length > 0) {
-      setError(validationErrors[0].message);
+      setErrorModalErrors(validationErrors);
+      setErrorModalTitle("Validation Errors");
+      setErrorModalType("error");
+      setIsErrorModalOpen(true);
       setIsSubmitting(false);
       return;
     }
@@ -605,9 +684,10 @@ export default function EventDetailsPage(): ReactElement {
       // Update local state
       setEvent(updatedEvent);
       closeEditModal();
+      showSuccess("Success", "Event updated successfully.");
     } catch (err) {
       console.error("Error updating event:", err);
-      setError("Failed to update event. Please try again.");
+      showError("Update Error", "Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -838,6 +918,8 @@ export default function EventDetailsPage(): ReactElement {
             getAvailableDrivers={getAvailableDrivers}
             isLoadingTrucks={isLoadingTrucks}
             shouldHighlight={shouldHighlight}
+            eventStartTime={event?.start_date}
+            eventEndTime={event?.end_date}
           />
         )}
 
@@ -934,6 +1016,15 @@ export default function EventDetailsPage(): ReactElement {
             shouldHighlight={shouldHighlight}
           />
         )}
+
+        {/* Error Modal */}
+        <ErrorModal
+          isOpen={isErrorModalOpen}
+          onClose={closeErrorModal}
+          errors={errorModalErrors}
+          title={errorModalTitle}
+          type={errorModalType}
+        />
       </div>
     </TutorialHighlight>
   );
