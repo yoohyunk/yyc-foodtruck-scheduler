@@ -14,14 +14,27 @@ import { EmployeeFormData } from "@/app/types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
-import { wagesApi } from "@/lib/supabase/wages";
+import ErrorModal from "../../components/ErrorModal";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  validateEmail,
+  validatePhone,
+  validateNumber,
+  createValidationRule,
+  handleAutofill,
+} from "../../../lib/formValidation";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();
   const router = useRouter();
   const supabase = createClient();
+  const { isAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const { shouldHighlight } = useTutorial();
   const addressFormRef = useRef<AddressFormRef>(null);
   const [formData, setFormData] = useState<EmployeeFormData>({
@@ -44,6 +57,14 @@ export default function EditEmployeePage(): ReactElement {
     longitude: "",
   });
 
+  // Refs for form fields
+  const firstNameRef = useRef<HTMLInputElement>(null);
+  const lastNameRef = useRef<HTMLInputElement>(null);
+  const roleRef = useRef<HTMLSelectElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const wageRef = useRef<HTMLInputElement>(null);
+
   const daysOfWeek = [
     "Monday",
     "Tuesday",
@@ -53,6 +74,39 @@ export default function EditEmployeePage(): ReactElement {
     "Saturday",
     "Sunday",
   ];
+
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
+
+  // Set up autofill detection for all form fields
+  useEffect(() => {
+    // Only set up autofill detection after loading is complete
+    if (isLoading) return;
+
+    const fields = [
+      firstNameRef,
+      lastNameRef,
+      roleRef,
+      emailRef,
+      phoneRef,
+      wageRef,
+    ];
+
+    fields.forEach((fieldRef) => {
+      if (fieldRef.current) {
+        handleAutofill(fieldRef.current, () => {
+          // Update form data when autofill is detected
+          const fieldName = fieldRef.current?.name;
+          if (fieldName) {
+            // Trigger a synthetic change event to update form state
+            const event = new Event("change", { bubbles: true });
+            fieldRef.current?.dispatchEvent(event);
+          }
+        });
+      }
+    });
+  }, [isLoading]);
 
   // Fetch employee details
   useEffect(() => {
@@ -84,21 +138,28 @@ export default function EditEmployeePage(): ReactElement {
           return;
         }
 
-        // Get wage data
-        const { data: wageData } = await supabase
+        // Get wage data - get the most recent wage record
+        const { data: wageData, error: wageError } = await supabase
           .from("wage")
           .select("*")
           .eq("employee_id", id)
-          .single();
+          .order("start_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (wageError) {
+          console.error("Error fetching wage data:", wageError);
+        }
+
+        // If no wage data found, log it
+        if (!wageData) {
+          console.log("No wage data found for employee:", id);
+        }
 
         // Format address
         const address = employeeData.addresses
           ? `${employeeData.addresses.street}, ${employeeData.addresses.city}, ${employeeData.addresses.province}`
           : "";
-
-        console.log("Employee data:", employeeData);
-        console.log("Address data:", employeeData.addresses);
-        console.log("Formatted address:", address);
 
         setFormData({
           first_name: employeeData.first_name || "",
@@ -220,10 +281,71 @@ export default function EditEmployeePage(): ReactElement {
     }
   };
 
+  // Handler for address errors from AddressForm
+  const handleAddressError = (errors: ValidationError[]) => {
+    setValidationErrors(errors);
+    setShowErrorModal(true);
+  };
+
   // Handle form submission
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Form submission started");
+
+    const validationRules: ValidationRule[] = [
+      createValidationRule(
+        "first_name",
+        true,
+        undefined,
+        "First name is required.",
+        firstNameRef.current
+      ),
+      createValidationRule(
+        "last_name",
+        true,
+        undefined,
+        "Last name is required.",
+        lastNameRef.current
+      ),
+      createValidationRule(
+        "role",
+        true,
+        undefined,
+        "Role is required.",
+        roleRef.current
+      ),
+      createValidationRule(
+        "email",
+        true,
+        (value: unknown) => typeof value === "string" && validateEmail(value),
+        "Please enter a valid email address.",
+        emailRef.current
+      ),
+      createValidationRule(
+        "phone",
+        true,
+        (value: unknown) => typeof value === "string" && validatePhone(value),
+        "Please enter a valid phone number.",
+        phoneRef.current
+      ),
+      createValidationRule(
+        "wage",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 0),
+        "Wage is required and must be a positive number.",
+        wageRef.current
+      ),
+    ];
+
+    const validationErrors = validateForm(formData, validationRules);
+    setValidationErrors(validationErrors);
+
+    if (validationErrors.length > 0) {
+      setShowErrorModal(true);
+      return;
+    }
 
     try {
       // Use structured address data from formData
@@ -285,10 +407,6 @@ export default function EditEmployeePage(): ReactElement {
 
       if (existingEmployee?.address_id) {
         // Update existing address
-        console.log(
-          "Updating existing address with ID:",
-          existingEmployee.address_id
-        );
         const { error: addressError } = await supabase
           .from("addresses")
           .update({
@@ -305,15 +423,19 @@ export default function EditEmployeePage(): ReactElement {
           .eq("id", existingEmployee.address_id);
 
         if (addressError) {
-          console.error("Error updating address:", addressError);
-          alert("Failed to update address.");
+          setValidationErrors([
+            {
+              field: "address",
+              message: "Failed to update address. Please try again.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
           return;
         }
         addressId = existingEmployee.address_id;
-        console.log("Address updated successfully");
       } else {
         // Create new address
-        console.log("Creating new address...");
         const { data: newAddress, error: addressError } = await supabase
           .from("addresses")
           .insert({
@@ -331,12 +453,17 @@ export default function EditEmployeePage(): ReactElement {
           .single();
 
         if (addressError) {
-          console.error("Error creating address:", addressError);
-          alert("Failed to create address.");
+          setValidationErrors([
+            {
+              field: "address",
+              message: "Failed to create address. Please try again.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
           return;
         }
         addressId = newAddress.id;
-        console.log("Created new address with ID:", addressId);
       }
 
       console.log("Final addressId value:", addressId);
@@ -360,10 +487,7 @@ export default function EditEmployeePage(): ReactElement {
         availability: formData.availability,
       };
 
-      console.log("Update data with address_id:", updateData);
-
       // Only update email and phone if they're different from the current ones
-      console.log("Checking email and phone updates...");
       const { data: currentEmployee } = await supabase
         .from("employees")
         .select("user_email, user_phone")
@@ -372,7 +496,6 @@ export default function EditEmployeePage(): ReactElement {
 
       if (formData.email !== currentEmployee?.user_email) {
         updateData.user_email = formData.email;
-        console.log("Email will be updated");
       }
 
       // Check if the new phone number is already used by another employee
@@ -380,10 +503,8 @@ export default function EditEmployeePage(): ReactElement {
         // If current phone is null, we can always update
         if (currentEmployee?.user_phone === null) {
           updateData.user_phone = formData.phone;
-          console.log("Phone will be updated (was null)");
         } else {
           // Check if the new phone number is already used by another employee
-          console.log("Checking if phone number is already used...");
           const { data: existingEmployeeWithPhone } = await supabase
             .from("employees")
             .select("employee_id")
@@ -392,19 +513,22 @@ export default function EditEmployeePage(): ReactElement {
             .single();
 
           if (existingEmployeeWithPhone) {
-            console.error("Phone number already used by another employee");
-            alert(
-              "This phone number is already used by another employee. Please use a different phone number."
-            );
+            setValidationErrors([
+              {
+                field: "phone",
+                message:
+                  "This phone number is already in use by another employee. Please use a different phone number.",
+                element: phoneRef.current,
+              },
+            ]);
+            setShowErrorModal(true);
             return;
           } else {
             updateData.user_phone = formData.phone;
-            console.log("Phone will be updated");
           }
         }
       } else {
         updateData.user_phone = currentEmployee.user_phone;
-        console.log("Phone unchanged");
       }
 
       console.log("Final update data:", updateData);
@@ -415,7 +539,7 @@ export default function EditEmployeePage(): ReactElement {
       console.log("New phone:", formData.phone);
 
       console.log("Updating employee in database...");
-      const { data: updatedEmployee, error: employeeError } = await supabase
+      const { error: employeeError } = await supabase
         .from("employees")
         .update(updateData)
         .eq("employee_id", id)
@@ -424,18 +548,22 @@ export default function EditEmployeePage(): ReactElement {
 
       if (employeeError) {
         console.error("Error updating employee:", employeeError);
-        console.error("Error details:", employeeError.details);
-        console.error("Error hint:", employeeError.hint);
-        console.error("Error message:", employeeError.message);
-        alert("Failed to update employee.");
+        setValidationErrors([
+          {
+            field: "submit",
+            message:
+              employeeError instanceof Error
+                ? employeeError.message
+                : "Failed to update employee. Please try again.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
         return;
       }
 
-      console.log("Employee updated successfully:", updatedEmployee);
-
       // Verify address update by fetching the updated employee data
-      console.log("Verifying address update...");
-      const { data: verifyEmployee, error: verifyError } = await supabase
+      const { error: verifyError } = await supabase
         .from("employees")
         .select(
           `
@@ -456,54 +584,83 @@ export default function EditEmployeePage(): ReactElement {
 
       if (verifyError) {
         console.error("Error verifying employee update:", verifyError);
-      } else {
-        console.log("Verified employee data:", verifyEmployee);
-        console.log("Address ID after update:", verifyEmployee.address_id);
-        console.log("Address data after update:", verifyEmployee.addresses);
       }
 
-      // Update wage
+      // Wage update with history
       if (formData.wage) {
         try {
           const newWageValue = parseFloat(formData.wage);
-          const existingWage = await wagesApi.getCurrentWage(id as string);
+          const { data: wageRows, error: wageFetchError } = await supabase
+            .from("wage")
+            .select("*")
+            .eq("employee_id", id)
+            .order("start_date", { ascending: false });
 
-          // Only update or create if the wage has actually changed
-          if (!existingWage || existingWage.hourly_wage !== newWageValue) {
-            if (existingWage) {
-              // Update existing wage
-              console.log(
-                "Wage changed. Updating existing wage with ID:",
-                existingWage.id
-              );
-              await wagesApi.updateWage(existingWage.id, {
-                hourly_wage: newWageValue,
-              });
-            } else {
-              // Create new wage
-              console.log("No existing wage. Creating new wage.");
+          if (wageFetchError) {
+            setValidationErrors([
+              { field: "wage", message: wageFetchError.message, element: null },
+            ]);
+            setShowErrorModal(true);
+          } else {
+            const currentWage =
+              wageRows && wageRows.length > 0 ? wageRows[0] : null;
+            if (!currentWage || currentWage.hourly_wage !== newWageValue) {
+              if (currentWage) {
+                await supabase
+                  .from("wage")
+                  .update({ end_date: new Date().toISOString() })
+                  .eq("id", currentWage.id);
+              }
               const wageData = {
                 employee_id: id as string,
                 hourly_wage: newWageValue,
                 start_date: new Date().toISOString(),
                 end_date: null,
               };
-              await wagesApi.createWage(wageData);
+              await supabase.from("wage").insert(wageData);
             }
-          } else {
-            console.log("Wage is unchanged. Skipping wage update.");
           }
         } catch (wageError) {
-          console.error("Error updating wage:", wageError);
-          // Don't stop the process for wage errors
+          setValidationErrors([
+            {
+              field: "wage",
+              message:
+                wageError instanceof Error
+                  ? wageError.message
+                  : "Error updating wage.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
         }
       }
 
-      alert("Employee updated successfully!");
-      router.push("/employees");
+      // Show success modal instead of alert
+      setValidationErrors([
+        {
+          field: "success",
+          message: "Employee updated successfully!",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+      // Redirect after closing modal
+      setTimeout(() => {
+        router.push("/employees");
+      }, 1500);
     } catch (error) {
-      console.error("Error updating employee:", error);
-      alert("An error occurred while updating the employee.");
+      setValidationErrors([
+        {
+          field: "submit",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to update employee. Please try again.",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+      return;
     }
   };
 
@@ -516,16 +673,37 @@ export default function EditEmployeePage(): ReactElement {
         .eq("employee_id", id);
 
       if (employeeError) {
-        console.error("Error deleting employee:", employeeError);
-        alert("Failed to delete employee.");
+        setValidationErrors([
+          { field: "delete", message: employeeError.message, element: null },
+        ]);
+        setShowErrorModal(true);
         return;
       }
 
-      // Navigate back to employees list
-      router.push("/employees");
+      // Show success modal and redirect
+      setValidationErrors([
+        {
+          field: "success",
+          message: "Employee deleted successfully!",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+      setTimeout(() => {
+        router.push("/employees");
+      }, 1500);
     } catch (error) {
-      console.error("Error deleting employee:", error);
-      alert("Failed to delete employee. Please try again.");
+      setValidationErrors([
+        {
+          field: "delete",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to delete employee. Please try again.",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
     }
   };
 
@@ -554,55 +732,61 @@ export default function EditEmployeePage(): ReactElement {
           {/* Name */}
           <div>
             <label htmlFor="first_name" className="block font-medium">
-              First Name
+              First Name <span className="text-red-500">*</span>
             </label>
             <input
+              ref={firstNameRef}
               type="text"
               id="first_name"
               name="first_name"
               value={formData.first_name}
               onChange={handleChange}
               className="input-field"
-              required
             />
             <label htmlFor="last_name" className="block font-medium">
-              Last Name
+              Last Name <span className="text-red-500">*</span>
             </label>
             <input
+              ref={lastNameRef}
               type="text"
               id="last_name"
               name="last_name"
               value={formData.last_name}
               onChange={handleChange}
               className="input-field"
-              required
             />
           </div>
 
           {/* Address */}
           <div>
-            <label className="block font-medium">Address</label>
+            <label className="block font-medium">
+              Address <span className="text-red-500">*</span>
+            </label>
             <AddressForm
               ref={addressFormRef}
               value={formData.address}
               onChange={handleAddressChange}
-              required
               className="input-field"
+              onAddressError={handleAddressError}
             />
           </div>
 
           {/* Role */}
           <div>
             <label htmlFor="role" className="block font-medium">
-              Role
+              Role <span className="text-red-500">*</span>
+              {!isAdmin && (
+                <span className="text-yellow-600 ml-2">(Admin Only)</span>
+              )}
             </label>
             <select
+              ref={roleRef}
               id="role"
               name="role"
               value={formData.role}
               onChange={handleChange}
               className="input-field"
-              required
+              disabled={!isAdmin}
             >
               <option value="">Select Role</option>
               <option value="Driver">Driver</option>
@@ -614,48 +798,54 @@ export default function EditEmployeePage(): ReactElement {
           {/* Email */}
           <div>
             <label htmlFor="email" className="block font-medium">
-              Email
+              Email <span className="text-red-500">*</span>
             </label>
             <input
+              ref={emailRef}
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               className="input-field"
-              required
             />
           </div>
 
           {/* Phone */}
           <div>
             <label htmlFor="phone" className="block font-medium">
-              Phone
+              Phone <span className="text-red-500">*</span>
             </label>
             <input
+              ref={phoneRef}
               type="tel"
               id="phone"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
               className="input-field"
-              required
             />
           </div>
 
           {/* Wage */}
           <div>
             <label htmlFor="wage" className="block font-medium">
-              Wage
+              Wage <span className="text-red-500">*</span>
+              {!isAdmin && (
+                <span className="text-yellow-600 ml-2">(Admin Only)</span>
+              )}
             </label>
             <input
+              ref={wageRef}
               type="number"
               id="wage"
               name="wage"
               value={formData.wage}
               onChange={handleChange}
               className="input-field"
-              required
+              min="0"
+              step="0.01"
+              disabled={!isAdmin}
             />
           </div>
 
@@ -735,6 +925,25 @@ export default function EditEmployeePage(): ReactElement {
           </div>
         </form>
       </TutorialHighlight>
+
+      {/* Error/Success Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        errors={validationErrors}
+        type={
+          validationErrors.length === 1 &&
+          validationErrors[0].field === "success"
+            ? "success"
+            : "error"
+        }
+        title={
+          validationErrors.length === 1 &&
+          validationErrors[0].field === "success"
+            ? "Success!"
+            : undefined
+        }
+      />
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

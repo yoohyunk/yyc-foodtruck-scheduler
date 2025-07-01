@@ -1,7 +1,7 @@
 "use client";
 import "../../globals.css";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, ReactElement } from "react";
+import { useEffect, useState, ReactElement, useCallback } from "react";
 import { extractDate, extractTime } from "../utils";
 import {
   Event,
@@ -16,6 +16,15 @@ import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
 import { assignmentsApi } from "@/lib/supabase/assignments";
+import {
+  validateForm,
+  ValidationRule,
+  validateNumber,
+  createValidationRule,
+  sanitizeFormData,
+  ValidationError,
+} from "@/lib/formValidation";
+import ErrorModal from "../../components/ErrorModal";
 
 // Import components
 import EmployeeSelectionModal from "./components/EmployeeSelectionModal";
@@ -47,14 +56,9 @@ export default function EventDetailsPage(): ReactElement {
       employees: Employee;
     }>
   >([]);
-  const [isEmployeeModalOpen, setEmployeeModalOpen] = useState<boolean>(false);
-  const [isTruckAssignmentModalOpen, setTruckAssignmentModalOpen] =
-    useState<boolean>(false);
-  const [isEditModalOpen, setEditModalOpen] = useState<boolean>(false);
   const [isLoadingEmployees, setIsLoadingEmployees] = useState<boolean>(true);
   const [isLoadingTrucks, setIsLoadingTrucks] = useState<boolean>(true);
   const [isLoadingEvent, setIsLoadingEvent] = useState<boolean>(true);
-  const [isDeleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { shouldHighlight } = useTutorial();
 
@@ -88,6 +92,39 @@ export default function EventDetailsPage(): ReactElement {
 
   // Employee filter state - default to Server for server assignments
   const [employeeFilter, setEmployeeFilter] = useState<string>("Server");
+
+  // Modal state management - use useCallback to prevent unnecessary re-renders
+  const [isEmployeeModalOpen, setEmployeeModalOpen] = useState<boolean>(false);
+  const [isTruckAssignmentModalOpen, setTruckAssignmentModalOpen] =
+    useState<boolean>(false);
+  const [isEditModalOpen, setEditModalOpen] = useState<boolean>(false);
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
+
+  // Error modal state
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState<boolean>(false);
+  const [errorModalErrors, setErrorModalErrors] = useState<ValidationError[]>(
+    []
+  );
+  const [errorModalTitle, setErrorModalTitle] = useState<string>("");
+  const [errorModalType, setErrorModalType] = useState<"error" | "success">(
+    "error"
+  );
+
+  // Memoize modal open/close handlers to prevent re-renders
+  const openEmployeeModal = useCallback(() => setEmployeeModalOpen(true), []);
+  const closeEmployeeModal = useCallback(() => setEmployeeModalOpen(false), []);
+  const openTruckModal = useCallback(
+    () => setTruckAssignmentModalOpen(true),
+    []
+  );
+  const closeTruckModal = useCallback(
+    () => setTruckAssignmentModalOpen(false),
+    []
+  );
+  const openEditModal = useCallback(() => setEditModalOpen(true), []);
+  const closeEditModal = useCallback(() => setEditModalOpen(false), []);
+  const openDeleteModal = useCallback(() => setDeleteModalOpen(true), []);
+  const closeDeleteModal = useCallback(() => setDeleteModalOpen(false), []);
 
   // Fetch event details from Supabase
   useEffect(() => {
@@ -131,6 +168,19 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchData();
+
+    // Add focus event listener to refresh data when user navigates back
+    const handleFocus = () => {
+      console.log("Event details page: Refreshing data on focus");
+      fetchData();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   // Fetch truck assignments when event is loaded
@@ -198,66 +248,97 @@ export default function EventDetailsPage(): ReactElement {
     }
   }, [serverAssignments, employees, assignedEmployees]);
 
-  const handleEmployeeSelection = async (employee: Employee) => {
-    if (!event?.id) return;
+  // New handler for saving employee assignments from modal
+  const handleSaveEmployeeAssignments = async (
+    selectedEmployeeIds: string[]
+  ) => {
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
-      const isCurrentlyAssigned = assignedEmployees.some(
-        (e) => e.employee_id === employee.employee_id
+      // Get current assignments
+      const currentAssignmentIds = new Set(
+        serverAssignments.map((assignment) => assignment.employee_id)
+      );
+      const newAssignmentIds = new Set(selectedEmployeeIds);
+
+      // Find employees to remove (in current but not in new)
+      const employeesToRemove = Array.from(currentAssignmentIds).filter(
+        (id) => !newAssignmentIds.has(id)
       );
 
-      if (isCurrentlyAssigned) {
-        // Remove assignment
-        const assignmentToRemove = serverAssignments.find(
-          (assignment) => assignment.employee_id === employee.employee_id
-        );
+      // Find employees to add (in new but not in current)
+      const employeesToAdd = Array.from(newAssignmentIds).filter(
+        (id) => !currentAssignmentIds.has(id)
+      );
 
+      // Remove assignments
+      for (const employeeId of employeesToRemove) {
+        const assignmentToRemove = serverAssignments.find(
+          (assignment) => assignment.employee_id === employeeId
+        );
         if (assignmentToRemove) {
           await assignmentsApi.removeServerAssignment(
             assignmentToRemove.id,
             event.id
           );
-
-          // Update local state
-          setServerAssignments(
-            serverAssignments.filter(
-              (assignment) => assignment.employee_id !== employee.employee_id
-            )
-          );
         }
-      } else {
-        // Check if we can add more employees
-        if (assignedEmployees.length >= (event.number_of_servers_needed || 0)) {
-          alert(
-            `Maximum number of servers (${event.number_of_servers_needed}) already assigned.`
-          );
-          return;
-        }
+      }
 
-        // Add assignment
+      // Add assignments
+      for (const employeeId of employeesToAdd) {
         await assignmentsApi.addServerAssignment(
           event.id,
-          employee.employee_id,
+          employeeId,
           event.start_date || new Date().toISOString(),
           event.end_date || new Date().toISOString()
         );
-
-        // Refresh server assignments
-        const updatedAssignments =
-          await assignmentsApi.getServerAssignmentsByEventId(event.id);
-        setServerAssignments(updatedAssignments);
       }
+
+      // Refresh server assignments
+      const updatedAssignments =
+        await assignmentsApi.getServerAssignmentsByEventId(event.id);
+      setServerAssignments(updatedAssignments);
+
+      showSuccess("Success", "Employee assignments updated successfully.");
     } catch (error) {
-      console.error("Error handling employee selection:", error);
-      alert("Failed to update employee assignment. Please try again.");
+      console.error("Error saving employee assignments:", error);
+      showError(
+        "Assignment Error",
+        "Failed to save employee assignments. Please try again."
+      );
     }
+  };
+
+  // Error handling helper
+  const showError = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("error");
+    setIsErrorModalOpen(true);
+  };
+
+  const showSuccess = (title: string, message: string) => {
+    setErrorModalTitle(title);
+    setErrorModalErrors([{ field: "general", message }]);
+    setErrorModalType("success");
+    setIsErrorModalOpen(true);
+  };
+
+  const closeErrorModal = () => {
+    setIsErrorModalOpen(false);
   };
 
   const handleTruckAssignment = async (
     truckId: string,
     driverId: string | null
   ) => {
-    if (!event?.id) return;
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
       const existingAssignment = truckAssignments.find(
@@ -266,7 +347,7 @@ export default function EventDetailsPage(): ReactElement {
 
       if (existingAssignment) {
         if (driverId === null) {
-          // Remove assignment
+          // Remove assignment if no driver is assigned
           await truckAssignmentsApi.deleteTruckAssignment(
             existingAssignment.id
           );
@@ -275,8 +356,9 @@ export default function EventDetailsPage(): ReactElement {
               (assignment) => assignment.truck_id !== truckId
             )
           );
+          showSuccess("Success", "Truck assignment removed successfully.");
         } else {
-          // Update existing assignment
+          // Update existing assignment with new driver
           const updatedAssignment =
             await truckAssignmentsApi.updateTruckAssignment(
               existingAssignment.id,
@@ -287,21 +369,32 @@ export default function EventDetailsPage(): ReactElement {
               assignment.truck_id === truckId ? updatedAssignment : assignment
             )
           );
+          showSuccess("Success", "Truck assignment updated successfully.");
         }
-      } else if (driverId !== null) {
-        // Create new assignment
-        const newAssignment = await truckAssignmentsApi.createTruckAssignment({
-          truck_id: truckId,
-          driver_id: driverId,
-          event_id: event.id,
-          start_time: event.start_date || new Date().toISOString(),
-          end_time: event.end_date || new Date().toISOString(),
-        });
-        setTruckAssignments([...truckAssignments, newAssignment]);
+      } else {
+        // Create new assignment for the truck (with or without driver)
+        // Only create if driverId is not null (truck is selected)
+        if (driverId !== null) {
+          const newAssignment = await truckAssignmentsApi.createTruckAssignment(
+            {
+              truck_id: truckId,
+              driver_id: driverId,
+              event_id: event.id,
+              start_time: event.start_date || new Date().toISOString(),
+              end_time: event.end_date || new Date().toISOString(),
+            }
+          );
+          setTruckAssignments([...truckAssignments, newAssignment]);
+          showSuccess("Success", "Truck assigned successfully.");
+        }
+        // If driverId is null and no existing assignment, do nothing (truck is not selected)
       }
     } catch (err) {
       console.error("Error handling truck assignment:", err);
-      alert("Failed to update truck assignment. Please try again.");
+      showError(
+        "Assignment Error",
+        "Failed to update truck assignment. Please try again."
+      );
     }
   };
 
@@ -323,7 +416,10 @@ export default function EventDetailsPage(): ReactElement {
   };
 
   const handleDeleteEvent = async () => {
-    if (!event?.id) return;
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
       // Delete truck assignments first
@@ -332,39 +428,58 @@ export default function EventDetailsPage(): ReactElement {
       // Delete the event
       await eventsApi.deleteEvent(event.id);
 
+      showSuccess("Success", "Event deleted successfully.");
+
       // Navigate back to events page
       router.push("/events");
     } catch (err) {
       console.error("Error deleting event:", err);
-      alert("Failed to delete event. Please try again.");
+      showError("Delete Error", "Failed to delete event. Please try again.");
     }
   };
 
   const handleUpdatePaymentStatus = async () => {
-    if (!event?.id) return;
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
       const updatedEvent = await eventsApi.updateEvent(event.id, {
         is_prepaid: !event.is_prepaid,
       });
       setEvent(updatedEvent);
+      showSuccess(
+        "Success",
+        `Payment status updated to ${updatedEvent.is_prepaid ? "Prepaid" : "Pending"}.`
+      );
     } catch (err) {
       console.error("Error updating payment status:", err);
-      alert("Failed to update payment status. Please try again.");
+      showError(
+        "Update Error",
+        "Failed to update payment status. Please try again."
+      );
     }
   };
 
   const handleUpdateStatus = async (newStatus: string) => {
-    if (!event?.id) return;
+    if (!event?.id) {
+      showError("Error", "Event not found. Please refresh the page.");
+      return;
+    }
 
     try {
       const updatedEvent = await eventsApi.updateEvent(event.id, {
         status: newStatus,
       });
       setEvent(updatedEvent);
+      showSuccess("Success", `Event status updated to ${newStatus}.`);
     } catch (err) {
       console.error("Error updating event status:", err);
-      alert("Failed to update event status. Please try again.");
+      showError(
+        "Update Error",
+        "Failed to update event status. Please try again."
+      );
     }
   };
 
@@ -400,7 +515,7 @@ export default function EventDetailsPage(): ReactElement {
     setSelectedDate(startDate);
     setSelectedTime(startDate);
     setSelectedEndTime(endDate);
-    setEditModalOpen(true);
+    openEditModal();
   };
 
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -444,32 +559,135 @@ export default function EventDetailsPage(): ReactElement {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return; // Prevent multiple submissions
-    setIsSubmitting(true);
+
+    setError(null);
 
     if (!event?.id) {
-      console.error("Event ID is missing");
+      showError("Error", "Event not found. Please refresh the page.");
       setIsSubmitting(false);
       return;
     }
 
+    // Sanitize form data
+    const sanitizedData = sanitizeFormData(editFormData);
+
+    // Validate form data
+    const validationRules: ValidationRule[] = [
+      createValidationRule("name", true, undefined, "Event name is required."),
+      createValidationRule(
+        "date",
+        true,
+        (value: unknown) => typeof value === "string" && value.trim() !== "",
+        "Please select a valid date."
+      ),
+      createValidationRule(
+        "time",
+        true,
+        (value: unknown) => typeof value === "string" && value.trim() !== "",
+        "Please select a valid start time."
+      ),
+      createValidationRule(
+        "endTime",
+        true,
+        (value: unknown) => typeof value === "string" && value.trim() !== "",
+        "Please select a valid end time."
+      ),
+      createValidationRule(
+        "location",
+        true,
+        undefined,
+        "Location is required."
+      ),
+      createValidationRule(
+        "requiredServers",
+        true,
+        (value: unknown) =>
+          (typeof value === "string" || typeof value === "number") &&
+          validateNumber(value, 0),
+        "Required servers must be a positive number."
+      ),
+    ];
+
+    const validationErrors = validateForm(
+      sanitizedData as Record<string, unknown>,
+      validationRules
+    );
+
+    // Validate time range
+    if (selectedTime && selectedEndTime && selectedTime >= selectedEndTime) {
+      validationErrors.push({
+        field: "endTime",
+        message: "End time must be after start time.",
+        element: null,
+      });
+    }
+
+    if (validationErrors.length > 0) {
+      setErrorModalErrors(validationErrors);
+      setErrorModalTitle("Validation Errors");
+      setErrorModalType("error");
+      setIsErrorModalOpen(true);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
+      // Combine date and time to create proper datetime strings
+      const startDateTime =
+        selectedDate && selectedTime
+          ? new Date(
+              selectedDate.getFullYear(),
+              selectedDate.getMonth(),
+              selectedDate.getDate(),
+              selectedTime.getHours(),
+              selectedTime.getMinutes()
+            ).toISOString()
+          : null;
+
+      const endDateTime =
+        selectedDate && selectedEndTime
+          ? new Date(
+              selectedDate.getFullYear(),
+              selectedDate.getMonth(),
+              selectedDate.getDate(),
+              selectedEndTime.getHours(),
+              selectedEndTime.getMinutes()
+            ).toISOString()
+          : null;
+
+      // Capitalize the event title
+      const capitalizeTitle = (title: string) => {
+        return title
+          .toLowerCase()
+          .split(" ")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
+      };
+
+      // Update the event
       const updatedEvent = await eventsApi.updateEvent(event.id, {
-        title: editFormData.name,
-        start_date: `${editFormData.date}T${editFormData.time}`,
-        end_date: `${editFormData.date}T${editFormData.endTime}`,
-        description: editFormData.location,
-        number_of_servers_needed: parseInt(editFormData.requiredServers, 10),
-        contact_name: editFormData.contactName,
-        contact_email: editFormData.contactEmail,
-        contact_phone: editFormData.contactPhone,
-        is_prepaid: editFormData.isPrepaid,
+        title: capitalizeTitle(sanitizedData.name),
+        description: sanitizedData.location,
+        start_date: startDateTime || undefined,
+        end_date: endDateTime || undefined,
+        number_of_servers_needed: parseInt(
+          sanitizedData.requiredServers as string
+        ),
+        contact_name: sanitizedData.contactName,
+        contact_email: sanitizedData.contactEmail,
+        contact_phone: sanitizedData.contactPhone,
+        is_prepaid: sanitizedData.isPrepaid,
       });
 
+      // Update local state
       setEvent(updatedEvent);
-      setEditModalOpen(false);
+      closeEditModal();
+      showSuccess("Success", "Event updated successfully.");
     } catch (err) {
       console.error("Error updating event:", err);
-      alert("Failed to update event. Please try again.");
+      showError("Update Error", "Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -506,283 +724,308 @@ export default function EventDetailsPage(): ReactElement {
   }
 
   return (
-    <div className="flex flex-col gap-6 items-center w-full">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-        <div className="md:col-span-2">
-          <div className="event-detail-card">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">{event.title}</h1>
-              <div className="flex gap-4">
-                <button
-                  onClick={handleEditEvent}
-                  className="edit-button"
-                  title="Edit Event"
-                >
-                  ✏️
-                </button>
-                <button
-                  onClick={() => setDeleteModalOpen(true)}
-                  className="delete-button"
-                  title="Delete Event"
-                >
-                  🗑️
-                </button>
+    <TutorialHighlight
+      isHighlighted={shouldHighlight(".event-details-page")}
+      className="event-details-page"
+    >
+      <div className="flex flex-col gap-6 items-center w-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+          <div className="md:col-span-2">
+            <TutorialHighlight
+              isHighlighted={shouldHighlight(".event-detail-card")}
+              className="event-detail-card"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold">{event.title}</h1>
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleEditEvent}
+                    className="edit-button"
+                    title="Edit Event"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={openDeleteModal}
+                    className="delete-button"
+                    title="Delete Event"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="event-detail-info-container">
-              <p className="event-detail-info">
-                <strong className="info-label">Date:</strong>
-                <span className="info-text">
-                  {extractDate(event.start_date, event.end_date)}
-                </span>
-              </p>
-              <p className="event-detail-info">
-                <strong className="info-label">Time:</strong>
-                <span className="info-text">
-                  {event.start_date && event.end_date
-                    ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
-                    : "Time not set"}
-                </span>
-              </p>
-              <p className="event-detail-info">
-                <strong className="info-label">Location:</strong>
-                <span className="info-text">
-                  {event.description || "Location not set"}
-                </span>
-              </p>
-              <p className="event-detail-info">
-                <strong className="info-label">Required Servers:</strong>
-                <span className="info-text">
-                  {event.number_of_servers_needed || 0}
-                </span>
-              </p>
-              <p className="event-detail-info">
-                <strong className="info-label">Required Drivers:</strong>
-                <span className="info-text">
-                  {event.number_of_driver_needed || 0}
-                </span>
-              </p>
-              {event.contact_name && (
+              <div className="event-detail-info-container">
                 <p className="event-detail-info">
-                  <strong className="info-label">Contact Name:</strong>
-                  <span className="info-text">{event.contact_name}</span>
+                  <strong className="info-label">Date:</strong>
+                  <span className="info-text">
+                    {extractDate(event.start_date, event.end_date)}
+                  </span>
                 </p>
-              )}
-              {event.contact_email && (
                 <p className="event-detail-info">
-                  <strong className="info-label">Contact Email:</strong>
-                  <span className="info-text">{event.contact_email}</span>
+                  <strong className="info-label">Time:</strong>
+                  <span className="info-text">
+                    {event.start_date && event.end_date
+                      ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
+                      : "Time not set"}
+                  </span>
                 </p>
-              )}
-              {event.contact_phone && (
                 <p className="event-detail-info">
-                  <strong className="info-label">Contact Phone:</strong>
-                  <span className="info-text">{event.contact_phone}</span>
+                  <strong className="info-label">Location:</strong>
+                  <span className="info-text">
+                    {event.description || "Location not set"}
+                  </span>
                 </p>
-              )}
-              <p className="event-detail-info">
-                <strong className="info-label">Payment Status:</strong>
-                <span
-                  className={`px-2 py-1 rounded text-sm ${event.is_prepaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
-                >
-                  {event.is_prepaid ? "Prepaid" : "Pending Payment"}
-                </span>
-              </p>
-              <p className="event-detail-info">
-                <strong className="info-label">Event Status:</strong>
-                <span
-                  className={`px-2 py-1 rounded text-sm ${
-                    event.status === "Pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : event.status === "Cancelled"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-green-100 text-green-800"
-                  }`}
-                >
-                  {event.status || "Pending"}
-                </span>
-              </p>
-            </div>
+                <p className="event-detail-info">
+                  <strong className="info-label">Required Servers:</strong>
+                  <span className="info-text">
+                    {event.number_of_servers_needed || 0}
+                  </span>
+                </p>
+                <p className="event-detail-info">
+                  <strong className="info-label">Required Drivers:</strong>
+                  <span className="info-text">
+                    {event.number_of_driver_needed || 0}
+                  </span>
+                </p>
+                {event.contact_name && (
+                  <p className="event-detail-info">
+                    <strong className="info-label">Contact Name:</strong>
+                    <span className="info-text">{event.contact_name}</span>
+                  </p>
+                )}
+                {event.contact_email && (
+                  <p className="event-detail-info">
+                    <strong className="info-label">Contact Email:</strong>
+                    <span className="info-text">{event.contact_email}</span>
+                  </p>
+                )}
+                {event.contact_phone && (
+                  <p className="event-detail-info">
+                    <strong className="info-label">Contact Phone:</strong>
+                    <span className="info-text">{event.contact_phone}</span>
+                  </p>
+                )}
+                <p className="event-detail-info">
+                  <strong className="info-label">Payment Status:</strong>
+                  <span
+                    className={`px-2 py-1 rounded text-sm ${event.is_prepaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
+                  >
+                    {event.is_prepaid ? "Prepaid" : "Pending Payment"}
+                  </span>
+                </p>
+                <p className="event-detail-info">
+                  <strong className="info-label">Event Status:</strong>
+                  <span
+                    className={`px-2 py-1 rounded text-sm ${
+                      event.status === "Pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : event.status === "Cancelled"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {event.status || "Pending"}
+                  </span>
+                </p>
+              </div>
+            </TutorialHighlight>
           </div>
         </div>
-      </div>
 
-      {/* Assign Staff and Trucks Buttons */}
-      <div className="mt-6 flex gap-4">
-        <TutorialHighlight
-          isHighlighted={shouldHighlight(".select-employees-button")}
-        >
-          <button
-            className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
-            onClick={() => setEmployeeModalOpen(true)}
+        {/* Assign Staff and Trucks Buttons */}
+        <div className="mt-6 flex gap-4">
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".select-employees-button")}
           >
-            Select Employees
-          </button>
-        </TutorialHighlight>
-        <TutorialHighlight
-          isHighlighted={shouldHighlight(".select-trucks-button")}
-        >
-          <button
-            className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
-            onClick={() => setTruckAssignmentModalOpen(true)}
-          >
-            Assign Trucks & Drivers
-          </button>
-        </TutorialHighlight>
-        <TutorialHighlight
-          isHighlighted={shouldHighlight(".update-payment-button")}
-        >
-          <button
-            className="button bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 update-payment-button"
-            onClick={() => handleUpdatePaymentStatus()}
-          >
-            {event.is_prepaid ? "Mark as Pending Payment" : "Mark as Prepaid"}
-          </button>
-        </TutorialHighlight>
-        <TutorialHighlight
-          isHighlighted={shouldHighlight(".update-status-buttons")}
-        >
-          <div className="flex gap-2 update-status-buttons">
-            <select
-              value={event.status || "Pending"}
-              onChange={(e) => handleUpdateStatus(e.target.value)}
-              className="button bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 border-none"
+            <button
+              className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
+              onClick={openEmployeeModal}
             >
-              <option value="Pending">Pending</option>
-              <option value="Scheduled">Scheduled</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-        </TutorialHighlight>
-      </div>
-
-      {/* Employee Selection Modal */}
-      {isEmployeeModalOpen && (
-        <EmployeeSelectionModal
-          isOpen={isEmployeeModalOpen}
-          onClose={() => setEmployeeModalOpen(false)}
-          employees={employees}
-          assignedEmployees={assignedEmployees}
-          onEmployeeSelection={handleEmployeeSelection}
-          employeeFilter={employeeFilter}
-          onFilterChange={(filter) => setEmployeeFilter(filter)}
-          isLoadingEmployees={isLoadingEmployees}
-          event={{
-            id: event.id,
-            addresses: event.addresses,
-            number_of_servers_needed: event.number_of_servers_needed || 0,
-            start_date: event.start_date,
-            end_date: event.end_date,
-          }}
-          shouldHighlight={shouldHighlight}
-        />
-      )}
-
-      {/* Truck Assignment Modal */}
-      {isTruckAssignmentModalOpen && (
-        <TruckAssignmentModal
-          isOpen={isTruckAssignmentModalOpen}
-          onClose={() => setTruckAssignmentModalOpen(false)}
-          trucks={trucks}
-          onTruckAssignment={(truckId, driverId) =>
-            handleTruckAssignment(truckId, driverId)
-          }
-          getAssignedDriverForTruck={getAssignedDriverForTruck}
-          getAvailableDrivers={getAvailableDrivers}
-          isLoadingTrucks={isLoadingTrucks}
-          shouldHighlight={shouldHighlight}
-        />
-      )}
-
-      {/* Assignments Grid - Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-        {/* Server Assignments Section */}
-        <TutorialHighlight
-          isHighlighted={shouldHighlight(".server-assignments-section")}
-        >
-          <div className="server-assignments-section">
-            <ServerAssignmentsSection serverAssignments={serverAssignments} />
-          </div>
-        </TutorialHighlight>
-
-        {/* Truck Assignments Section */}
-        <TutorialHighlight
-          isHighlighted={shouldHighlight(".truck-assignments-section")}
-        >
-          <div className="truck-assignments-section">
-            {truckAssignments.length > 0 ? (
-              <TruckAssignmentsSection
-                trucks={trucks}
-                truckAssignments={truckAssignments}
-                employees={employees}
-                shouldHighlight={shouldHighlight}
-              />
-            ) : (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                  Truck Assignments
-                </h3>
-                <p className="text-gray-500">
-                  No trucks assigned to this event yet.
-                </p>
-              </div>
-            )}
-          </div>
-        </TutorialHighlight>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="mt-6 flex gap-4">
-        <TutorialHighlight
-          isHighlighted={shouldHighlight(".edit-event-button")}
-        >
-          <button
-            className="button bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 edit-event-button"
-            onClick={handleEditEvent}
+              Select Employees
+            </button>
+          </TutorialHighlight>
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".select-trucks-button")}
           >
-            Edit Event
-          </button>
-        </TutorialHighlight>
-        <TutorialHighlight
-          isHighlighted={shouldHighlight(".delete-event-button")}
-        >
-          <button
-            className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
-            onClick={() => setDeleteModalOpen(true)}
+            <button
+              className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
+              onClick={openTruckModal}
+            >
+              Assign Trucks & Drivers
+            </button>
+          </TutorialHighlight>
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".update-payment-button")}
           >
-            Delete Event
-          </button>
-        </TutorialHighlight>
+            <button
+              className="button bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 update-payment-button"
+              onClick={() => handleUpdatePaymentStatus()}
+            >
+              {event.is_prepaid ? "Mark as Pending Payment" : "Mark as Prepaid"}
+            </button>
+          </TutorialHighlight>
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".update-status-buttons")}
+          >
+            <div className="flex gap-2 update-status-buttons">
+              <select
+                value={event.status || "Pending"}
+                onChange={(e) => handleUpdateStatus(e.target.value)}
+                className="button bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 border-none"
+              >
+                <option value="Pending">Pending</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+          </TutorialHighlight>
+        </div>
+
+        {/* Employee Selection Modal */}
+        {isEmployeeModalOpen && (
+          <EmployeeSelectionModal
+            key="employee-selection-modal"
+            isOpen={isEmployeeModalOpen}
+            onClose={closeEmployeeModal}
+            employees={employees}
+            assignedEmployees={assignedEmployees}
+            onSaveAssignments={handleSaveEmployeeAssignments}
+            employeeFilter={employeeFilter}
+            onFilterChange={(filter) => setEmployeeFilter(filter)}
+            isLoadingEmployees={isLoadingEmployees}
+            event={{
+              id: event.id,
+              addresses: event.addresses,
+              number_of_servers_needed: event.number_of_servers_needed || 0,
+              start_date: event.start_date,
+              end_date: event.end_date,
+            }}
+            shouldHighlight={shouldHighlight}
+          />
+        )}
+
+        {/* Truck Assignment Modal */}
+        {isTruckAssignmentModalOpen && (
+          <TruckAssignmentModal
+            key="truck-assignment-modal"
+            isOpen={isTruckAssignmentModalOpen}
+            onClose={closeTruckModal}
+            trucks={trucks}
+            onTruckAssignment={(truckId, driverId) =>
+              handleTruckAssignment(truckId, driverId)
+            }
+            getAssignedDriverForTruck={getAssignedDriverForTruck}
+            getAvailableDrivers={getAvailableDrivers}
+            isLoadingTrucks={isLoadingTrucks}
+            shouldHighlight={shouldHighlight}
+            eventStartTime={event?.start_date}
+            eventEndTime={event?.end_date}
+          />
+        )}
+
+        {/* Assignments Grid - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+          {/* Server Assignments Section */}
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".assigned-employees-section")}
+            className="assigned-employees-section"
+          >
+            <div className="server-assignments-section">
+              <ServerAssignmentsSection serverAssignments={serverAssignments} />
+            </div>
+          </TutorialHighlight>
+
+          {/* Truck Assignments Section */}
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".assigned-trucks-section")}
+            className="assigned-trucks-section"
+          >
+            <div className="truck-assignments-section">
+              {truckAssignments.length > 0 ? (
+                <TruckAssignmentsSection
+                  trucks={trucks}
+                  truckAssignments={truckAssignments}
+                  employees={employees}
+                  shouldHighlight={shouldHighlight}
+                />
+              ) : (
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                    Truck Assignments
+                  </h3>
+                  <p className="text-gray-500">
+                    No trucks assigned to this event yet.
+                  </p>
+                </div>
+              )}
+            </div>
+          </TutorialHighlight>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-6 flex gap-4">
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".edit-event-button")}
+          >
+            <button
+              className="button bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 edit-event-button"
+              onClick={handleEditEvent}
+            >
+              Edit Event
+            </button>
+          </TutorialHighlight>
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".delete-event-button")}
+          >
+            <button
+              className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
+              onClick={openDeleteModal}
+            >
+              Delete Event
+            </button>
+          </TutorialHighlight>
+        </div>
+
+        {/* Edit Event Modal */}
+        {isEditModalOpen && (
+          <EditEventModal
+            key="edit-event-modal"
+            isOpen={isEditModalOpen}
+            onClose={closeEditModal}
+            onSubmit={handleEditSubmit}
+            formData={editFormData}
+            onFormChange={handleEditFormChange}
+            onDateChange={handleEditDateChange}
+            onTimeChange={handleEditTimeChange}
+            onEndTimeChange={handleEditEndTimeChange}
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            selectedEndTime={selectedEndTime}
+            isSubmitting={isSubmitting}
+            setEditFormData={setEditFormData}
+          />
+        )}
+
+        {/* Delete Event Confirmation Modal */}
+        {isDeleteModalOpen && (
+          <DeleteEventModal
+            key="delete-event-modal"
+            isOpen={isDeleteModalOpen}
+            onClose={closeDeleteModal}
+            onDelete={handleDeleteEvent}
+            shouldHighlight={shouldHighlight}
+          />
+        )}
+
+        {/* Error Modal */}
+        <ErrorModal
+          isOpen={isErrorModalOpen}
+          onClose={closeErrorModal}
+          errors={errorModalErrors}
+          title={errorModalTitle}
+          type={errorModalType}
+        />
       </div>
-
-      {/* Edit Event Modal */}
-      {isEditModalOpen && (
-        <EditEventModal
-          isOpen={isEditModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          onSubmit={handleEditSubmit}
-          formData={editFormData}
-          onFormChange={handleEditFormChange}
-          onDateChange={handleEditDateChange}
-          onTimeChange={handleEditTimeChange}
-          onEndTimeChange={handleEditEndTimeChange}
-          selectedDate={selectedDate}
-          selectedTime={selectedTime}
-          selectedEndTime={selectedEndTime}
-          isSubmitting={isSubmitting}
-          setEditFormData={setEditFormData}
-        />
-      )}
-
-      {/* Delete Event Confirmation Modal */}
-      {isDeleteModalOpen && (
-        <DeleteEventModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setDeleteModalOpen(false)}
-          onDelete={handleDeleteEvent}
-          shouldHighlight={shouldHighlight}
-        />
-      )}
-    </div>
+    </TutorialHighlight>
   );
 }
