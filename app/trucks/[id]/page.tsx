@@ -27,6 +27,7 @@ interface TruckFormData {
   capacity: string;
   isAvailable: boolean;
   packingList: string[];
+  address_id?: string | null;
   [key: string]: unknown;
 }
 
@@ -79,6 +80,7 @@ export default function EditTruckPage(): ReactElement {
     capacity: "",
     isAvailable: false,
     packingList: [],
+    address_id: null,
   });
 
   // Fetch truck details
@@ -133,6 +135,7 @@ export default function EditTruckPage(): ReactElement {
           capacity: truckData.capacity ? String(truckData.capacity) : "",
           isAvailable: truckData.is_available || false,
           packingList: (truckData.packing_list as string[]) || [],
+          address_id: truckData.address_id || null,
         });
 
         setIsLoading(false);
@@ -217,6 +220,20 @@ export default function EditTruckPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
+      // Defensive: Ensure id is a string
+      if (!id || typeof id !== "string") {
+        setValidationErrors([
+          {
+            field: "id",
+            message: "Invalid truck ID. Cannot update.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       // Prepare update payload to match DB structure
       const updateData = {
         name: formData.name,
@@ -225,18 +242,34 @@ export default function EditTruckPage(): ReactElement {
         is_available: formData.isAvailable,
         packing_list:
           formData.packingList.length > 0 ? formData.packingList : null,
+        address_id: formData.address_id === undefined ? null : formData.address_id,
       };
 
       // Debug log
       console.log("Updating truck with id:", id, "payload:", updateData);
 
-      const updatedTruck = await trucksApi.updateTruck(
-        id as string,
-        updateData
-      );
+      const { data, error } = await supabase
+        .from("trucks")
+        .update(updateData)
+        .eq("id", id)
+        .select(); // Remove .single() for robustness
 
-      if (!updatedTruck) {
-        throw new Error("Failed to update truck");
+      if (error) {
+        throw error;
+      }
+      if (!data || data.length === 0) {
+        // Log the detailed error for debugging
+        console.error("No truck was updated. This may be due to an invalid ID or insufficient permissions (RLS). Please check your access rights and try again.");
+        setValidationErrors([
+          {
+            field: "submit",
+            message: "Error updating truck.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
+        setIsSubmitting(false);
+        return;
       }
 
       setValidationErrors([
