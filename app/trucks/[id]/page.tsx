@@ -49,7 +49,12 @@ export default function EditTruckPage(): ReactElement {
 
   // Add missing arrays
   const truckTypes = ["Food Truck", "Beverage Truck", "Dessert Truck"];
-  const capacityOptions = ["Small", "Medium", "Large"];
+  const capacityOptions = [
+    "Small (1-50 people)",
+    "Medium (51-100 people)",
+    "Large (101-200 people)",
+    "Extra Large (200+ people)",
+  ];
   const packingListOptions = [
     "Grill",
     "Fryer",
