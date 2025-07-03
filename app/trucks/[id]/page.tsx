@@ -276,11 +276,15 @@ export default function EditTruckPage(): ReactElement {
 
       if (!updatedTruck) {
         // Defensive: should not happen, but just in case
-        console.error("trucksApi.updateTruck returned no truck.", { id, updateData });
+        console.error("trucksApi.updateTruck returned no truck.", {
+          id,
+          updateData,
+        });
         setValidationErrors([
           {
             field: "submit",
-            message: "Update failed. Please contact an administrator if this persists.",
+            message:
+              "Update failed. Please contact an administrator if this persists.",
             element: null,
           },
         ]);
