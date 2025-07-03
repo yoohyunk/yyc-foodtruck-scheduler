@@ -27,6 +27,7 @@ interface TruckFormData {
   capacity: string;
   isAvailable: boolean;
   packingList: string[];
+  address_id?: string | null;
   [key: string]: unknown;
 }
 
@@ -49,7 +50,12 @@ export default function EditTruckPage(): ReactElement {
 
   // Add missing arrays
   const truckTypes = ["Food Truck", "Beverage Truck", "Dessert Truck"];
-  const capacityOptions = ["Small", "Medium", "Large"];
+  const capacityOptions = [
+    "Small (1-50 people)",
+    "Medium (51-100 people)",
+    "Large (101-200 people)",
+    "Extra Large (200+ people)",
+  ];
   const packingListOptions = [
     "Grill",
     "Fryer",
@@ -74,6 +80,7 @@ export default function EditTruckPage(): ReactElement {
     capacity: "",
     isAvailable: false,
     packingList: [],
+    address_id: null,
   });
 
   // Fetch truck details
@@ -128,6 +135,7 @@ export default function EditTruckPage(): ReactElement {
           capacity: truckData.capacity ? String(truckData.capacity) : "",
           isAvailable: truckData.is_available || false,
           packingList: (truckData.packing_list as string[]) || [],
+          address_id: truckData.address_id || null,
         });
 
         setIsLoading(false);
@@ -211,7 +219,22 @@ export default function EditTruckPage(): ReactElement {
 
     setIsSubmitting(true);
 
+    let updatedTruck = null;
     try {
+      // Defensive: Ensure id is a string
+      if (!id || typeof id !== "string") {
+        setValidationErrors([
+          {
+            field: "id",
+            message: "Invalid truck ID. Cannot update.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       // Prepare update payload to match DB structure
       const updateData = {
         name: formData.name,
@@ -220,18 +243,50 @@ export default function EditTruckPage(): ReactElement {
         is_available: formData.isAvailable,
         packing_list:
           formData.packingList.length > 0 ? formData.packingList : null,
+        address_id:
+          formData.address_id === undefined ? null : formData.address_id,
       };
 
       // Debug log
-      console.log("Updating truck with id:", id, "payload:", updateData);
-
-      const updatedTruck = await trucksApi.updateTruck(
-        id as string,
+      console.log(
+        "Updating truck with id (via trucksApi):",
+        id,
+        "payload:",
         updateData
       );
 
+      // Use trucksApi for update, handle errors robustly
+      try {
+        updatedTruck = await trucksApi.updateTruck(id, updateData);
+      } catch (error) {
+        // Log technical error details for debugging
+        console.error("Error updating truck (via trucksApi):", error);
+        setValidationErrors([
+          {
+            field: "submit",
+            message:
+              "Update failed. Please contact an administrator if this persists.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       if (!updatedTruck) {
-        throw new Error("Failed to update truck");
+        // Defensive: should not happen, but just in case
+        console.error("trucksApi.updateTruck returned no truck.", { id, updateData });
+        setValidationErrors([
+          {
+            field: "submit",
+            message: "Update failed. Please contact an administrator if this persists.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
+        setIsSubmitting(false);
+        return;
       }
 
       setValidationErrors([
@@ -245,19 +300,6 @@ export default function EditTruckPage(): ReactElement {
       setTimeout(() => {
         router.push("/trucks");
       }, 1500);
-    } catch (error) {
-      console.error("Error updating truck:", error);
-      setValidationErrors([
-        {
-          field: "submit",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to update truck. Please try again.",
-          element: null,
-        },
-      ]);
-      setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
