@@ -198,7 +198,15 @@ export default function InviteEmployee(): ReactElement {
       <div className="create-employee-page">
         {isAdmin && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-300 rounded text-blue-900">
-            <strong>Did you know?</strong> You can now <a href="/schedule/edit-shifts" className="underline text-blue-700 hover:text-blue-900">edit shifts by date</a> for hours reports and accounting purposes. Use the Edit Shifts by Date page to quickly review and adjust employee shifts for any day.
+            <strong>Did you know?</strong> You can now{" "}
+            <a
+              href="/schedule/edit-shifts"
+              className="underline text-blue-700 hover:text-blue-900"
+            >
+              edit shifts by date
+            </a>{" "}
+            for hours reports and accounting purposes. Use the Edit Shifts by
+            Date page to quickly review and adjust employee shifts for any day.
           </div>
         )}
         <h1 className="form-header">Invite Employee</h1>

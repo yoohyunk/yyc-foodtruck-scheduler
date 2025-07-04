@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/database.types";
 import DatePicker from "react-datepicker";
@@ -9,11 +8,10 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function NewShiftPage() {
-  const router = useRouter();
   const supabase = createClient();
   const { isAdmin } = useAuth();
-  const [employees, setEmployees] = useState<Tables<'employees'>[]>([]);
-  const [events, setEvents] = useState<Tables<'events'>[]>([]);
+  const [employees, setEmployees] = useState<Tables<"employees">[]>([]);
+  const [events, setEvents] = useState<Tables<"events">[]>([]);
   const [employeeId, setEmployeeId] = useState("");
   const [eventId, setEventId] = useState("");
   const [date, setDate] = useState<Date | null>(new Date());
@@ -39,14 +37,14 @@ export default function NewShiftPage() {
           .select("*");
         if (evErr) throw evErr;
         setEvents(eventsData || []);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch data");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to fetch data");
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-  }, [isAdmin]);
+  }, [isAdmin, supabase]);
 
   if (!isAdmin) {
     return (
@@ -86,25 +84,30 @@ export default function NewShiftPage() {
       setDate(new Date());
       setStartTime("");
       setEndTime("");
-    } catch (err: any) {
-      setError(err.message || "Failed to create shift");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create shift");
     }
   };
 
   return (
     <div className="max-w-xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Create New Shift</h1>
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 bg-white p-4 rounded shadow"
+      >
         <div>
-          <label className="block mb-1 font-medium">Employee<span className="text-red-500">*</span></label>
+          <label className="block mb-1 font-medium">
+            Employee<span className="text-red-500">*</span>
+          </label>
           <select
             value={employeeId}
-            onChange={e => setEmployeeId(e.target.value)}
+            onChange={(e) => setEmployeeId(e.target.value)}
             className="border rounded px-3 py-2 w-full"
             required
           >
             <option value="">Select employee</option>
-            {employees.map(emp => (
+            {employees.map((emp) => (
               <option key={emp.employee_id} value={emp.employee_id}>
                 {emp.first_name} {emp.last_name}
               </option>
@@ -112,10 +115,12 @@ export default function NewShiftPage() {
           </select>
         </div>
         <div>
-          <label className="block mb-1 font-medium">Date<span className="text-red-500">*</span></label>
+          <label className="block mb-1 font-medium">
+            Date<span className="text-red-500">*</span>
+          </label>
           <DatePicker
             selected={date}
-            onChange={d => setDate(d)}
+            onChange={(d) => setDate(d)}
             dateFormat="yyyy-MM-dd"
             className="border rounded px-3 py-2 w-full"
             required
@@ -123,21 +128,25 @@ export default function NewShiftPage() {
         </div>
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="block mb-1 font-medium">Start Time<span className="text-red-500">*</span></label>
+            <label className="block mb-1 font-medium">
+              Start Time<span className="text-red-500">*</span>
+            </label>
             <input
               type="time"
               value={startTime}
-              onChange={e => setStartTime(e.target.value)}
+              onChange={(e) => setStartTime(e.target.value)}
               className="border rounded px-3 py-2 w-full"
               required
             />
           </div>
           <div className="flex-1">
-            <label className="block mb-1 font-medium">End Time<span className="text-red-500">*</span></label>
+            <label className="block mb-1 font-medium">
+              End Time<span className="text-red-500">*</span>
+            </label>
             <input
               type="time"
               value={endTime}
-              onChange={e => setEndTime(e.target.value)}
+              onChange={(e) => setEndTime(e.target.value)}
               className="border rounded px-3 py-2 w-full"
               required
             />
@@ -147,12 +156,14 @@ export default function NewShiftPage() {
           <label className="block mb-1 font-medium">Event (optional)</label>
           <select
             value={eventId}
-            onChange={e => setEventId(e.target.value)}
+            onChange={(e) => setEventId(e.target.value)}
             className="border rounded px-3 py-2 w-full"
           >
             <option value="">No event</option>
-            {events.map(ev => (
-              <option key={ev.id} value={ev.id}>{ev.title}</option>
+            {events.map((ev) => (
+              <option key={ev.id} value={ev.id}>
+                {ev.title}
+              </option>
             ))}
           </select>
         </div>
@@ -168,4 +179,4 @@ export default function NewShiftPage() {
       </form>
     </div>
   );
-} 
+}

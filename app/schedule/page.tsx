@@ -9,7 +9,6 @@ import { Event } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
-import { useAuth } from "@/contexts/AuthContext";
 
 export default function Schedule(): React.ReactElement {
   const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">(
@@ -20,7 +19,6 @@ export default function Schedule(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
-  const { isAdmin } = useAuth();
 
   useEffect(() => {
     const fetchEvents = async () => {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/database.types";
 import DatePicker from "react-datepicker";
@@ -9,16 +8,15 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function EditShiftsPage() {
-  const router = useRouter();
   const supabase = createClient();
   const { isAdmin } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<Tables<'employees'>[]>([]);
-  const [events, setEvents] = useState<Tables<'events'>[]>([]);
+  const [assignments, setAssignments] = useState<Tables<"assignments">[]>([]);
+  const [employees, setEmployees] = useState<Tables<"employees">[]>([]);
+  const [events, setEvents] = useState<Tables<"events">[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editIdx, setEditIdx] = useState<number | null>(null);
-  const [editData, setEditData] = useState<any>({});
+  const [editData, setEditData] = useState<Partial<Tables<"assignments">>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -52,14 +50,14 @@ export default function EditShiftsPage() {
           .select("*");
         if (evErr) throw evErr;
         setEvents(eventsData || []);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch data");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to fetch data");
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-  }, [selectedDate, isAdmin]);
+  }, [selectedDate, isAdmin, supabase]);
 
   if (!isAdmin) {
     return (
@@ -85,7 +83,9 @@ export default function EditShiftsPage() {
     setSuccess(null);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setEditData({ ...editData, [e.target.name]: e.target.value });
   };
 
@@ -113,8 +113,8 @@ export default function EditShiftsPage() {
         .gte("start_date", start.toISOString())
         .lte("end_date", end.toISOString());
       setAssignments(assignmentsData || []);
-    } catch (err: any) {
-      setError(err.message || "Failed to update shift");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update shift");
     }
   };
 
@@ -156,7 +156,9 @@ export default function EditShiftsPage() {
           <tbody>
             {assignments.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center p-4">No shifts for this date.</td>
+                <td colSpan={5} className="text-center p-4">
+                  No shifts for this date.
+                </td>
               </tr>
             ) : (
               assignments.map((a, idx) => (
@@ -176,13 +178,15 @@ export default function EditShiftsPage() {
                           </option>
                         ))}
                       </select>
+                    ) : // @ts-expect-error: employees is present due to join in select
+                    a.employees?.first_name ? (
+                      // @ts-expect-error: employees is present due to join in select
+                      `${a.employees.first_name} ${a.employees.last_name}`
                     ) : (
-                      a.employees?.first_name ? `${a.employees.first_name} ${a.employees.last_name}` : "Unassigned"
+                      "Unassigned"
                     )}
                   </td>
-                  <td className="p-2 border">
-                    {getEventTitle(a.event_id)}
-                  </td>
+                  <td className="p-2 border">{getEventTitle(a.event_id)}</td>
                   <td className="p-2 border">
                     {editIdx === idx ? (
                       <input
@@ -243,4 +247,4 @@ export default function EditShiftsPage() {
       {success && <div className="text-green-600 mt-4">{success}</div>}
     </div>
   );
-} 
+}
