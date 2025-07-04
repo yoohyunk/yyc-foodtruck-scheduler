@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, ReactElement, ChangeEvent, FormEvent, useRef } from "react";
+import React, {
+  useState,
+  ReactElement,
+  ChangeEvent,
+  FormEvent,
+  useRef,
+} from "react";
 import { EmployeeFormData, Coordinates } from "@/app/types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import HelpPopup from "@/app/components/HelpPopup";
@@ -35,10 +41,10 @@ export default function CreateEmployee(): ReactElement {
     };
 
     // Add event listener for tutorial start
-    window.addEventListener('tutorial:start', handleTutorialStart);
+    window.addEventListener("tutorial:start", handleTutorialStart);
 
     return () => {
-      window.removeEventListener('tutorial:start', handleTutorialStart);
+      window.removeEventListener("tutorial:start", handleTutorialStart);
     };
   }, []);
 
@@ -107,17 +113,21 @@ export default function CreateEmployee(): ReactElement {
     e.preventDefault();
 
     const errorList: string[] = [];
-    if (!formData.name.trim()) errorList.push('Name is required.');
-    if (!formData.address.trim()) errorList.push('Address is required.');
-    if (!coordinates) errorList.push('Please check address.');
-    if (!formData.role.trim()) errorList.push('Role is required.');
-    if (!formData.email.trim()) errorList.push('Email is required.');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errorList.push('Please enter a valid email address.');
-    if (!formData.phone.trim()) errorList.push('Phone is required.');
-    else if (!/^\+?[\d\s-]{10,}$/.test(formData.phone.replace(/\s/g, ''))) errorList.push('Please enter a valid phone number.');
-    if (!formData.wage) errorList.push('Wage is required.');
-    else if (Number(formData.wage) <= 0) errorList.push('Wage must be greater than 0.');
-    if (formData.availability.length === 0) errorList.push('Please select at least one day of availability.');
+    if (!formData.name.trim()) errorList.push("Name is required.");
+    if (!formData.address.trim()) errorList.push("Address is required.");
+    if (!coordinates) errorList.push("Please check address.");
+    if (!formData.role.trim()) errorList.push("Role is required.");
+    if (!formData.email.trim()) errorList.push("Email is required.");
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+      errorList.push("Please enter a valid email address.");
+    if (!formData.phone.trim()) errorList.push("Phone is required.");
+    else if (!/^\+?[\d\s-]{10,}$/.test(formData.phone.replace(/\s/g, "")))
+      errorList.push("Please enter a valid phone number.");
+    if (!formData.wage) errorList.push("Wage is required.");
+    else if (Number(formData.wage) <= 0)
+      errorList.push("Wage must be greater than 0.");
+    if (formData.availability.length === 0)
+      errorList.push("Please select at least one day of availability.");
     if (errorList.length > 0) {
       setFormErrors(errorList);
       setShowErrorModal(true);
@@ -129,41 +139,43 @@ export default function CreateEmployee(): ReactElement {
     try {
       const employeeData = {
         ...formData,
-        coordinates: coordinates ? {
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude
-        } : undefined
+        coordinates: coordinates
+          ? {
+              latitude: coordinates.latitude,
+              longitude: coordinates.longitude,
+            }
+          : undefined,
       };
 
       // Get existing employees
-      const response = await fetch('/employees.json');
+      const response = await fetch("/employees.json");
       const employees = await response.json();
-      
+
       // Generate new ID (max existing ID + 1)
       const newId = Math.max(...employees.map((emp: any) => emp.id)) + 1;
-      
+
       // Create new employee with ID
       const newEmployee = {
         id: newId,
         ...employeeData,
         isAvailable: Boolean(employeeData.isAvailable),
-        wage: Number(employeeData.wage)
+        wage: Number(employeeData.wage),
       };
 
       // Add new employee to the list
       const updatedEmployees = [...employees, newEmployee];
 
       // Save updated list
-      const saveResponse = await fetch('/api/employees', {
-        method: 'POST',
+      const saveResponse = await fetch("/api/employees", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(updatedEmployees),
       });
 
       if (!saveResponse.ok) {
-        throw new Error('Failed to save employee data');
+        throw new Error("Failed to save employee data");
       }
 
       // Reset form
@@ -180,13 +192,13 @@ export default function CreateEmployee(): ReactElement {
       setCoordinates(undefined);
 
       // Show success message
-      alert('Employee created successfully!');
-      
+      alert("Employee created successfully!");
+
       // Redirect to employees list
-      router.push('/employees');
+      router.push("/employees");
     } catch (error) {
-      console.error('Error saving employee:', error);
-      alert('Failed to create employee. Please try again.');
+      console.error("Error saving employee:", error);
+      alert("Failed to create employee. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -221,8 +233,18 @@ export default function CreateEmployee(): ReactElement {
                 onClick={() => setShowHelpPopup(true)}
                 className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 Help
               </button>
@@ -311,7 +333,9 @@ export default function CreateEmployee(): ReactElement {
 
           {/* Availability Selection */}
           <div className="input-group">
-            <label className="input-label">Availability (Days of the Week)</label>
+            <label className="input-label">
+              Availability (Days of the Week)
+            </label>
             <div className="availability-options">
               <label className="availability-label">
                 <input
@@ -339,16 +363,16 @@ export default function CreateEmployee(): ReactElement {
               <span className="flex items-center justify-center">
                 <span
                   style={{
-                    display: 'inline-block',
-                    height: '1.5rem',
-                    width: '1.5rem',
-                    marginRight: '0.5rem',
-                    verticalAlign: 'middle',
-                    border: '3px solid #22c55e', // Tailwind green-500
-                    borderTop: '3px solid transparent',
-                    borderRadius: '50%',
-                    background: 'white',
-                    animation: 'spin 1s linear infinite',
+                    display: "inline-block",
+                    height: "1.5rem",
+                    width: "1.5rem",
+                    marginRight: "0.5rem",
+                    verticalAlign: "middle",
+                    border: "3px solid #22c55e", // Tailwind green-500
+                    borderTop: "3px solid transparent",
+                    borderRadius: "50%",
+                    background: "white",
+                    animation: "spin 1s linear infinite",
                   }}
                 />
                 Creating...
@@ -359,12 +383,15 @@ export default function CreateEmployee(): ReactElement {
                 `}</style>
               </span>
             ) : (
-              'Create Employee'
+              "Create Employee"
             )}
           </button>
         </form>
       </div>
-      <HelpPopup isOpen={showHelpPopup} onClose={() => setShowHelpPopup(false)} />
+      <HelpPopup
+        isOpen={showHelpPopup}
+        onClose={() => setShowHelpPopup(false)}
+      />
     </>
   );
 }

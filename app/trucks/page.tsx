@@ -112,10 +112,6 @@ export default function Trucks(): ReactElement {
                   {truck.driver ? truck.driver.name : "No driver assigned"}
                 </p>
                 <p>
-                  <strong>Default Driver:</strong>{" "}
-                  {truck.defaultDriver ? truck.defaultDriver.name : "Not set"}
-                </p>
-                <p>
                   <strong>Location:</strong> {truck.location}
                 </p>
               </div>

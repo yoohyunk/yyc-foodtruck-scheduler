@@ -163,7 +163,7 @@ body {
 }
 
 .nav-link::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -968,7 +968,6 @@ button[title="Delete Employee"]:hover {
   .navigation-button {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
-
   }
 }
 
@@ -1240,4 +1239,3 @@ button[title="Delete Employee"]:hover {
 .sidebar nav .button span {
   font-size: 1.5rem;
 }
-

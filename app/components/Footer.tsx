@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { TutorialButton } from '../tutorial';
-import Link from 'next/link';
+import React from "react";
+import { TutorialButton } from "../tutorial";
+import Link from "next/link";
 
 export function Footer() {
   return (
@@ -12,19 +12,25 @@ export function Footer() {
           <Link href="/" className="hover:text-primary-light transition-colors">
             Home
           </Link>
-          <Link href="/about" className="hover:text-primary-light transition-colors">
+          <Link
+            href="/about"
+            className="hover:text-primary-light transition-colors"
+          >
             About
           </Link>
-          <Link href="/contact" className="hover:text-primary-light transition-colors">
+          <Link
+            href="/contact"
+            className="hover:text-primary-light transition-colors"
+          >
             Contact
           </Link>
           <TutorialButton />
         </div>
-        
+
         <div className="text-sm text-primary-light">
           © {new Date().getFullYear()} YYC Food Trucks
         </div>
       </div>
     </footer>
   );
-} 
+}

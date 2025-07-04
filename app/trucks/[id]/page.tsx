@@ -23,7 +23,6 @@ export default function EditTruckPage(): ReactElement {
     capacity: "",
     status: "",
     driver: "",
-    defaultDriver: "",
     location: "",
     isAvailable: false,
   });
@@ -52,7 +51,6 @@ export default function EditTruckPage(): ReactElement {
             capacity: truckData.capacity || "",
             status: truckData.status || "",
             driver: truckData.driver ? truckData.driver.name : "",
-            defaultDriver: truckData.defaultDriver ? truckData.defaultDriver.name : "",
             location: truckData.location || "",
             isAvailable: truckData.status === "Available",
           });
@@ -92,9 +90,11 @@ export default function EditTruckPage(): ReactElement {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Find the selected default driver
-    const selectedDriver = employees.find(emp => emp.name === formData.defaultDriver);
-    
+    // Find the selected driver
+    const selectedDriver = employees.find(
+      (emp) => emp.name === formData.driver
+    );
+
     // Prepare the updated truck data
     const updatedTruck = {
       ...truck,
@@ -102,13 +102,9 @@ export default function EditTruckPage(): ReactElement {
       type: formData.type,
       capacity: formData.capacity,
       status: formData.status,
-      driver: formData.driver ? { name: formData.driver } : null,
-      defaultDriver: selectedDriver ? {
-        id: selectedDriver.id.toString(),
-        name: selectedDriver.name
-      } : null,
+      driver: selectedDriver ? { name: selectedDriver.name } : null,
       location: formData.location,
-      isAvailable: formData.status === "Available"
+      isAvailable: formData.status === "Available",
     };
 
     // Simulate saving the updated truck data
@@ -220,32 +216,6 @@ export default function EditTruckPage(): ReactElement {
             className="input-field"
             placeholder="Enter driver name"
           />
-        </div>
-
-        {/* Default Driver */}
-        <div>
-          <label htmlFor="defaultDriver" className="block font-medium">
-            Default Driver
-          </label>
-          <select
-            id="defaultDriver"
-            name="defaultDriver"
-            value={formData.defaultDriver}
-            onChange={handleInputChange}
-            className="input-field"
-          >
-            <option value="">Select Default Driver</option>
-            {employees
-              .filter(emp => emp.role === "Driver")
-              .map(driver => (
-                <option key={driver.id} value={driver.name}>
-                  {driver.name}
-                </option>
-              ))}
-          </select>
-          <p className="text-sm text-gray-500 mt-1">
-            The default driver will be automatically assigned to events when available
-          </p>
         </div>
 
         {/* Location */}

@@ -64,7 +64,7 @@ export interface Truck {
   isAvailable: boolean;
 }
 
-export interface TruckFormData extends Omit<Truck, 'id' | 'driver'> {
+export interface TruckFormData extends Omit<Truck, "id" | "driver"> {
   driver: string; // Form data uses string for driver input
 }
 
@@ -73,11 +73,12 @@ export interface TimeOffRequest {
   date: string;
   type: string;
   duration: string;
-  status: 'Approved' | 'Pending' | 'Rejected';
+  status: "Approved" | "Pending" | "Rejected";
   reason: string;
 }
 
-export interface TimeOffRequestFormData extends Omit<TimeOffRequest, 'status'> {}
+export interface TimeOffRequestFormData
+  extends Omit<TimeOffRequest, "status"> {}
 
 // Common types
 export interface Coordinates {

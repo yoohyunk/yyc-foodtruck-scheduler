@@ -187,7 +187,7 @@ export default function CreateEventPage(): ReactElement {
         {/* Contact Information */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Contact Information</h2>
-          
+
           <div>
             <label htmlFor="contactName" className="block font-medium mb-1">
               Contact Name
@@ -243,4 +243,4 @@ export default function CreateEventPage(): ReactElement {
       </form>
     </div>
   );
-} 
+}

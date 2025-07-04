@@ -1,40 +1,41 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef } from 'react';
-import { useTutorial } from '../TutorialContext';
+import React, { useEffect, useRef } from "react";
+import { useTutorial } from "../TutorialContext";
 
 export function TutorialOverlay() {
-  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial } = useTutorial();
+  const { isActive, currentStep, steps, nextStep, previousStep, skipTutorial } =
+    useTutorial();
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isActive && overlayRef.current) {
       const currentStepData = steps[currentStep];
       const targetElement = document.querySelector(currentStepData.target);
-      
+
       if (targetElement) {
         // First scroll the target element into view with a longer delay for navigation buttons
         targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-          inline: 'center'
+          behavior: "smooth",
+          block: "center",
+          inline: "center",
         });
 
         // Wait for scroll to complete before positioning overlay
         // Use a longer delay for navigation buttons to ensure proper scrolling
-        const delay = currentStepData.id.includes('button') ? 800 : 500;
-        
+        const delay = currentStepData.id.includes("button") ? 800 : 500;
+
         setTimeout(() => {
           const rect = targetElement.getBoundingClientRect();
           const overlay = overlayRef.current;
-          
+
           if (overlay) {
             // Position the overlay
             overlay.style.top = `${rect.top}px`;
             overlay.style.left = `${rect.left}px`;
             overlay.style.width = `${rect.width}px`;
             overlay.style.height = `${rect.height}px`;
-            overlay.style.opacity = '1';
+            overlay.style.opacity = "1";
           }
         }, delay);
       }
@@ -72,10 +73,10 @@ export function TutorialOverlay() {
             onClick={nextStep}
             className="px-4 py-2 bg-primary-medium text-white rounded"
           >
-            {currentStep === steps.length - 1 ? 'Finish' : 'Next'}
+            {currentStep === steps.length - 1 ? "Finish" : "Next"}
           </button>
         </div>
       </div>
     </div>
   );
-} 
+}

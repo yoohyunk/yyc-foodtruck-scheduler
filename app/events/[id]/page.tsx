@@ -11,7 +11,7 @@ export default function EventDetailsPage(): ReactElement {
   const [event, setEvent] = useState<Event | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
-  const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
+  const [assignedEmployees, setAssignedEmployees] = useState<(Employee & { id: number })[]>([]);
   const [assignedTrucks, setAssignedTrucks] = useState<Truck[]>([]);
   const [isEmployeeModalOpen, setEmployeeModalOpen] = useState<boolean>(false);
   const [isTruckModalOpen, setTruckModalOpen] = useState<boolean>(false);
@@ -120,17 +120,18 @@ export default function EventDetailsPage(): ReactElement {
   // Update assigned employees when event or employees change
   useEffect(() => {
     if (event && employees.length > 0) {
-      const assigned = employees.filter(emp => 
+      const assigned = employees.filter((emp) =>
         event.assignedStaff.includes(emp.id.toString())
       );
-      setAssignedEmployees(assigned);
+      // Only include Employee objects
+      setAssignedEmployees(assigned.filter(isEmployee));
     }
   }, [event, employees]);
 
   // Update assigned trucks when event or trucks change
   useEffect(() => {
     if (event && trucks.length > 0) {
-      const assigned = trucks.filter(truck => 
+      const assigned = trucks.filter((truck) =>
         event.trucks.includes(truck.id)
       );
       setAssignedTrucks(assigned);
@@ -138,12 +139,12 @@ export default function EventDetailsPage(): ReactElement {
   }, [event, trucks]);
 
   const handleEmployeeSelection = (employee: Employee) => {
-    if (assignedEmployees.some((e) => e.id === employee.id)) {
+    if (assignedEmployees.filter(isEmployee).some((e) => e.id === employee.id)) {
       setAssignedEmployees(
-        assignedEmployees.filter((e) => e.id !== employee.id)
+        assignedEmployees.filter(isEmployee).filter((e) => e.id !== employee.id)
       );
-    } else if (event && assignedEmployees.length < event.requiredServers) {
-      setAssignedEmployees([...assignedEmployees, employee]);
+    } else if (event && assignedEmployees.filter(isEmployee).length < event.requiredServers) {
+      setAssignedEmployees([...assignedEmployees.filter(isEmployee), employee]);
     }
   };
 
@@ -152,36 +153,12 @@ export default function EventDetailsPage(): ReactElement {
       // If truck is already assigned, remove it and its driver
       setAssignedTrucks(assignedTrucks.filter((t) => t.id !== truck.id));
       // Remove the driver if they were assigned with this truck
-      if (truck.driver) {
-        setAssignedEmployees(assignedEmployees.filter(e => e.id.toString() !== truck.driver?.id));
-      }
+      setAssignedEmployees(
+        assignedEmployees.filter(isEmployee).filter(
+          (e) => !isDriver(truck.driver) || e.id.toString() !== truck.driver.id.toString()
+        )
+      );
     } else {
-      // Check if the truck has a default driver
-      if (truck.defaultDriver && event) {
-        const defaultDriver = employees.find(emp => emp.id.toString() === truck.defaultDriver?.id);
-        if (defaultDriver) {
-          // Check if default driver is available
-          const isAvailable = checkDriverAvailability(defaultDriver, event);
-          if (isAvailable) {
-            // If available, automatically assign the default driver
-            if (!assignedEmployees.some(e => e.id === defaultDriver.id)) {
-              setAssignedEmployees([...assignedEmployees, defaultDriver]);
-              alert(`Default driver ${defaultDriver.name} is available and has been assigned.`);
-            }
-          } else {
-            // If not available, find an alternative driver with less work hours
-            const alternativeDriver = findAlternativeDriver(employees, event);
-            if (alternativeDriver) {
-              if (!assignedEmployees.some(e => e.id === alternativeDriver.id)) {
-                setAssignedEmployees([...assignedEmployees, alternativeDriver]);
-                alert(`Default driver ${defaultDriver.name} is not available. Alternative driver ${alternativeDriver.name} has been assigned instead.`);
-              }
-            } else {
-              alert('No available drivers found for this event. Please check driver availability.');
-            }
-          }
-        }
-      }
       setAssignedTrucks([...assignedTrucks, truck]);
     }
   };
@@ -189,34 +166,39 @@ export default function EventDetailsPage(): ReactElement {
   // Helper function to check driver availability
   const checkDriverAvailability = (driver: Employee, event: Event): boolean => {
     if (!driver.isAvailable) {
-      console.log(`Driver ${driver.name} is not available (isAvailable flag is false)`);
+      console.log(
+        `Driver ${driver.name} is not available (isAvailable flag is false)`
+      );
       return false;
     }
-    
+
     // Check if driver is available on the event day
     const eventDate = new Date(event.startTime);
-    const dayOfWeek = eventDate.toLocaleDateString('en-US', { weekday: 'long' });
+    const dayOfWeek = eventDate.toLocaleDateString("en-US", {
+      weekday: "long",
+    });
     if (!driver.availability.includes(dayOfWeek)) {
       console.log(`Driver ${driver.name} is not available on ${dayOfWeek}`);
       return false;
     }
 
     // Check if driver is already assigned to another event at the same time
-    const hasOverlap = allEvents.some(e => {
+    const hasOverlap = allEvents.some((e) => {
       if (e.id === event.id) return false;
       const otherStart = new Date(e.startTime);
       const otherEnd = new Date(e.endTime);
       const eventStart = new Date(event.startTime);
       const eventEnd = new Date(event.endTime);
-      
-      const overlap = (
+
+      const overlap =
         (eventStart >= otherStart && eventStart < otherEnd) ||
         (eventEnd > otherStart && eventEnd <= otherEnd) ||
-        (eventStart <= otherStart && eventEnd >= otherEnd)
-      );
+        (eventStart <= otherStart && eventEnd >= otherEnd);
 
       if (overlap && e.assignedStaff.includes(driver.id.toString())) {
-        console.log(`Driver ${driver.name} has an overlap with event ${e.title}`);
+        console.log(
+          `Driver ${driver.name} has an overlap with event ${e.title}`
+        );
         return true;
       }
       return false;
@@ -226,34 +208,55 @@ export default function EventDetailsPage(): ReactElement {
   };
 
   // Helper function to find alternative driver with less work hours
-  const findAlternativeDriver = (employees: Employee[], event: Event): Employee | null => {
+  const findAlternativeDriver = (
+    employees: Employee[],
+    event: Event
+  ): Employee | null => {
     // Filter for available drivers
-    const availableDrivers = employees.filter(emp => 
-      emp.role === "Driver" && 
-      emp.isAvailable && 
-      emp.availability.includes(new Date(event.startTime).toLocaleDateString('en-US', { weekday: 'long' }))
+    const availableDrivers = employees.filter(
+      (emp) =>
+        emp.role === "Driver" &&
+        emp.isAvailable &&
+        emp.availability.includes(
+          new Date(event.startTime).toLocaleDateString("en-US", {
+            weekday: "long",
+          })
+        )
     );
 
     if (availableDrivers.length === 0) {
-      console.log('No available drivers found');
+      console.log("No available drivers found");
       return null;
     }
 
     // Count current assignments for each driver
-    const driverAssignments = availableDrivers.map(driver => {
-      const assignments = allEvents.filter(e => 
+    const driverAssignments = availableDrivers.map((driver) => {
+      const assignments = allEvents.filter((e) =>
         e.assignedStaff.includes(driver.id.toString())
       ).length;
-      console.log(`Driver ${driver.name} has ${assignments} current assignments`);
+      console.log(
+        `Driver ${driver.name} has ${assignments} current assignments`
+      );
       return { driver, assignments };
     });
 
     // Sort by number of assignments and return the driver with least assignments
     driverAssignments.sort((a, b) => a.assignments - b.assignments);
     const selectedDriver = driverAssignments[0].driver;
-    console.log(`Selected alternative driver: ${selectedDriver.name} with ${driverAssignments[0].assignments} assignments`);
+    console.log(
+      `Selected alternative driver: ${selectedDriver.name} with ${driverAssignments[0].assignments} assignments`
+    );
     return selectedDriver;
   };
+
+  // Add a type guard for Employee
+  function isEmployee(e: any): e is Employee {
+    return typeof e === "object" && e !== null && "id" in e && typeof e.id === "number";
+  }
+
+  function isDriver(d: any): d is Employee {
+    return typeof d === "object" && d !== null && "id" in d && typeof d.id === "number";
+  }
 
   if (!event) {
     return (
@@ -310,37 +313,43 @@ export default function EventDetailsPage(): ReactElement {
         <button
           className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
           onClick={async () => {
-            if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+            if (
+              window.confirm(
+                "Are you sure you want to delete this event? This action cannot be undone."
+              )
+            ) {
               try {
                 // Get current events
-                const response = await fetch('/events.json');
+                const response = await fetch("/events.json");
                 if (!response.ok) {
-                  throw new Error('Failed to fetch events');
+                  throw new Error("Failed to fetch events");
                 }
                 const events = await response.json();
 
                 // Remove the event
-                const updatedEvents = events.filter((evt: Event) => evt.id !== id);
+                const updatedEvents = events.filter(
+                  (evt: Event) => evt.id !== id
+                );
 
                 // Save updated events
-                const saveResponse = await fetch('/api/events', {
-                  method: 'POST',
+                const saveResponse = await fetch("/api/events", {
+                  method: "POST",
                   headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                   },
                   body: JSON.stringify(updatedEvents),
                 });
 
                 if (!saveResponse.ok) {
-                  throw new Error('Failed to delete event');
+                  throw new Error("Failed to delete event");
                 }
 
                 // Show success message and redirect
-                alert('Event deleted successfully');
-                router.push('/events');
+                alert("Event deleted successfully");
+                router.push("/events");
               } catch (error) {
-                console.error('Error deleting event:', error);
-                alert('Failed to delete event. Please try again.');
+                console.error("Error deleting event:", error);
+                alert("Failed to delete event. Please try again.");
               }
             }
           }}
@@ -362,7 +371,7 @@ export default function EventDetailsPage(): ReactElement {
                   <label
                     key={employee.id}
                     className={`employee-label ${
-                      assignedEmployees.some((e) => e.id === employee.id)
+                      assignedEmployees.filter(isEmployee).some((e) => e.id === employee.id)
                         ? "employee-label-selected"
                         : ""
                     }`}
@@ -370,13 +379,11 @@ export default function EventDetailsPage(): ReactElement {
                     <input
                       type="checkbox"
                       className="employee-checkbox"
-                      checked={assignedEmployees.some(
-                        (e) => e.id === employee.id
-                      )}
+                      checked={assignedEmployees.filter(isEmployee).some((e) => e.id === employee.id)}
                       onChange={() => handleEmployeeSelection(employee)}
                       disabled={
-                        !assignedEmployees.some((e) => e.id === employee.id) &&
-                        assignedEmployees.length >= event.requiredServers
+                        !assignedEmployees.filter(isEmployee).some((e) => e.id === employee.id) &&
+                        assignedEmployees.filter(isEmployee).length >= event.requiredServers
                       }
                     />
                     <span className="employee-name">
@@ -451,9 +458,9 @@ export default function EventDetailsPage(): ReactElement {
                 onClick={async () => {
                   try {
                     // Get current events
-                    const response = await fetch('/events.json');
+                    const response = await fetch("/events.json");
                     if (!response.ok) {
-                      throw new Error('Failed to fetch events');
+                      throw new Error("Failed to fetch events");
                     }
                     const events = await response.json();
 
@@ -462,32 +469,36 @@ export default function EventDetailsPage(): ReactElement {
                       if (evt.id === id) {
                         return {
                           ...evt,
-                          trucks: assignedTrucks.map(truck => truck.id),
-                          assignedStaff: assignedEmployees.map(emp => emp.id.toString())
+                          trucks: assignedTrucks.map((truck) => truck.id),
+                          assignedStaff: assignedEmployees.map((emp) =>
+                            emp.id.toString()
+                          ),
                         };
                       }
                       return evt;
                     });
 
                     // Save updated events
-                    const saveResponse = await fetch('/api/events', {
-                      method: 'POST',
+                    const saveResponse = await fetch("/api/events", {
+                      method: "POST",
                       headers: {
-                        'Content-Type': 'application/json',
+                        "Content-Type": "application/json",
                       },
                       body: JSON.stringify(updatedEvents),
                     });
 
                     if (!saveResponse.ok) {
-                      throw new Error('Failed to save event');
+                      throw new Error("Failed to save event");
                     }
 
                     // Show success message and close modal
-                    alert('Truck assignments saved successfully');
+                    alert("Truck assignments saved successfully");
                     setTruckModalOpen(false);
                   } catch (error) {
-                    console.error('Error saving truck assignments:', error);
-                    alert('Failed to save truck assignments. Please try again.');
+                    console.error("Error saving truck assignments:", error);
+                    alert(
+                      "Failed to save truck assignments. Please try again."
+                    );
                   }
                 }}
               >
@@ -523,10 +534,7 @@ export default function EventDetailsPage(): ReactElement {
                 <h3 className="truck-title">{truck.name}</h3>
                 <p className="truck-info">Type: {truck.type}</p>
                 <p className="truck-info">
-                  Driver: {truck.driver ? truck.driver.name : 'Not assigned'}
-                </p>
-                <p className="truck-info">
-                  Default Driver: {truck.defaultDriver ? truck.defaultDriver.name : 'Not set'}
+                  Driver: {truck.driver ? truck.driver.name : "Not assigned"}
                 </p>
               </div>
             ))}

@@ -12,11 +12,7 @@
     "phone": "555-1234",
     "wage": 40,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Wednesday",
-      "Friday"
-    ]
+    "availability": ["Monday", "Wednesday", "Friday"]
   },
   {
     "id": 2,
@@ -54,10 +50,7 @@
     "phone": "555-9876",
     "wage": 30,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   },
   {
     "id": 4,
@@ -72,10 +65,7 @@
     "phone": "555-4321",
     "wage": 30,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   },
   {
     "id": 5,
@@ -90,10 +80,7 @@
     "phone": "555-8765",
     "wage": 15,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   },
   {
     "id": 6,
@@ -108,11 +95,7 @@
     "phone": "555-8765",
     "wage": 15,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Wednesday",
-      "Friday"
-    ]
+    "availability": ["Monday", "Wednesday", "Friday"]
   },
   {
     "id": 7,
@@ -127,11 +110,7 @@
     "phone": "555-1234",
     "wage": 25,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Wednesday",
-      "Friday"
-    ]
+    "availability": ["Monday", "Wednesday", "Friday"]
   },
   {
     "id": 8,
@@ -146,10 +125,7 @@
     "phone": "555-1234",
     "wage": 35,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   },
   {
     "id": 9,
@@ -164,11 +140,7 @@
     "phone": "555-1234",
     "wage": 40,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Wednesday",
-      "Friday"
-    ]
+    "availability": ["Monday", "Wednesday", "Friday"]
   },
   {
     "id": 10,
@@ -183,17 +155,14 @@
     "phone": "555-1234",
     "wage": 39,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Thursday"
-    ]
+    "availability": ["Tuesday", "Thursday"]
   },
   {
     "id": 11,
     "name": "Raj Patel",
     "address": "2500 12th Avenue Southwest, Calgary, Alberta T2T 0C8, Canada",
     "coordinates": {
-      "latitude": 51.0510,
+      "latitude": 51.051,
       "longitude": -114.0643
     },
     "role": "Driver",
@@ -201,13 +170,7 @@
     "phone": "555-2345",
     "wage": 42,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday"
-    ]
+    "availability": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
   },
   {
     "id": 12,
@@ -222,13 +185,7 @@
     "phone": "555-3456",
     "wage": 41,
     "isAvailable": true,
-    "availability": [
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday"
-    ]
+    "availability": ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
   },
   {
     "id": 13,
@@ -243,13 +200,7 @@
     "phone": "555-4567",
     "wage": 43,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Wednesday",
-      "Friday",
-      "Saturday",
-      "Sunday"
-    ]
+    "availability": ["Monday", "Wednesday", "Friday", "Saturday", "Sunday"]
   },
   {
     "id": 14,
@@ -264,13 +215,7 @@
     "phone": "555-5678",
     "wage": 40,
     "isAvailable": true,
-    "availability": [
-      "Monday",
-      "Tuesday",
-      "Thursday",
-      "Friday",
-      "Saturday"
-    ]
+    "availability": ["Monday", "Tuesday", "Thursday", "Friday", "Saturday"]
   },
   {
     "id": 15,
@@ -285,12 +230,6 @@
     "phone": "555-6789",
     "wage": 41,
     "isAvailable": true,
-    "availability": [
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday"
-    ]
+    "availability": ["Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
   }
 ]

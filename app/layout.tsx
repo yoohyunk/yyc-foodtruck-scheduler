@@ -74,11 +74,7 @@ export default function RootLayout({
                 <h3 className="text-md font-semibold mb-6">Quick Actions</h3>
                 <nav>
                   {quickActionLinks.map((link, index) => (
-                    <Link
-                      key={index}
-                      href={link.href}
-                      className="button"
-                    >
+                    <Link key={index} href={link.href} className="button">
                       <span>{link.icon}</span> {link.name}
                     </Link>
                   ))}

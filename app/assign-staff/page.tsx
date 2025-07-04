@@ -31,15 +31,17 @@ export default function AssignStaffPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<string>("");
-  const [assignedStaff, setAssignedStaff] = useState<EmployeeWithDistance[]>([]);
+  const [assignedStaff, setAssignedStaff] = useState<EmployeeWithDistance[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch employees and events data
     Promise.all([
-      fetch("/employees.json").then(res => res.json()),
-      fetch("/events.json").then(res => res.json())
+      fetch("/employees.json").then((res) => res.json()),
+      fetch("/events.json").then((res) => res.json()),
     ])
       .then(([employeesData, eventsData]) => {
         setEmployees(employeesData);
@@ -59,8 +61,11 @@ export default function AssignStaffPage() {
       if (!event) throw new Error("Event not found");
 
       // Get closest employees within 5km
-      const closestEmployees = await findClosestEmployees(event.location, employees);
-      
+      const closestEmployees = await findClosestEmployees(
+        event.location,
+        employees
+      );
+
       // Sort by distance first, then by wage for employees within 5km
       const sortedEmployees = closestEmployees.sort((a, b) => {
         if (Math.abs(a.distance - b.distance) <= 5) {
@@ -97,7 +102,8 @@ export default function AssignStaffPage() {
           <option value="">Select an event</option>
           {events.map((event) => (
             <option key={event.id} value={event.id}>
-              {event.title} - {event.location} (Required Servers: {event.requiredServers})
+              {event.title} - {event.location} (Required Servers:{" "}
+              {event.requiredServers})
             </option>
           ))}
         </select>
@@ -146,4 +152,4 @@ export default function AssignStaffPage() {
       )}
     </div>
   );
-} 
+}
