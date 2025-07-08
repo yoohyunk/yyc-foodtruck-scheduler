@@ -728,7 +728,11 @@ export default function EditEmployeePage(): ReactElement {
 
       <h1 className="text-2xl font-bold mb-4">Edit Employee</h1>
       <TutorialHighlight isHighlighted={shouldHighlight("form")}>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          key={`${id}-${formData.role}`}
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
           {/* Name */}
           <div>
             <label htmlFor="first_name" className="block font-medium">
