@@ -6,10 +6,13 @@ import { TutorialProvider, TutorialOverlay } from "@/app/tutorial";
 import { Footer } from "./Footer";
 import Header from "./Header";
 import QuickActions from "./QuickActions";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 interface ClientLayoutContentProps {
   children: ReactNode;
 }
+
+export const queryClient = new QueryClient();
 
 export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
   const pathname = usePathname();
@@ -33,14 +36,16 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
   }
 
   return (
-    <TutorialProvider>
-      <Header />
-      <main className="container dashboard-grid flex-grow">
-        <QuickActions />
-        <div className="main-content p-4">{children}</div>
-      </main>
-      <Footer />
-      <TutorialOverlay />
-    </TutorialProvider>
+    <QueryClientProvider client={queryClient}>
+      <TutorialProvider>
+        <Header />
+        <main className="container dashboard-grid flex-grow">
+          <QuickActions />
+          <div className="main-content p-4">{children}</div>
+        </main>
+        <Footer />
+        <TutorialOverlay />
+      </TutorialProvider>
+    </QueryClientProvider>
   );
 }

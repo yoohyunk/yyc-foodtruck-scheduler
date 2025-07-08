@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { TablesInsert, TablesUpdate } from "@/database.types";
+import { TablesInsert } from "@/database.types";
 
 const supabase = createClient();
 

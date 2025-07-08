@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import { createClient } from "@/lib/supabase/client";
-import { EmployeeFormData } from "@/app/types";
+import { EmployeeAvailability, EmployeeFormData } from "@/app/types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
@@ -29,9 +29,12 @@ import {
 import { addressesApi } from "@/lib/supabase/addresses";
 import { employeesApi } from "@/lib/supabase/employees";
 import { wagesApi } from "@/lib/supabase/wages";
+import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryClient } from "../../components/ClientLayoutContent";
 
 export default function EditEmployeePage(): ReactElement {
-  const { id } = useParams();
+  const { id } = useParams() as { id: string };
   const router = useRouter();
   const supabase = createClient();
   const { isAdmin } = useAuth();
@@ -40,6 +43,13 @@ export default function EditEmployeePage(): ReactElement {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const { shouldHighlight } = useTutorial();
   const addressFormRef = useRef<AddressFormRef>(null);
+  const {
+    employeeAvailability,
+    formAvailability,
+    handleAvailabilityChange,
+    handleUpsertAvailability,
+  } = useAvailability(id);
+
   const [formData, setFormData] = useState<EmployeeFormData>({
     first_name: "",
     last_name: "",
@@ -173,6 +183,9 @@ export default function EditEmployeePage(): ReactElement {
           phone: employeeData.user_phone || "",
           wage: wageData?.hourly_wage ? String(wageData.hourly_wage) : "",
           isAvailable: employeeData.is_available || false,
+
+          // TODO (yoohyun.kim): use employeeAvailability to set availability and render
+          // correct form states
           availability: (employeeData.availability as string[]) || [],
           // Address fields
           street: employeeData.addresses?.street || "",
@@ -259,12 +272,22 @@ export default function EditEmployeePage(): ReactElement {
         ...formData,
         availability: formData.availability.filter((d) => d !== day),
       });
+      // retain original availability
+      handleAvailabilityChange(day, "", "");
     } else {
       // Add day if not already selected
       setFormData({
         ...formData,
         availability: [...formData.availability, day],
       });
+      const originalAvailability = employeeAvailability?.find(
+        (availability) => availability.day_of_week === day
+      );
+      handleAvailabilityChange(
+        day,
+        originalAvailability?.start_time || "",
+        originalAvailability?.end_time || ""
+      );
     }
   };
 
@@ -557,6 +580,7 @@ export default function EditEmployeePage(): ReactElement {
         await employeesApi.updateEmployee(id as string, updateData);
       } catch (error) {
         setValidationErrors([
+          // @ts-expect-error TODO (yoohyun.kim): fix error type
           { field: "submit", message: error.message, element: null },
         ]);
         setShowErrorModal(true);
@@ -593,6 +617,7 @@ export default function EditEmployeePage(): ReactElement {
           await wagesApi.updateWage(id as string, parseFloat(formData.wage));
         } catch (wageError) {
           setValidationErrors([
+            // @ts-expect-error TODO (yoohyun.kim): fix error type
             { field: "wage", message: wageError.message, element: null },
           ]);
           setShowErrorModal(true);
@@ -608,6 +633,10 @@ export default function EditEmployeePage(): ReactElement {
         },
       ]);
       setShowErrorModal(true);
+
+      // upsert availability
+      handleUpsertAvailability();
+
       // Redirect after closing modal
       setTimeout(() => {
         router.push("/employees");
@@ -815,44 +844,58 @@ export default function EditEmployeePage(): ReactElement {
 
           {/* Is Available */}
           <div>
-            <label htmlFor="isAvailable" className="block font-medium">
-              <input
-                type="checkbox"
-                id="isAvailable"
-                name="isAvailable"
-                checked={formData.isAvailable}
-                onChange={handleChange}
-              />
-              Is Available
+            <label htmlFor="isAvailable" className="flex gap-2 font-bold">
+              <span className="w-4 h-4">
+                <input
+                  type="checkbox"
+                  id="isAvailable"
+                  name="isAvailable"
+                  checked={formData.isAvailable}
+                  onChange={handleChange}
+                />
+              </span>
+              <span>Is Available</span>
             </label>
           </div>
 
           {/* Availability */}
           <div>
-            <label className="block font-medium">
+            <h2 className="font-bold text-xl">
               Availability (Days of the Week)
-            </label>
+            </h2>
             <TutorialHighlight
               isHighlighted={shouldHighlight(".availability-options")}
               className="availability-options"
             >
-              <label className="availability-label">
-                <input
-                  type="checkbox"
-                  checked={formData.availability.length === daysOfWeek.length}
-                  onChange={handleSelectAll}
-                />
-                Select All
+              <label className="flex gap-2 font-bold" htmlFor="select-all">
+                <span className="w-4 h-4">
+                  <input
+                    id="select-all"
+                    type="checkbox"
+                    checked={formData.availability.length === daysOfWeek.length}
+                    onChange={handleSelectAll}
+                  />
+                </span>
+                <span className="ml-2">Select All</span>
               </label>
               {daysOfWeek.map((day) => (
-                <label key={day} className="availability-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.availability.includes(day)}
-                    onChange={() => handleDaySelection(day)}
-                  />
-                  {day}
-                </label>
+                <AvailabilityInput
+                  key={day}
+                  day={day}
+                  isChecked={formData.availability.includes(day)}
+                  handleDaySelection={handleDaySelection}
+                  handleAvailabilityChange={handleAvailabilityChange}
+                  startTime={
+                    formAvailability.find(
+                      (availability) => availability.day_of_week === day
+                    )?.start_time || ""
+                  }
+                  endTime={
+                    formAvailability.find(
+                      (availability) => availability.day_of_week === day
+                    )?.end_time || ""
+                  }
+                />
               ))}
             </TutorialHighlight>
           </div>
@@ -1019,3 +1062,166 @@ export default function EditEmployeePage(): ReactElement {
     </TutorialHighlight>
   );
 }
+
+// TODO (yoohyun.kim): refactor to components
+const AvailabilityInput = ({
+  day,
+  isChecked,
+  handleDaySelection,
+  handleAvailabilityChange,
+  startTime,
+  endTime,
+}: {
+  day: string;
+  isChecked: boolean;
+  handleDaySelection: (day: string) => void;
+  handleAvailabilityChange: (
+    dayOfWeek: string,
+    startTime: string,
+    endTime: string
+  ) => void;
+  startTime: string;
+  endTime: string;
+}) => {
+  return (
+    <div>
+      <label className="flex gap-2 font-bold" htmlFor={day}>
+        <span className="w-4 h-4">
+          <input
+            id={day}
+            type="checkbox"
+            checked={isChecked}
+            onChange={() => handleDaySelection(day)}
+          />
+        </span>
+        <span>{day}</span>
+      </label>
+      {isChecked ? (
+        <div className="flex gap-2">
+          <label htmlFor={`${day}-start-time`}>
+            Start Time
+            <input
+              id={`${day}-start-time`}
+              type="time"
+              value={startTime}
+              onChange={(e) =>
+                handleAvailabilityChange(day, e.target.value, endTime)
+              }
+            />
+          </label>
+          <label htmlFor={`${day}-end-time`}>
+            End Time
+            <input
+              id={`${day}-end-time`}
+              type="time"
+              value={endTime}
+              onChange={(e) =>
+                handleAvailabilityChange(day, startTime, e.target.value)
+              }
+            />
+          </label>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+// TODO (yoohyun.kim): refactor to hooks
+const useAvailability = (id: string) => {
+  const [formAvailability, setFormAvailability] = useState<
+    EmployeeAvailability[]
+  >([]);
+
+  const { data: employeeAvailability } = useQuery({
+    queryKey: ["employee-availability", id],
+    queryFn: () =>
+      employeeAvailabilityApi.getEmployeeAvailability(id as string),
+  });
+
+  const { mutate: upsertEmployeeAvailability } = useMutation({
+    mutationFn: (availability: EmployeeAvailability) =>
+      employeeAvailabilityApi.upsertEmployeeAvailability(id, availability),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["employee-availability", id],
+      });
+    },
+  });
+
+  const { mutate: deleteAvailability } = useMutation({
+    mutationFn: (availabilityId: string) =>
+      employeeAvailabilityApi.deleteEmployeeAvailability(availabilityId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["employee-availability", id],
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (employeeAvailability) {
+      setFormAvailability(employeeAvailability);
+    }
+  }, [employeeAvailability]);
+
+  const handleAvailabilityChange = (
+    dayOfWeek: string,
+    startTime: string,
+    endTime: string
+  ) => {
+    const newAvailability = [...formAvailability];
+    const currentDayIdx = newAvailability.findIndex(
+      (availability) => availability.day_of_week === dayOfWeek
+    );
+    if (currentDayIdx === -1) {
+      newAvailability.push({
+        day_of_week: dayOfWeek,
+        start_time: startTime,
+        end_time: endTime,
+        employee_id: id,
+        created_at: new Date().toISOString(),
+        id: crypto.randomUUID(),
+      });
+    } else {
+      newAvailability[currentDayIdx] = {
+        ...newAvailability[currentDayIdx],
+        start_time: startTime,
+        end_time: endTime,
+      };
+    }
+    setFormAvailability(newAvailability);
+  };
+
+  const handleUpsertAvailability = () => {
+    formAvailability.forEach((availability) => {
+      const originalDayAvailability = employeeAvailability?.find(
+        (a) => a.day_of_week === availability.day_of_week
+      );
+
+      if (
+        Boolean(originalDayAvailability) &&
+        (availability.start_time === "" || availability.end_time === "")
+      ) {
+        deleteAvailability(originalDayAvailability?.id || "");
+        return;
+      }
+
+      if (availability.start_time === "" || availability.end_time === "") {
+        return;
+      }
+
+      if (availability.start_time >= availability.end_time) {
+        throw new Error("Start time must be before end time");
+      }
+
+      upsertEmployeeAvailability(availability);
+    });
+  };
+
+  return {
+    employeeAvailability,
+    formAvailability,
+    handleAvailabilityChange,
+    handleUpsertAvailability,
+  };
+};

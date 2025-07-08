@@ -19,46 +19,28 @@ export const employeeAvailabilityApi = {
     return data || [];
   },
 
-  async createEmployeeAvailability(
+  async upsertEmployeeAvailability(
     employeeId: string,
     availability: EmployeeAvailability
   ): Promise<EmployeeAvailability> {
     const { data, error } = await supabase
       .from("employee_availability")
-      .insert(availability)
+      .upsert({ ...availability, employee_id: employeeId })
       .select()
       .single();
 
     if (error) {
-      throw new Error("Failed to create employee availability");
+      throw new Error("Failed to upsert employee availability");
     }
 
     return data;
   },
 
-  async updateEmployeeAvailability(
-    employeeId: string,
-    availability: EmployeeAvailability
-  ): Promise<EmployeeAvailability> {
-    const { data, error } = await supabase
-      .from("employee_availability")
-      .update(availability)
-      .eq("employee_id", employeeId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error("Failed to update employee availability");
-    }
-
-    return data;
-  },
-
-  async deleteEmployeeAvailability(employeeId: string): Promise<void> {
+  async deleteEmployeeAvailability(availabilityId: string): Promise<void> {
     const { error } = await supabase
       .from("employee_availability")
       .delete()
-      .eq("employee_id", employeeId);
+      .eq("id", availabilityId);
 
     if (error) {
       throw new Error("Failed to delete employee availability");
