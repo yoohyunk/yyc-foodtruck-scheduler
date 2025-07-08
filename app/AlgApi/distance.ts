@@ -27,7 +27,7 @@ async function delay(ms: number) {
 function formatAddress(address: string): string {
   // Check if address already has a city and province
   const hasCityProvince = /,\s*[A-Za-z\s]+,\s*AB/i.test(address);
-  
+
   if (hasCityProvince) {
     // Address already has city and Alberta province, just ensure it ends with "Canada"
     if (!address.toLowerCase().includes("canada")) {
@@ -38,22 +38,34 @@ function formatAddress(address: string): string {
 
   // Check if address contains an Alberta city name (matching AddressForm dropdown)
   const albertaCities = [
-    'calgary', 'airdrie', 'banff', 'canmore', 'cochrane', 'edmonton', 'fort mcmurray',
-    'grande prairie', 'leduc', 'lethbridge', 'medicine hat', 'okotoks', 'red deer',
-    'spruce grove', 'st. albert'
+    "calgary",
+    "airdrie",
+    "banff",
+    "canmore",
+    "cochrane",
+    "edmonton",
+    "fort mcmurray",
+    "grande prairie",
+    "leduc",
+    "lethbridge",
+    "medicine hat",
+    "okotoks",
+    "red deer",
+    "spruce grove",
+    "st. albert",
   ];
 
   const addressLower = address.toLowerCase();
-  const foundCity = albertaCities.find(city => addressLower.includes(city));
-  
+  const foundCity = albertaCities.find((city) => addressLower.includes(city));
+
   if (foundCity) {
     // Address contains a known Alberta city, add Alberta and Canada if missing
-    if (!addressLower.includes('alberta') && !addressLower.includes('ab')) {
+    if (!addressLower.includes("alberta") && !addressLower.includes("ab")) {
       return `${address}, Alberta, Canada`;
     }
-    
+
     // If Alberta is already present, just add Canada if missing
-    if (!addressLower.includes('canada')) {
+    if (!addressLower.includes("canada")) {
       return `${address}, Canada`;
     }
     return address;
@@ -170,24 +182,24 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
 // Get fallback coordinates based on address content
 function getFallbackCoordinates(address: string): Coordinates {
   const addressLower = address.toLowerCase();
-  
+
   // Major Alberta cities with their downtown coordinates (matching AddressForm dropdown)
   const albertaCityCoordinates: { [key: string]: Coordinates } = {
-    'calgary': { lat: 51.0452, lng: -114.0697 },
-    'airdrie': { lat: 51.2915, lng: -114.0147 },
-    'banff': { lat: 51.1784, lng: -115.5708 },
-    'canmore': { lat: 51.0891, lng: -115.3583 },
-    'cochrane': { lat: 51.1894, lng: -114.4680 },
-    'edmonton': { lat: 53.5461, lng: -113.4938 },
-    'fort mcmurray': { lat: 56.7264, lng: -111.3808 },
-    'grande prairie': { lat: 55.1699, lng: -118.7979 },
-    'leduc': { lat: 53.2594, lng: -113.5492 },
-    'lethbridge': { lat: 49.6942, lng: -112.8328 },
-    'medicine hat': { lat: 50.0421, lng: -110.7192 },
-    'okotoks': { lat: 50.7256, lng: -113.9747 },
-    'red deer': { lat: 52.2691, lng: -113.8117 },
-    'spruce grove': { lat: 53.5454, lng: -113.9187 },
-    'st. albert': { lat: 53.6305, lng: -113.6256 }
+    calgary: { lat: 51.0452, lng: -114.0697 },
+    airdrie: { lat: 51.2915, lng: -114.0147 },
+    banff: { lat: 51.1784, lng: -115.5708 },
+    canmore: { lat: 51.0891, lng: -115.3583 },
+    cochrane: { lat: 51.1894, lng: -114.468 },
+    edmonton: { lat: 53.5461, lng: -113.4938 },
+    "fort mcmurray": { lat: 56.7264, lng: -111.3808 },
+    "grande prairie": { lat: 55.1699, lng: -118.7979 },
+    leduc: { lat: 53.2594, lng: -113.5492 },
+    lethbridge: { lat: 49.6942, lng: -112.8328 },
+    "medicine hat": { lat: 50.0421, lng: -110.7192 },
+    okotoks: { lat: 50.7256, lng: -113.9747 },
+    "red deer": { lat: 52.2691, lng: -113.8117 },
+    "spruce grove": { lat: 53.5454, lng: -113.9187 },
+    "st. albert": { lat: 53.6305, lng: -113.6256 },
   };
 
   // Check if address contains any known Alberta city
@@ -198,7 +210,7 @@ function getFallbackCoordinates(address: string): Coordinates {
   }
 
   // Default to Calgary if no specific Alberta city is found (maintaining backward compatibility)
-  return albertaCityCoordinates['calgary'];
+  return albertaCityCoordinates["calgary"];
 }
 
 export async function calculateDistance(
