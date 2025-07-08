@@ -10,6 +10,7 @@ import {
   FiPlus,
   FiBarChart2,
   FiHome,
+  FiInfo,
 } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { NavLink } from "../types";
@@ -29,6 +30,7 @@ const sidebarLinks: NavLink[] = [
   { name: "Schedule", href: "/schedule/", icon: <FiCalendar /> },
   { name: "Trucks", href: "/trucks/", icon: <FiTruck /> },
   { name: "Add Trucks", href: "/trucks/add-trucks", icon: <FiPlus /> },
+  { name: "About Trucks", href: "/about", icon: <FiInfo /> },
   { name: "Requests", href: "/requests/", icon: <FiFileText /> },
   { name: "Reports", href: "/reports/", icon: <FiBarChart2 /> },
 ];

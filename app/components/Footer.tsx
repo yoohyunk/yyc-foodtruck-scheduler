@@ -28,12 +28,6 @@ export function Footer() {
           Back to Dashboard
         </Link>
         <Link
-          href="/about"
-          className="hover:text-primary-light transition-colors"
-        >
-          About Trucks
-        </Link>
-        <Link
           href="/contact"
           className="hover:text-primary-light transition-colors"
         >
