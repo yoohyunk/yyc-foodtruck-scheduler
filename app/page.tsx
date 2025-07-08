@@ -1,17 +1,14 @@
 "use client";
 import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
-import { HomePageEvent, TimeOffRequest, NavLink } from "./types";
+import { HomePageEvent, TimeOffRequest } from "./types";
 import { TutorialOverlay } from "./tutorial";
-import { FiUsers, FiCalendar, FiTruck, FiClock } from "react-icons/fi";
-import { FaRegCalendarAlt } from "react-icons/fa";
 import { useTutorial } from "./tutorial/TutorialContext";
 import { TutorialHighlight } from "./components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 
 export default function Home(): ReactElement {
-  const [hoveredLink, setHoveredLink] = useState<number | null>(null);
   const [events, setEvents] = useState<HomePageEvent[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,14 +63,6 @@ export default function Home(): ReactElement {
     fetchData();
   }, []);
 
-  const links: NavLink[] = [
-    { name: "Schedule", href: "/schedule", icon: <FiCalendar /> },
-    { name: "Employees", href: "/employees", icon: <FiUsers /> },
-    { name: "Events", href: "/events", icon: <FaRegCalendarAlt /> },
-    { name: "Trucks", href: "/trucks", icon: <FiTruck /> },
-    { name: "Time-Off", href: "/requests", icon: <FiClock /> },
-  ];
-
   return (
     <div className="landing-container">
       <TutorialOverlay />
@@ -82,31 +71,6 @@ export default function Home(): ReactElement {
         <p className="landing-subtitle">
           Employee scheduling and management system
         </p>
-
-        <div className="landing-links">
-          {links.map((link, index) => {
-            // Build the selector for this TutorialHighlight component
-            const selector = `.landing-links .TutorialHighlight:nth-child(${index + 1})`;
-            const isHighlighted = shouldHighlight(selector);
-            return (
-              <TutorialHighlight
-                key={index}
-                isHighlighted={isHighlighted}
-                className={`landing-link ${hoveredLink === index ? "bg-gray-100 scale-105 transition-transform" : ""}`}
-              >
-                <a
-                  href={link.href}
-                  className="landing-link-inner"
-                  onMouseEnter={() => setHoveredLink(index)}
-                  onMouseLeave={() => setHoveredLink(null)}
-                >
-                  <span className="landing-link-icon">{link.icon}</span>
-                  <span>{link.name}</span>
-                </a>
-              </TutorialHighlight>
-            );
-          })}
-        </div>
 
         {/* Upcoming Events Section */}
         <TutorialHighlight
@@ -117,7 +81,7 @@ export default function Home(): ReactElement {
             <h2 className="section-title">Upcoming Events</h2>
             <div className="grid gap-4">
               {isLoading ? (
-                <p className="text-gray-500">Loading events...</p>
+                <p style={{ color: "var(--text-muted)" }}>Loading events...</p>
               ) : events.length > 0 ? (
                 events.map((event, index) => (
                   <div key={index} className="section-card">
@@ -131,7 +95,9 @@ export default function Home(): ReactElement {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500">No upcoming events.</p>
+                <p style={{ color: "var(--text-muted)" }}>
+                  No upcoming events.
+                </p>
               )}
             </div>
           </section>
@@ -146,7 +112,9 @@ export default function Home(): ReactElement {
             <h2 className="section-title">Time-Off Requests</h2>
             <div className="grid gap-4">
               {isLoading ? (
-                <p className="text-gray-500">Loading requests...</p>
+                <p style={{ color: "var(--text-muted)" }}>
+                  Loading requests...
+                </p>
               ) : timeOffRequests.length > 0 ? (
                 timeOffRequests.map((request, index) => (
                   <div key={index} className="section-card">
@@ -162,13 +130,21 @@ export default function Home(): ReactElement {
                     <p className="section-card-text">
                       <strong>Status:</strong>
                       <span
-                        className={`ml-2 px-2 py-1 rounded text-xs ${
-                          request.status === "Approved"
-                            ? "bg-green-100 text-green-800"
-                            : request.status === "Rejected"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
-                        }`}
+                        className="ml-2 px-2 py-1 rounded text-xs"
+                        style={{
+                          background:
+                            request.status === "Approved"
+                              ? "var(--success-light)"
+                              : request.status === "Rejected"
+                                ? "var(--error-light)"
+                                : "var(--warning-light)",
+                          color:
+                            request.status === "Approved"
+                              ? "var(--success-dark)"
+                              : request.status === "Rejected"
+                                ? "var(--error-dark)"
+                                : "var(--warning-dark)",
+                        }}
                       >
                         {request.status}
                       </span>
@@ -181,7 +157,9 @@ export default function Home(): ReactElement {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500">No upcoming time-off requests.</p>
+                <p style={{ color: "var(--text-muted)" }}>
+                  No upcoming time-off requests.
+                </p>
               )}
             </div>
           </section>

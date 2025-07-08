@@ -21,7 +21,12 @@ export default function DeleteEventModal({
       <div className="modal-container">
         <h3 className="modal-title text-red-700">Delete Event</h3>
         <div className="modal-body">
-          <div className="text-4xl mb-4 text-red-600 text-center">&#10060;</div>
+          <div
+            className="text-4xl mb-4 text-center"
+            style={{ color: "var(--error-medium)" }}
+          >
+            &#10060;
+          </div>
           <p className="text-lg font-bold mb-2 text-gray-900 text-center">
             Are you sure you want to delete this event?
           </p>

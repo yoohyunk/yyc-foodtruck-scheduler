@@ -76,35 +76,67 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       position: "bottom",
     },
     {
-      id: "main-navigation",
-      title: "Main Navigation Buttons 🧭",
+      id: "sidebar-introduction",
+      title: "Navigation Sidebar 🧭",
       content:
-        "These are your main navigation buttons. Each button takes you to a different section of the system. Let's go through each one to understand what they do.",
-      target: ".landing-links",
-      position: "bottom",
+        "This sidebar contains all your navigation options. It's your main way to move between different sections of the system. Let's explore what each button does!",
+      target: ".sidebar",
+      position: "right",
     },
     {
-      id: "schedule-button",
-      title: "Schedule Button 📅",
+      id: "dashboard-button",
+      title: "Dashboard Button 🏠",
       content:
-        "Click this button to view and manage your team's work schedule. Here you can see who's working when and create new shifts.",
-      target: ".landing-links .TutorialHighlight:nth-child(1)",
+        "This button takes you back to the main dashboard. You're currently here! This is where you can see an overview of upcoming events and time-off requests.",
+      target: ".sidebar-nav-dashboard",
       position: "right",
     },
     {
       id: "employees-button",
       title: "Employees Button 👥",
       content:
-        "This button takes you to your employee management page. Here you can add new staff, view employee details, and manage their information.",
-      target: ".landing-links .TutorialHighlight:nth-child(2)",
+        "Click this button to manage your team. Here you can view all employees, add new staff, edit employee details, and manage their information.",
+      target: ".sidebar-nav-employees",
+      position: "right",
+    },
+    {
+      id: "add-employee-button",
+      title: "Add Employee Button ➕",
+      content:
+        "Click this button to quickly add a new employee to your team. This will take you to the employee invitation form where you can enter their details.",
+      target: ".sidebar-nav-add-employee",
       position: "right",
     },
     {
       id: "events-button",
       title: "Events Button 🎉",
       content:
-        "Click here to manage your food truck events. You can create new events, view upcoming events, and assign staff to events.",
-      target: ".landing-links .TutorialHighlight:nth-child(3)",
+        "Click here to manage your food truck events. You can view all events, create new ones, and assign staff to events.",
+      target: ".sidebar-nav-events",
+      position: "right",
+    },
+    {
+      id: "add-shift-button",
+      title: "Add Shift Button 📅",
+      content:
+        "Click this button to quickly create a new work shift. This will take you to the schedule page where you can set up work shifts for your employees.",
+      target: ".sidebar-nav-add-shift",
+      position: "right",
+    },
+    {
+      id: "add-event-button",
+      title: "Add Event Button ➕",
+      content:
+        'To create a new event, click this button. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      target: ".sidebar-nav-add-event",
+      position: "right",
+    },
+    {
+      id: "schedule-button",
+      title: "Schedule Button 📅",
+      content:
+        "Click this button to view and manage your team's work schedule. Here you can see who's working when and create new shifts.",
+      target: ".sidebar-nav-schedule",
       position: "right",
     },
     {
@@ -112,54 +144,38 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Trucks Button 🚚",
       content:
         "This button takes you to your truck management page. Here you can add new trucks, view your fleet, and manage truck details.",
-      target: ".landing-links .TutorialHighlight:nth-child(4)",
+      target: ".sidebar-nav-trucks",
       position: "right",
     },
     {
-      id: "timeoff-button",
-      title: "Time-Off Button 🌴",
+      id: "add-trucks-button",
+      title: "Add Trucks Button ➕",
+      content:
+        "Click this button to add new trucks to your fleet. You can specify the truck type, capacity, and other details.",
+      target: ".sidebar-nav-add-trucks",
+      position: "right",
+    },
+    {
+      id: "requests-button",
+      title: "Requests Button 📋",
       content:
         "Click here to manage time-off requests from your staff. You can approve or deny requests and view upcoming time off.",
-      target: ".landing-links .TutorialHighlight:nth-child(5)",
+      target: ".sidebar-nav-requests",
       position: "right",
     },
     {
-      id: "quick-actions-sidebar",
-      title: "Quick Actions Sidebar ⚡",
+      id: "reports-button",
+      title: "Reports Button 📊",
       content:
-        "This sidebar contains quick action buttons for common tasks. You can quickly create new shifts, add staff, or create events without navigating through menus.",
-      target: ".sidebar",
-      position: "right",
-    },
-    {
-      id: "new-shift-button",
-      title: "New Shift Button ➕",
-      content:
-        "Click this button to quickly create a new shift. This will take you to the schedule page where you can set up work shifts for your employees.",
-      target: ".sidebar .TutorialHighlight:nth-child(1)",
-      position: "right",
-    },
-    {
-      id: "add-staff-button",
-      title: "Add Staff Button 👥",
-      content:
-        "Click this button to quickly add a new employee to your team. This will take you to the employee invitation form.",
-      target: ".sidebar .TutorialHighlight:nth-child(2)",
-      position: "right",
-    },
-    {
-      id: "create-event",
-      title: "Create New Event ➕",
-      content:
-        'To create a new event, click the "Create Event" button in the Quick Actions sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
-      target: ".sidebar .TutorialHighlight:nth-child(3)",
+        "This button takes you to the reports section where you can view analytics and reports about your business operations.",
+      target: ".sidebar-nav-reports",
       position: "right",
     },
     {
       id: "upcoming-events",
       title: "Upcoming Events Section 📅",
       content:
-        "This section shows your next 5 upcoming events. Each card shows the event name, date, and location. Click on an event to see more details.",
+        "This section shows your next 6 upcoming events. Each card shows the event name, date, and location. Click on an event to see more details.",
       target: ".upcoming-events-highlight",
       position: "bottom",
     },
@@ -167,7 +183,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "timeoff-requests",
       title: "Time-Off Requests Section 🌴",
       content:
-        "Here you can see the next 3 time-off requests from your staff. Each card shows the type of request, dates, and reason. Click to approve or deny requests.",
+        "Here you can see the next 4 time-off requests from your staff. Each card shows the type of request, dates, and reason. Click to approve or deny requests.",
       target: ".timeoff-requests-highlight",
       position: "bottom",
     },
@@ -175,7 +191,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "navigation-tips",
       title: "Quick Tips 💡",
       content:
-        "Hover over any button to see it highlight. The help button in the footer can restart this tutorial anytime you need it. Each section updates automatically with the latest information.",
+        "Hover over any sidebar button to see it highlight. The help button in the footer can restart this tutorial anytime you need it. Each section updates automatically with the latest information.",
       target: ".landing-main",
       position: "bottom",
     },
@@ -201,8 +217,8 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "add-employee",
       title: "Add New Employee ➕",
       content:
-        'To add a new employee, click the "Add Staff" button in the Quick Actions sidebar. Important tips for the form: 1) Don\'t add number suffixes to numbered streets, 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
-      target: ".sidebar .TutorialHighlight:nth-child(2)",
+        'To add a new employee, click the "Add Employee" button in the sidebar. Important tips for the form: 1) Don\'t add number suffixes to numbered streets, 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      target: ".sidebar-nav-add-employee",
       position: "right",
     },
     {
@@ -226,14 +242,6 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         nextPath: "/employees/{employeeId}",
         waitAfter: 800,
       },
-    },
-    {
-      id: "quick-actions-sidebar",
-      title: "Quick Actions Sidebar ⚡",
-      content:
-        "This sidebar contains quick action buttons for common tasks. Only admins can use these actions to quickly create new shifts, add staff, or create events without navigating through menus.",
-      target: ".sidebar",
-      position: "right",
     },
   ],
   "/events": [
@@ -265,8 +273,8 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "create-event",
       title: "Create New Event ➕",
       content:
-        'To create a new event, click the "Create Event" button in the Quick Actions sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
-      target: ".sidebar .TutorialHighlight:nth-child(3)",
+        'To create a new event, click the "Add Event" button in the sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      target: ".sidebar-nav-add-event",
       position: "right",
     },
     {
@@ -367,8 +375,8 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "create-shift",
       title: "Create Shift ➕",
       content:
-        'To create a new shift, click the "New Shift" button. You\'ll need to select: the date, time, location, and which employees will work. The system will help you find available staff.',
-      target: ".new-shift-button",
+        'To create a new shift, click the "Add Shift" button in the sidebar. You\'ll need to select: the date, time, location, and which employees will work. The system will help you find available staff.',
+      target: ".sidebar-nav-add-shift",
       position: "right",
     },
     {
