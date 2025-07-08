@@ -72,21 +72,54 @@ export const wagesApi = {
     return data;
   },
 
-  // Update wage record
-  async updateWage(id: string, updateData: TablesUpdate<"wage">) {
-    const { data, error } = await supabase
-      .from("wage")
-      .update(updateData)
-      .eq("id", id)
-      .select()
-      .single();
+  // Update wage record with history
+  // if the wage is being updated, we need to create a new wage record with the new wage and the end_date of the old wage
+  // we need to update the employee with the new wage
+  // we need to update the employee with the new wage
+  // we need to delete the old wage record
 
-    if (error) {
-      console.error("Error updating wage:", error);
-      throw error;
+  async updateWage(id: string, newWageValue: number) {
+    const { data: wageRows, error: wageFetchError } = await supabase
+      .from("wage")
+      .select("*")
+      .eq("employee_id", id)
+      .order("start_date", { ascending: false });
+
+    if (wageFetchError) {
+      console.error("Error fetching wages:", wageFetchError);
+      throw wageFetchError;
     }
 
-    return data;
+    const currentWage = wageRows && wageRows.length > 0 ? wageRows[0] : null;
+
+    if (!currentWage || currentWage.hourly_wage !== newWageValue) {
+      if (currentWage) {
+        await supabase
+          .from("wage")
+          .update({ end_date: new Date().toISOString() })
+          .eq("id", currentWage.id);
+      }
+      const wageData = {
+        employee_id: id as string,
+        hourly_wage: newWageValue,
+        start_date: new Date().toISOString(),
+        end_date: null,
+      };
+      const { data: newWage, error: insertError } = await supabase
+        .from("wage")
+        .insert(wageData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("Error creating new wage:", insertError);
+        throw insertError;
+      }
+
+      return newWage;
+    }
+
+    return currentWage;
   },
 
   // Delete wage record

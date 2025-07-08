@@ -26,6 +26,9 @@ import {
   createValidationRule,
   handleAutofill,
 } from "../../../lib/formValidation";
+import { addressesApi } from "@/lib/supabase/addresses";
+import { employeesApi } from "@/lib/supabase/employees";
+import { wagesApi } from "@/lib/supabase/wages";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams();
@@ -407,20 +410,18 @@ export default function EditEmployeePage(): ReactElement {
 
       if (existingEmployee?.address_id) {
         // Update existing address
-        const { error: addressError } = await supabase
-          .from("addresses")
-          .update({
+        const { error: addressError } = await addressesApi.updateAddress(
+          existingEmployee.address_id,
+          {
             street,
             city,
             province,
             postal_code: postalCode,
             country,
-            latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-            longitude: formData.longitude
-              ? parseFloat(formData.longitude)
-              : null,
-          })
-          .eq("id", existingEmployee.address_id);
+            latitude: formData.latitude || null,
+            longitude: formData.longitude || null,
+          }
+        );
 
         if (addressError) {
           setValidationErrors([
@@ -488,6 +489,7 @@ export default function EditEmployeePage(): ReactElement {
       };
 
       // Only update email and phone if they're different from the current ones
+
       const { data: currentEmployee } = await supabase
         .from("employees")
         .select("user_email, user_phone")
@@ -495,7 +497,28 @@ export default function EditEmployeePage(): ReactElement {
         .single();
 
       if (formData.email !== currentEmployee?.user_email) {
-        updateData.user_email = formData.email;
+        if (currentEmployee?.user_email === null) {
+          updateData.user_email = formData.email;
+        } else {
+          const currentEmailExists = await employeesApi.checkIfEmailExists(
+            formData.email,
+            id as string
+          );
+          if (currentEmailExists) {
+            setValidationErrors([
+              {
+                field: "email",
+                message:
+                  "This email is already in use by another employee. Please use a different email.",
+                element: emailRef.current,
+              },
+            ]);
+            setShowErrorModal(true);
+            return;
+          } else {
+            updateData.user_email = formData.email;
+          }
+        }
       }
 
       // Check if the new phone number is already used by another employee
@@ -505,14 +528,12 @@ export default function EditEmployeePage(): ReactElement {
           updateData.user_phone = formData.phone;
         } else {
           // Check if the new phone number is already used by another employee
-          const { data: existingEmployeeWithPhone } = await supabase
-            .from("employees")
-            .select("employee_id")
-            .eq("user_phone", formData.phone)
-            .neq("employee_id", id)
-            .single();
+          const currentPhoneExists = await employeesApi.checkIfPhoneExists(
+            formData.phone,
+            id as string
+          );
 
-          if (existingEmployeeWithPhone) {
+          if (currentPhoneExists) {
             setValidationErrors([
               {
                 field: "phone",
@@ -531,32 +552,12 @@ export default function EditEmployeePage(): ReactElement {
         updateData.user_phone = currentEmployee.user_phone;
       }
 
-      console.log("Final update data:", updateData);
-      console.log("Employee ID:", id);
-      console.log("Current email:", currentEmployee?.user_email);
-      console.log("New email:", formData.email);
-      console.log("Current phone:", currentEmployee?.user_phone);
-      console.log("New phone:", formData.phone);
-
-      console.log("Updating employee in database...");
-      const { error: employeeError } = await supabase
-        .from("employees")
-        .update(updateData)
-        .eq("employee_id", id)
-        .select()
-        .single();
-
-      if (employeeError) {
-        console.error("Error updating employee:", employeeError);
+      // update employee with employeeApi error handling
+      try {
+        await employeesApi.updateEmployee(id as string, updateData);
+      } catch (error) {
         setValidationErrors([
-          {
-            field: "submit",
-            message:
-              employeeError instanceof Error
-                ? employeeError.message
-                : "Failed to update employee. Please try again.",
-            element: null,
-          },
+          { field: "submit", message: error.message, element: null },
         ]);
         setShowErrorModal(true);
         return;
@@ -589,47 +590,10 @@ export default function EditEmployeePage(): ReactElement {
       // Wage update with history
       if (formData.wage) {
         try {
-          const newWageValue = parseFloat(formData.wage);
-          const { data: wageRows, error: wageFetchError } = await supabase
-            .from("wage")
-            .select("*")
-            .eq("employee_id", id)
-            .order("start_date", { ascending: false });
-
-          if (wageFetchError) {
-            setValidationErrors([
-              { field: "wage", message: wageFetchError.message, element: null },
-            ]);
-            setShowErrorModal(true);
-          } else {
-            const currentWage =
-              wageRows && wageRows.length > 0 ? wageRows[0] : null;
-            if (!currentWage || currentWage.hourly_wage !== newWageValue) {
-              if (currentWage) {
-                await supabase
-                  .from("wage")
-                  .update({ end_date: new Date().toISOString() })
-                  .eq("id", currentWage.id);
-              }
-              const wageData = {
-                employee_id: id as string,
-                hourly_wage: newWageValue,
-                start_date: new Date().toISOString(),
-                end_date: null,
-              };
-              await supabase.from("wage").insert(wageData);
-            }
-          }
+          await wagesApi.updateWage(id as string, parseFloat(formData.wage));
         } catch (wageError) {
           setValidationErrors([
-            {
-              field: "wage",
-              message:
-                wageError instanceof Error
-                  ? wageError.message
-                  : "Error updating wage.",
-              element: null,
-            },
+            { field: "wage", message: wageError.message, element: null },
           ]);
           setShowErrorModal(true);
         }
