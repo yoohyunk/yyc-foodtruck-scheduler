@@ -254,7 +254,6 @@ export default function EditEmployeePage(): ReactElement {
     address: string,
     coordinates?: { latitude: number; longitude: number }
   ) => {
-    console.log("AddressForm onChange called with:", address, coordinates);
     const addressData = parseAddressString(address);
 
     setFormData((prev) => ({
@@ -297,7 +296,6 @@ export default function EditEmployeePage(): ReactElement {
   // Handle form submission
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form submission started");
 
     const validationRules: ValidationRule[] = [
       createValidationRule(
@@ -362,27 +360,11 @@ export default function EditEmployeePage(): ReactElement {
       const postalCode = formData.postalCode || "";
       const country = formData.country || "Canada";
 
-      console.log("FormData address fields:", {
-        street: formData.street,
-        city: formData.city,
-        province: formData.province,
-        postalCode: formData.postalCode,
-        country: formData.country,
-      });
-
-      console.log("Address data to process:", {
-        street,
-        city,
-        province,
-        postalCode,
-        country,
-      });
-
       // Update or create address
       let addressId: string | null = null;
 
       // Check if employee has existing address
-      console.log("Checking existing employee address...");
+
       const { data: existingEmployee, error: existingEmployeeError } =
         await supabase
           .from("employees")
@@ -409,8 +391,6 @@ export default function EditEmployeePage(): ReactElement {
           existingEmployeeError
         );
       }
-
-      console.log("Existing employee data:", existingEmployee);
 
       if (existingEmployee?.address_id) {
         // Update existing address
@@ -470,8 +450,6 @@ export default function EditEmployeePage(): ReactElement {
         }
         addressId = newAddress.id;
       }
-
-      console.log("Final addressId value:", addressId);
 
       // Update employee with address_id
       const updateData: {
