@@ -282,7 +282,7 @@ export default function EditEmployeePage(): ReactElement {
       handleAvailabilityChange(
         day,
         originalAvailability?.start_time || "00:00",
-        originalAvailability?.end_time || "23:59"
+        originalAvailability?.end_time || "23:59:59"
       );
     }
   };
@@ -1081,7 +1081,7 @@ const AvailabilityInput = ({
                 handleAvailabilityChange(
                   day,
                   e.target.value,
-                  endTime || "23:59"
+                  endTime || "23:59:59"
                 )
               }
             />
@@ -1091,7 +1091,7 @@ const AvailabilityInput = ({
             <input
               id={`${day}-end-time`}
               type="time"
-              value={endTime || "23:59"}
+              value={endTime || "23:59:59"}
               onChange={(e) =>
                 handleAvailabilityChange(
                   day,
@@ -1169,7 +1169,7 @@ const useAvailability = (id: string) => {
     const newAvailability = allDays.map((day) => ({
       day_of_week: day,
       start_time: "00:00",
-      end_time: "23:59",
+      end_time: "23:59:59",
       employee_id: id,
       created_at: new Date().toISOString(),
       id: crypto.randomUUID(),
@@ -1235,7 +1235,7 @@ const useAvailability = (id: string) => {
 
       if (startTime === "" || endTime === "") {
         startTime = "00:00";
-        endTime = "23:59";
+        endTime = "23:59:59";
       }
 
       // If there was an original availability but now we have empty times,
