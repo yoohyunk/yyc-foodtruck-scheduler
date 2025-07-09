@@ -54,7 +54,7 @@ export interface EmployeeFormData {
   phone: string;
   wage: string;
   isAvailable: boolean;
-  availability: string[];
+  availability?: string[];
   // Address fields for AddressForm
   street: string;
   city: string;

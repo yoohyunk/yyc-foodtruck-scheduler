@@ -48,6 +48,8 @@ export default function EditEmployeePage(): ReactElement {
     formAvailability,
     handleAvailabilityChange,
     handleUpsertAvailability,
+    clearAvailability,
+    selectAllAvailability,
   } = useAvailability(id);
 
   const [formData, setFormData] = useState<EmployeeFormData>({
@@ -59,7 +61,6 @@ export default function EditEmployeePage(): ReactElement {
     phone: "",
     wage: "",
     isAvailable: false,
-    availability: [] as string[],
     // Address fields
     street: "",
     city: "",
@@ -266,44 +267,24 @@ export default function EditEmployeePage(): ReactElement {
   };
 
   const handleDaySelection = (day: string) => {
-    if (formData.availability.includes(day)) {
-      // Remove day if already selected
-      setFormData({
-        ...formData,
-        availability: formData.availability.filter((d) => d !== day),
-      });
-      // retain original availability
+    const isDaySelected = formAvailability.some(
+      (availability) => availability.day_of_week === day
+    );
+
+    if (isDaySelected) {
+      // Remove day if already selected by setting empty times
       handleAvailabilityChange(day, "", "");
     } else {
       // Add day if not already selected
-      setFormData({
-        ...formData,
-        availability: [...formData.availability, day],
-      });
       const originalAvailability = employeeAvailability?.find(
         (availability) => availability.day_of_week === day
       );
+      // Use original times if they exist, otherwise use defaults
       handleAvailabilityChange(
         day,
-        originalAvailability?.start_time || "",
-        originalAvailability?.end_time || ""
+        originalAvailability?.start_time || "00:00",
+        originalAvailability?.end_time || "23:59"
       );
-    }
-  };
-
-  const handleSelectAll = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      // Select all days
-      setFormData({
-        ...formData,
-        availability: [...daysOfWeek],
-      });
-    } else {
-      // Deselect all days
-      setFormData({
-        ...formData,
-        availability: [],
-      });
     }
   };
 
@@ -508,7 +489,7 @@ export default function EditEmployeePage(): ReactElement {
         employee_type: formData.role,
         address_id: addressId, // Always update address_id
         is_available: formData.isAvailable,
-        availability: formData.availability,
+        availability: formAvailability.map((av) => av.day_of_week),
       };
 
       // Only update email and phone if they're different from the current ones
@@ -868,32 +849,46 @@ export default function EditEmployeePage(): ReactElement {
               className="availability-options"
             >
               <label className="flex gap-2 font-bold" htmlFor="select-all">
+                {/* if deselect clear availability */}
                 <span className="w-4 h-4">
                   <input
                     id="select-all"
                     type="checkbox"
-                    checked={formData.availability.length === daysOfWeek.length}
-                    onChange={handleSelectAll}
+                    checked={formAvailability.length === daysOfWeek.length}
+                    onChange={() => {
+                      if (formAvailability.length === daysOfWeek.length) {
+                        clearAvailability();
+                      } else {
+                        selectAllAvailability();
+                      }
+                    }}
+                    // check if  are selected and if so, show deselect all and when click deselet all it should clear availability
                   />
                 </span>
-                <span className="ml-2">Select All</span>
+                <span className="ml-2">
+                  {formAvailability.length === daysOfWeek.length
+                    ? "Deselect All"
+                    : "Select All"}
+                </span>
               </label>
               {daysOfWeek.map((day) => (
                 <AvailabilityInput
                   key={day}
                   day={day}
-                  isChecked={formData.availability.includes(day)}
+                  isChecked={formAvailability.some(
+                    (availability) => availability.day_of_week === day
+                  )}
                   handleDaySelection={handleDaySelection}
                   handleAvailabilityChange={handleAvailabilityChange}
                   startTime={
                     formAvailability.find(
                       (availability) => availability.day_of_week === day
-                    )?.start_time || ""
+                    )?.start_time || "00:00"
                   }
                   endTime={
                     formAvailability.find(
                       (availability) => availability.day_of_week === day
-                    )?.end_time || ""
+                    )?.end_time || "23:59"
                   }
                 />
               ))}
@@ -1103,9 +1098,13 @@ const AvailabilityInput = ({
             <input
               id={`${day}-start-time`}
               type="time"
-              value={startTime}
+              value={startTime || "00:00"}
               onChange={(e) =>
-                handleAvailabilityChange(day, e.target.value, endTime)
+                handleAvailabilityChange(
+                  day,
+                  e.target.value,
+                  endTime || "23:59"
+                )
               }
             />
           </label>
@@ -1114,9 +1113,13 @@ const AvailabilityInput = ({
             <input
               id={`${day}-end-time`}
               type="time"
-              value={endTime}
+              value={endTime || "23:59"}
               onChange={(e) =>
-                handleAvailabilityChange(day, startTime, e.target.value)
+                handleAvailabilityChange(
+                  day,
+                  startTime || "00:00",
+                  e.target.value
+                )
               }
             />
           </label>
@@ -1164,6 +1167,39 @@ const useAvailability = (id: string) => {
     }
   }, [employeeAvailability]);
 
+  const clearAvailability = () => {
+    setFormAvailability([]);
+  };
+
+  const removeDay = (day: string) => {
+    setFormAvailability((prev) =>
+      prev.filter((availability) => availability.day_of_week !== day)
+    );
+  };
+
+  const selectAllAvailability = () => {
+    const allDays = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ];
+
+    const newAvailability = allDays.map((day) => ({
+      day_of_week: day,
+      start_time: "00:00",
+      end_time: "23:59",
+      employee_id: id,
+      created_at: new Date().toISOString(),
+      id: crypto.randomUUID(),
+    }));
+
+    setFormAvailability(newAvailability);
+  };
+
   const handleAvailabilityChange = (
     dayOfWeek: string,
     startTime: string,
@@ -1173,7 +1209,14 @@ const useAvailability = (id: string) => {
     const currentDayIdx = newAvailability.findIndex(
       (availability) => availability.day_of_week === dayOfWeek
     );
-    if (currentDayIdx === -1) {
+
+    // If both times are empty, remove the day entirely
+    if (startTime === "" && endTime === "") {
+      if (currentDayIdx !== -1) {
+        newAvailability.splice(currentDayIdx, 1);
+      }
+    } else if (currentDayIdx === -1) {
+      // Add new day
       newAvailability.push({
         day_of_week: dayOfWeek,
         start_time: startTime,
@@ -1183,6 +1226,7 @@ const useAvailability = (id: string) => {
         id: crypto.randomUUID(),
       });
     } else {
+      // Update existing day
       newAvailability[currentDayIdx] = {
         ...newAvailability[currentDayIdx],
         start_time: startTime,
@@ -1193,28 +1237,57 @@ const useAvailability = (id: string) => {
   };
 
   const handleUpsertAvailability = () => {
+    // If formAvailability is empty, delete all existing availability
+    if (formAvailability.length === 0) {
+      employeeAvailability?.forEach((availability) => {
+        deleteAvailability(availability.id);
+      });
+      return;
+    }
+
     formAvailability.forEach((availability) => {
       const originalDayAvailability = employeeAvailability?.find(
         (a) => a.day_of_week === availability.day_of_week
       );
 
+      // If the day is selected in formData.availability but has empty times,
+      // use default times (00:00 - 23:59)
+      let startTime = availability.start_time;
+      let endTime = availability.end_time;
+
+      if (startTime === "" || endTime === "") {
+        startTime = "00:00";
+        endTime = "23:59";
+      }
+
+      // If there was an original availability but now we have empty times,
+      // delete the original entry
       if (
         Boolean(originalDayAvailability) &&
-        (availability.start_time === "" || availability.end_time === "")
+        availability.start_time === "" &&
+        availability.end_time === ""
       ) {
         deleteAvailability(originalDayAvailability?.id || "");
         return;
       }
 
-      if (availability.start_time === "" || availability.end_time === "") {
+      // Skip if both times are empty (day is not selected)
+      if (availability.start_time === "" && availability.end_time === "") {
         return;
       }
 
-      if (availability.start_time >= availability.end_time) {
+      if (startTime >= endTime) {
         throw new Error("Start time must be before end time");
       }
 
-      upsertEmployeeAvailability(availability);
+      // Create availability object with potentially default times
+      const availabilityToUpsert = {
+        ...availability,
+        start_time: startTime,
+        end_time: endTime,
+      };
+
+      upsertEmployeeAvailability(availabilityToUpsert);
     });
   };
 
@@ -1223,5 +1296,8 @@ const useAvailability = (id: string) => {
     formAvailability,
     handleAvailabilityChange,
     handleUpsertAvailability,
+    clearAvailability,
+    selectAllAvailability,
+    removeDay,
   };
 };
