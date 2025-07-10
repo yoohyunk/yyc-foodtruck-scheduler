@@ -102,7 +102,24 @@ export default function Trucks(): ReactElement {
         className="filter-buttons grid grid-cols-2 md:grid-cols-4 gap-2 mb-6"
       >
         <button
-          className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className="button"
+          style={{
+            backgroundColor:
+              activeFilter === "All" ? "var(--primary-dark)" : "var(--border)",
+            color:
+              activeFilter === "All" ? "var(--white)" : "var(--text-primary)",
+            border: "2px solid var(--border)",
+          }}
+          onMouseEnter={(e) => {
+            if (activeFilter !== "All") {
+              e.currentTarget.style.background = "var(--text-muted)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeFilter !== "All") {
+              e.currentTarget.style.background = "var(--border)";
+            }
+          }}
           onClick={() => setActiveFilter("All")}
         >
           All
@@ -111,10 +128,24 @@ export default function Trucks(): ReactElement {
           className="button"
           style={{
             backgroundColor:
-              activeFilter === "Food Truck" ? "var(--primary-dark)" : "#b36a5e",
-            border:
-              activeFilter === "Food Truck" ? undefined : "2px solid #b36a5e",
-            color: activeFilter === "Food Truck" ? "white" : "#1f2937",
+              activeFilter === "Food Truck"
+                ? "var(--primary-dark)"
+                : "var(--secondary-dark)",
+            color:
+              activeFilter === "Food Truck"
+                ? "var(--white)"
+                : "var(--text-primary)",
+            border: "2px solid var(--secondary-dark)",
+          }}
+          onMouseEnter={(e) => {
+            if (activeFilter !== "Food Truck") {
+              e.currentTarget.style.background = "var(--primary-dark)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeFilter !== "Food Truck") {
+              e.currentTarget.style.background = "var(--secondary-dark)";
+            }
           }}
           onClick={() => setActiveFilter("Food Truck")}
         >
@@ -126,12 +157,22 @@ export default function Trucks(): ReactElement {
             backgroundColor:
               activeFilter === "Beverage Truck"
                 ? "var(--primary-dark)"
-                : "#fff5cd",
-            border:
+                : "var(--primary-light)",
+            color:
               activeFilter === "Beverage Truck"
-                ? undefined
-                : "2px solid #fff5cd",
-            color: activeFilter === "Beverage Truck" ? "white" : "#1f2937",
+                ? "var(--white)"
+                : "var(--text-primary)",
+            border: "2px solid var(--primary-light)",
+          }}
+          onMouseEnter={(e) => {
+            if (activeFilter !== "Beverage Truck") {
+              e.currentTarget.style.background = "var(--primary-dark)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeFilter !== "Beverage Truck") {
+              e.currentTarget.style.background = "var(--primary-light)";
+            }
           }}
           onClick={() => setActiveFilter("Beverage Truck")}
         >
@@ -141,31 +182,30 @@ export default function Trucks(): ReactElement {
           className="button"
           style={{
             backgroundColor:
-              activeFilter === "Dessert Truck" ? undefined : "#e78f81",
-            border:
               activeFilter === "Dessert Truck"
-                ? undefined
-                : "2px solid #e78f81",
-            color: activeFilter === "Dessert Truck" ? "white" : "#1f2937",
+                ? "var(--primary-dark)"
+                : "var(--secondary-light)",
+            color:
+              activeFilter === "Dessert Truck"
+                ? "var(--white)"
+                : "var(--text-primary)",
+            border: "2px solid var(--secondary-light)",
+          }}
+          onMouseEnter={(e) => {
+            if (activeFilter !== "Dessert Truck") {
+              e.currentTarget.style.background = "var(--primary-dark)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeFilter !== "Dessert Truck") {
+              e.currentTarget.style.background = "var(--secondary-light)";
+            }
           }}
           onClick={() => setActiveFilter("Dessert Truck")}
         >
           Dessert Trucks
         </button>
       </TutorialHighlight>
-
-      {/* Add Truck Button - full width under filters */}
-      <div className="mb-8">
-        <button
-          onClick={() => router.push("/trucks/add-trucks")}
-          className="button bg-green-600 hover:bg-green-700 text-white w-full py-3 text-lg font-semibold rounded-lg shadow"
-        >
-          + Add Truck
-        </button>
-      </div>
-
-      {/* Spacer div to ensure visual separation */}
-      <div className="h-8"></div>
 
       {/* Truck List */}
       <TutorialHighlight
@@ -183,9 +223,10 @@ export default function Trucks(): ReactElement {
                 )}
               >
                 <div
-                  className="truck-card bg-white p-6 rounded-lg shadow-md relative"
+                  className="truck-card p-6 rounded-lg shadow-md relative"
                   style={{
-                    border: "1px solid #e5e7eb",
+                    backgroundColor: "var(--white)",
+                    border: "1px solid var(--border)",
                     borderLeft: `10px solid ${leftBorderColor}`,
                     borderRadius: "1.5rem",
                     transition: "border-color 0.2s",
@@ -255,7 +296,17 @@ export default function Trucks(): ReactElement {
             <p className="text-gray-500 text-lg mb-4">No trucks found.</p>
             <button
               onClick={() => router.push("/trucks/add-trucks")}
-              className="button bg-green-600 hover:bg-green-700 text-white"
+              className="button"
+              style={{
+                backgroundColor: "var(--success-medium)",
+                color: "var(--white)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--success-dark)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--success-medium)";
+              }}
             >
               Add Your First Truck
             </button>
