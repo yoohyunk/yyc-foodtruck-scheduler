@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Tables } from "@/database.types";
 
 // Supabase table types
@@ -72,6 +73,13 @@ export interface TutorialStep {
   position: "top" | "bottom" | "left" | "right";
 }
 
+export interface QuickAction {
+  title: string;
+  description: string;
+  href: string;
+  icon: ReactNode;
+}
+
 export interface NavLink {
   name: string;
   href: string;
@@ -142,14 +150,14 @@ export const getTruckTypeBadge = (type: string): string => {
 export const getTruckBorderColor = (type: string): string => {
   switch (type) {
     case "Food Truck":
-      return "var(--secondary-dark)";
+      return "#b36a5e"; // red color (you mentioned red for food truck)
     case "Beverage Truck":
-      return "var(--primary-light)";
+      return "#fff5cd"; // yellow color from schedule page (var(--primary-light))
     case "Dessert Truck":
-      return "var(--secondary-light)";
+      return "#e78f81"; // pink color from pending button (var(--accent))
     case "Holiday Truck":
-      return "var(--primary-dark)";
+      return "#dc2626"; // purple color to match the badge styling
     default:
-      return "var(--text-muted)";
+      return "#6b7280"; // default gray
   }
 };

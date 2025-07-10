@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { TutorialProvider, TutorialOverlay } from "@/app/tutorial";
 import { Footer } from "./Footer";
 import Header from "./Header";
-import Sidebar from "./Sidebar";
+import QuickActions from "./QuickActions";
 
 interface ClientLayoutContentProps {
   children: ReactNode;
@@ -26,46 +26,21 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
     if (type === "invite" && token && pathname === "/") {
       router.replace(`/set-password${window.location.search}`);
     }
-  }, [router, pathname]);
+  }, [pathname, router]);
 
   if (isPublicPage) {
-    return (
-      <TutorialProvider>
-        <div
-          className="min-h-screen"
-          style={{ background: "var(--background-light)" }}
-        >
-          {children}
-        </div>
-        <TutorialOverlay />
-      </TutorialProvider>
-    );
+    return <>{children}</>;
   }
 
   return (
     <TutorialProvider>
-      <div style={{ background: "var(--background-light)" }}>
-        {/* Header - sticky */}
-        <Header />
-
-        {/* Main content area with sidebar and content */}
-        <div className="flex" style={{ minHeight: "calc(100vh - 80px)" }}>
-          {/* Sidebar - always rendered, handles its own visibility */}
-          <Sidebar />
-
-          {/* Main content area */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <main className="flex-1">
-              <div className="main-content p-4 lg:p-8 lg:pt-6">{children}</div>
-            </main>
-
-            {/* Footer */}
-            <Footer />
-          </div>
-        </div>
-
-        <TutorialOverlay />
-      </div>
+      <Header />
+      <main className="container dashboard-grid flex-grow">
+        <QuickActions />
+        <div className="main-content p-4">{children}</div>
+      </main>
+      <Footer />
+      <TutorialOverlay />
     </TutorialProvider>
   );
 }

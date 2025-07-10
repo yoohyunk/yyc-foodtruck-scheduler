@@ -27,7 +27,7 @@ export function TutorialHighlight({
       element.style.position = "relative";
       element.style.zIndex = "10";
       element.style.backgroundColor = "rgba(34, 197, 94, 0.2)";
-      element.style.border = "3px solid var(--success-medium)";
+      element.style.border = "3px solid #22c55e";
       element.style.borderRadius = "8px";
       element.style.boxShadow = "0 0 20px rgba(34, 197, 94, 0.4)";
       element.style.animation = "tutorial-pulse 2s ease-in-out infinite";

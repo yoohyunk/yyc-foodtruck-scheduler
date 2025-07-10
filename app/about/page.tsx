@@ -147,19 +147,11 @@ export default function TruckManagementPage() {
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen py-8"
-        style={{ background: "var(--background)" }}
-      >
+      <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div
-            className="rounded-lg shadow-md p-8"
-            style={{ background: "var(--white)" }}
-          >
+          <div className="bg-white rounded-lg shadow-md p-8">
             <div className="text-center">
-              <p className="text-lg" style={{ color: "var(--text-muted)" }}>
-                Loading trucks...
-              </p>
+              <p className="text-lg text-gray-500">Loading trucks...</p>
             </div>
           </div>
         </div>
@@ -168,25 +160,14 @@ export default function TruckManagementPage() {
   }
 
   return (
-    <div
-      className="min-h-screen py-8"
-      style={{ background: "var(--background)" }}
-    >
+    <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div
-          className="rounded-lg shadow-md p-8"
-          style={{ background: "var(--white)" }}
-        >
+        <div className="bg-white rounded-lg shadow-md p-8">
           <div className="text-center mb-8">
-            <h1
-              className="text-3xl font-bold mb-4"
-              style={{ color: "var(--text-primary)" }}
-            >
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
               Truck Management
             </h1>
-            <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
-              Manage your food trucks
-            </p>
+            <p className="text-lg text-gray-600">Manage your food trucks</p>
           </div>
 
           <TutorialHighlight
@@ -200,7 +181,7 @@ export default function TruckManagementPage() {
                   key={truck.id}
                   className="truck-card"
                   style={{
-                    border: "1px solid var(--border)",
+                    border: "1px solid #e5e7eb",
                     borderLeft: `10px solid ${leftBorderColor}`,
                     borderRadius: "1.5rem",
                     transition: "border-color 0.2s",
@@ -213,16 +194,10 @@ export default function TruckManagementPage() {
                     className="h-full flex flex-col"
                   >
                     {/* Truck Header */}
-                    <div
-                      className="px-6 py-4"
-                      style={{ background: "var(--background)" }}
-                    >
+                    <div className="bg-gray-50 px-6 py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h3
-                            className="text-lg font-semibold"
-                            style={{ color: "var(--text-primary)" }}
-                          >
+                          <h3 className="text-lg font-semibold text-gray-900">
                             {truck.name}
                           </h3>
                           <div className="flex items-center mt-1">
@@ -231,25 +206,16 @@ export default function TruckManagementPage() {
                             >
                               {truck.type}
                             </span>
-                            <span
-                              className="text-sm ml-2"
-                              style={{ color: "var(--text-muted)" }}
-                            >
+                            <span className="text-sm text-gray-500 ml-2">
                               Capacity: {truck.capacity}
                             </span>
                             <div className="w-8"></div>
-                            <span
-                              className="text-sm"
-                              style={{ color: "var(--text-muted)" }}
-                            >
+                            <span className="text-sm text-gray-500">
                               Location:{" "}
                               {truck.addresses?.street || "No address"}
                             </span>
                           </div>
-                          <p
-                            className="text-sm mt-1"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
+                          <p className="text-sm text-gray-600 mt-1">
                             Status:{" "}
                             {truck.is_available ? "Available" : "Unavailable"}
                           </p>
@@ -262,19 +228,7 @@ export default function TruckManagementPage() {
                         >
                           <button
                             onClick={() => toggleTruckExpansion(truck.id)}
-                            className="ml-4 p-3 rounded-full transition-colors duration-200 shadow-md"
-                            style={{
-                              background: "var(--success-dark)",
-                              color: "var(--white)",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background =
-                                "var(--success-medium)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background =
-                                "var(--success-dark)";
-                            }}
+                            className="ml-4 bg-green-800 hover:bg-green-900 text-white p-3 rounded-full transition-colors duration-200 shadow-md"
                           >
                             <svg
                               className={`w-5 h-5 transition-transform duration-200 ${expandedTrucks.has(truck.id) ? "rotate-180" : ""}`}
@@ -296,14 +250,8 @@ export default function TruckManagementPage() {
 
                     {/* Dropdown Content */}
                     {expandedTrucks.has(truck.id) && (
-                      <div
-                        className="px-6 py-4 border-t"
-                        style={{ borderColor: "var(--border)" }}
-                      >
-                        <h4
-                          className="font-medium mb-3"
-                          style={{ color: "var(--text-primary)" }}
-                        >
+                      <div className="px-6 py-4 border-t border-gray-200">
+                        <h4 className="font-medium text-gray-900 mb-3">
                           Items to Pack
                         </h4>
                         <TutorialHighlight
@@ -345,8 +293,7 @@ export default function TruckManagementPage() {
                               />
                               <label
                                 htmlFor={`item-${truck.id}-${idx}`}
-                                className="ml-2 text-sm cursor-pointer select-none w-full text-left"
-                                style={{ color: "var(--text-primary)" }}
+                                className="ml-2 text-sm text-gray-800 cursor-pointer select-none w-full text-left"
                               >
                                 {item}
                               </label>
@@ -376,19 +323,7 @@ export default function TruckManagementPage() {
                             )}
                           >
                             <button
-                              className="px-3 py-1 text-sm rounded transition-colors"
-                              style={{
-                                background: "var(--success-medium)",
-                                color: "var(--white)",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background =
-                                  "var(--success-dark)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background =
-                                  "var(--success-medium)";
-                              }}
+                              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
                               onClick={() => {
                                 const packingList = Array.isArray(
                                   truck.packingList
@@ -419,38 +354,11 @@ export default function TruckManagementPage() {
                                   }))
                                 }
                                 placeholder="Add item..."
-                                className="px-2 py-1 border rounded text-sm focus:outline-none"
-                                style={{
-                                  borderColor: "var(--border)",
-                                  minWidth: 0,
-                                  flex: 1,
-                                }}
-                                onFocus={(e) => {
-                                  e.currentTarget.style.borderColor =
-                                    "var(--success-medium)";
-                                  e.currentTarget.style.boxShadow =
-                                    "0 0 0 2px var(--success-light)";
-                                }}
-                                onBlur={(e) => {
-                                  e.currentTarget.style.borderColor =
-                                    "var(--border)";
-                                  e.currentTarget.style.boxShadow = "";
-                                }}
+                                className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                style={{ minWidth: 0, flex: 1 }}
                               />
                               <button
-                                className="px-3 py-1 text-sm rounded transition-colors"
-                                style={{
-                                  background: "var(--text-muted)",
-                                  color: "var(--white)",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background =
-                                    "var(--text-secondary)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background =
-                                    "var(--text-muted)";
-                                }}
+                                className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
                                 onClick={async () => {
                                   await handleAddItem(truck.id);
                                   setShowAddInput((prev) => ({
@@ -512,12 +420,7 @@ export default function TruckManagementPage() {
           {deleteConfirm && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
-                <div
-                  className="text-4xl mb-4"
-                  style={{ color: "var(--error-medium)" }}
-                >
-                  &#10060;
-                </div>
+                <div className="text-4xl mb-4 text-red-600">&#10060;</div>
                 <h2 className="text-lg font-bold mb-2 text-gray-900">
                   Delete Item
                 </h2>
@@ -527,33 +430,13 @@ export default function TruckManagementPage() {
                 </p>
                 <div className="flex justify-center gap-4">
                   <button
-                    className="px-4 py-2 rounded"
-                    style={{
-                      background: "var(--border)",
-                      color: "var(--text-primary)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "var(--text-muted)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "var(--border)";
-                    }}
+                    className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
                     onClick={() => setDeleteConfirm(null)}
                   >
                     Cancel
                   </button>
                   <button
-                    className="px-4 py-2 rounded"
-                    style={{
-                      background: "var(--error-medium)",
-                      color: "var(--white)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "var(--error-dark)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "var(--error-medium)";
-                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                     onClick={async () => {
                       const { truckId, idx } = deleteConfirm;
                       setDeleteConfirm(null);

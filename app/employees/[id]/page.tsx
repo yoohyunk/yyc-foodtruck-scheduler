@@ -897,7 +897,7 @@ export default function EditEmployeePage(): ReactElement {
             style={{
               marginTop: "2rem",
               paddingTop: "1.5rem",
-              borderTop: "1px solid var(--border)",
+              borderTop: "1px solid #e5e7eb",
             }}
           >
             <div style={{ display: "flex", gap: "2rem", marginLeft: "1rem" }}>
@@ -971,7 +971,7 @@ export default function EditEmployeePage(): ReactElement {
               flexDirection: "column",
               alignItems: "center",
               maxWidth: 400,
-              border: "4px solid var(--error-medium)",
+              border: "4px solid #ef4444",
               fontFamily: "sans-serif",
             }}
           >
@@ -980,7 +980,7 @@ export default function EditEmployeePage(): ReactElement {
             </span>
             <p
               style={{
-                color: "var(--error-dark)",
+                color: "#b91c1c",
                 fontWeight: 800,
                 fontSize: "1.25rem",
                 marginBottom: "1rem",
@@ -994,7 +994,7 @@ export default function EditEmployeePage(): ReactElement {
               style={{
                 textAlign: "center",
                 marginBottom: "1.5rem",
-                color: "var(--text-secondary)",
+                color: "#4b5563",
                 fontSize: "1rem",
               }}
             >
@@ -1005,8 +1005,8 @@ export default function EditEmployeePage(): ReactElement {
               <button
                 style={{
                   padding: "0.5rem 1.5rem",
-                  background: "var(--border)",
-                  color: "var(--text-secondary)",
+                  background: "#e5e7eb",
+                  color: "#4b5563",
                   fontWeight: 700,
                   borderRadius: "0.5rem",
                   border: "none",
@@ -1017,10 +1017,10 @@ export default function EditEmployeePage(): ReactElement {
                 }}
                 onClick={() => setShowDeleteModal(false)}
                 onMouseOver={(e) =>
-                  (e.currentTarget.style.background = "var(--text-muted)")
+                  (e.currentTarget.style.background = "#d1d5db")
                 }
                 onMouseOut={(e) =>
-                  (e.currentTarget.style.background = "var(--border)")
+                  (e.currentTarget.style.background = "#e5e7eb")
                 }
               >
                 Cancel
@@ -1028,8 +1028,8 @@ export default function EditEmployeePage(): ReactElement {
               <button
                 style={{
                   padding: "0.5rem 1.5rem",
-                  background: "var(--error-medium)",
-                  color: "var(--white)",
+                  background: "#ef4444",
+                  color: "white",
                   fontWeight: 700,
                   borderRadius: "0.5rem",
                   border: "none",
@@ -1040,10 +1040,10 @@ export default function EditEmployeePage(): ReactElement {
                 }}
                 onClick={handleDelete}
                 onMouseOver={(e) =>
-                  (e.currentTarget.style.background = "var(--error-dark)")
+                  (e.currentTarget.style.background = "#dc2626")
                 }
                 onMouseOut={(e) =>
-                  (e.currentTarget.style.background = "var(--error-medium)")
+                  (e.currentTarget.style.background = "#ef4444")
                 }
               >
                 Delete
