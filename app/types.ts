@@ -8,6 +8,7 @@ export type Employee = Tables<"employees"> & {
   addresses?: Tables<"addresses">;
   currentWage?: number;
 };
+export type EmployeeAvailability = Tables<"employee_availability">;
 export type Truck = Tables<"trucks">;
 export type TruckAssignment = Tables<"truck_assignment">;
 export type TruckAssignmentCreate = {
@@ -52,7 +53,7 @@ export interface EmployeeFormData {
   phone: string;
   wage: string;
   isAvailable: boolean;
-  availability: string[];
+  availability?: string[];
   // Address fields for AddressForm
   street: string;
   city: string;

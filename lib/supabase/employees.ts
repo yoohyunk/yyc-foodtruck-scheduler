@@ -132,4 +132,40 @@ export const employeesApi = {
       throw new Error("Failed to delete employee");
     }
   },
+
+  async checkIfPhoneExists(
+    phone: string,
+    employeeId: string
+  ): Promise<boolean> {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("*")
+      .eq("user_phone", phone)
+      .neq("employee_id", employeeId)
+      .single();
+
+    if (error) {
+      throw new Error("Failed to check if phone exists");
+    }
+
+    return data !== null;
+  },
+
+  async checkIfEmailExists(
+    email: string,
+    employeeId: string
+  ): Promise<boolean> {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("*")
+      .eq("user_email", email)
+      .neq("employee_id", employeeId)
+      .single();
+
+    if (error) {
+      throw new Error("Failed to check if email exists");
+    }
+
+    return data !== null;
+  },
 };
