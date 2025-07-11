@@ -1514,10 +1514,6 @@ export default function AddEventPage(): ReactElement {
         </form>
       </div>
 
-      {isAddressValid && addressValidationMsg && (
-        <p className="text-green-600">{addressValidationMsg}</p>
-      )}
-
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
