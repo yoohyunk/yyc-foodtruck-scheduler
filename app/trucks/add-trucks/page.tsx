@@ -50,7 +50,6 @@ export default function AddTrucks(): ReactElement {
       "First Aid Kit",
       "Garbage Bags",
       "Garbage Can",
-      "Generator",
       "Menu Board",
       "Plates & Cups",
       "POS",
