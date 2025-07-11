@@ -40,7 +40,25 @@ export default function AddTrucks(): ReactElement {
     capacity: "",
     isAvailable: true,
     address: "",
-    packingList: [],
+    packingList: [
+      "Bleach Spray",
+      "Cash Float",
+      "Cloths",
+      "Cups",
+      "Engine Oil",
+      "Fire Extinguisher",
+      "First Aid Kit",
+      "Garbage Bags",
+      "Garbage Can",
+      "Generator",
+      "Menu Board",
+      "Plates & Cups",
+      "POS",
+      "Signs",
+      "Utensils",
+      "Water Tank",
+      "WiFi",
+    ],
   });
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
@@ -49,6 +67,9 @@ export default function AddTrucks(): ReactElement {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
+
+  // Add state for new packing list item
+  const [newPackingItem, setNewPackingItem] = useState<string>("");
 
   // Refs for form fields
   const nameRef = useRef<HTMLInputElement>(null);
@@ -65,21 +86,28 @@ export default function AddTrucks(): ReactElement {
   ];
 
   const packingListOptions = [
-    "Grill",
-    "Fryer",
-    "Refrigerator",
-    "Freezer",
-    "Sink",
-    "Prep Station",
-    "Storage Cabinets",
-    "Generator",
-    "Water Tank",
-    "Propane Tank",
-    "Utensils",
-    "Plates & Cups",
-    "Cleaning Supplies",
-    "First Aid Kit",
+    "Bleach Spray",
+    "Cash Float",
+    "Cloths",
+    "Cups",
+    "Diesel",
+    "Engine Oil",
     "Fire Extinguisher",
+    "First Aid Kit",
+    "Fryer Oil",
+    "Gas",
+    "Garbage Bags",
+    "Garbage Can",
+    "Generator",
+    "Generator Gas",
+    "Menu Board",
+    "Plates & Cups",
+    "POS",
+    "Propane Tank",
+    "Signs",
+    "Utensils",
+    "Water Tank",
+    "WiFi",
   ];
 
   const handleChange = (
@@ -107,6 +135,23 @@ export default function AddTrucks(): ReactElement {
       packingList: prev.packingList.includes(item)
         ? prev.packingList.filter((i) => i !== item)
         : [...prev.packingList, item],
+    }));
+  };
+
+  const handleAddPackingItem = () => {
+    if (newPackingItem.trim() && !formData.packingList.includes(newPackingItem.trim())) {
+      setFormData((prev) => ({
+        ...prev,
+        packingList: [...prev.packingList, newPackingItem.trim()],
+      }));
+      setNewPackingItem("");
+    }
+  };
+
+  const handleRemovePackingItem = (item: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      packingList: prev.packingList.filter((i) => i !== item),
     }));
   };
 
@@ -332,19 +377,87 @@ export default function AddTrucks(): ReactElement {
 
           <div className="input-group">
             <label className="input-label">Packing List</label>
-            <div className="packing-list-grid">
-              {packingListOptions.map((item) => (
-                <label key={item} className="packing-list-item">
-                  <input
-                    type="checkbox"
-                    checked={formData.packingList.includes(item)}
-                    onChange={() => handlePackingListChange(item)}
-                    className="packing-list-checkbox"
-                  />
-                  <span className="packing-list-text">{item}</span>
-                </label>
-              ))}
+            
+            {/* Predefined items */}
+            <div className="mb-4">
+              <h4 className="input-label mb-2">Predefined Items</h4>
+              <div className="packing-list-grid">
+                {packingListOptions.map((item) => (
+                  <label key={item} className="packing-list-item">
+                    <input
+                      type="checkbox"
+                      checked={formData.packingList.includes(item)}
+                      onChange={() => handlePackingListChange(item)}
+                      className="packing-list-checkbox"
+                    />
+                    <span className="packing-list-text">{item}</span>
+                  </label>
+                ))}
+              </div>
             </div>
+
+            {/* Add new item section */}
+            <div className="section-card mb-4">
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  value={newPackingItem}
+                  onChange={(e) => setNewPackingItem(e.target.value)}
+                  placeholder="Enter custom item..."
+                  className="input-field flex-1"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddPackingItem();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddPackingItem}
+                  disabled={!newPackingItem.trim() || formData.packingList.includes(newPackingItem.trim())}
+                  className="button btn-primary"
+                  style={{ minHeight: 'auto', padding: '0.75rem 1.5rem' }}
+                >
+                  Add
+                </button>
+              </div>
+              <p className="text-sm text-gray-500">
+                Press Enter or click Add to include custom items in the packing list
+              </p>
+            </div>
+
+            {/* Custom items */}
+            {formData.packingList.filter(item => !packingListOptions.includes(item)).length > 0 && (
+              <div className="mb-4">
+                <h4 className="input-label mb-2">Custom Items</h4>
+                <div className="space-y-2">
+                  {formData.packingList
+                    .filter(item => !packingListOptions.includes(item))
+                    .map((item) => (
+                      <div key={item} className="section-card flex items-center justify-between">
+                        <span className="packing-list-text font-medium">{item}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePackingItem(item)}
+                          className="text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Selected items summary */}
+            {formData.packingList.length > 0 && (
+              <div className="success-message">
+                <p>
+                  <strong>{formData.packingList.length}</strong> item{formData.packingList.length !== 1 ? 's' : ''} selected for packing list
+                </p>
+              </div>
+            )}
           </div>
 
           <button type="submit" className="button" disabled={isSubmitting}>
