@@ -13,6 +13,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 import ErrorModal from "../../components/ErrorModal";
+import ShopLocationDropdown from "@/app/components/ShopLocationDropdown";
+import { Coordinates } from "@/app/types";
 import {
   validateForm,
   ValidationRule,
@@ -26,6 +28,7 @@ interface TruckFormData {
   type: string;
   capacity: string;
   isAvailable: boolean;
+  address: string;
   packingList: string[];
   address_id?: string | null;
   [key: string]: unknown;
@@ -41,6 +44,7 @@ export default function EditTruckPage(): ReactElement {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
+  const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
   const { shouldHighlight } = useTutorial();
 
   // Add missing refs
@@ -79,6 +83,7 @@ export default function EditTruckPage(): ReactElement {
     type: "",
     capacity: "",
     isAvailable: false,
+    address: "",
     packingList: [],
     address_id: null,
   });
@@ -129,11 +134,27 @@ export default function EditTruckPage(): ReactElement {
         // Debug log to confirm loaded truck data
         console.log("Loaded truck data for edit:", truckData);
 
+        // Format address for the dropdown
+        let formattedAddress = "";
+        if (truckData.addresses) {
+          const addr = truckData.addresses;
+          formattedAddress = `${addr.street}, ${addr.city}, ${addr.postal_code}`;
+          
+          // Set coordinates if available
+          if (addr.latitude && addr.longitude) {
+            setCoordinates({
+              latitude: parseFloat(addr.latitude),
+              longitude: parseFloat(addr.longitude)
+            });
+          }
+        }
+
         setFormData({
           name: truckData.name || "",
           type: truckData.type || "",
           capacity: truckData.capacity ? String(truckData.capacity) : "",
           isAvailable: truckData.is_available || false,
+          address: formattedAddress,
           packingList: (truckData.packing_list as string[]) || [],
           address_id: truckData.address_id || null,
         });
@@ -168,6 +189,14 @@ export default function EditTruckPage(): ReactElement {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  const handleShopLocationChange = (address: string, coords?: Coordinates) => {
+    setFormData((prev) => ({
+      ...prev,
+      address: address,
+    }));
+    setCoordinates(coords);
   };
 
   const handlePackingListChange = (item: string) => {
@@ -235,6 +264,74 @@ export default function EditTruckPage(): ReactElement {
         return;
       }
 
+      // Handle address update if it changed
+      let addressId = formData.address_id;
+      if (formData.address && formData.address !== "") {
+        // Parse the address to extract components
+        const addressParts = formData.address.split(", ");
+        const streetPart = addressParts[0] || "";
+        const city = addressParts[1] || "Calgary";
+        const postalCode = addressParts[2] || "";
+
+        // Create or update address
+        const addressData = {
+          street: streetPart,
+          city: city,
+          province: "Alberta",
+          postal_code: postalCode,
+          country: "Canada",
+          latitude: coordinates?.latitude?.toString() ?? null,
+          longitude: coordinates?.longitude?.toString() ?? null,
+        };
+
+        if (formData.address_id) {
+          // Update existing address
+          const { data: updatedAddress, error: addressError } = await supabase
+            .from("addresses")
+            .update(addressData)
+            .eq("id", formData.address_id)
+            .select()
+            .single();
+
+          if (addressError) {
+            console.error("Error updating address:", addressError);
+            setValidationErrors([
+              {
+                field: "address",
+                message: "Failed to update address. Please try again.",
+                element: null,
+              },
+            ]);
+            setShowErrorModal(true);
+            setIsSubmitting(false);
+            return;
+          }
+          addressId = updatedAddress.id;
+        } else {
+          // Create new address
+          const { data: newAddress, error: addressError } = await supabase
+            .from("addresses")
+            .insert(addressData)
+            .select()
+            .single();
+
+          if (addressError) {
+            console.error("Error creating address:", addressError);
+            setValidationErrors([
+              {
+                field: "address",
+                message: "Failed to create address. Please try again.",
+                element: null,
+              },
+            ]);
+            setShowErrorModal(true);
+            setIsSubmitting(false);
+            return;
+          }
+          addressId = newAddress.id;
+        }
+      }
+
       // Prepare update payload to match DB structure
       const updateData = {
         name: formData.name,
@@ -243,8 +340,7 @@ export default function EditTruckPage(): ReactElement {
         is_available: formData.isAvailable,
         packing_list:
           formData.packingList.length > 0 ? formData.packingList : null,
-        address_id:
-          formData.address_id === undefined ? null : formData.address_id,
+        address_id: addressId,
       };
 
       // Debug log
@@ -387,6 +483,18 @@ export default function EditTruckPage(): ReactElement {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="location" className="input-label">
+              Shop Location <span className="text-red-500">*</span>
+            </label>
+            <ShopLocationDropdown
+              value={formData.address}
+              onChange={handleShopLocationChange}
+              placeholder="Select shop location"
+              required={false}
+            />
           </div>
 
           <div className="input-group">
