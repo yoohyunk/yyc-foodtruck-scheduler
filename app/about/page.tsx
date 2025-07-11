@@ -42,7 +42,7 @@ export default function TruckManagementPage() {
             addresses (*)
           `
           )
-          .order("created_at", { ascending: false });
+          .order("name", { ascending: true });
 
         if (error) {
           console.error("Error fetching trucks:", error);
