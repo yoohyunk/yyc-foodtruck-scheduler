@@ -29,10 +29,10 @@ export default function ErrorModal({
   const isSuccess = type === "success";
   const isConfirmation = type === "confirmation";
   const borderColor = isSuccess
-    ? "#22c55e"
+    ? "var(--success-medium)"
     : isConfirmation
-      ? "#ef4444"
-      : "#ef4444";
+      ? "var(--error-medium)"
+      : "var(--error-medium)";
   const icon = isSuccess ? "✅" : isConfirmation ? "⚠️" : "⚠️";
   const defaultTitle = isSuccess
     ? "Success!"

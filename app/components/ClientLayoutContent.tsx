@@ -5,8 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { TutorialProvider, TutorialOverlay } from "@/app/tutorial";
 import { Footer } from "./Footer";
 import Header from "./Header";
-import QuickActions from "./QuickActions";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Sidebar from "./Sidebar";
+
 
 interface ClientLayoutContentProps {
   children: ReactNode;
@@ -29,22 +31,47 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
     if (type === "invite" && token && pathname === "/") {
       router.replace(`/set-password${window.location.search}`);
     }
-  }, [pathname, router]);
+  }, [router, pathname]);
 
   if (isPublicPage) {
-    return <>{children}</>;
+    return (
+      <TutorialProvider>
+        <div
+          className="min-h-screen"
+          style={{ background: "var(--background-light)" }}
+        >
+          {children}
+        </div>
+        <TutorialOverlay />
+      </TutorialProvider>
+    );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <TutorialProvider>
-        <Header />
-        <main className="container dashboard-grid flex-grow">
-          <QuickActions />
-          <div className="main-content p-4">{children}</div>
-        </main>
-        <Footer />
-        <TutorialOverlay />
+        <div style={{ background: "var(--background-light)" }}>
+          {/* Header - sticky */}
+          <Header />
+
+          {/* Main content area with sidebar and content */}
+          <div className="flex" style={{ minHeight: "calc(100vh - 80px)" }}>
+            {/* Sidebar - always rendered, handles its own visibility */}
+            <Sidebar />
+
+            {/* Main content area */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <main className="flex-1">
+                <div className="main-content p-4 lg:p-8 lg:pt-6">{children}</div>
+              </main>
+
+              {/* Footer */}
+              <Footer />
+            </div>
+          </div>
+
+          <TutorialOverlay />
+        </div>
       </TutorialProvider>
     </QueryClientProvider>
   );
