@@ -112,6 +112,9 @@ export default function EventDetailsPage(): ReactElement {
     "error"
   );
 
+  // Server warning state
+  const [showServerWarning, setShowServerWarning] = useState<boolean>(false);
+
   // Memoize modal open/close handlers to prevent re-renders
   const openEmployeeModal = useCallback(() => setEmployeeModalOpen(true), []);
   const closeEmployeeModal = useCallback(() => setEmployeeModalOpen(false), []);
@@ -138,8 +141,8 @@ export default function EventDetailsPage(): ReactElement {
         setError(null);
         const eventData = await eventsApi.getEventById(id as string);
         setEvent(eventData);
-      } catch (err) {
-        console.error("Error fetching event:", err);
+      } catch (error) {
+        console.error("Error fetching event:", error);
         setError("Failed to load event details.");
       } finally {
         setIsLoadingEvent(false);
@@ -162,8 +165,8 @@ export default function EventDetailsPage(): ReactElement {
         const trucksData = await trucksApi.getAllTrucks();
         setTrucks(trucksData);
         setIsLoadingTrucks(false);
-      } catch (err) {
-        console.error("Error fetching data:", err);
+      } catch (error) {
+        console.error("Error fetching data:", error);
         setIsLoadingEmployees(false);
         setIsLoadingTrucks(false);
       }
@@ -194,8 +197,8 @@ export default function EventDetailsPage(): ReactElement {
         const assignments =
           await truckAssignmentsApi.getTruckAssignmentsByEventId(event.id);
         setTruckAssignments(assignments);
-      } catch (err) {
-        console.error("Error fetching truck assignments:", err);
+      } catch (error) {
+        console.error("Error fetching truck assignments:", error);
       }
     };
 
@@ -212,13 +215,23 @@ export default function EventDetailsPage(): ReactElement {
           event.id
         );
         setServerAssignments(assignments);
-      } catch (err) {
-        console.error("Error fetching server assignments:", err);
+
+        // Check if we need to show server warning
+        const requiredServers = event.number_of_servers_needed || 0;
+        const assignedServers = assignments.length;
+
+        if (assignedServers < requiredServers) {
+          setShowServerWarning(true);
+        } else {
+          setShowServerWarning(false);
+        }
+      } catch (error) {
+        console.error("Error fetching server assignments:", error);
       }
     };
 
     fetchServerAssignments();
-  }, [event?.id]);
+  }, [event?.id, event?.number_of_servers_needed]);
 
   // Update assigned employees when server assignments change
   useEffect(() => {
@@ -304,6 +317,22 @@ export default function EventDetailsPage(): ReactElement {
         await assignmentsApi.getServerAssignmentsByEventId(event.id);
       setServerAssignments(updatedAssignments);
 
+      // Refresh event data to get updated required servers count
+      const updatedEvent = await eventsApi.getEventById(event.id);
+      if (updatedEvent) {
+        setEvent(updatedEvent);
+      }
+
+      // Update server warning
+      const requiredServers = updatedEvent?.number_of_servers_needed || 0;
+      const assignedServers = updatedAssignments.length;
+
+      if (assignedServers < requiredServers) {
+        setShowServerWarning(true);
+      } else {
+        setShowServerWarning(false);
+      }
+
       showSuccess("Success", "Employee assignments updated successfully.");
     } catch (error) {
       console.error("Error saving employee assignments:", error);
@@ -331,6 +360,30 @@ export default function EventDetailsPage(): ReactElement {
 
   const closeErrorModal = () => {
     setIsErrorModalOpen(false);
+  };
+
+  // Function to refresh server assignments
+  const refreshServerAssignments = async () => {
+    if (!event?.id) return;
+
+    try {
+      const assignments = await assignmentsApi.getServerAssignmentsByEventId(
+        event.id
+      );
+      setServerAssignments(assignments);
+
+      // Update server warning
+      const requiredServers = event.number_of_servers_needed || 0;
+      const assignedServers = assignments.length;
+
+      if (assignedServers < requiredServers) {
+        setShowServerWarning(true);
+      } else {
+        setShowServerWarning(false);
+      }
+    } catch (error) {
+      console.error("Error refreshing server assignments:", error);
+    }
   };
 
   const handleTruckAssignment = async (
@@ -391,8 +444,8 @@ export default function EventDetailsPage(): ReactElement {
         }
         // If driverId is null and no existing assignment, do nothing (truck is not selected)
       }
-    } catch (err) {
-      console.error("Error handling truck assignment:", err);
+    } catch (error) {
+      console.error("Error handling truck assignment:", error);
       showError(
         "Assignment Error",
         "Failed to update truck assignment. Please try again."
@@ -434,8 +487,8 @@ export default function EventDetailsPage(): ReactElement {
 
       // Navigate back to events page
       router.push("/events");
-    } catch (err) {
-      console.error("Error deleting event:", err);
+    } catch (error) {
+      console.error("Error deleting event:", error);
       showError("Delete Error", "Failed to delete event. Please try again.");
     }
   };
@@ -455,8 +508,8 @@ export default function EventDetailsPage(): ReactElement {
         "Success",
         `Payment status updated to ${updatedEvent.is_prepaid ? "Prepaid" : "Pending"}.`
       );
-    } catch (err) {
-      console.error("Error updating payment status:", err);
+    } catch (error) {
+      console.error("Error updating payment status:", error);
       showError(
         "Update Error",
         "Failed to update payment status. Please try again."
@@ -476,8 +529,8 @@ export default function EventDetailsPage(): ReactElement {
       });
       setEvent(updatedEvent);
       showSuccess("Success", `Event status updated to ${newStatus}.`);
-    } catch (err) {
-      console.error("Error updating event status:", err);
+    } catch (error) {
+      console.error("Error updating event status:", error);
       showError(
         "Update Error",
         "Failed to update event status. Please try again."
@@ -699,8 +752,8 @@ export default function EventDetailsPage(): ReactElement {
       setEvent(updatedEvent);
       closeEditModal();
       showSuccess("Success", "Event updated successfully.");
-    } catch (err) {
-      console.error("Error updating event:", err);
+    } catch (error) {
+      console.error("Error updating event:", error);
       showError("Update Error", "Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -846,6 +899,43 @@ export default function EventDetailsPage(): ReactElement {
           </div>
         </div>
 
+        {/* Server Warning */}
+        {showServerWarning && (
+          <div className="w-full">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-yellow-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Not Enough Servers Assigned
+                  </h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <p>
+                      This event requires {event?.number_of_servers_needed || 0}{" "}
+                      servers, but only {serverAssignments.length} are currently
+                      assigned. The event status has been set to
+                      &quot;Pending&quot; until all required servers are
+                      assigned.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Assign Staff and Trucks Buttons */}
         <div className="mt-6 flex gap-4">
           <TutorialHighlight
@@ -945,7 +1035,10 @@ export default function EventDetailsPage(): ReactElement {
             className="assigned-employees-section"
           >
             <div className="server-assignments-section">
-              <ServerAssignmentsSection serverAssignments={serverAssignments} />
+              <ServerAssignmentsSection
+                serverAssignments={serverAssignments}
+                onAssignmentRemoved={refreshServerAssignments}
+              />
             </div>
           </TutorialHighlight>
 

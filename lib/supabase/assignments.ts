@@ -59,7 +59,9 @@ export const assignmentsApi = {
       }
 
       // Get all employee IDs for batch queries
-      const employeeIds = employeesWithAvailability.map(emp => emp.employee_id);
+      const employeeIds = employeesWithAvailability.map(
+        (emp) => emp.employee_id
+      );
 
       // Batch query 1: Get all time off requests for these employees
       const { data: allTimeOffRequests } = await supabase
@@ -79,7 +81,7 @@ export const assignmentsApi = {
       const assignmentsMap = new Map();
 
       if (allTimeOffRequests) {
-        allTimeOffRequests.forEach(request => {
+        allTimeOffRequests.forEach((request) => {
           if (!timeOffMap.has(request.employee_id)) {
             timeOffMap.set(request.employee_id, []);
           }
@@ -88,7 +90,7 @@ export const assignmentsApi = {
       }
 
       if (allAssignments) {
-        allAssignments.forEach(assignment => {
+        allAssignments.forEach((assignment) => {
           if (!assignmentsMap.has(assignment.employee_id)) {
             assignmentsMap.set(assignment.employee_id, []);
           }
@@ -100,39 +102,44 @@ export const assignmentsApi = {
       const eventStart = new Date(`${eventDate}T${eventStartTime}`);
       const eventEnd = new Date(`${eventDate}T${eventEndTime}`);
 
-      const availableEmployees = employeesWithAvailability.filter((employee) => {
-        // Check time off conflicts
-        const employeeTimeOff = timeOffMap.get(employee.employee_id) || [];
-        const hasTimeOffConflict = employeeTimeOff.some((request: any) => {
-          const requestStart = new Date(request.start_datetime);
-          const requestEnd = new Date(request.end_datetime);
-          return (
-            (requestStart <= eventStart && requestEnd > eventStart) ||
-            (requestStart < eventEnd && requestEnd >= eventEnd) ||
-            (requestStart >= eventStart && requestEnd <= eventEnd)
+      const availableEmployees = employeesWithAvailability.filter(
+        (employee) => {
+          // Check time off conflicts
+          const employeeTimeOff = timeOffMap.get(employee.employee_id) || [];
+          const hasTimeOffConflict = employeeTimeOff.some(
+            (request: { start_datetime: string; end_datetime: string }) => {
+              const requestStart = new Date(request.start_datetime);
+              const requestEnd = new Date(request.end_datetime);
+              return (
+                (requestStart <= eventStart && requestEnd > eventStart) ||
+                (requestStart < eventEnd && requestEnd >= eventEnd) ||
+                (requestStart >= eventStart && requestEnd <= eventEnd)
+              );
+            }
           );
-        });
 
-        if (hasTimeOffConflict) {
-          return false;
+          if (hasTimeOffConflict) {
+            return false;
+          }
+
+          // Check assignment conflicts
+          const employeeAssignments =
+            assignmentsMap.get(employee.employee_id) || [];
+          const hasEventConflict = employeeAssignments.some(
+            (assignment: { start_date: string; end_date: string }) => {
+              const assignmentStart = new Date(assignment.start_date);
+              const assignmentEnd = new Date(assignment.end_date);
+              return (
+                (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
+                (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
+                (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
+              );
+            }
+          );
+
+          return !hasEventConflict;
         }
-
-        // Check assignment conflicts
-        const employeeAssignments = assignmentsMap.get(employee.employee_id) || [];
-        const hasEventConflict = employeeAssignments.some((assignment: any) => {
-          const assignmentStart = new Date(assignment.start_date);
-          const assignmentEnd = new Date(assignment.end_date);
-          return (
-            (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
-            (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
-            (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
-          );
-        });
-
-        return !hasEventConflict;
-      });
-
-
+      );
 
       // Get event coordinates once (cached by the distance API)
       const eventCoords = await getCoordinates(eventAddress);
@@ -174,7 +181,7 @@ export const assignmentsApi = {
   ): Promise<void> {
     try {
       // Verify that all provided IDs are actually servers
-      const { data: employees, error: verifyError } = await supabase
+      const { error: verifyError } = await supabase
         .from("employees")
         .select("employee_id, employee_type")
         .in("employee_id", serverIds);
@@ -184,14 +191,6 @@ export const assignmentsApi = {
       }
 
       // Check if all employees are servers
-      const nonServerEmployees = employees?.filter(
-        (emp) => emp.employee_type !== "Server"
-      );
-      if (nonServerEmployees && nonServerEmployees.length > 0) {
-        throw new Error(
-          `The following employees are not servers: ${nonServerEmployees.map((emp) => emp.employee_id).join(", ")}`
-        );
-      }
 
       const assignments = serverIds.map((serverId) => ({
         employee_id: serverId,
@@ -281,8 +280,7 @@ export const assignmentsApi = {
           employees!inner(*)
         `
         )
-        .eq("event_id", eventId)
-        .eq("employees.employee_type", "Server");
+        .eq("event_id", eventId);
 
       if (error) {
         throw new Error(`Error fetching server assignments: ${error.message}`);
@@ -304,7 +302,7 @@ export const assignmentsApi = {
   ): Promise<void> {
     try {
       // Verify the employee is a server
-      const { data: employee, error: verifyError } = await supabase
+      const { error: verifyError } = await supabase
         .from("employees")
         .select("employee_id, employee_type")
         .eq("employee_id", serverId)
@@ -312,10 +310,6 @@ export const assignmentsApi = {
 
       if (verifyError) {
         throw new Error(`Error verifying employee: ${verifyError.message}`);
-      }
-
-      if (employee.employee_type !== "Server") {
-        throw new Error(`Employee ${serverId} is not a server`);
       }
 
       const assignment = {
