@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import { Tables } from "@/database.types";
 
 // Supabase table types
@@ -9,6 +8,7 @@ export type Employee = Tables<"employees"> & {
   addresses?: Tables<"addresses">;
   currentWage?: number;
 };
+export type EmployeeAvailability = Tables<"employee_availability">;
 export type Truck = Tables<"trucks">;
 export type TruckAssignment = Tables<"truck_assignment">;
 export type TruckAssignmentCreate = {
@@ -53,7 +53,7 @@ export interface EmployeeFormData {
   phone: string;
   wage: string;
   isAvailable: boolean;
-  availability: string[];
+  availability?: string[];
   // Address fields for AddressForm
   street: string;
   city: string;
@@ -71,13 +71,6 @@ export interface TutorialStep {
   content: string;
   selector: string;
   position: "top" | "bottom" | "left" | "right";
-}
-
-export interface QuickAction {
-  title: string;
-  description: string;
-  href: string;
-  icon: ReactNode;
 }
 
 export interface NavLink {
@@ -150,14 +143,14 @@ export const getTruckTypeBadge = (type: string): string => {
 export const getTruckBorderColor = (type: string): string => {
   switch (type) {
     case "Food Truck":
-      return "#b36a5e"; // red color (you mentioned red for food truck)
+      return "var(--secondary-dark)";
     case "Beverage Truck":
-      return "#fff5cd"; // yellow color from schedule page (var(--primary-light))
+      return "var(--primary-light)";
     case "Dessert Truck":
-      return "#e78f81"; // pink color from pending button (var(--accent))
+      return "var(--secondary-light)";
     case "Holiday Truck":
-      return "#dc2626"; // purple color to match the badge styling
+      return "var(--primary-dark)";
     default:
-      return "#6b7280"; // default gray
+      return "var(--text-muted)";
   }
 };

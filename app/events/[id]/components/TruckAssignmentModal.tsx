@@ -56,7 +56,7 @@ const TruckItem = React.memo(
         style={{
           borderLeft: `6px solid ${getTruckBorderColor(truck.type)}`,
           borderTop: `4px solid ${getTruckBorderColor(truck.type)}`,
-          background: `linear-gradient(135deg, ${getTruckBorderColor(truck.type)}25 0%, #ffffff 100%)`,
+          background: `linear-gradient(135deg, ${getTruckBorderColor(truck.type)}25 0%, var(--white) 100%)`,
         }}
       >
         {/* Truck Selection Section */}

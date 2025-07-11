@@ -167,8 +167,16 @@ export default function Schedule(): React.ReactElement {
         className="schedule-header"
       >
         <div>
-          <h2 className="schedule-title text-primary-dark">Schedule</h2>
-          <p className="schedule-subtitle text-gray-500">
+          <h2
+            className="schedule-title"
+            style={{ color: "var(--primary-dark)" }}
+          >
+            Schedule
+          </h2>
+          <p
+            className="schedule-subtitle"
+            style={{ color: "var(--text-muted)" }}
+          >
             {getDateRangeText()}
           </p>
         </div>
@@ -204,20 +212,6 @@ export default function Schedule(): React.ReactElement {
           />
         </TutorialHighlight>
       )}
-
-      <TutorialHighlight
-        isHighlighted={shouldHighlight(".new-shift-button")}
-        className="sidebar"
-      >
-        <div className="mt-6">
-          <button
-            className="button bg-primary-medium text-white w-full py-2 rounded-lg hover:bg-primary-dark new-shift-button"
-            onClick={() => router.push("/events/newEvent")}
-          >
-            + New Event
-          </button>
-        </div>
-      </TutorialHighlight>
 
       <TutorialHighlight
         isHighlighted={shouldHighlight(".shift-list")}
