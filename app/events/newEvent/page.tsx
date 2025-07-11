@@ -104,7 +104,6 @@ export default function AddEventPage(): ReactElement {
   const endDateRef = useRef<DatePicker>(null);
   const timeRef = useRef<DatePicker>(null);
   const endTimeRef = useRef<DatePicker>(null);
-  const locationRef = useRef<HTMLInputElement>(null);
 
   // Add a state to track address validity
   const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
@@ -614,7 +613,11 @@ export default function AddEventPage(): ReactElement {
     if (valid) {
       setIsAddressValid(true);
       setAddressValidationMsg("Address is valid!");
-      checkTruckAvailability();
+
+      // Only check truck availability if we have the required date/time fields
+      if (formData.date && formData.time && formData.endTime) {
+        checkTruckAvailability();
+      }
 
       // Start sorting employees and checking truck availability if we have coordinates (don't await, run in background)
       if (coordinates) {
@@ -747,7 +750,7 @@ export default function AddEventPage(): ReactElement {
         true,
         undefined,
         "Location is required.",
-        locationRef.current
+        null
       ),
       createValidationRule(
         "requiredServers",
@@ -803,20 +806,6 @@ export default function AddEventPage(): ReactElement {
       errors.push({
         field: "trucks",
         message: "Please select at least one truck for this event.",
-        element: null,
-      });
-    }
-
-    // Check for valid coordinates/address
-    if (
-      !coordinates ||
-      coordinates.latitude === undefined ||
-      coordinates.longitude === undefined ||
-      isAddressValid === false
-    ) {
-      errors.push({
-        field: "address",
-        message: "Please check address.",
         element: null,
       });
     }
