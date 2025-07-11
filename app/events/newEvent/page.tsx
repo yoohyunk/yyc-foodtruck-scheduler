@@ -398,8 +398,8 @@ export default function AddEventPage(): ReactElement {
         ]);
 
         // Combine and set all available drivers and managers
-        setDriversWithAvailability({
-          ...driversWithAvailability,
+        setDriversWithAvailability((prev) => ({
+          ...prev,
           ...availableDrivers.reduce<
             Record<
               string,
@@ -422,7 +422,7 @@ export default function AddEventPage(): ReactElement {
             ];
             return acc;
           }, {}),
-        });
+        }));
       } catch (error) {
         console.error("Error checking driver availability:", error);
         // Fallback to static availability check
