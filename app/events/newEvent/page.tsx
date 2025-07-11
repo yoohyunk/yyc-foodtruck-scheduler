@@ -7,6 +7,7 @@ import React, {
   ChangeEvent,
   FormEvent,
   useRef,
+  useCallback,
 } from "react";
 import {
   EventFormData,
@@ -370,7 +371,7 @@ export default function AddEventPage(): ReactElement {
   };
 
   // Function to load available drivers using the centralized availability function
-  const loadAvailableDrivers = async () => {
+  const loadAvailableDrivers = useCallback(async () => {
     // If we have event date/time, use the centralized availability function
     if (formData.date && formData.time && formData.endTime) {
       setIsLoadingTruckAvailability(true);
@@ -466,7 +467,14 @@ export default function AddEventPage(): ReactElement {
         }, {})
       );
     }
-  };
+  }, [
+    formData.date,
+    formData.time,
+    formData.endTime,
+    formData.endDate,
+    formData.location,
+    employees,
+  ]);
 
   // Check truck availability when date/time changes
   const checkTruckAvailability = async () => {
