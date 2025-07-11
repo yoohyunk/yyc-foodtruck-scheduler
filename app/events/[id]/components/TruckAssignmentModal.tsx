@@ -211,7 +211,7 @@ export default function TruckAssignmentModal({
   }, [trucks, truckFilter]);
 
   const trucksWithAssignments = useMemo(() => {
-    return filteredTrucks.map((truck) => {
+    const trucksWithData = filteredTrucks.map((truck) => {
       const assignedDriver = getAssignedDriverForTruck(truck.id);
       const selectedDriverId =
         driverAssignments.get(truck.id) || assignedDriver?.employee_id || "";
@@ -220,6 +220,16 @@ export default function TruckAssignmentModal({
         ...truck,
         selectedDriverId,
       };
+    });
+
+    // Sort by availability first (available trucks first), then alphabetically by name
+    return trucksWithData.sort((a, b) => {
+      // First priority: availability (available trucks first)
+      if (a.is_available && !b.is_available) return -1;
+      if (!a.is_available && b.is_available) return 1;
+
+      // Second priority: alphabetical by name
+      return (a.name || "").localeCompare(b.name || "");
     });
   }, [filteredTrucks, driverAssignments, getAssignedDriverForTruck]);
 

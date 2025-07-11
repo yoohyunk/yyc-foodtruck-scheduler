@@ -50,6 +50,7 @@ export default function ServerAssignmentsSection({
         onAssignmentRemoved();
       }
     } catch (err) {
+      console.error("Failed to unassign employee:", err);
       alert("Failed to unassign employee.");
     } finally {
       setRemovingId(null);
