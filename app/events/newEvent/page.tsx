@@ -30,7 +30,6 @@ import {
   validateEmail,
   validatePhone,
   validateNumber,
-  validateTimeRange,
   createValidationRule,
   handleAutofill,
 } from "../../../lib/formValidation";
@@ -99,6 +98,11 @@ export default function AddEventPage(): ReactElement {
 
   // State for server warning
   const [serverWarning, setServerWarning] = useState<string>("");
+  const [showServerWarningModal, setShowServerWarningModal] = useState<boolean>(false);
+
+  // State for sorted employees
+  const [sortedEmployees, setSortedEmployees] = useState<Employee[]>([]);
+  const [isSortingEmployees, setIsSortingEmployees] = useState<boolean>(false);
 
   // Set up autofill detection for all form fields
   useEffect(() => {
@@ -181,6 +185,8 @@ export default function AddEventPage(): ReactElement {
       });
       setSelectedEndDate(date); // Also update the end date picker
     }
+    // Clear sorted employees when date changes so they can be re-sorted with new availability
+    setSortedEmployees([]);
   };
 
   const handleEndDateChange = (date: Date | null) => {
@@ -191,6 +197,8 @@ export default function AddEventPage(): ReactElement {
         endDate: date.toISOString().split("T")[0],
       });
     }
+    // Clear sorted employees when end date changes
+    setSortedEmployees([]);
   };
 
   const handleTimeChange = (time: Date | null) => {
@@ -201,6 +209,8 @@ export default function AddEventPage(): ReactElement {
         time: time.toTimeString().slice(0, 5),
       });
     }
+    // Clear sorted employees when time changes
+    setSortedEmployees([]);
   };
 
   const handleEndTimeChange = (time: Date | null) => {
@@ -211,6 +221,8 @@ export default function AddEventPage(): ReactElement {
         endTime: time.toTimeString().slice(0, 5),
       });
     }
+    // Clear sorted employees when end time changes
+    setSortedEmployees([]);
   };
 
   const handleLocationChange = (
@@ -323,6 +335,64 @@ export default function AddEventPage(): ReactElement {
     if (valid) {
       setIsAddressValid(true);
       setAddressValidationMsg("Address is valid!");
+      
+      // Start sorting employees if we have coordinates (don't await, run in background)
+      if (coordinates) {
+        setIsSortingEmployees(true);
+        
+        // Use setTimeout to run the sorting in the background
+        setTimeout(async () => {
+          try {
+            // Get all available servers
+            const availableServers = employees.filter(
+              (emp) => emp.employee_type === "Server" && emp.is_available
+            );
+
+            if (availableServers.length > 0) {
+              // If we have date and time, use availability checking
+              if (formData.date && formData.time && formData.endTime) {
+                // Use the existing getAvailableServers function which checks availability
+                const sortedAvailableServers = await assignmentsApi.getAvailableServers(
+                  formData.date,
+                  formData.time,
+                  formData.endTime,
+                  formData.location
+                );
+                setSortedEmployees(sortedAvailableServers);
+                setAddressValidationMsg(`Address is valid! Found ${sortedAvailableServers.length} available servers sorted by distance.`);
+              } else {
+                // If no date/time yet, just sort by distance without availability checking
+                // We'll use a simplified version that sorts by distance only
+                const serversWithDistance = await Promise.all(
+                  availableServers.map(async (server) => {
+                    let distance = 0;
+                    if (server.addresses) {
+                      const employeeAddress = `${server.addresses.street}, ${server.addresses.city}, ${server.addresses.province}`;
+                      const { calculateDistance, getCoordinates } = await import("@/app/AlgApi/distance");
+                      const employeeCoords = await getCoordinates(employeeAddress);
+                      const eventCoords = await getCoordinates(formData.location);
+                      distance = await calculateDistance(employeeCoords, eventCoords);
+                    }
+                    return { ...server, distance };
+                  })
+                );
+                
+                // Sort by distance (closest first)
+                const sortedByDistance = serversWithDistance.sort((a, b) => a.distance - b.distance);
+                setSortedEmployees(sortedByDistance);
+                setAddressValidationMsg(`Address is valid! Found ${sortedByDistance.length} servers sorted by distance. Availability will be checked on event save.`);
+              }
+            } else {
+              setAddressValidationMsg("Address is valid! No servers available.");
+            }
+          } catch (error) {
+            console.error("Error sorting employees:", error);
+            setAddressValidationMsg("Address is valid! Error sorting employees.");
+          } finally {
+            setIsSortingEmployees(false);
+          }
+        }, 0);
+      }
     } else {
       setIsAddressValid(false);
       setAddressValidationMsg("");
@@ -428,15 +498,7 @@ export default function AddEventPage(): ReactElement {
       }
     }
 
-    if (selectedDate && selectedTime && selectedEndTime) {
-      if (!validateTimeRange(selectedTime, selectedEndTime)) {
-        errors.push({
-          field: "timeRange",
-          message: "End time must be after start time.",
-          element: endTimeRef.current?.input,
-        });
-      }
-    }
+
 
     // Check truck assignments
     const trucksWithoutDrivers = truckAssignments.filter(
@@ -492,13 +554,37 @@ export default function AddEventPage(): ReactElement {
       // Get the required number of servers
       const requiredServers = parseInt(formData.requiredServers);
 
-      // Get available servers for auto-assignment
-      const availableServers = await assignmentsApi.getAvailableServers(
-        formData.date,
-        formData.time,
-        formData.endTime,
-        formData.location
-      );
+      // Use pre-sorted employees if available, otherwise get available servers
+      let availableServers: Employee[];
+      if (sortedEmployees.length > 0) {
+        // Check if the pre-sorted employees were availability-checked (by checking if they have distance property)
+        const hasDistanceProperty = sortedEmployees.some(emp => 'distance' in emp);
+        
+        if (hasDistanceProperty) {
+          // Pre-sorted employees were only sorted by distance, need to re-check availability
+          console.log(`Pre-sorted employees were distance-only, re-checking availability for ${sortedEmployees.length} employees`);
+          availableServers = await assignmentsApi.getAvailableServers(
+            formData.date,
+            formData.time,
+            formData.endTime,
+            formData.location
+          );
+          console.log(`After availability check: ${availableServers.length} servers available`);
+        } else {
+          // Pre-sorted employees were already availability-checked
+          availableServers = sortedEmployees;
+          console.log(`Using ${availableServers.length} pre-sorted employees (already availability-checked)`);
+        }
+      } else {
+        // Fallback to the original method if no pre-sorted employees
+        availableServers = await assignmentsApi.getAvailableServers(
+          formData.date,
+          formData.time,
+          formData.endTime,
+          formData.location
+        );
+        console.log(`Fetched ${availableServers.length} available servers using original method`);
+      }
 
       // Default event status
       let eventStatus = "Scheduled";
@@ -508,6 +594,7 @@ export default function AddEventPage(): ReactElement {
         setServerWarning(
           `Not enough available servers. Required: ${requiredServers}, Available: ${availableServers.length}. Event will be created and marked as Pending.`
         );
+        setShowServerWarningModal(true);
       }
 
       // Capitalize the event title
@@ -615,42 +702,6 @@ export default function AddEventPage(): ReactElement {
           </div>
 
           <div className="input-group">
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="location" className="input-label">
-                Location <span className="text-red-500">*</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowHelpPopup(true)}
-                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Help
-              </button>
-            </div>
-            <AddressForm
-              ref={addressFormRef}
-              value={formData.location}
-              onChange={handleLocationChange}
-              placeholder="Enter event location"
-              onCheckAddress={handleCheckAddress}
-              onAddressError={handleAddressError}
-            />
-          </div>
-
-          <div className="input-group">
             <label htmlFor="date" className="input-label">
               Start Date <span className="text-red-500">*</span>
             </label>
@@ -719,6 +770,42 @@ export default function AddEventPage(): ReactElement {
               openToDate={new Date()}
               minTime={new Date(0, 0, 0, 0, 0, 0)}
               maxTime={new Date(0, 0, 0, 23, 59, 59)}
+            />
+          </div>
+
+          <div className="input-group">
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="location" className="input-label">
+                Location <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowHelpPopup(true)}
+                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Help
+              </button>
+            </div>
+            <AddressForm
+              ref={addressFormRef}
+              value={formData.location}
+              onChange={handleLocationChange}
+              placeholder="Enter event location"
+              onCheckAddress={handleCheckAddress}
+              onAddressError={handleAddressError}
             />
           </div>
 
@@ -963,11 +1050,7 @@ export default function AddEventPage(): ReactElement {
             )}
           </div>
 
-          {serverWarning && (
-            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded">
-              <strong>Warning:</strong> {serverWarning}
-            </div>
-          )}
+
 
           <button type="submit" className="button" disabled={isSubmitting}>
             {isSubmitting ? (
@@ -1008,6 +1091,14 @@ export default function AddEventPage(): ReactElement {
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
         errors={validationErrors}
+      />
+
+      <ErrorModal
+        isOpen={showServerWarningModal}
+        onClose={() => setShowServerWarningModal(false)}
+        errors={[{ field: "server", message: serverWarning, element: null }]}
+        title="Server Availability Warning"
+        type="confirmation"
       />
 
       <HelpPopup
