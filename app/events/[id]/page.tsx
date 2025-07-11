@@ -66,6 +66,7 @@ export default function EventDetailsPage(): ReactElement {
   const [editFormData, setEditFormData] = useState<EventFormData>({
     name: "",
     date: "",
+    endDate: "",
     time: "",
     endTime: "",
     location: "",
@@ -86,6 +87,7 @@ export default function EventDetailsPage(): ReactElement {
   });
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -493,6 +495,7 @@ export default function EventDetailsPage(): ReactElement {
     setEditFormData({
       name: event.title || "",
       date: startDate ? startDate.toISOString().split("T")[0] : "",
+      endDate: endDate ? endDate.toISOString().split("T")[0] : "",
       time: startDate ? startDate.toTimeString().slice(0, 5) : "",
       endTime: endDate ? endDate.toTimeString().slice(0, 5) : "",
       location: event.description || "",
@@ -513,6 +516,7 @@ export default function EventDetailsPage(): ReactElement {
     });
 
     setSelectedDate(startDate);
+    setSelectedEndDate(endDate);
     setSelectedTime(startDate);
     setSelectedEndTime(endDate);
     openEditModal();
@@ -542,6 +546,16 @@ export default function EventDetailsPage(): ReactElement {
       setEditFormData({
         ...editFormData,
         time: time.toTimeString().slice(0, 5),
+      });
+    }
+  };
+
+  const handleEditEndDateChange = (date: Date | null) => {
+    setSelectedEndDate(date);
+    if (date) {
+      setEditFormData({
+        ...editFormData,
+        endDate: date.toISOString().split("T")[0],
       });
     }
   };
@@ -996,9 +1010,11 @@ export default function EventDetailsPage(): ReactElement {
             formData={editFormData}
             onFormChange={handleEditFormChange}
             onDateChange={handleEditDateChange}
+            onEndDateChange={handleEditEndDateChange}
             onTimeChange={handleEditTimeChange}
             onEndTimeChange={handleEditEndTimeChange}
             selectedDate={selectedDate}
+            selectedEndDate={selectedEndDate}
             selectedTime={selectedTime}
             selectedEndTime={selectedEndTime}
             isSubmitting={isSubmitting}

@@ -155,8 +155,9 @@ export const assignmentsApi = {
   async createServerAssignments(
     eventId: string,
     serverIds: string[],
-    eventDate: string,
+    eventStartDate: string,
     eventStartTime: string,
+    eventEndDate: string,
     eventEndTime: string
   ): Promise<void> {
     try {
@@ -183,8 +184,8 @@ export const assignmentsApi = {
       const assignments = serverIds.map((serverId) => ({
         employee_id: serverId,
         event_id: eventId,
-        start_date: `${eventDate}T${eventStartTime}`,
-        end_date: `${eventDate}T${eventEndTime}`,
+        start_date: `${eventStartDate}T${eventStartTime}`,
+        end_date: `${eventEndDate}T${eventEndTime}`,
         is_completed: false,
         status: "Accepted",
       }));

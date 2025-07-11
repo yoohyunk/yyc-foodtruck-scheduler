@@ -40,6 +40,7 @@ export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
     name: "",
     date: "",
+    endDate: "",
     time: "",
     endTime: "",
     location: "",
@@ -60,6 +61,7 @@ export default function AddEventPage(): ReactElement {
   });
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
   const [coordinates, setCoordinates] = useState<
@@ -86,6 +88,7 @@ export default function AddEventPage(): ReactElement {
   const contactPhoneRef = useRef<HTMLInputElement>(null);
   const requiredServersRef = useRef<HTMLInputElement>(null);
   const dateRef = useRef<DatePicker>(null);
+  const endDateRef = useRef<DatePicker>(null);
   const timeRef = useRef<DatePicker>(null);
   const endTimeRef = useRef<DatePicker>(null);
   const locationRef = useRef<HTMLInputElement>(null);
@@ -174,6 +177,18 @@ export default function AddEventPage(): ReactElement {
       setFormData({
         ...formData,
         date: date.toISOString().split("T")[0],
+        endDate: date.toISOString().split("T")[0], // Set end date to same as start date
+      });
+      setSelectedEndDate(date); // Also update the end date picker
+    }
+  };
+
+  const handleEndDateChange = (date: Date | null) => {
+    setSelectedEndDate(date);
+    if (date) {
+      setFormData({
+        ...formData,
+        endDate: date.toISOString().split("T")[0],
       });
     }
   };
@@ -334,8 +349,15 @@ export default function AddEventPage(): ReactElement {
         "date",
         true,
         undefined,
-        "Date is required.",
+        "Start date is required.",
         dateRef.current?.input
+      ),
+      createValidationRule(
+        "endDate",
+        true,
+        undefined,
+        "End date is required.",
+        endDateRef.current?.input
       ),
       createValidationRule(
         "time",
@@ -396,6 +418,16 @@ export default function AddEventPage(): ReactElement {
     );
 
     // Additional custom validations
+    if (selectedDate && selectedEndDate) {
+      if (selectedEndDate < selectedDate) {
+        errors.push({
+          field: "endDate",
+          message: "End date cannot be before start date.",
+          element: endDateRef.current?.input,
+        });
+      }
+    }
+
     if (selectedDate && selectedTime && selectedEndTime) {
       if (!validateTimeRange(selectedTime, selectedEndTime)) {
         errors.push({
@@ -491,7 +523,7 @@ export default function AddEventPage(): ReactElement {
       const eventData = {
         title: capitalizeTitle(formData.name),
         start_date: `${formData.date}T${formData.time}`,
-        end_date: `${formData.date}T${formData.endTime}`,
+        end_date: `${formData.endDate}T${formData.endTime}`,
         description: formData.location,
         contact_name: formData.contactName,
         contact_email: formData.contactEmail,
@@ -524,7 +556,7 @@ export default function AddEventPage(): ReactElement {
           driver_id: assignment.driver_id,
           event_id: newEvent.id,
           start_time: `${formData.date}T${assignment.start_time}`,
-          end_time: `${formData.date}T${assignment.end_time}`,
+          end_time: `${formData.endDate}T${assignment.end_time}`,
         });
       }
 
@@ -538,6 +570,7 @@ export default function AddEventPage(): ReactElement {
         selectedServerIds,
         formData.date,
         formData.time,
+        formData.endDate,
         formData.endTime
       );
 
@@ -577,6 +610,7 @@ export default function AddEventPage(): ReactElement {
               name="name"
               value={formData.name}
               onChange={handleChange}
+              className="input-field"
             />
           </div>
 
@@ -618,7 +652,7 @@ export default function AddEventPage(): ReactElement {
 
           <div className="input-group">
             <label htmlFor="date" className="input-label">
-              Date <span className="text-red-500">*</span>
+              Start Date <span className="text-red-500">*</span>
             </label>
             <DatePicker
               ref={dateRef}
@@ -626,8 +660,23 @@ export default function AddEventPage(): ReactElement {
               onChange={handleDateChange}
               dateFormat="MMMM d, yyyy"
               minDate={new Date()}
+              className="input-field"
+              placeholderText="Select start date"
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="endDate" className="input-label">
+              End Date <span className="text-red-500">*</span>
+            </label>
+            <DatePicker
+              ref={endDateRef}
+              selected={selectedEndDate}
+              onChange={handleEndDateChange}
+              dateFormat="MMMM d, yyyy"
+              minDate={selectedDate || new Date()}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholderText="Select date"
+              placeholderText="Select end date"
             />
           </div>
 
@@ -686,7 +735,7 @@ export default function AddEventPage(): ReactElement {
               onChange={handleChange}
               min="0"
               onWheel={(e) => (e.target as HTMLInputElement).blur()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input-field"
             />
           </div>
 
@@ -701,7 +750,7 @@ export default function AddEventPage(): ReactElement {
               name="contactName"
               value={formData.contactName}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input-field"
             />
           </div>
 
@@ -716,7 +765,7 @@ export default function AddEventPage(): ReactElement {
               name="contactEmail"
               value={formData.contactEmail}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input-field"
             />
           </div>
 
@@ -731,7 +780,7 @@ export default function AddEventPage(): ReactElement {
               name="contactPhone"
               value={formData.contactPhone}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input-field"
             />
           </div>
 
