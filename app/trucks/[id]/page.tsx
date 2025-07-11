@@ -149,12 +149,12 @@ export default function EditTruckPage(): ReactElement {
         if (truckData.addresses) {
           const addr = truckData.addresses;
           formattedAddress = `${addr.street}, ${addr.city}, ${addr.postal_code}`;
-          
+
           // Set coordinates if available
           if (addr.latitude && addr.longitude) {
             setCoordinates({
               latitude: parseFloat(addr.latitude),
-              longitude: parseFloat(addr.longitude)
+              longitude: parseFloat(addr.longitude),
             });
           }
         }
@@ -219,7 +219,10 @@ export default function EditTruckPage(): ReactElement {
   };
 
   const handleAddPackingItem = () => {
-    if (newPackingItem.trim() && !formData.packingList.includes(newPackingItem.trim())) {
+    if (
+      newPackingItem.trim() &&
+      !formData.packingList.includes(newPackingItem.trim())
+    ) {
       setFormData((prev) => ({
         ...prev,
         packingList: [...prev.packingList, newPackingItem.trim()],
@@ -543,7 +546,7 @@ export default function EditTruckPage(): ReactElement {
 
           <div className="input-group">
             <label className="input-label">Packing List</label>
-            
+
             {/* Predefined items */}
             <div className="mb-4">
               <h4 className="input-label mb-2">Predefined Items</h4>
@@ -572,7 +575,7 @@ export default function EditTruckPage(): ReactElement {
                   placeholder="Enter custom item..."
                   className="input-field flex-1"
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       handleAddPackingItem();
                     }
@@ -581,28 +584,39 @@ export default function EditTruckPage(): ReactElement {
                 <button
                   type="button"
                   onClick={handleAddPackingItem}
-                  disabled={!newPackingItem.trim() || formData.packingList.includes(newPackingItem.trim())}
+                  disabled={
+                    !newPackingItem.trim() ||
+                    formData.packingList.includes(newPackingItem.trim())
+                  }
                   className="button btn-primary"
-                  style={{ minHeight: 'auto', padding: '0.75rem 1.5rem' }}
+                  style={{ minHeight: "auto", padding: "0.75rem 1.5rem" }}
                 >
                   Add
                 </button>
               </div>
               <p className="text-sm text-gray-500">
-                Press Enter or click Add to include custom items in the packing list
+                Press Enter or click Add to include custom items in the packing
+                list
               </p>
             </div>
 
             {/* Custom items */}
-            {formData.packingList.filter(item => !packingListOptions.includes(item)).length > 0 && (
+            {formData.packingList.filter(
+              (item) => !packingListOptions.includes(item)
+            ).length > 0 && (
               <div className="mb-4">
                 <h4 className="input-label mb-2">Custom Items</h4>
                 <div className="space-y-2">
                   {formData.packingList
-                    .filter(item => !packingListOptions.includes(item))
+                    .filter((item) => !packingListOptions.includes(item))
                     .map((item) => (
-                      <div key={item} className="section-card flex items-center justify-between">
-                        <span className="packing-list-text font-medium">{item}</span>
+                      <div
+                        key={item}
+                        className="section-card flex items-center justify-between"
+                      >
+                        <span className="packing-list-text font-medium">
+                          {item}
+                        </span>
                         <button
                           type="button"
                           onClick={() => handleRemovePackingItem(item)}
@@ -620,7 +634,9 @@ export default function EditTruckPage(): ReactElement {
             {formData.packingList.length > 0 && (
               <div className="success-message">
                 <p>
-                  <strong>{formData.packingList.length}</strong> item{formData.packingList.length !== 1 ? 's' : ''} selected for packing list
+                  <strong>{formData.packingList.length}</strong> item
+                  {formData.packingList.length !== 1 ? "s" : ""} selected for
+                  packing list
                 </p>
               </div>
             )}
