@@ -386,6 +386,19 @@ export default function EventDetailsPage(): ReactElement {
     }
   };
 
+  // Function to refresh truck assignments
+  const refreshTruckAssignments = async () => {
+    if (!event?.id) return;
+
+    try {
+      const assignments =
+        await truckAssignmentsApi.getTruckAssignmentsByEventId(event.id);
+      setTruckAssignments(assignments);
+    } catch (error) {
+      console.error("Error refreshing truck assignments:", error);
+    }
+  };
+
   const handleTruckAssignment = async (
     truckId: string,
     driverId: string | null
@@ -393,6 +406,31 @@ export default function EventDetailsPage(): ReactElement {
     if (!event?.id) {
       showError("Error", "Event not found. Please refresh the page.");
       return;
+    }
+
+    // Check if driver is already assigned to another truck for this event
+    if (driverId !== null) {
+      const driverAlreadyAssigned = truckAssignments.find(
+        (assignment) =>
+          assignment.driver_id === driverId && assignment.truck_id !== truckId
+      );
+
+      if (driverAlreadyAssigned) {
+        const driver = employees.find((emp) => emp.employee_id === driverId);
+        const driverName = driver
+          ? `${driver.first_name} ${driver.last_name}`
+          : "Driver";
+        const otherTruck = trucks.find(
+          (truck) => truck.id === driverAlreadyAssigned.truck_id
+        );
+        const truckName = otherTruck?.name || "another truck";
+
+        showError(
+          "Driver Conflict",
+          `${driverName} is already assigned to ${truckName} for this event. A driver cannot be assigned to multiple trucks.`
+        );
+        return;
+      }
     }
 
     try {
@@ -406,40 +444,29 @@ export default function EventDetailsPage(): ReactElement {
           await truckAssignmentsApi.deleteTruckAssignment(
             existingAssignment.id
           );
-          setTruckAssignments(
-            truckAssignments.filter(
-              (assignment) => assignment.truck_id !== truckId
-            )
-          );
+          await refreshTruckAssignments();
           showSuccess("Success", "Truck assignment removed successfully.");
         } else {
           // Update existing assignment with new driver
-          const updatedAssignment =
-            await truckAssignmentsApi.updateTruckAssignment(
-              existingAssignment.id,
-              { driver_id: driverId }
-            );
-          setTruckAssignments(
-            truckAssignments.map((assignment) =>
-              assignment.truck_id === truckId ? updatedAssignment : assignment
-            )
+          await truckAssignmentsApi.updateTruckAssignment(
+            existingAssignment.id,
+            { driver_id: driverId }
           );
+          await refreshTruckAssignments();
           showSuccess("Success", "Truck assignment updated successfully.");
         }
       } else {
         // Create new assignment for the truck (with or without driver)
         // Only create if driverId is not null (truck is selected)
         if (driverId !== null) {
-          const newAssignment = await truckAssignmentsApi.createTruckAssignment(
-            {
-              truck_id: truckId,
-              driver_id: driverId,
-              event_id: event.id,
-              start_time: event.start_date || new Date().toISOString(),
-              end_time: event.end_date || new Date().toISOString(),
-            }
-          );
-          setTruckAssignments([...truckAssignments, newAssignment]);
+          await truckAssignmentsApi.createTruckAssignment({
+            truck_id: truckId,
+            driver_id: driverId,
+            event_id: event.id,
+            start_time: event.start_date || new Date().toISOString(),
+            end_time: event.end_date || new Date().toISOString(),
+          });
+          await refreshTruckAssignments();
           showSuccess("Success", "Truck assigned successfully.");
         }
         // If driverId is null and no existing assignment, do nothing (truck is not selected)
@@ -465,8 +492,9 @@ export default function EventDetailsPage(): ReactElement {
   };
 
   const getAvailableDrivers = (): Employee[] => {
+    // Return all drivers and managers (not just available ones) for the dropdown
     return employees.filter(
-      (emp) => emp.employee_type === "Driver" && emp.is_available
+      (emp) => emp.employee_type === "Driver" || emp.employee_type === "Manager"
     );
   };
 
@@ -1024,6 +1052,7 @@ export default function EventDetailsPage(): ReactElement {
             shouldHighlight={shouldHighlight}
             eventStartTime={event?.start_date}
             eventEndTime={event?.end_date}
+            eventId={event?.id}
           />
         )}
 
@@ -1054,6 +1083,7 @@ export default function EventDetailsPage(): ReactElement {
                   truckAssignments={truckAssignments}
                   employees={employees}
                   shouldHighlight={shouldHighlight}
+                  onAssignmentRemoved={refreshTruckAssignments}
                 />
               ) : (
                 <div className="bg-white rounded-lg shadow-md p-6 mb-6">

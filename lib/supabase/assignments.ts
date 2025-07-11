@@ -1,7 +1,7 @@
 import { createClient } from "./client";
 import { Employee } from "@/app/types";
-import { calculateDistance, getCoordinates } from "@/app/AlgApi/distance";
 import { eventsApi } from "./events";
+import { employeeAvailabilityApi } from "./employeeAvailability";
 
 const supabase = createClient();
 
@@ -13,202 +13,56 @@ export const assignmentsApi = {
     eventEndTime: string,
     eventAddress: string
   ): Promise<Employee[]> {
-    try {
-      // Get all employees who are servers and available
-      const { data: employees, error } = await supabase
-        .from("employees")
-        .select(
-          `
-          *,
-          addresses (*)
-        `
-        )
-        .eq("employee_type", "Server")
-        .eq("is_available", true);
+    const eventStartDate = `${eventDate}T${eventStartTime}`;
+    const eventEndDate = `${eventDate}T${eventEndTime}`;
+    return employeeAvailabilityApi.getAvailableServers(
+      eventStartDate,
+      eventEndDate,
+      eventAddress
+    );
+  },
 
-      if (error) {
-        throw new Error(`Error fetching employees: ${error.message}`);
-      }
-
-      if (!employees) {
-        return [];
-      }
-
-      // Get the day of the week for the event
-      const eventDateTime = new Date(`${eventDate}T${eventStartTime}`);
-      const dayOfWeek = eventDateTime.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const dayNames = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ];
-      const eventDay = dayNames[dayOfWeek];
-
-      // Filter employees by availability first (fast filter)
-      const employeesWithAvailability = employees.filter((employee) => {
-        const availability = employee.availability as string[] | null;
-        return availability && availability.includes(eventDay);
-      });
-
-      if (employeesWithAvailability.length === 0) {
-        return [];
-      }
-
-      // Get all employee IDs for batch queries
-      const employeeIds = employeesWithAvailability.map(
-        (emp) => emp.employee_id
-      );
-
-      // Batch query 1: Get all time off requests for these employees
-      const { data: allTimeOffRequests } = await supabase
-        .from("time_off_request")
-        .select("*")
-        .in("employee_id", employeeIds)
-        .eq("status", "Accepted");
-
-      // Batch query 2: Get all assignments for these employees
-      const { data: allAssignments } = await supabase
-        .from("assignments")
-        .select("employee_id, start_date, end_date")
-        .in("employee_id", employeeIds);
-
-      // Create lookup maps for faster access
-      const timeOffMap = new Map();
-      const assignmentsMap = new Map();
-
-      if (allTimeOffRequests) {
-        allTimeOffRequests.forEach((request) => {
-          if (!timeOffMap.has(request.employee_id)) {
-            timeOffMap.set(request.employee_id, []);
-          }
-          timeOffMap.get(request.employee_id).push(request);
-        });
-      }
-
-      if (allAssignments) {
-        allAssignments.forEach((assignment) => {
-          if (!assignmentsMap.has(assignment.employee_id)) {
-            assignmentsMap.set(assignment.employee_id, []);
-          }
-          assignmentsMap.get(assignment.employee_id).push(assignment);
-        });
-      }
-
-      // Filter employees based on conflicts
-      const eventStart = new Date(`${eventDate}T${eventStartTime}`);
-      const eventEnd = new Date(`${eventDate}T${eventEndTime}`);
-
-      const availableEmployees = employeesWithAvailability.filter(
-        (employee) => {
-          // Check time off conflicts
-          const employeeTimeOff = timeOffMap.get(employee.employee_id) || [];
-          const hasTimeOffConflict = employeeTimeOff.some(
-            (request: { start_datetime: string; end_datetime: string }) => {
-              const requestStart = new Date(request.start_datetime);
-              const requestEnd = new Date(request.end_datetime);
-              return (
-                (requestStart <= eventStart && requestEnd > eventStart) ||
-                (requestStart < eventEnd && requestEnd >= eventEnd) ||
-                (requestStart >= eventStart && requestEnd <= eventEnd)
-              );
-            }
-          );
-
-          if (hasTimeOffConflict) {
-            return false;
-          }
-
-          // Check assignment conflicts
-          const employeeAssignments =
-            assignmentsMap.get(employee.employee_id) || [];
-          const hasEventConflict = employeeAssignments.some(
-            (assignment: { start_date: string; end_date: string }) => {
-              const assignmentStart = new Date(assignment.start_date);
-              const assignmentEnd = new Date(assignment.end_date);
-              return (
-                (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
-                (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
-                (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
-              );
-            }
-          );
-
-          return !hasEventConflict;
-        }
-      );
-
-      // Get event coordinates once (cached by the distance API)
-      const eventCoords = await getCoordinates(eventAddress);
-
-      // Calculate distances for all employees in parallel
-      const employeesWithDistance = await Promise.all(
-        availableEmployees.map(async (employee) => {
-          let distance = 0;
-
-          if (employee.addresses) {
-            const employeeAddress = `${employee.addresses.street}, ${employee.addresses.city}, ${employee.addresses.province}`;
-            const employeeCoords = await getCoordinates(employeeAddress);
-            distance = await calculateDistance(employeeCoords, eventCoords);
-          }
-
-          return {
-            ...employee,
-            distance,
-          };
-        })
-      );
-
-      // Sort by distance (closest first)
-      return employeesWithDistance.sort((a, b) => a.distance - b.distance);
-    } catch (error) {
-      console.error("Error getting available servers:", error);
-      throw error;
-    }
+  // Get available drivers for a specific date and time
+  async getAvailableDrivers(
+    eventDate: string,
+    eventStartTime: string,
+    eventEndTime: string,
+    eventAddress: string
+  ): Promise<Employee[]> {
+    const eventStartDate = `${eventDate}T${eventStartTime}`;
+    const eventEndDate = `${eventDate}T${eventEndTime}`;
+    return employeeAvailabilityApi.getAvailableDrivers(
+      eventStartDate,
+      eventEndDate,
+      eventAddress
+    );
   },
 
   // Create server assignments for an event
   async createServerAssignments(
     eventId: string,
-    serverIds: string[],
-    eventStartDate: string,
-    eventStartTime: string,
-    eventEndDate: string,
-    eventEndTime: string
+    employeeIds: string[],
+    startDate: string,
+    startTime: string,
+    endDate: string,
+    endTime: string
   ): Promise<void> {
     try {
-      // Verify that all provided IDs are actually servers
-      const { error: verifyError } = await supabase
-        .from("employees")
-        .select("employee_id, employee_type")
-        .in("employee_id", serverIds);
-
-      if (verifyError) {
-        throw new Error(`Error verifying employees: ${verifyError.message}`);
-      }
-
-      // Check if all employees are servers
-
-      const assignments = serverIds.map((serverId) => ({
-        employee_id: serverId,
+      const assignments = employeeIds.map((employeeId) => ({
+        employee_id: employeeId,
         event_id: eventId,
-        start_date: `${eventStartDate}T${eventStartTime}`,
-        end_date: `${eventEndDate}T${eventEndTime}`,
-        is_completed: false,
+        start_date: `${startDate}T${startTime}`,
+        end_date: `${endDate}T${endTime}`,
         status: "Accepted",
+        is_completed: false,
       }));
 
       const { error } = await supabase.from("assignments").insert(assignments);
 
       if (error) {
-        throw new Error(`Error creating server assignments: ${error.message}`);
+        console.error("Error creating server assignments:", error);
+        throw new Error("Failed to create server assignments");
       }
-
-      // Check if all required servers are assigned and update event status
-      await this.checkAndUpdateEventStatus(eventId);
     } catch (error) {
       console.error("Error creating server assignments:", error);
       throw error;

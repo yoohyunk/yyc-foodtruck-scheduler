@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Employee, Truck, getTruckBorderColor } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
+import { trucksApi } from "@/lib/supabase/trucks";
+import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 
 interface TruckWithAssignment extends Truck {
   selectedDriverId?: string;
+  isAvailable?: boolean;
+  availabilityReason?: string;
 }
 
 interface TruckAssignmentModalProps {
@@ -17,6 +21,7 @@ interface TruckAssignmentModalProps {
   shouldHighlight: (selector: string) => boolean;
   eventStartTime?: string;
   eventEndTime?: string;
+  eventId?: string;
 }
 
 // Memoized truck item component to prevent unnecessary re-renders
@@ -30,8 +35,10 @@ const TruckItem = React.memo(
     shouldHighlight,
     index,
     availableDrivers,
+    driversWithAvailability,
     eventStartTime,
     eventEndTime,
+    driverAssignments,
   }: {
     truck: TruckWithAssignment;
     isSelected: boolean;
@@ -41,8 +48,13 @@ const TruckItem = React.memo(
     shouldHighlight: (selector: string) => boolean;
     index: number;
     availableDrivers: Employee[];
+    driversWithAvailability: Record<
+      string,
+      Array<{ driver: Employee; isAvailable: boolean; reason: string }>
+    >;
     eventStartTime?: string;
     eventEndTime?: string;
+    driverAssignments: Map<string, string>;
   }) => (
     <TutorialHighlight
       key={truck.id}
@@ -63,7 +75,7 @@ const TruckItem = React.memo(
         <label
           className={`truck-label w-full flex items-center justify-between px-0 ${
             isSelected ? "truck-label-selected" : ""
-          } cursor-pointer`}
+          } ${!truck.isAvailable ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         >
           <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
             <div className="flex items-center space-x-3">
@@ -86,17 +98,22 @@ const TruckItem = React.memo(
                 <span className="text-sm text-gray-500 ml-2">
                   (Capacity: {truck.capacity})
                 </span>
+                {!truck.isAvailable && truck.availabilityReason && (
+                  <div className="text-xs text-red-600 mt-1">
+                    ⚠️ {truck.availabilityReason}
+                  </div>
+                )}
               </div>
             </div>
             <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
               <span
                 className={`px-2 py-1 rounded text-sm ${
-                  truck.is_available
+                  truck.isAvailable
                     ? "bg-green-100 text-green-800"
                     : "bg-red-100 text-red-800"
                 }`}
               >
-                {truck.is_available ? "Available" : "Unavailable"}
+                {truck.isAvailable ? "Available" : "Unavailable"}
               </span>
             </div>
           </div>
@@ -105,6 +122,7 @@ const TruckItem = React.memo(
             className="truck-checkbox mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             checked={isSelected}
             onChange={(e) => onTruckSelection(truck.id, e.target.checked)}
+            disabled={!truck.isAvailable}
           />
         </label>
 
@@ -122,28 +140,60 @@ const TruckItem = React.memo(
               }
             >
               <option value="">No driver assigned</option>
-              {availableDrivers.map((driver) => (
-                <option key={driver.employee_id} value={driver.employee_id}>
-                  {driver.first_name} {driver.last_name} ({driver.employee_type}
-                  )
-                </option>
-              ))}
+              {(availableDrivers || []).map((driver: Employee) => {
+                const driverAvailability = (
+                  driversWithAvailability[truck.id] || []
+                ).find((d) => d.driver.employee_id === driver.employee_id);
+                const isAvailable = driverAvailability?.isAvailable;
+                const reason = driverAvailability?.reason;
+
+                // Check if driver is already assigned to another truck for this event
+                const isAlreadyAssigned = Array.from(
+                  driverAssignments.entries()
+                ).some(
+                  ([assignedTruckId, assignedDriverId]) =>
+                    assignedDriverId === driver.employee_id &&
+                    assignedTruckId !== truck.id
+                );
+
+                let displayText = `${driver.first_name} ${driver.last_name} (${driver.employee_type})`;
+                let textColor = "black";
+
+                if (isAlreadyAssigned) {
+                  displayText += ` - Already assigned to another truck for this event`;
+                  textColor = "red";
+                } else if (!isAvailable) {
+                  displayText += ` - Not available: ${reason}`;
+                  textColor = "red";
+                } else {
+                  textColor = "green";
+                }
+
+                return (
+                  <option
+                    key={driver.employee_id}
+                    value={driver.employee_id}
+                    style={{ color: textColor }}
+                    disabled={isAlreadyAssigned}
+                  >
+                    {displayText}
+                  </option>
+                );
+              })}
             </select>
 
             {selectedDriverId && (
               <div className="mt-2 p-2 bg-blue-50 rounded">
                 <p className="text-sm text-blue-800">
                   <strong>Assigned Driver:</strong>{" "}
-                  {
-                    availableDrivers.find(
-                      (d) => d.employee_id === selectedDriverId
-                    )?.first_name
-                  }{" "}
-                  {
-                    availableDrivers.find(
-                      (d) => d.employee_id === selectedDriverId
-                    )?.last_name
-                  }
+                  {(() => {
+                    const driver = availableDrivers.find(
+                      (d: Employee) => d.employee_id === selectedDriverId
+                    );
+                    return driver
+                      ? `${driver.first_name} ${driver.last_name}`
+                      : "";
+                  })()}
                 </p>
               </div>
             )}
@@ -176,12 +226,117 @@ export default function TruckAssignmentModal({
   shouldHighlight,
   eventStartTime,
   eventEndTime,
+  eventId,
 }: TruckAssignmentModalProps) {
   const [selectedTrucks, setSelectedTrucks] = useState<Set<string>>(new Set());
   const [driverAssignments, setDriverAssignments] = useState<
     Map<string, string>
   >(new Map());
   const [truckFilter, setTruckFilter] = useState<string>("all");
+  const [trucksWithAvailability, setTrucksWithAvailability] = useState<
+    TruckWithAssignment[]
+  >([]);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+  const [availableDriversWithData, setAvailableDriversWithData] = useState<
+    Employee[]
+  >([]);
+  const [isLoadingDriverAvailability] = useState(false);
+  const [driversWithAvailability, setDriversWithAvailability] = useState<
+    Record<
+      string,
+      Array<{ driver: Employee; isAvailable: boolean; reason: string }>
+    >
+  >({});
+
+  // Load truck availability when modal opens or event times change
+  useEffect(() => {
+    if (isOpen && trucks.length > 0 && eventStartTime && eventEndTime) {
+      const loadAvailability = async () => {
+        setIsLoadingAvailability(true);
+        try {
+          // Use the reusable function to check all trucks availability
+          const trucksWithData = await trucksApi.truckAvailabilityCheck(
+            eventStartTime,
+            eventEndTime,
+            eventId
+          );
+
+          setTrucksWithAvailability(trucksWithData);
+        } catch (error) {
+          console.error("Error loading truck availability:", error);
+          // Fallback to original trucks with static availability
+          setTrucksWithAvailability(
+            trucks.map((truck) => ({
+              ...truck,
+              isAvailable: truck.is_available,
+              availabilityReason: "",
+            }))
+          );
+        } finally {
+          setIsLoadingAvailability(false);
+        }
+      };
+
+      loadAvailability();
+    } else if (isOpen && trucks.length > 0) {
+      // If no event times, use static availability
+      setTrucksWithAvailability(
+        trucks.map((truck) => ({
+          ...truck,
+          isAvailable: truck.is_available,
+          availabilityReason: "",
+        }))
+      );
+    }
+  }, [isOpen, trucks, eventStartTime, eventEndTime, eventId]);
+
+  // Load driver availability for each truck when modal opens or event times change
+  useEffect(() => {
+    const loadDriversAvailability = async () => {
+      if (!isOpen || !eventStartTime || !eventEndTime) return;
+      const allDrivers = getAvailableDrivers(); // This should return all possible drivers (not just available)
+      const truckDriverMap: Record<
+        string,
+        Array<{ driver: Employee; isAvailable: boolean; reason: string }>
+      > = {};
+      for (const truck of trucks) {
+        truckDriverMap[truck.id] = await Promise.all(
+          allDrivers.map(async (driver) => {
+            const availability =
+              await employeeAvailabilityApi.checkEmployeeAvailability(
+                driver,
+                eventStartTime,
+                eventEndTime,
+                eventId
+              );
+            return {
+              driver,
+              isAvailable: availability.isAvailable,
+              reason: availability.reason,
+            };
+          })
+        );
+      }
+      setDriversWithAvailability(truckDriverMap);
+    };
+    loadDriversAvailability();
+  }, [
+    isOpen,
+    eventStartTime,
+    eventEndTime,
+    trucks,
+    getAvailableDrivers,
+    eventId,
+  ]);
+
+  // Load driver availability when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      // Use the drivers from the parent component
+      const drivers = getAvailableDrivers();
+      setAvailableDriversWithData(drivers);
+    }
+  }, [isOpen, getAvailableDrivers]);
 
   // Initialize selected trucks and driver assignments when modal opens
   useEffect(() => {
@@ -202,13 +357,16 @@ export default function TruckAssignmentModal({
     }
   }, [isOpen, trucks, getAssignedDriverForTruck]);
 
-  const availableDrivers = getAvailableDrivers();
+  const availableDrivers =
+    availableDriversWithData.length > 0
+      ? availableDriversWithData
+      : getAvailableDrivers();
 
   const filteredTrucks = useMemo(() => {
-    return trucks.filter(
+    return trucksWithAvailability.filter(
       (truck) => truckFilter === "all" || truck.type === truckFilter
     );
-  }, [trucks, truckFilter]);
+  }, [trucksWithAvailability, truckFilter]);
 
   const trucksWithAssignments = useMemo(() => {
     const trucksWithData = filteredTrucks.map((truck) => {
@@ -222,16 +380,28 @@ export default function TruckAssignmentModal({
       };
     });
 
-    // Sort by availability first (available trucks first), then alphabetically by name
+    // Sort trucks: selected first, then by availability, then alphabetically
     return trucksWithData.sort((a, b) => {
-      // First priority: availability (available trucks first)
-      if (a.is_available && !b.is_available) return -1;
-      if (!a.is_available && b.is_available) return 1;
+      const isSelectedA = selectedTrucks.has(a.id);
+      const isSelectedB = selectedTrucks.has(b.id);
 
-      // Second priority: alphabetical by name
+      // First priority: selected trucks first
+      if (isSelectedA && !isSelectedB) return -1;
+      if (!isSelectedA && isSelectedB) return 1;
+
+      // Second priority: availability (available trucks first)
+      if (a.isAvailable && !b.isAvailable) return -1;
+      if (!a.isAvailable && b.isAvailable) return 1;
+
+      // Third priority: alphabetical by name
       return (a.name || "").localeCompare(b.name || "");
     });
-  }, [filteredTrucks, driverAssignments, getAssignedDriverForTruck]);
+  }, [
+    filteredTrucks,
+    driverAssignments,
+    getAssignedDriverForTruck,
+    selectedTrucks,
+  ]);
 
   if (!isOpen) return null;
 
@@ -289,10 +459,9 @@ export default function TruckAssignmentModal({
           className="modal-title"
           style={{ flexShrink: 0, padding: "2rem 2rem 0.75rem 2rem" }}
         >
-          Assign Trucks & Drivers
+          Select Trucks & Drivers
           <span className="text-sm font-normal text-gray-600 ml-2">
-            ({selectedTrucks.size} truck{selectedTrucks.size !== 1 ? "s" : ""}{" "}
-            selected)
+            ({selectedTrucks.size} selected)
           </span>
         </h3>
         <div
@@ -307,11 +476,12 @@ export default function TruckAssignmentModal({
         >
           {/* Truck Filter */}
           <div
-            className="flex justify-between items-end mb-6"
+            className="flex flex-wrap items-end mb-3 gap-2"
             style={{ flexShrink: 0 }}
           >
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            {/* Filter by Type Dropdown */}
+            <div className="flex-shrink-0">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Filter by Type
               </label>
               <TutorialHighlight
@@ -320,51 +490,58 @@ export default function TruckAssignmentModal({
                 <select
                   value={truckFilter}
                   onChange={(e) => setTruckFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 truck-filter-dropdown"
+                  className="input-field truck-filter-dropdown text-sm px-3 py-1"
+                  style={{ minWidth: "180px", maxWidth: "240px" }}
                 >
                   <option value="all">All Trucks</option>
-                  <option value="Food Truck">Food Trucks Only</option>
-                  <option value="Beverage Truck">Beverage Trucks Only</option>
-                  <option value="Dessert Truck">Dessert Trucks Only</option>
-                  <option value="Holiday Truck">Holiday Trucks Only</option>
+                  <option value="Food Truck">Food Truck Only</option>
+                  <option value="Catering Truck">Catering Truck Only</option>
+                  <option value="Beverage Truck">Beverage Truck Only</option>
                 </select>
               </TutorialHighlight>
             </div>
+
+            <div className="flex-grow" />
           </div>
 
+          {/* Truck List */}
           <div
             className="truck-list-container"
             style={{ flexGrow: 1, overflowY: "auto" }}
           >
-            {isLoadingTrucks ? (
+            {isLoadingTrucks ||
+            isLoadingAvailability ||
+            isLoadingDriverAvailability ? (
               <p className="text-gray-500">Loading trucks...</p>
             ) : trucksWithAssignments.length > 0 ? (
-              <div className="space-y-4">
-                {trucksWithAssignments.map((truck, index) => {
-                  const isSelected = selectedTrucks.has(truck.id);
+              trucksWithAssignments.map((truck, index) => {
+                const isSelected = selectedTrucks.has(truck.id);
 
-                  return (
-                    <TruckItem
-                      key={truck.id}
-                      truck={truck}
-                      isSelected={isSelected}
-                      selectedDriverId={truck.selectedDriverId || ""}
-                      onTruckSelection={handleTruckSelection}
-                      onDriverAssignment={handleDriverAssignment}
-                      shouldHighlight={shouldHighlight}
-                      index={index}
-                      availableDrivers={availableDrivers}
-                      eventStartTime={eventStartTime}
-                      eventEndTime={eventEndTime}
-                    />
-                  );
-                })}
-              </div>
+                return (
+                  <TruckItem
+                    key={truck.id}
+                    truck={truck}
+                    isSelected={isSelected}
+                    selectedDriverId={truck.selectedDriverId || ""}
+                    onTruckSelection={handleTruckSelection}
+                    onDriverAssignment={handleDriverAssignment}
+                    shouldHighlight={shouldHighlight}
+                    index={index}
+                    availableDrivers={availableDrivers}
+                    driversWithAvailability={driversWithAvailability}
+                    eventStartTime={eventStartTime}
+                    eventEndTime={eventEndTime}
+                    driverAssignments={driverAssignments}
+                  />
+                );
+              })
             ) : (
               <p className="text-gray-500">No trucks available.</p>
             )}
           </div>
         </div>
+
+        {/* Footer */}
         <div
           className="modal-footer"
           style={{ flexShrink: 0, padding: "1.5rem 2rem" }}
@@ -375,19 +552,14 @@ export default function TruckAssignmentModal({
             )}
           >
             <button className="btn-secondary" onClick={onClose}>
-              Cancel
+              Close
             </button>
           </TutorialHighlight>
           <TutorialHighlight
             isHighlighted={shouldHighlight(".modal-footer button.btn-primary")}
           >
-            <button
-              className="btn-primary"
-              onClick={handleSaveAssignments}
-              disabled={selectedTrucks.size === 0}
-            >
-              Save Assignments ({selectedTrucks.size} truck
-              {selectedTrucks.size !== 1 ? "s" : ""} selected)
+            <button className="btn-primary" onClick={handleSaveAssignments}>
+              Save
             </button>
           </TutorialHighlight>
         </div>

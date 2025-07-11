@@ -11,6 +11,7 @@ import { calculateDistance } from "../../../AlgApi/distance";
 import { eventsApi } from "@/lib/supabase/events";
 import { Tables } from "@/database.types";
 import { createClient } from "@/lib/supabase/client";
+import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 import ErrorModal from "../../../components/ErrorModal";
 
 interface EmployeeWithDistanceAndWage extends Employee {
@@ -159,7 +160,7 @@ export default function EmployeeSelectionModal({
     }
   }, [isOpen, assignedEmployees, event.number_of_servers_needed]);
 
-  // Check employee availability
+  // Check employee availability using centralized function
   const checkEmployeeAvailability = useCallback(
     async (
       employee: Employee
@@ -168,86 +169,14 @@ export default function EmployeeSelectionModal({
         return { isAvailable: true, reason: "" };
       }
 
-      const eventStart = new Date(event.start_date);
-      const eventEnd = new Date(event.end_date);
-      const dayOfWeek = eventStart.getDay();
-      const dayNames = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ];
-      const eventDay = dayNames[dayOfWeek];
-
-      // Check day availability
-      const availability = employee.availability as string[] | null;
-      if (!availability || !availability.includes(eventDay)) {
-        return {
-          isAvailable: false,
-          reason: `Not available on ${eventDay}`,
-        };
-      }
-
-      // Check for time off conflicts
-      const { data: timeOffRequests } = await supabase
-        .from("time_off_request")
-        .select("*")
-        .eq("employee_id", employee.employee_id)
-        .eq("status", "Accepted");
-
-      if (timeOffRequests && timeOffRequests.length > 0) {
-        const hasTimeOffConflict = timeOffRequests.some((request) => {
-          const requestStart = new Date(request.start_datetime);
-          const requestEnd = new Date(request.end_datetime);
-
-          return (
-            (requestStart <= eventStart && requestEnd > eventStart) ||
-            (requestStart < eventEnd && requestEnd >= eventEnd) ||
-            (requestStart >= eventStart && requestEnd <= eventEnd)
-          );
-        });
-
-        if (hasTimeOffConflict) {
-          return {
-            isAvailable: false,
-            reason: "Has approved time off during this period",
-          };
-        }
-      }
-
-      // Check for other event conflicts
-      const { data: otherAssignments } = await supabase
-        .from("assignments")
-        .select("start_date, end_date")
-        .eq("employee_id", employee.employee_id)
-        .neq("event_id", event.id || "");
-
-      if (otherAssignments && otherAssignments.length > 0) {
-        const hasEventConflict = otherAssignments.some((assignment) => {
-          const assignmentStart = new Date(assignment.start_date);
-          const assignmentEnd = new Date(assignment.end_date);
-
-          return (
-            (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
-            (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
-            (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
-          );
-        });
-
-        if (hasEventConflict) {
-          return {
-            isAvailable: false,
-            reason: "Assigned to another event during this time",
-          };
-        }
-      }
-
-      return { isAvailable: true, reason: "" };
+      return employeeAvailabilityApi.checkEmployeeAvailability(
+        employee,
+        event.start_date,
+        event.end_date,
+        event.id
+      );
     },
-    [event.id, event.start_date, event.end_date, supabase]
+    [event.id, event.start_date, event.end_date]
   );
 
   // Load employee wages

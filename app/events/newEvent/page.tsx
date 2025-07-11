@@ -34,6 +34,7 @@ import {
   handleAutofill,
 } from "../../../lib/formValidation";
 import { assignmentsApi } from "@/lib/supabase/assignments";
+import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -79,6 +80,19 @@ export default function AddEventPage(): ReactElement {
     []
   );
   const [isLoadingTrucks, setIsLoadingTrucks] = useState(true);
+  const [truckAvailabilityReasons, setTruckAvailabilityReasons] = useState<
+    Map<string, string>
+  >(new Map());
+  const [isLoadingTruckAvailability, setIsLoadingTruckAvailability] =
+    useState(false);
+  const [hasCheckedTruckAvailability, setHasCheckedTruckAvailability] =
+    useState(false);
+  const [driversWithAvailability, setDriversWithAvailability] = useState<
+    Record<
+      string,
+      Array<{ driver: Employee; isAvailable: boolean; reason: string }>
+    >
+  >({});
 
   // Refs for form fields
   const nameRef = useRef<HTMLInputElement>(null);
@@ -182,6 +196,9 @@ export default function AddEventPage(): ReactElement {
     }
     // Clear sorted employees when date changes so they can be re-sorted with new availability
     setSortedEmployees([]);
+    // Reset truck availability check when date changes
+    setHasCheckedTruckAvailability(false);
+    setTruckAvailabilityReasons(new Map());
   };
 
   const handleEndDateChange = (date: Date | null) => {
@@ -194,6 +211,9 @@ export default function AddEventPage(): ReactElement {
     }
     // Clear sorted employees when end date changes
     setSortedEmployees([]);
+    // Reset truck availability check when end date changes
+    setHasCheckedTruckAvailability(false);
+    setTruckAvailabilityReasons(new Map());
   };
 
   const handleTimeChange = (time: Date | null) => {
@@ -206,6 +226,9 @@ export default function AddEventPage(): ReactElement {
     }
     // Clear sorted employees when time changes
     setSortedEmployees([]);
+    // Reset truck availability check when time changes
+    setHasCheckedTruckAvailability(false);
+    setTruckAvailabilityReasons(new Map());
   };
 
   const handleEndTimeChange = (time: Date | null) => {
@@ -218,6 +241,9 @@ export default function AddEventPage(): ReactElement {
     }
     // Clear sorted employees when end time changes
     setSortedEmployees([]);
+    // Reset truck availability check when end time changes
+    setHasCheckedTruckAvailability(false);
+    setTruckAvailabilityReasons(new Map());
   };
 
   const handleLocationChange = (
@@ -237,6 +263,30 @@ export default function AddEventPage(): ReactElement {
     const existingAssignment = truckAssignments.find(
       (assignment) => assignment.truck_id === truckId
     );
+
+    // Check if driver is already assigned to another truck for this event
+    if (driverId !== null) {
+      const driverAlreadyAssigned = truckAssignments.find(
+        (assignment) =>
+          assignment.driver_id === driverId && assignment.truck_id !== truckId
+      );
+
+      if (driverAlreadyAssigned) {
+        const driver = employees.find((emp) => emp.employee_id === driverId);
+        const driverName = driver
+          ? `${driver.first_name} ${driver.last_name}`
+          : "Driver";
+        const otherTruck = trucks.find(
+          (truck) => truck.id === driverAlreadyAssigned.truck_id
+        );
+        const truckName = otherTruck?.name || "another truck";
+
+        alert(
+          `${driverName} is already assigned to ${truckName} for this event. A driver cannot be assigned to multiple trucks.`
+        );
+        return;
+      }
+    }
 
     if (existingAssignment) {
       if (driverId === null) {
@@ -306,6 +356,15 @@ export default function AddEventPage(): ReactElement {
     }
   };
 
+  // New function to reset all truck selections
+  const handleResetTruckSelections = () => {
+    setTruckAssignments([]);
+    setFormData({
+      ...formData,
+      trucks: [],
+    });
+  };
+
   const getAssignedDriverForTruck = (truckId: string): Employee | null => {
     const assignment = truckAssignments.find((a) => a.truck_id === truckId);
     if (assignment?.driver_id) {
@@ -317,11 +376,236 @@ export default function AddEventPage(): ReactElement {
     return null;
   };
 
-  const getAvailableDrivers = (): Employee[] => {
-    return employees.filter(
-      (emp) => emp.employee_type === "Driver" && emp.is_available
-    );
+  // Function to load available drivers using the centralized availability function
+  const loadAvailableDrivers = async () => {
+    // If we have event date/time, use the centralized availability function
+    if (formData.date && formData.time && formData.endTime) {
+      setIsLoadingTruckAvailability(true);
+      try {
+        const eventStartDate = new Date(`${formData.date}T${formData.time}`);
+        const eventEndDate = new Date(
+          `${formData.endDate}T${formData.endTime}`
+        );
+
+        // Get available drivers and managers separately, then combine
+        const [availableDrivers, availableManagers] = await Promise.all([
+          employeeAvailabilityApi.getAvailableEmployees(
+            "Driver",
+            eventStartDate.toISOString(),
+            eventEndDate.toISOString(),
+            formData.location
+          ),
+          employeeAvailabilityApi.getAvailableEmployees(
+            "Manager",
+            eventStartDate.toISOString(),
+            eventEndDate.toISOString(),
+            formData.location
+          ),
+        ]);
+
+        // Combine and set all available drivers and managers
+        setDriversWithAvailability({
+          ...driversWithAvailability,
+          ...availableDrivers.reduce<
+            Record<
+              string,
+              Array<{ driver: Employee; isAvailable: boolean; reason: string }>
+            >
+          >((acc, driver) => {
+            acc[driver.employee_id] = [
+              { driver, isAvailable: true, reason: "" },
+            ];
+            return acc;
+          }, {}),
+          ...availableManagers.reduce<
+            Record<
+              string,
+              Array<{ driver: Employee; isAvailable: boolean; reason: string }>
+            >
+          >((acc, manager) => {
+            acc[manager.employee_id] = [
+              { driver: manager, isAvailable: true, reason: "" },
+            ];
+            return acc;
+          }, {}),
+        });
+      } catch (error) {
+        console.error("Error checking driver availability:", error);
+        // Fallback to static availability check
+        const fallbackDrivers = employees.filter(
+          (emp) =>
+            (emp.employee_type === "Driver" ||
+              emp.employee_type === "Manager") &&
+            emp.is_available
+        );
+        setDriversWithAvailability(
+          fallbackDrivers.reduce<
+            Record<
+              string,
+              Array<{ driver: Employee; isAvailable: boolean; reason: string }>
+            >
+          >((acc, driver) => {
+            acc[driver.employee_id] = [
+              { driver, isAvailable: true, reason: "" },
+            ];
+            return acc;
+          }, {})
+        );
+      } finally {
+        setIsLoadingTruckAvailability(false);
+      }
+    } else {
+      // If no date/time yet, use static availability check
+      const staticDrivers = employees.filter(
+        (emp) =>
+          (emp.employee_type === "Driver" || emp.employee_type === "Manager") &&
+          emp.is_available
+      );
+      setDriversWithAvailability(
+        staticDrivers.reduce<
+          Record<
+            string,
+            Array<{ driver: Employee; isAvailable: boolean; reason: string }>
+          >
+        >((acc, driver) => {
+          acc[driver.employee_id] = [{ driver, isAvailable: true, reason: "" }];
+          return acc;
+        }, {})
+      );
+    }
   };
+
+  // Check truck availability when date/time changes
+  const checkTruckAvailability = async () => {
+    if (
+      !formData.date ||
+      !formData.time ||
+      !formData.endTime ||
+      trucks.length === 0
+    ) {
+      return;
+    }
+
+    setIsLoadingTruckAvailability(true);
+    try {
+      const eventStartDate = `${formData.date}T${formData.time}`;
+      const eventEndDate = `${formData.endDate}T${formData.endTime}`;
+
+      // Use the reusable function to check all trucks availability
+      const trucksWithAvailability = await trucksApi.truckAvailabilityCheck(
+        eventStartDate,
+        eventEndDate
+      );
+
+      // Create maps for availability reasons and status
+      const newAvailabilityReasons = new Map<string, string>();
+      const newTruckAvailability = new Map<string, boolean>();
+
+      trucksWithAvailability.forEach((truck) => {
+        newTruckAvailability.set(truck.id, truck.isAvailable);
+        if (!truck.isAvailable && truck.availabilityReason) {
+          newAvailabilityReasons.set(truck.id, truck.availabilityReason);
+        }
+      });
+
+      setTruckAvailabilityReasons(newAvailabilityReasons);
+
+      // Update truck availability status in the trucks array
+      setTrucks((prevTrucks) =>
+        prevTrucks.map((truck) => ({
+          ...truck,
+          is_available:
+            newTruckAvailability.get(truck.id) ?? truck.is_available,
+        }))
+      );
+
+      // Auto-remove conflicting trucks from selection
+      const conflictingTruckIds = Array.from(newAvailabilityReasons.keys());
+      if (conflictingTruckIds.length > 0) {
+        const updatedAssignments = truckAssignments.filter(
+          (assignment) => !conflictingTruckIds.includes(assignment.truck_id)
+        );
+        const updatedTruckIds = formData.trucks.filter(
+          (truckId) => !conflictingTruckIds.includes(truckId)
+        );
+
+        setTruckAssignments(updatedAssignments);
+        setFormData({
+          ...formData,
+          trucks: updatedTruckIds,
+        });
+      }
+
+      setHasCheckedTruckAvailability(true);
+    } catch (error) {
+      console.error("Error checking truck availability:", error);
+      setTruckAvailabilityReasons(new Map());
+    } finally {
+      setIsLoadingTruckAvailability(false);
+    }
+  };
+
+  // Load available drivers when component mounts or when date/time changes
+  useEffect(() => {
+    loadAvailableDrivers();
+  }, [
+    formData.date,
+    formData.time,
+    formData.endTime,
+    formData.location,
+    employees,
+  ]);
+
+  // Load driver availability for each truck when event time or employees change
+  useEffect(() => {
+    const loadDriversAvailability = async () => {
+      if (!formData.date || !formData.time || !formData.endTime) return;
+      const eventStart = `${formData.date}T${formData.time}`;
+      const eventEnd = `${formData.endDate}T${formData.endTime}`;
+      const truckDriverMap: Record<
+        string,
+        Array<{ driver: Employee; isAvailable: boolean; reason: string }>
+      > = {};
+      for (const truck of trucks) {
+        truckDriverMap[truck.id] = await Promise.all(
+          employees
+            .filter(
+              (emp) =>
+                emp.employee_type === "Driver" ||
+                emp.employee_type === "Manager"
+            )
+            .map(async (driver) => {
+              const availability =
+                await employeeAvailabilityApi.checkEmployeeAvailability(
+                  driver,
+                  eventStart,
+                  eventEnd,
+                  undefined // No eventId yet
+                );
+              return {
+                driver,
+                isAvailable: availability.isAvailable,
+                reason: availability.reason,
+              };
+            })
+        );
+      }
+      setDriversWithAvailability(truckDriverMap);
+    };
+    loadDriversAvailability();
+  }, [
+    formData.date,
+    formData.time,
+    formData.endTime,
+    formData.endDate,
+    trucks,
+    employees,
+  ]);
+
+  // Remove the automatic truck availability checking
+  // useEffect(() => {
+  //   checkTruckAvailability();
+  // }, [formData.date, formData.time, formData.endTime, trucks]);
 
   // Handler for Check Address button (to be passed to AddressForm)
   const handleCheckAddress = () => {
@@ -330,13 +614,17 @@ export default function AddEventPage(): ReactElement {
     if (valid) {
       setIsAddressValid(true);
       setAddressValidationMsg("Address is valid!");
+      checkTruckAvailability();
 
-      // Start sorting employees if we have coordinates (don't await, run in background)
+      // Start sorting employees and checking truck availability if we have coordinates (don't await, run in background)
       if (coordinates) {
         // Use setTimeout to run the sorting in the background
         setTimeout(async () => {
           try {
-            // Get all available servers
+            let serverMessage = "";
+            let truckMessage = "";
+
+            // Check server availability
             const availableServers = employees.filter(
               (emp) => emp.employee_type === "Server" && emp.is_available
             );
@@ -353,9 +641,7 @@ export default function AddEventPage(): ReactElement {
                     formData.location
                   );
                 setSortedEmployees(sortedAvailableServers);
-                setAddressValidationMsg(
-                  `Address is valid! Found ${sortedAvailableServers.length} available servers sorted by distance.`
-                );
+                serverMessage = `Found ${sortedAvailableServers.length} available servers sorted by distance.`;
               } else {
                 // If no date/time yet, just sort by distance without availability checking
                 // We'll use a simplified version that sorts by distance only
@@ -385,15 +671,19 @@ export default function AddEventPage(): ReactElement {
                   (a, b) => a.distance - b.distance
                 );
                 setSortedEmployees(sortedByDistance);
-                setAddressValidationMsg(
-                  `Address is valid! Found ${sortedByDistance.length} servers sorted by distance. Availability will be checked on event save.`
-                );
+                serverMessage = `Found ${sortedByDistance.length} servers sorted by distance. Availability will be checked on event save.`;
               }
             } else {
-              setAddressValidationMsg(
-                "Address is valid! No servers available."
-              );
+              serverMessage = "No servers available.";
             }
+
+            // Truck availability will be checked manually via the "Check Truck Availability" button
+            truckMessage =
+              "Use the 'Check Truck Availability' button below to verify truck availability.";
+
+            // Combine messages
+            const combinedMessage = `Address is valid! ${serverMessage} ${truckMessage}`;
+            setAddressValidationMsg(combinedMessage);
           } catch (error) {
             console.error("Error sorting employees:", error);
             setAddressValidationMsg(
@@ -461,11 +751,12 @@ export default function AddEventPage(): ReactElement {
       ),
       createValidationRule(
         "requiredServers",
-        true,
+        false, // Make it optional
         (value: unknown) =>
-          (typeof value === "string" || typeof value === "number") &&
-          validateNumber(value, 1),
-        "Number of servers is required and must be at least 1.",
+          !value || // Allow empty/0 values
+          ((typeof value === "string" || typeof value === "number") &&
+            validateNumber(value, 0)), // Allow 0 or more
+        "Number of servers must be 0 or greater.",
         requiredServersRef.current
       ),
       createValidationRule(
@@ -507,22 +798,11 @@ export default function AddEventPage(): ReactElement {
       }
     }
 
-    // Check truck assignments
-    const trucksWithoutDrivers = truckAssignments.filter(
-      (assignment) => !assignment.driver_id
-    );
-    if (trucksWithoutDrivers.length > 0) {
-      errors.push({
-        field: "truckAssignments",
-        message: "Please assign a driver to all selected trucks.",
-        element: null,
-      });
-    }
-
+    // Check truck assignments - only require at least one truck, drivers are optional
     if (truckAssignments.length === 0) {
       errors.push({
         field: "trucks",
-        message: "Please select at least one truck and assign a driver to it.",
+        message: "Please select at least one truck for this event.",
         element: null,
       });
     }
@@ -557,8 +837,8 @@ export default function AddEventPage(): ReactElement {
 
     setIsSubmitting(true);
     try {
-      // Get the required number of servers
-      const requiredServers = parseInt(formData.requiredServers);
+      // Get the required number of servers, default to 0 if empty
+      const requiredServers = parseInt(formData.requiredServers) || 0;
 
       // Use pre-sorted employees if available, otherwise get available servers
       let availableServers: Employee[];
@@ -604,8 +884,17 @@ export default function AddEventPage(): ReactElement {
 
       // Default event status
       let eventStatus = "Scheduled";
-      // Only set to Pending if not enough servers
-      if (availableServers.length < requiredServers) {
+
+      // Set to Pending if not enough servers (only if servers are required)
+      if (requiredServers > 0 && availableServers.length < requiredServers) {
+        eventStatus = "Pending";
+      }
+
+      // Set to Pending if any trucks don't have drivers assigned
+      const trucksWithoutDrivers = truckAssignments.filter(
+        (assignment) => !assignment.driver_id
+      );
+      if (trucksWithoutDrivers.length > 0) {
         eventStatus = "Pending";
       }
 
@@ -660,18 +949,21 @@ export default function AddEventPage(): ReactElement {
       }
 
       // Auto-assign servers (closest ones first) - using availability-checked servers
-      const selectedServerIds = availableServers
-        .slice(0, requiredServers)
-        .map((server) => server.employee_id);
+      // Only assign servers if requiredServers > 0
+      if (requiredServers > 0) {
+        const selectedServerIds = availableServers
+          .slice(0, requiredServers)
+          .map((server) => server.employee_id);
 
-      await assignmentsApi.createServerAssignments(
-        newEvent.id,
-        selectedServerIds,
-        formData.date,
-        formData.time,
-        formData.endDate,
-        formData.endTime
-      );
+        await assignmentsApi.createServerAssignments(
+          newEvent.id,
+          selectedServerIds,
+          formData.date,
+          formData.time,
+          formData.endDate,
+          formData.endTime
+        );
+      }
 
       // Redirect to the specific event page
       window.location.href = `/events/${newEvent.id}`;
@@ -823,7 +1115,7 @@ export default function AddEventPage(): ReactElement {
 
           <div className="input-group">
             <label htmlFor="requiredServers" className="input-label">
-              Required Servers <span className="text-red-500">*</span>
+              Required Servers (optional, defaults to 0)
             </label>
             <input
               ref={requiredServersRef}
@@ -833,6 +1125,7 @@ export default function AddEventPage(): ReactElement {
               value={formData.requiredServers}
               onChange={handleChange}
               min="0"
+              placeholder="0"
               onWheel={(e) => (e.target as HTMLInputElement).blur()}
               className="input-field"
             />
@@ -914,14 +1207,89 @@ export default function AddEventPage(): ReactElement {
             <label className="input-label">
               Assign Trucks & Drivers <span className="text-red-500">*</span>
             </label>
+
+            {/* Check Availability Button - positioned under the header */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  await checkTruckAvailability();
+                  await loadAvailableDrivers();
+                }}
+                disabled={
+                  isLoadingTruckAvailability ||
+                  !formData.date ||
+                  !formData.time ||
+                  !formData.endTime
+                }
+                className="btn btn-primary"
+              >
+                {isLoadingTruckAvailability ? (
+                  <>
+                    <div
+                      className="loading-spinner"
+                      style={{
+                        width: "1rem",
+                        height: "1rem",
+                        marginRight: "0.5rem",
+                      }}
+                    ></div>
+                    Checking Availability...
+                  </>
+                ) : (
+                  "Check Truck & Driver Availability"
+                )}
+              </button>
+              <p className="text-xs text-gray-500 mt-1">
+                Click to check both truck and driver availability for the
+                selected date and time
+              </p>
+            </div>
+
+            {/* Warning message if fields are missing */}
+            {(!formData.date || !formData.time || !formData.endTime) && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ Please fill in the Date, Time, and End Time fields above to
+                  enable availability checking
+                </p>
+              </div>
+            )}
+
+            {/* Show availability status if checked */}
+            {hasCheckedTruckAvailability && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-blue-800">
+                    ✅ Truck availability has been checked for {formData.date}{" "}
+                    at {formData.time}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResetTruckSelections}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Reset All Selections
+                  </button>
+                </div>
+              </div>
+            )}
+
             <p className="text-sm text-gray-600 mb-3">
               Check the boxes for trucks you want to include in this event, then
               assign a driver to each selected truck.
+              {hasCheckedTruckAvailability && (
+                <span className="block mt-1 text-xs text-blue-600">
+                  💡 Unavailable trucks have been automatically removed from
+                  your selection.
+                </span>
+              )}
             </p>
+
             <div
-              className={`truck-assignment-list space-y-4 ${isLoadingTrucks ? "loading" : ""}`}
+              className={`truck-assignment-list space-y-4 ${isLoadingTrucks || isLoadingTruckAvailability ? "loading" : ""}`}
             >
-              {isLoadingTrucks ? (
+              {isLoadingTrucks || isLoadingTruckAvailability ? (
                 <div className="text-center py-8">
                   <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
                   <p className="text-gray-500">Loading trucks...</p>
@@ -934,12 +1302,32 @@ export default function AddEventPage(): ReactElement {
                 </div>
               ) : (
                 trucks
-                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .sort((a, b) => {
+                    const isSelectedA = truckAssignments.some(
+                      (assignment) => assignment.truck_id === a.id
+                    );
+                    const isSelectedB = truckAssignments.some(
+                      (assignment) => assignment.truck_id === b.id
+                    );
+
+                    // First priority: selected trucks first
+                    if (isSelectedA && !isSelectedB) return -1;
+                    if (!isSelectedA && isSelectedB) return 1;
+
+                    // Second priority: availability (available trucks first)
+                    if (a.is_available && !b.is_available) return -1;
+                    if (!a.is_available && b.is_available) return 1;
+
+                    // Third priority: alphabetical by name
+                    return a.name.localeCompare(b.name);
+                  })
                   .map((truck) => {
                     const assignedDriver = getAssignedDriverForTruck(truck.id);
-                    const availableDrivers = getAvailableDrivers();
                     const isTruckSelected = truckAssignments.some(
                       (assignment) => assignment.truck_id === truck.id
+                    );
+                    const availabilityReason = truckAvailabilityReasons.get(
+                      truck.id
                     );
 
                     return (
@@ -963,24 +1351,41 @@ export default function AddEventPage(): ReactElement {
                                 handleTruckSelection(truck.id, e.target.checked)
                               }
                               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              disabled={
+                                hasCheckedTruckAvailability &&
+                                !truck.is_available
+                              }
                             />
                             <label
                               htmlFor={`truck-${truck.id}`}
-                              className="font-semibold text-lg cursor-pointer"
+                              className={`font-semibold text-lg ${hasCheckedTruckAvailability && !truck.is_available ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                             >
                               {truck.name}
                             </label>
                           </div>
-                          <span
-                            className={`px-2 py-1 rounded text-sm ${
-                              truck.is_available
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {truck.is_available ? "Available" : "Unavailable"}
-                          </span>
+                          {hasCheckedTruckAvailability ? (
+                            <span
+                              className={`px-2 py-1 rounded text-sm ${
+                                truck.is_available
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {truck.is_available ? "Available" : "Unavailable"}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 rounded text-sm bg-gray-100 text-gray-600">
+                              Not Checked
+                            </span>
+                          )}
                         </div>
+                        {hasCheckedTruckAvailability &&
+                          !truck.is_available &&
+                          availabilityReason && (
+                            <div className="text-xs text-red-600 mb-2">
+                              ⚠️ {availabilityReason}
+                            </div>
+                          )}
 
                         {/* Driver Assignment Section - Only show if truck is selected */}
                         {isTruckSelected && (
@@ -999,15 +1404,42 @@ export default function AddEventPage(): ReactElement {
                               }
                             >
                               <option value="">No driver assigned</option>
-                              {availableDrivers.map((driver) => (
-                                <option
-                                  key={driver.employee_id}
-                                  value={driver.employee_id}
-                                >
-                                  {driver.first_name} {driver.last_name} (
-                                  {driver.employee_type})
-                                </option>
-                              ))}
+                              {(driversWithAvailability[truck.id] || []).map(
+                                ({ driver, isAvailable, reason }) => {
+                                  // Check if driver is already assigned to another truck for this event
+                                  const isAlreadyAssigned =
+                                    truckAssignments.some(
+                                      (assignment) =>
+                                        assignment.driver_id ===
+                                          driver.employee_id &&
+                                        assignment.truck_id !== truck.id
+                                    );
+
+                                  let displayText = `${driver.first_name} ${driver.last_name} (${driver.employee_type})`;
+                                  let textColor = "black";
+
+                                  if (isAlreadyAssigned) {
+                                    displayText += ` - Already assigned to another truck for this event`;
+                                    textColor = "red";
+                                  } else if (!isAvailable) {
+                                    displayText += ` - Not available: ${reason}`;
+                                    textColor = "red";
+                                  } else {
+                                    textColor = "green";
+                                  }
+
+                                  return (
+                                    <option
+                                      key={driver.employee_id}
+                                      value={driver.employee_id}
+                                      style={{ color: textColor }}
+                                      disabled={isAlreadyAssigned}
+                                    >
+                                      {displayText}
+                                    </option>
+                                  );
+                                }
+                              )}
                             </select>
 
                             {assignedDriver && (
