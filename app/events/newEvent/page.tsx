@@ -105,10 +105,6 @@ export default function AddEventPage(): ReactElement {
   const timeRef = useRef<DatePicker>(null);
   const endTimeRef = useRef<DatePicker>(null);
 
-  // Add a state to track address validity
-  const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
-  const [addressValidationMsg, setAddressValidationMsg] = useState<string>("");
-
   // State for sorted employees
   const [sortedEmployees, setSortedEmployees] = useState<Employee[]>([]);
 
@@ -254,8 +250,6 @@ export default function AddEventPage(): ReactElement {
       location: address,
     }));
     setCoordinates(coords);
-    setIsAddressValid(!!coords);
-    setAddressValidationMsg(coords ? "Address is valid!" : "");
   };
 
   const handleTruckAssignment = (truckId: string, driverId: string | null) => {
@@ -553,6 +547,7 @@ export default function AddEventPage(): ReactElement {
     formData.endTime,
     formData.location,
     employees,
+    loadAvailableDrivers,
   ]);
 
   // Load driver availability for each truck when event time or employees change
@@ -611,9 +606,6 @@ export default function AddEventPage(): ReactElement {
     // Only update state if AddressForm validates
     const valid = addressFormRef.current?.validate() ?? false;
     if (valid) {
-      setIsAddressValid(true);
-      setAddressValidationMsg("Address is valid!");
-
       // Only check truck availability if we have the required date/time fields
       if (formData.date && formData.time && formData.endTime) {
         checkTruckAvailability();
@@ -624,8 +616,7 @@ export default function AddEventPage(): ReactElement {
         // Use setTimeout to run the sorting in the background
         setTimeout(async () => {
           try {
-            let serverMessage = "";
-            let truckMessage = "";
+            // Removed serverMessage and truckMessage variables since they are no longer used
 
             // Check server availability
             const availableServers = employees.filter(
@@ -644,7 +635,6 @@ export default function AddEventPage(): ReactElement {
                     formData.location
                   );
                 setSortedEmployees(sortedAvailableServers);
-                serverMessage = `Found ${sortedAvailableServers.length} available servers sorted by distance.`;
               } else {
                 // If no date/time yet, just sort by distance without availability checking
                 // We'll use a simplified version that sorts by distance only
@@ -674,30 +664,18 @@ export default function AddEventPage(): ReactElement {
                   (a, b) => a.distance - b.distance
                 );
                 setSortedEmployees(sortedByDistance);
-                serverMessage = `Found ${sortedByDistance.length} servers sorted by distance. Availability will be checked on event save.`;
               }
-            } else {
-              serverMessage = "No servers available.";
             }
 
             // Truck availability will be checked manually via the "Check Truck Availability" button
-            truckMessage =
-              "Use the 'Check Truck Availability' button below to verify truck availability.";
-
-            // Combine messages
-            const combinedMessage = `Address is valid! ${serverMessage} ${truckMessage}`;
-            setAddressValidationMsg(combinedMessage);
+            // Removed truckMessage variable since it is no longer used
           } catch (error) {
             console.error("Error sorting employees:", error);
-            setAddressValidationMsg(
-              "Address is valid! Error sorting employees."
-            );
           }
         }, 0);
       }
     } else {
-      setIsAddressValid(false);
-      setAddressValidationMsg("");
+      // setIsAddressValid(false); // This line is removed
     }
     return valid;
   };
