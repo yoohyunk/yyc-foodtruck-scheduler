@@ -30,7 +30,7 @@ const sidebarLinks: NavLink[] = [
   { name: "Schedule", href: "/schedule/", icon: <FiCalendar /> },
   { name: "Trucks", href: "/trucks/", icon: <FiTruck /> },
   { name: "Add Trucks", href: "/trucks/add-trucks", icon: <FiPlus /> },
-  { name: "About Trucks", href: "/about", icon: <FiInfo /> },
+  { name: "Packing List", href: "/about", icon: <FiInfo /> },
   { name: "Requests", href: "/requests/", icon: <FiFileText /> },
   { name: "Reports", href: "/reports/", icon: <FiBarChart2 /> },
 ];
@@ -100,92 +100,112 @@ export default function Sidebar() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "1.5rem",
+                gap: ".4rem",
                 maxHeight: "100%",
               }}
             >
-              {sidebarLinks.map((link) => (
-                <TutorialHighlight
-                  key={link.href}
-                  isHighlighted={shouldHighlight(
-                    `.sidebar-nav-${link.name.toLowerCase().replace(/\s/g, "-")}`
-                  )}
-                  className={`sidebar-nav-${link.name.toLowerCase().replace(/\s/g, "-")}`}
-                >
-                  <Link
-                    href={link.href}
-                    className="flex items-center gap-4 px-5 py-4 rounded-xl transition-all duration-200 group"
-                    style={{
-                      background: isActive(link.href)
-                        ? "var(--primary-light)"
-                        : "transparent",
-                      color: isActive(link.href)
-                        ? "var(--secondary-dark)"
-                        : "var(--primary-light)",
-                      boxShadow: isActive(link.href)
-                        ? "0 4px 16px rgba(255, 213, 134, 0.3)"
-                        : undefined,
-                      transform: isActive(link.href)
-                        ? "scale(1.05)"
-                        : undefined,
-                      fontWeight: 600,
-                      opacity:
-                        link.name.startsWith("Add") && shouldDisable ? 0.5 : 1,
-                      cursor:
-                        link.name.startsWith("Add") && shouldDisable
-                          ? "not-allowed"
-                          : "pointer",
-                      border: isActive(link.href)
-                        ? "2px solid var(--primary-light)"
-                        : "2px solid transparent",
-                    }}
-                    tabIndex={
-                      link.name.startsWith("Add") && shouldDisable ? -1 : 0
-                    }
-                    aria-disabled={link.name.startsWith("Add") && shouldDisable}
-                    onClick={(e) => {
-                      if (link.name.startsWith("Add") && shouldDisable)
-                        e.preventDefault();
-                      if (isMobile) closeSidebar();
-                    }}
-                    title={
-                      link.name.startsWith("Add") && shouldDisable
-                        ? "Admin only"
-                        : link.name
-                    }
-                    onMouseEnter={(e) => {
-                      if (
-                        !isActive(link.href) &&
-                        !(link.name.startsWith("Add") && shouldDisable)
-                      ) {
-                        e.currentTarget.style.background =
-                          "var(--primary-light)";
-                        e.currentTarget.style.color = "var(--secondary-dark)";
-                        e.currentTarget.style.transform = "scale(1.02)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive(link.href)) {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.color = "var(--primary-light)";
-                        e.currentTarget.style.transform = "scale(1)";
-                      }
-                    }}
+              {sidebarLinks.map((link) => {
+                const isAddItem =
+                  link.name.startsWith("Add") || link.name === "Packing List";
+                return (
+                  <TutorialHighlight
+                    key={link.href}
+                    isHighlighted={shouldHighlight(
+                      `.sidebar-nav-${link.name.toLowerCase().replace(/\s/g, "-")}`
+                    )}
+                    className={`sidebar-nav-${link.name.toLowerCase().replace(/\s/g, "-")}`}
                   >
-                    <span
-                      className="text-xl transition-colors duration-200"
+                    <Link
+                      href={link.href}
+                      className="flex items-center gap-4 rounded-xl transition-all duration-200 group"
                       style={{
+                        paddingLeft: isAddItem ? "3.5rem" : "1rem",
+                        paddingRight: "1rem",
+                        paddingTop: isAddItem ? "0.5rem" : "0.75rem",
+                        paddingBottom: isAddItem ? "0.5rem" : "0.75rem",
+                        background: isActive(link.href)
+                          ? "var(--primary-light)"
+                          : "transparent",
                         color: isActive(link.href)
                           ? "var(--secondary-dark)"
                           : "var(--primary-light)",
+                        boxShadow: isActive(link.href)
+                          ? "0 4px 16px rgba(255, 213, 134, 0.3)"
+                          : undefined,
+                        transform: isActive(link.href)
+                          ? "scale(1.05)"
+                          : undefined,
+                        fontWeight: 600,
+                        opacity:
+                          link.name.startsWith("Add") && shouldDisable
+                            ? 0.5
+                            : 1,
+                        cursor:
+                          link.name.startsWith("Add") && shouldDisable
+                            ? "not-allowed"
+                            : "pointer",
+                        border: isActive(link.href)
+                          ? "2px solid var(--primary-light)"
+                          : "2px solid transparent",
+                      }}
+                      tabIndex={
+                        link.name.startsWith("Add") && shouldDisable ? -1 : 0
+                      }
+                      aria-disabled={
+                        link.name.startsWith("Add") && shouldDisable
+                      }
+                      onClick={(e) => {
+                        if (link.name.startsWith("Add") && shouldDisable)
+                          e.preventDefault();
+                        if (isMobile) closeSidebar();
+                      }}
+                      title={
+                        link.name.startsWith("Add") && shouldDisable
+                          ? "Admin only"
+                          : link.name
+                      }
+                      onMouseEnter={(e) => {
+                        if (
+                          !isActive(link.href) &&
+                          !(link.name.startsWith("Add") && shouldDisable)
+                        ) {
+                          e.currentTarget.style.background =
+                            "var(--primary-light)";
+                          e.currentTarget.style.color = "var(--secondary-dark)";
+                          e.currentTarget.style.transform = "scale(1.02)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive(link.href)) {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "var(--primary-light)";
+                          e.currentTarget.style.transform = "scale(1)";
+                        }
                       }}
                     >
-                      {link.icon}
-                    </span>
-                    <span className="font-semibold text-base">{link.name}</span>
-                  </Link>
-                </TutorialHighlight>
-              ))}
+                      <span
+                        className="transition-colors duration-200"
+                        style={{
+                          color: isActive(link.href)
+                            ? "var(--secondary-dark)"
+                            : "var(--primary-light)",
+                          fontSize: isAddItem ? "1rem" : "1.25rem",
+                        }}
+                      >
+                        {link.icon}
+                      </span>
+                      <span
+                        className="font-semibold"
+                        style={{
+                          fontSize: isAddItem ? "0.875rem" : "1rem",
+                        }}
+                      >
+                        {link.name}
+                      </span>
+                    </Link>
+                  </TutorialHighlight>
+                );
+              })}
             </nav>
           </div>
         </div>
