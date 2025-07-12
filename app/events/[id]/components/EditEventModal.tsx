@@ -18,10 +18,12 @@ interface EditEventModalProps {
   formData: EventFormData;
   onFormChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   selectedDate: Date | null;
+  selectedEndDate: Date | null;
   selectedTime: Date | null;
   selectedEndTime: Date | null;
   isSubmitting: boolean;
   onDateChange: (date: Date | null) => void;
+  onEndDateChange: (date: Date | null) => void;
   onTimeChange: (time: Date | null) => void;
   onEndTimeChange: (time: Date | null) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -34,10 +36,12 @@ export default function EditEventModal({
   formData,
   onFormChange,
   selectedDate,
+  selectedEndDate,
   selectedTime,
   selectedEndTime,
   isSubmitting,
   onDateChange,
+  onEndDateChange,
   onTimeChange,
   onEndTimeChange,
   onSubmit,
@@ -50,6 +54,7 @@ export default function EditEventModal({
   const contactPhoneRef = useRef<HTMLInputElement>(null);
   const requiredServersRef = useRef<HTMLInputElement>(null);
   const dateRef = useRef<HTMLDivElement>(null);
+  const endDateRef = useRef<HTMLDivElement>(null);
   const timeRef = useRef<HTMLDivElement>(null);
   const endTimeRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLInputElement>(null);
@@ -75,8 +80,15 @@ export default function EditEventModal({
         "date",
         true,
         undefined,
-        "Date is required.",
+        "Start date is required.",
         dateRef.current
+      ),
+      createValidationRule(
+        "endDate",
+        true,
+        undefined,
+        "End date is required.",
+        endDateRef.current
       ),
       createValidationRule(
         "time",
@@ -146,6 +158,15 @@ export default function EditEventModal({
       });
     }
 
+    // Additional custom validation: end date not before start date
+    if (selectedDate && selectedEndDate && selectedEndDate < selectedDate) {
+      errors.push({
+        field: "endDate",
+        message: "End date cannot be before start date.",
+        element: endDateRef.current,
+      });
+    }
+
     setValidationErrors(errors);
     if (errors.length > 0) {
       setShowErrorModal(true);
@@ -184,7 +205,7 @@ export default function EditEventModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date <span className="text-red-500">*</span>
+                  Start Date <span className="text-red-500">*</span>
                 </label>
                 <div ref={dateRef}>
                   <DatePicker
@@ -192,7 +213,23 @@ export default function EditEventModal({
                     onChange={onDateChange}
                     dateFormat="yyyy-MM-dd"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholderText="Select date"
+                    placeholderText="Select start date"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  End Date <span className="text-red-500">*</span>
+                </label>
+                <div ref={endDateRef}>
+                  <DatePicker
+                    selected={selectedEndDate}
+                    onChange={onEndDateChange}
+                    dateFormat="yyyy-MM-dd"
+                    minDate={selectedDate || new Date()}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholderText="Select end date"
                   />
                 </div>
               </div>

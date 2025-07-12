@@ -24,6 +24,7 @@ export type Address = Tables<"addresses">;
 export interface EventFormData {
   name: string;
   date: string;
+  endDate: string;
   time: string;
   endTime: string;
   location: string;
