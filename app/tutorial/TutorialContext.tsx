@@ -76,35 +76,67 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       position: "bottom",
     },
     {
-      id: "main-navigation",
-      title: "Main Navigation Buttons 🧭",
+      id: "sidebar-introduction",
+      title: "Navigation Sidebar 🧭",
       content:
-        "These are your main navigation buttons. Each button takes you to a different section of the system. Let's go through each one to understand what they do.",
-      target: ".landing-links",
-      position: "bottom",
+        "This sidebar contains all your navigation options. It's your main way to move between different sections of the system. Let's explore what each button does!",
+      target: ".sidebar",
+      position: "right",
     },
     {
-      id: "schedule-button",
-      title: "Schedule Button 📅",
+      id: "dashboard-button",
+      title: "Dashboard Button 🏠",
       content:
-        "Click this button to view and manage your team's work schedule. Here you can see who's working when and create new shifts.",
-      target: ".landing-links .TutorialHighlight:nth-child(1)",
+        "This button takes you back to the main dashboard. You're currently here! This is where you can see an overview of upcoming events and time-off requests.",
+      target: ".sidebar-nav-dashboard",
       position: "right",
     },
     {
       id: "employees-button",
       title: "Employees Button 👥",
       content:
-        "This button takes you to your employee management page. Here you can add new staff, view employee details, and manage their information.",
-      target: ".landing-links .TutorialHighlight:nth-child(2)",
+        "Click this button to manage your team. Here you can view all employees, add new staff, edit employee details, and manage their information.",
+      target: ".sidebar-nav-employees",
+      position: "right",
+    },
+    {
+      id: "add-employee-button",
+      title: "Add Employee Button ➕",
+      content:
+        "Click this button to quickly add a new employee to your team. This will take you to the employee invitation form where you can enter their details.",
+      target: ".sidebar-nav-add-employee",
       position: "right",
     },
     {
       id: "events-button",
       title: "Events Button 🎉",
       content:
-        "Click here to manage your food truck events. You can create new events, view upcoming events, and assign staff to events.",
-      target: ".landing-links .TutorialHighlight:nth-child(3)",
+        "Click here to manage your food truck events. You can view all events, create new ones, and assign staff to events.",
+      target: ".sidebar-nav-events",
+      position: "right",
+    },
+    {
+      id: "add-shift-button",
+      title: "Add Shift Button 📅",
+      content:
+        "Click this button to quickly create a new work shift. This will take you to the schedule page where you can set up work shifts for your employees.",
+      target: ".sidebar-nav-add-shift",
+      position: "right",
+    },
+    {
+      id: "add-event-button",
+      title: "Add Event Button ➕",
+      content:
+        'To create a new event, click this button. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      target: ".sidebar-nav-add-event",
+      position: "right",
+    },
+    {
+      id: "schedule-button",
+      title: "Schedule Button 📅",
+      content:
+        "Click this button to view and manage your team's work schedule. Here you can see who's working when and create new shifts.",
+      target: ".sidebar-nav-schedule",
       position: "right",
     },
     {
@@ -112,54 +144,38 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       title: "Trucks Button 🚚",
       content:
         "This button takes you to your truck management page. Here you can add new trucks, view your fleet, and manage truck details.",
-      target: ".landing-links .TutorialHighlight:nth-child(4)",
+      target: ".sidebar-nav-trucks",
       position: "right",
     },
     {
-      id: "timeoff-button",
-      title: "Time-Off Button 🌴",
+      id: "add-trucks-button",
+      title: "Add Trucks Button ➕",
+      content:
+        "Click this button to add new trucks to your fleet. You can specify the truck type, capacity, and other details.",
+      target: ".sidebar-nav-add-trucks",
+      position: "right",
+    },
+    {
+      id: "requests-button",
+      title: "Requests Button 📋",
       content:
         "Click here to manage time-off requests from your staff. You can approve or deny requests and view upcoming time off.",
-      target: ".landing-links .TutorialHighlight:nth-child(5)",
+      target: ".sidebar-nav-requests",
       position: "right",
     },
     {
-      id: "quick-actions-sidebar",
-      title: "Quick Actions Sidebar ⚡",
+      id: "reports-button",
+      title: "Reports Button 📊",
       content:
-        "This sidebar contains quick action buttons for common tasks. You can quickly create new shifts, add staff, or create events without navigating through menus.",
-      target: ".sidebar",
-      position: "right",
-    },
-    {
-      id: "new-shift-button",
-      title: "New Shift Button ➕",
-      content:
-        "Click this button to quickly create a new shift. This will take you to the schedule page where you can set up work shifts for your employees.",
-      target: ".sidebar .TutorialHighlight:nth-child(1)",
-      position: "right",
-    },
-    {
-      id: "add-staff-button",
-      title: "Add Staff Button 👥",
-      content:
-        "Click this button to quickly add a new employee to your team. This will take you to the employee invitation form.",
-      target: ".sidebar .TutorialHighlight:nth-child(2)",
-      position: "right",
-    },
-    {
-      id: "create-event",
-      title: "Create New Event ➕",
-      content:
-        'To create a new event, click the "Create Event" button in the Quick Actions sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
-      target: ".sidebar .TutorialHighlight:nth-child(3)",
+        "This button takes you to the reports section where you can view analytics and reports about your business operations.",
+      target: ".sidebar-nav-reports",
       position: "right",
     },
     {
       id: "upcoming-events",
       title: "Upcoming Events Section 📅",
       content:
-        "This section shows your next 5 upcoming events. Each card shows the event name, date, and location. Click on an event to see more details.",
+        "This section shows your next 6 upcoming events. Each card shows the event name, date, and location. Click on an event to see more details.",
       target: ".upcoming-events-highlight",
       position: "bottom",
     },
@@ -167,7 +183,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "timeoff-requests",
       title: "Time-Off Requests Section 🌴",
       content:
-        "Here you can see the next 3 time-off requests from your staff. Each card shows the type of request, dates, and reason. Click to approve or deny requests.",
+        "Here you can see the next 4 time-off requests from your staff. Each card shows the type of request, dates, and reason. Click to approve or deny requests.",
       target: ".timeoff-requests-highlight",
       position: "bottom",
     },
@@ -175,7 +191,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "navigation-tips",
       title: "Quick Tips 💡",
       content:
-        "Hover over any button to see it highlight. The help button in the footer can restart this tutorial anytime you need it. Each section updates automatically with the latest information.",
+        "Hover over any sidebar button to see it highlight. The help button in the footer can restart this tutorial anytime you need it. Each section updates automatically with the latest information.",
       target: ".landing-main",
       position: "bottom",
     },
@@ -201,8 +217,8 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "add-employee",
       title: "Add New Employee ➕",
       content:
-        'To add a new employee, click the "Add Staff" button in the Quick Actions sidebar. Important tips for the form: 1) Don\'t add number suffixes to numbered streets, 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
-      target: ".sidebar .TutorialHighlight:nth-child(2)",
+        'To add a new employee, click the "Add Employee" button in the sidebar. Important tips for the form: 1) Don\'t add number suffixes to numbered streets, 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      target: ".sidebar-nav-add-employee",
       position: "right",
     },
     {
@@ -257,8 +273,8 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "create-event",
       title: "Create New Event ➕",
       content:
-        'To create a new event, click the "Create Event" button in the Quick Actions sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
-      target: ".sidebar .TutorialHighlight:nth-child(3)",
+        'To create a new event, click the "Add Event" button in the sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
+      target: ".sidebar-nav-add-event",
       position: "right",
     },
     {
@@ -359,8 +375,8 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "create-shift",
       title: "Create Shift ➕",
       content:
-        'To create a new shift, click the "New Shift" button. You\'ll need to select: the date, time, location, and which employees will work. The system will help you find available staff.',
-      target: ".new-shift-button",
+        'To create a new shift, click the "Add Shift" button in the sidebar. You\'ll need to select: the date, time, location, and which employees will work. The system will help you find available staff.',
+      target: ".sidebar-nav-add-shift",
       position: "right",
     },
     {
@@ -519,23 +535,31 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "select-employees-button",
       title: "Select Employees Button 👥",
       content:
-        "Click this button to open a modal where you can choose which employees will work at this event. Let's try adding an employee!",
+        "Click this button to open a modal where you can choose which employees will work at this event. The modal will show only available employees who can work during this event's time.",
       target: ".select-employees-button",
       position: "bottom",
       autoAction: { type: "click", delay: 800, waitAfter: 500 },
     },
     {
-      id: "select-employee-in-modal",
-      title: "Select an Employee ✅",
+      id: "employee-availability-explanation",
+      title: "Employee Availability 📅",
       content:
-        "Select the first available employee by checking the box, then close the modal to save your selection.",
-      target: ".modal-body .employee-checkbox:first-child",
+        "The employee selection modal shows all employees, but displays availability warnings for those who cannot work this event. Look for red warning messages (⚠️) that explain why an employee is unavailable - such as 'Not available on Friday' or 'Has approved time off during this period'. Unavailable employees will have disabled checkboxes.",
+      target: ".modal-body",
+      position: "bottom",
+    },
+    {
+      id: "select-available-employee",
+      title: "Select an Available Employee ✅",
+      content:
+        "Select an employee who doesn't have any warning messages. Available employees will have enabled checkboxes and no red warning text. The system automatically checks availability based on their schedule, time-off requests, and other event conflicts. Your selections will be saved when you click the Save button or the Next button.",
+      target:
+        ".employee-list-container .employee-label:not(:has(.text-xs.text-red-600)):first-child",
       position: "bottom",
       autoAction: {
         type: "check",
         delay: 800,
         waitAfter: 1500,
-        extra: { closeModal: true },
       },
     },
     {
@@ -550,23 +574,30 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "select-trucks-button",
       title: "Select Trucks Button 🚚",
       content:
-        "Click this button to open a modal where you can choose which food trucks will be at this event. Let's try adding a truck!",
+        "Click this button to open a modal where you can choose which food trucks will be at this event. The modal will show only available trucks that can be assigned to this event.",
       target: ".select-trucks-button",
       position: "bottom",
       autoAction: { type: "click", delay: 800, waitAfter: 500 },
     },
     {
-      id: "select-truck-in-modal",
-      title: "Select a Truck ✅",
+      id: "truck-availability-explanation",
+      title: "Truck Availability 🚚",
       content:
-        "Select the first available truck by checking the box, then close the modal to save your selection.",
+        "The truck selection modal shows all trucks with their availability status displayed as badges. Green 'Available' badges indicate trucks that can be assigned, while red 'Unavailable' badges show trucks that are already assigned to other events or out of service. You can still select unavailable trucks, but it's recommended to choose available ones.",
+      target: ".modal-body",
+      position: "bottom",
+    },
+    {
+      id: "select-available-truck",
+      title: "Select an Available Truck & Driver ✅",
+      content:
+        "The tutorial will automatically select an available truck and assign a driver to it. Watch as it: 1) Selects a truck with a green 'Available' badge, 2) Chooses a driver from the dropdown menu, 3) Saves the assignment to add the truck and driver to your event.",
       target: ".modal-body .truck-checkbox:first-child",
       position: "bottom",
       autoAction: {
         type: "check",
         delay: 1200,
-        waitAfter: 1500,
-        extra: { closeModal: true },
+        waitAfter: 3000,
       },
     },
     {
@@ -1060,18 +1091,18 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
     },
     {
       id: "role-selection",
-      title: "Role Selection 👥",
+      title: "Role Assigned by Your Boss 👥",
       content:
-        "Choose your role: Driver (delivers food), Server (serves customers), or Admin (manages the business). Your role determines what tasks you'll be assigned.",
-      target: "select[name='role']",
+        "Your boss (admin) has assigned your role. You can view your role here, but you cannot change it. If you believe your role is incorrect, please contact your manager.",
+      target: "div:has(.personal-info-section) .grid > div:nth-child(3)",
       position: "bottom",
     },
     {
       id: "wage-information",
-      title: "Wage Information 💰",
+      title: "View Your Wage 💰",
       content:
-        "Enter your hourly wage. This information is used for payroll and helps the system optimize staff assignments based on cost.",
-      target: "input[name='wage']",
+        "Your hourly wage has been set by your boss (admin). You can view your wage here, but you cannot edit it. If you have questions about your wage, please contact your manager.",
+      target: "div:has(.personal-info-section) .grid > div:nth-child(4)",
       position: "bottom",
     },
     {
@@ -1096,8 +1127,20 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
 // Add a function to normalize dynamic paths
 function normalizePath(path: string): string {
   // Add more dynamic route patterns as needed
-  // Only match actual event IDs (numbers), not "newEvent"
+  // Match UUID event IDs (like 3ab2bc94-3167-409d-93a4-6d7bc981caa8) and numeric IDs
+  if (
+    /^\/events\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      path
+    )
+  )
+    return "/events/[id]";
   if (/^\/events\/\d+$/.test(path)) return "/events/[id]";
+  if (
+    /^\/employees\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      path
+    )
+  )
+    return "/employees/[id]";
   if (/^\/employees\/\d+$/.test(path)) return "/employees/[id]";
   return path;
 }
@@ -1112,12 +1155,18 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   );
   const [pendingStep, setPendingStep] = useState<number | null>(null);
 
+  // Monitor state changes
+  useEffect(() => {
+    // No logging remains
+  }, [isActive, currentStep, currentPath, pendingStep]);
+
   // Get the appropriate tutorial steps for the current page
   const getCurrentSteps = useCallback(() => {
     const pageSteps = pageTutorials[normalizePath(currentPath)] || [];
     // Only include common steps on the home page, not when navigating to specific pages
     const isHomePage = normalizePath(currentPath) === "/";
-    return isHomePage ? [...commonSteps, ...pageSteps] : pageSteps;
+    const steps = isHomePage ? [...commonSteps, ...pageSteps] : pageSteps;
+    return steps;
   }, [currentPath]);
 
   const startTutorial = () => {
@@ -1145,9 +1194,12 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
     const handleRouteChange = () => {
       const newPath = normalizePath(window.location.pathname);
-
       if (newPath !== currentPath) {
         setCurrentPath(newPath);
+        // If tutorial is active, reset to step 0 for the new page
+        if (isActive) {
+          setCurrentStep(0);
+        }
       }
     };
 
@@ -1196,6 +1248,19 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     }
   }, [currentPath, pendingStep]);
 
+  // Test effect to force tutorial start
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      (window as { __TEST_TUTORIAL?: boolean }).__TEST_TUTORIAL
+    ) {
+      setIsActive(true);
+      setCurrentStep(0);
+      setPendingStep(null);
+      (window as { __TEST_TUTORIAL?: boolean }).__TEST_TUTORIAL = false;
+    }
+  }, []);
+
   const nextStep = () => {
     const steps = getCurrentSteps();
     if (currentStep < steps.length - 1) {
@@ -1222,7 +1287,8 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       const steps = getCurrentSteps();
       const currentStepData = steps[currentStep];
       if (!currentStepData) return false;
-      return currentStepData.target === selector;
+      const shouldHighlightElement = currentStepData.target === selector;
+      return shouldHighlightElement;
     },
     [isActive, currentStep, getCurrentSteps]
   );

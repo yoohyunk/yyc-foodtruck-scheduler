@@ -2,7 +2,7 @@
 import { ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext"; // Change path if needed
+import { useAuth } from "@/contexts/AuthContext";
 
 const publicRoutes = ["/login", "/set-password"];
 

@@ -196,7 +196,7 @@ export const truckAssignmentsApi = {
   },
 
   async createTruckAssignment(
-    assignmentData: Omit<TruckAssignment, "id" | "created_at">
+    assignmentData: Omit<TablesInsert<"truck_assignment">, "created_at" | "id">
   ): Promise<TruckAssignment> {
     const { data, error } = await supabase
       .from("truck_assignment")

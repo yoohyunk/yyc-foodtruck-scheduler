@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import { Tables } from "@/database.types";
 
 // Supabase table types
@@ -9,8 +8,17 @@ export type Employee = Tables<"employees"> & {
   addresses?: Tables<"addresses">;
   currentWage?: number;
 };
+export type EmployeeAvailability = Tables<"employee_availability">;
 export type Truck = Tables<"trucks">;
 export type TruckAssignment = Tables<"truck_assignment">;
+export type TruckAssignmentCreate = {
+  id: string;
+  truck_id: string;
+  driver_id: string | null;
+  event_id: string | null;
+  start_time: string;
+  end_time: string;
+};
 export type Address = Tables<"addresses">;
 
 export interface EventFormData {
@@ -33,6 +41,7 @@ export interface EventFormData {
   country: string;
   latitude?: string;
   longitude?: string;
+  [key: string]: unknown;
 }
 
 export interface EmployeeFormData {
@@ -44,7 +53,7 @@ export interface EmployeeFormData {
   phone: string;
   wage: string;
   isAvailable: boolean;
-  availability: string[];
+  availability?: string[];
   // Address fields for AddressForm
   street: string;
   city: string;
@@ -53,6 +62,7 @@ export interface EmployeeFormData {
   country: string;
   latitude?: string;
   longitude?: string;
+  [key: string]: unknown;
 }
 
 export interface TutorialStep {
@@ -61,13 +71,6 @@ export interface TutorialStep {
   content: string;
   selector: string;
   position: "top" | "bottom" | "left" | "right";
-}
-
-export interface QuickAction {
-  title: string;
-  description: string;
-  href: string;
-  icon: ReactNode;
 }
 
 export interface NavLink {
@@ -104,3 +107,50 @@ export interface Coordinates {
   latitude: number;
   longitude: number;
 }
+
+// Utility functions for truck type color coding
+export const getTruckTypeColor = (type: string): string => {
+  switch (type) {
+    case "Food Truck":
+      return "border-orange-300 bg-orange-50";
+    case "Beverage Truck":
+      return "border-blue-300 bg-blue-50";
+    case "Dessert Truck":
+      return "border-pink-300 bg-pink-50";
+    case "Holiday Truck":
+      return "border-purple-300 bg-purple-50";
+    default:
+      return "border-gray-300 bg-gray-50";
+  }
+};
+
+export const getTruckTypeBadge = (type: string): string => {
+  switch (type) {
+    case "Food Truck":
+      return "bg-orange-100 text-orange-800";
+    case "Beverage Truck":
+      return "bg-blue-100 text-blue-800";
+    case "Dessert Truck":
+      return "bg-pink-100 text-pink-800";
+    case "Holiday Truck":
+      return "bg-purple-100 text-purple-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
+// Utility function to get truck border colors based on truck type
+export const getTruckBorderColor = (type: string): string => {
+  switch (type) {
+    case "Food Truck":
+      return "var(--secondary-dark)";
+    case "Beverage Truck":
+      return "var(--primary-light)";
+    case "Dessert Truck":
+      return "var(--secondary-light)";
+    case "Holiday Truck":
+      return "var(--primary-dark)";
+    default:
+      return "var(--text-muted)";
+  }
+};

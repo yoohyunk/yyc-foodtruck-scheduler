@@ -1,21 +1,20 @@
-"use client";
-
+import "../globals.css";
 import { ReactNode } from "react";
-import EmployeeHeader from "./components/Header";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { TutorialProvider, TutorialOverlay } from "@/app/tutorial";
+import Header from "./components/Header";
+import SideBar from "./components/SideBar";
 
-interface EmployeeLayoutProps {
-  children: ReactNode;
-}
-
-export default function EmployeeLayout({ children }: EmployeeLayoutProps) {
+export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <TutorialProvider>
-      <EmployeeHeader />
-      <main className="container flex-grow">
-        <div className="main-content p-4">{children}</div>
-      </main>
-      <TutorialOverlay />
-    </TutorialProvider>
+    <AuthProvider>
+      <TutorialProvider>
+        <Header />
+        <SideBar>
+          <main className="container mx-auto px-4 py-6">{children}</main>
+        </SideBar>
+        <TutorialOverlay />
+      </TutorialProvider>
+    </AuthProvider>
   );
 }

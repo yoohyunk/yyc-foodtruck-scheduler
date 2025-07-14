@@ -10,42 +10,68 @@ import React, {
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { TablesInsert } from "@/database.types";
-import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
+import ShopLocationDropdown from "@/app/components/ShopLocationDropdown";
 import { Coordinates } from "@/app/types";
+import ErrorModal from "../../components/ErrorModal";
+import {
+  validateForm,
+  ValidationRule,
+  ValidationError,
+  createValidationRule,
+} from "../../../lib/formValidation";
 
 interface TruckFormData {
   name: string;
   type: string;
   capacity: string;
+  isAvailable: boolean;
   address: string;
   packingList: string[];
+  [key: string]: unknown;
 }
 
 export default function AddTrucks(): ReactElement {
   const router = useRouter();
   const supabase = createClient();
-  const addressFormRef = useRef<AddressFormRef>(null);
 
   const [formData, setFormData] = useState<TruckFormData>({
     name: "",
     type: "",
     capacity: "",
+    isAvailable: true,
     address: "",
-    packingList: [],
+    packingList: [
+      "Bleach Spray",
+      "Cash Float",
+      "Cloths",
+      "Cups",
+      "Engine Oil",
+      "Fire Extinguisher",
+      "First Aid Kit",
+      "Garbage Bags",
+      "Garbage Can",
+      "Menu Board",
+      "Plates & Cups",
+      "POS",
+      "Signs",
+      "Utensils",
+      "Water Tank",
+      "WiFi",
+    ],
   });
 
   const [coordinates, setCoordinates] = useState<Coordinates | undefined>();
-  const [addressFormData, setAddressFormData] = useState<{
-    streetNumber: string;
-    streetName: string;
-    direction: string;
-    city: string;
-    postalCode: string;
-  } | null>(null);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
+  const [newPackingItem, setNewPackingItem] = useState<string>("");
+
+  // Refs for form fields
+  const nameRef = useRef<HTMLInputElement>(null);
+  const typeRef = useRef<HTMLSelectElement>(null);
+  const capacityRef = useRef<HTMLSelectElement>(null);
 
   const truckTypes = ["Food Truck", "Beverage Truck", "Dessert Truck"];
 
@@ -57,50 +83,47 @@ export default function AddTrucks(): ReactElement {
   ];
 
   const packingListOptions = [
-    "Grill",
-    "Fryer",
-    "Refrigerator",
-    "Freezer",
-    "Sink",
-    "Prep Station",
-    "Storage Cabinets",
-    "Generator",
-    "Water Tank",
-    "Propane Tank",
-    "Utensils",
-    "Plates & Cups",
-    "Cleaning Supplies",
-    "First Aid Kit",
+    "Bleach Spray",
+    "Cash Float",
+    "Cloths",
+    "Cups",
+    "Diesel",
+    "Engine Oil",
     "Fire Extinguisher",
+    "First Aid Kit",
+    "Fryer Oil",
+    "Gas",
+    "Garbage Bags",
+    "Garbage Can",
+    "Generator",
+    "Generator Gas",
+    "Menu Board",
+    "Plates & Cups",
+    "POS",
+    "Propane Tank",
+    "Signs",
+    "Utensils",
+    "Water Tank",
+    "WiFi",
   ];
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setFormData({
       ...formData,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
-  const handleAddressChange = (
-    address: string,
-    coords?: Coordinates,
-    addrData?: {
-      streetNumber: string;
-      streetName: string;
-      direction: string;
-      city: string;
-      postalCode: string;
-    }
-  ) => {
+  const handleShopLocationChange = (address: string, coords?: Coordinates) => {
     setFormData({
       ...formData,
       address: address,
     });
     setCoordinates(coords);
-    setAddressFormData(addrData || null);
   };
 
   const handlePackingListChange = (item: string) => {
@@ -112,51 +135,102 @@ export default function AddTrucks(): ReactElement {
     }));
   };
 
-  const validateForm = (): boolean => {
-    if (!formData.name.trim()) {
-      setError("Truck name is required.");
-      return false;
+  const handleAddPackingItem = () => {
+    if (
+      newPackingItem.trim() &&
+      !formData.packingList.includes(newPackingItem.trim())
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        packingList: [...prev.packingList, newPackingItem.trim()],
+      }));
+      setNewPackingItem("");
     }
-    if (!formData.type) {
-      setError("Truck type is required.");
-      return false;
-    }
-    if (!formData.capacity) {
-      setError("Capacity is required.");
-      return false;
-    }
-    if (!formData.address.trim()) {
-      setError("Address is required.");
-      return false;
-    }
-    return true;
+  };
+
+  const handleRemovePackingItem = (item: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      packingList: prev.packingList.filter((i) => i !== item),
+    }));
+  };
+
+  const handleAutoSelectDefaults = () => {
+    const defaultItems = [
+      "Bleach Spray",
+      "Cash Float",
+      "Cloths",
+      "Cups",
+      "Engine Oil",
+      "Fire Extinguisher",
+      "First Aid Kit",
+      "Garbage Bags",
+      "Garbage Can",
+      "Menu Board",
+      "Plates & Cups",
+      "POS",
+      "Signs",
+      "Utensils",
+      "Water Tank",
+      "WiFi",
+    ];
+
+    setFormData((prev) => ({
+      ...prev,
+      packingList: defaultItems,
+    }));
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
 
-    if (!validateForm()) {
-      return;
-    }
+    const validationRules: ValidationRule[] = [
+      createValidationRule(
+        "name",
+        true,
+        undefined,
+        "Truck name is required.",
+        nameRef.current
+      ),
+      createValidationRule(
+        "type",
+        true,
+        undefined,
+        "Truck type is required.",
+        typeRef.current
+      ),
+      createValidationRule(
+        "capacity",
+        true,
+        (value: unknown) => typeof value === "string" && value.trim() !== "",
+        "Please select a capacity.",
+        capacityRef.current
+      ),
+    ];
 
-    // Validate address
-    const isAddressValid = addressFormRef.current?.validate() ?? false;
-    if (!isAddressValid) {
-      setError("Please enter a valid address.");
+    const validationErrors = validateForm(formData, validationRules);
+    setValidationErrors(validationErrors);
+
+    if (validationErrors.length > 0) {
+      setShowErrorModal(true);
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // 1. 주소 먼저 생성
+      // Parse the address to extract components
+      const addressParts = formData.address.split(", ");
+      const streetPart = addressParts[0] || "";
+      const city = addressParts[1] || "Calgary";
+      const postalCode = addressParts[2] || "";
+
+      // 1. Create address first
       const addressInsert: TablesInsert<"addresses"> = {
-        street: formData.address,
-        city: addressFormData?.city || "Calgary",
+        street: streetPart,
+        city: city,
         province: "Alberta",
-        postal_code: addressFormData?.postalCode || "",
+        postal_code: postalCode,
         country: "Canada",
         latitude: coordinates?.latitude?.toString() ?? null,
         longitude: coordinates?.longitude?.toString() ?? null,
@@ -169,20 +243,27 @@ export default function AddTrucks(): ReactElement {
         .single();
 
       if (addressError) {
-        setError(`Failed to create address: ${addressError.message}`);
+        console.error("Error creating address:", addressError);
+        setValidationErrors([
+          {
+            field: "address",
+            message: "Failed to create address. Please try again.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
         setIsSubmitting(false);
         return;
       }
 
-      // 2. 트럭 생성 (address_id 사용)
+      // 2. Create truck
       const truckInsert: TablesInsert<"trucks"> = {
         name: formData.name,
         type: formData.type,
         capacity: formData.capacity,
         address_id: address.id,
-        is_available: true,
-        packing_list:
-          formData.packingList.length > 0 ? formData.packingList : null,
+        packing_list: formData.packingList,
+        is_available: formData.isAvailable,
       };
 
       const { error: truckError } = await supabase
@@ -192,151 +273,262 @@ export default function AddTrucks(): ReactElement {
         .single();
 
       if (truckError) {
-        setError(`Failed to create truck: ${truckError.message}`);
+        console.error("Error creating truck:", truckError);
+        setValidationErrors([
+          {
+            field: "truck",
+            message: "Failed to create truck. Please try again.",
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
         setIsSubmitting(false);
         return;
       }
 
-      setSuccess("Truck added successfully!");
-      setTimeout(() => {
-        router.push("/trucks");
-      }, 1500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      // Success - redirect to trucks page
+      router.push("/trucks");
+    } catch (error) {
+      console.error("Error creating truck:", error);
+      setValidationErrors([
+        {
+          field: "general",
+          message: "An unexpected error occurred. Please try again.",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="add-truck-page">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Add New Truck</h1>
-        <button onClick={() => router.back()} className="button">
-          &larr; Back
-        </button>
+    <>
+      <div className="create-truck-page">
+        <div className="flex justify-between items-center mb-4">
+          <button className="button" onClick={() => router.back()}>
+            &larr; Back
+          </button>
+        </div>
+
+        <h1 className="form-header">Add New Truck</h1>
+        <form onSubmit={handleSubmit} className="truck-form">
+          <div className="input-group">
+            <label htmlFor="name" className="input-label">
+              Truck Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={nameRef}
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Enter truck name"
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="type" className="input-label">
+              Truck Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={typeRef}
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Select truck type</option>
+              {truckTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="capacity" className="input-label">
+              Capacity <span className="text-red-500">*</span>
+            </label>
+            <select
+              ref={capacityRef}
+              id="capacity"
+              name="capacity"
+              value={formData.capacity}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Select capacity</option>
+              {capacityOptions.map((capacity) => (
+                <option key={capacity} value={capacity}>
+                  {capacity}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="location" className="input-label">
+              Shop Location <span className="text-red-500">*</span>
+            </label>
+            <ShopLocationDropdown
+              value={formData.address}
+              onChange={handleShopLocationChange}
+              placeholder="Select shop location"
+              required={false}
+            />
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Availability</label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isAvailable"
+                name="isAvailable"
+                checked={formData.isAvailable}
+                onChange={handleChange}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Available for assignments
+              </span>
+            </div>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Packing List</label>
+
+            {/* Predefined items */}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="input-label">Predefined Items</h4>
+                <button
+                  type="button"
+                  onClick={handleAutoSelectDefaults}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Auto-select Defaults
+                </button>
+              </div>
+              <div className="packing-list-grid">
+                {packingListOptions.map((item) => (
+                  <label key={item} className="packing-list-item">
+                    <input
+                      type="checkbox"
+                      checked={formData.packingList.includes(item)}
+                      onChange={() => handlePackingListChange(item)}
+                      className="packing-list-checkbox"
+                    />
+                    <span className="packing-list-text">{item}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Add new item section */}
+            <div
+              className="section-card mb-4"
+              style={{
+                border: "none",
+                borderLeft: "6px solid var(--primary-light)",
+                borderTop: "4px solid var(--secondary-light)",
+                borderRight: "none",
+                borderBottom: "none",
+              }}
+              data-no-before="true"
+            >
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  value={newPackingItem}
+                  onChange={(e) => setNewPackingItem(e.target.value)}
+                  placeholder="Enter custom item..."
+                  className="input-field flex-1"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddPackingItem();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddPackingItem}
+                  disabled={
+                    !newPackingItem.trim() ||
+                    formData.packingList.includes(newPackingItem.trim())
+                  }
+                  className="button btn-primary"
+                  style={{ minHeight: "auto", padding: "0.75rem 1.5rem" }}
+                >
+                  Add
+                </button>
+              </div>
+              <p className="text-sm text-gray-500">
+                Press Enter or click Add to include custom items in the packing
+                list
+              </p>
+            </div>
+
+            {/* Custom items */}
+            {formData.packingList.filter(
+              (item) => !packingListOptions.includes(item)
+            ).length > 0 && (
+              <div className="mb-4">
+                <h4 className="input-label mb-2">Custom Items</h4>
+                <div className="space-y-2">
+                  {formData.packingList
+                    .filter((item) => !packingListOptions.includes(item))
+                    .map((item) => (
+                      <div
+                        key={item}
+                        className="section-card flex items-center justify-between"
+                      >
+                        <span className="packing-list-text font-medium">
+                          {item}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePackingItem(item)}
+                          className="text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Selected items summary */}
+            {formData.packingList.length > 0 && (
+              <div className="success-message">
+                <p>
+                  <strong>{formData.packingList.length}</strong> item
+                  {formData.packingList.length !== 1 ? "s" : ""} selected for
+                  packing list
+                </p>
+              </div>
+            )}
+          </div>
+
+          <button type="submit" className="button" disabled={isSubmitting}>
+            {isSubmitting ? "Adding..." : "Add Truck"}
+          </button>
+        </form>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Truck Name */}
-        <div className="input-group">
-          <label htmlFor="name" className="input-label">
-            Truck Name *
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="input-field"
-            placeholder="Enter truck name"
-            required
-          />
-        </div>
-
-        {/* Truck Type */}
-        <div className="input-group">
-          <label htmlFor="type" className="input-label">
-            Truck Type *
-          </label>
-          <select
-            id="type"
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="input-field"
-            required
-          >
-            <option value="">Select truck type</option>
-            {truckTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Capacity */}
-        <div className="input-group">
-          <label htmlFor="capacity" className="input-label">
-            Capacity *
-          </label>
-          <select
-            id="capacity"
-            name="capacity"
-            value={formData.capacity}
-            onChange={handleChange}
-            className="input-field"
-            required
-          >
-            <option value="">Select capacity</option>
-            {capacityOptions.map((capacity) => (
-              <option key={capacity} value={capacity}>
-                {capacity}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Address */}
-        <div className="input-group">
-          <label htmlFor="address" className="input-label">
-            Address *
-          </label>
-          <AddressForm
-            value={formData.address}
-            onChange={handleAddressChange}
-            placeholder="Enter truck address"
-            required
-            ref={addressFormRef}
-          />
-        </div>
-
-        {/* Packing List */}
-        <div className="input-group">
-          <label className="input-label">Packing List (Optional)</label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {packingListOptions.map((item) => (
-              <label key={item} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.packingList.includes(item)}
-                  onChange={() => handlePackingListChange(item)}
-                  className="rounded"
-                />
-                <span className="text-sm">{item}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <div className="flex gap-4">
-          <button type="submit" className="button" disabled={isSubmitting}>
-            {isSubmitting ? "Adding Truck..." : "Add Truck"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="button bg-gray-500 hover:bg-gray-600"
-          >
-            Cancel
-          </button>
-        </div>
-
-        {/* Error/Success Messages */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-            {success}
-          </div>
-        )}
-      </form>
-    </div>
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        errors={validationErrors}
+      />
+    </>
   );
 }

@@ -12,7 +12,7 @@ interface OSRMResponse {
   }>;
 }
 
-// Improved approach: Use a more efficient caching system
+// more efficient caching system
 const coordinatesCache = new Map<string, Coordinates>();
 
 // Rate limiting
@@ -25,31 +25,59 @@ async function delay(ms: number) {
 
 // Format address for Nominatim API
 function formatAddress(address: string): string {
-  // Remove any existing "Calgary, AB" to avoid duplication
-  let formattedAddress = address.replace(/,?\s*Calgary,?\s*AB/i, "").trim();
+  // Check if address already has a city and province
+  const hasCityProvince = /,\s*[A-Za-z\s]+,\s*AB/i.test(address);
 
-  // Add Calgary, AB if not present
-  if (!formattedAddress.toLowerCase().includes("calgary")) {
-    formattedAddress = `${formattedAddress}, Calgary, Alberta, Canada`;
-  }
-
-  // Add postal code if it's a numbered street address
-  if (/^\d+\s+\d+/.test(formattedAddress)) {
-    // Extract the street number and name
-    const match = formattedAddress.match(/^(\d+\s+\d+[a-z]?\s+[a-z]+)/i);
-    if (match) {
-      const streetPart = match[1];
-      // Add T2P postal code for downtown addresses for default fallback
-      if (
-        streetPart.toLowerCase().includes("avenue") ||
-        streetPart.toLowerCase().includes("street")
-      ) {
-        formattedAddress = `${streetPart}, Calgary, Alberta T2P, Canada`;
-      }
+  if (hasCityProvince) {
+    // Address already has city and Alberta province, just ensure it ends with "Canada"
+    if (!address.toLowerCase().includes("canada")) {
+      return `${address}, Canada`;
     }
+    return address;
   }
 
-  return formattedAddress;
+  // Check if address contains an Alberta city name (matching AddressForm dropdown)
+  const albertaCities = [
+    "calgary",
+    "airdrie",
+    "banff",
+    "canmore",
+    "cochrane",
+    "edmonton",
+    "fort mcmurray",
+    "grande prairie",
+    "leduc",
+    "lethbridge",
+    "medicine hat",
+    "okotoks",
+    "red deer",
+    "spruce grove",
+    "st. albert",
+  ];
+
+  const addressLower = address.toLowerCase();
+  const foundCity = albertaCities.find((city) => addressLower.includes(city));
+
+  if (foundCity) {
+    // Address contains a known Alberta city, add Alberta and Canada if missing
+    if (!addressLower.includes("alberta") && !addressLower.includes("ab")) {
+      return `${address}, Alberta, Canada`;
+    }
+
+    // If Alberta is already present, just add Canada if missing
+    if (!addressLower.includes("canada")) {
+      return `${address}, Canada`;
+    }
+    return address;
+  }
+
+  // If no Alberta city is detected, assume it's a street address and add Calgary as default
+  // (keeping backward compatibility for existing Calgary-based addresses)
+  if (!address.toLowerCase().includes("calgary")) {
+    return `${address}, Calgary, Alberta, Canada`;
+  }
+
+  return address;
 }
 
 export async function getCoordinates(address: string): Promise<Coordinates> {
@@ -78,7 +106,7 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
         `limit=1&` + // Get only the first result
         `addressdetails=1&` + // Include address details
         `bounded=1&` + // Restrict results to the bounding box
-        `viewbox=-114.2,51.1,-113.9,51.2&` + // Calgary bounding box
+        `viewbox=-120.0,49.0,-110.0,60.0&` + // Alberta bounding box
         `bounded=1`, // Enable bounded search
       {
         headers: {
@@ -116,7 +144,7 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
           `limit=1&` +
           `addressdetails=1&` +
           `bounded=1&` +
-          `viewbox=-114.2,51.1,-113.9,51.2&` +
+          `viewbox=-120.0,49.0,-110.0,60.0&` + // Alberta bounding box
           `bounded=1`,
         {
           headers: {
@@ -137,18 +165,52 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
       }
     }
 
-    // If all else fails, use downtown Calgary as fallback
+    // If all else fails, use appropriate fallback coordinates based on address
+    const fallbackCoords = getFallbackCoordinates(formattedAddress);
     console.warn(
-      `No coordinates found for ${formattedAddress}, using downtown Calgary as fallback`
+      `No coordinates found for ${formattedAddress}, using fallback coordinates: ${fallbackCoords.lat}, ${fallbackCoords.lng}`
     );
-    const fallbackCoords = { lat: 51.0452, lng: -114.0697 }; // Downtown Calgary
     coordinatesCache.set(address, fallbackCoords);
     return fallbackCoords;
   } catch (error) {
     console.error("Error getting coordinates:", error);
-    // Return downtown Calgary coordinates as fallback
-    return { lat: 51.0452, lng: -114.0697 };
+    // Return appropriate fallback coordinates
+    return getFallbackCoordinates(address);
   }
+}
+
+// Get fallback coordinates based on address content
+function getFallbackCoordinates(address: string): Coordinates {
+  const addressLower = address.toLowerCase();
+
+  // Major Alberta cities with their downtown coordinates (matching AddressForm dropdown)
+  const albertaCityCoordinates: { [key: string]: Coordinates } = {
+    calgary: { lat: 51.0452, lng: -114.0697 },
+    airdrie: { lat: 51.2915, lng: -114.0147 },
+    banff: { lat: 51.1784, lng: -115.5708 },
+    canmore: { lat: 51.0891, lng: -115.3583 },
+    cochrane: { lat: 51.1894, lng: -114.468 },
+    edmonton: { lat: 53.5461, lng: -113.4938 },
+    "fort mcmurray": { lat: 56.7264, lng: -111.3808 },
+    "grande prairie": { lat: 55.1699, lng: -118.7979 },
+    leduc: { lat: 53.2594, lng: -113.5492 },
+    lethbridge: { lat: 49.6942, lng: -112.8328 },
+    "medicine hat": { lat: 50.0421, lng: -110.7192 },
+    okotoks: { lat: 50.7256, lng: -113.9747 },
+    "red deer": { lat: 52.2691, lng: -113.8117 },
+    "spruce grove": { lat: 53.5454, lng: -113.9187 },
+    "st. albert": { lat: 53.6305, lng: -113.6256 },
+  };
+
+  // Check if address contains any known Alberta city
+  for (const [city, coords] of Object.entries(albertaCityCoordinates)) {
+    if (addressLower.includes(city)) {
+      return coords;
+    }
+  }
+
+  // Default to Calgary if no specific Alberta city is found (maintaining backward compatibility)
+  return albertaCityCoordinates["calgary"];
 }
 
 export async function calculateDistance(

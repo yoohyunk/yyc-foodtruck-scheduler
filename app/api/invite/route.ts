@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Type-safe environment variable access
+function getEnvVar(key: string): string {
+  const value = (
+    process as unknown as { env: Record<string, string | undefined> }
+  ).env[key];
+  if (!value) {
+    throw new Error(`Environment variable ${key} is not defined`);
+  }
+  return value;
+}
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  getEnvVar("NEXT_PUBLIC_SUPABASE_URL"),
+  getEnvVar("SUPABASE_SERVICE_ROLE_KEY")
 );
 
 export async function POST(request: Request) {
@@ -14,14 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
   }
 
-  // Log environment variables for debugging (remove in production)
-  console.log("Environment check:", {
-    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    appUrl: process.env.NEXT_PUBLIC_APP_URL,
-  });
-
-  const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/set-password`;
+  const redirectUrl = `${getEnvVar("NEXT_PUBLIC_APP_URL")}/set-password`;
   console.log("Redirect URL:", redirectUrl);
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
@@ -53,9 +57,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: employeeError.message }, { status: 500 });
   }
 
-  await supabase.from("wages").insert({
+  console.log("Wage value received for insertion:", wage);
+  await supabase.from("wage").insert({
     employee_id: employeeData?.employee_id,
-    wage: wage,
+    hourly_wage: wage,
+    start_date: new Date().toISOString(),
   });
 
   return NextResponse.json({ user: data.user });

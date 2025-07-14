@@ -26,7 +26,7 @@ interface EmployeeSelectionModalProps {
     start_date?: string;
     end_date?: string;
   };
-  onEmployeeSelection: (employee: Employee) => void;
+  onSaveAssignments: (selectedEmployeeIds: string[]) => void;
   shouldHighlight: (selector: string) => boolean;
   employeeFilter: string;
   onFilterChange: (filter: string) => void;
@@ -105,7 +105,7 @@ export default function EmployeeSelectionModal({
   assignedEmployees,
   isLoadingEmployees,
   event,
-  onEmployeeSelection,
+  onSaveAssignments,
   shouldHighlight,
   employeeFilter,
   onFilterChange,
@@ -115,13 +115,27 @@ export default function EmployeeSelectionModal({
   >([]);
   const [isLoadingDistances, setIsLoadingDistances] = useState(false);
   const [sortByDistance, setSortByDistance] = useState(false);
+  const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(
+    new Set()
+  );
+  const [hasLoadedData, setHasLoadedData] = useState(false);
   const supabase = createClient();
 
-  // Memoize assigned employee IDs for faster lookups
-  const assignedEmployeeIds = useMemo(
-    () => new Set(assignedEmployees.map((emp) => emp.employee_id)),
-    [assignedEmployees]
-  );
+  // Initialize selected employees when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const newSelectedEmployees = new Set<string>();
+      assignedEmployees.forEach((emp) => {
+        newSelectedEmployees.add(emp.employee_id);
+      });
+      setSelectedEmployees(newSelectedEmployees);
+    }
+  }, [isOpen, assignedEmployees]);
+
+  // Memoize the event key to prevent unnecessary recalculations
+  const eventKey = useMemo(() => {
+    return `${event.id}-${event.start_date}-${event.end_date}`;
+  }, [event.id, event.start_date, event.end_date]);
 
   // Check employee availability for the event
   const checkEmployeeAvailability = useCallback(
@@ -209,10 +223,13 @@ export default function EmployeeSelectionModal({
 
       return { isAvailable: true, reason: "" };
     },
-    [event, supabase]
+    [event.id, event.start_date, event.end_date, supabase]
   );
 
   const calculateDistancesAndWages = useCallback(async () => {
+    // Only calculate if we haven't loaded data for this event yet
+    if (hasLoadedData) return;
+
     setIsLoadingDistances(true);
     try {
       const eventAddress = event.addresses;
@@ -274,19 +291,34 @@ export default function EmployeeSelectionModal({
       );
 
       setEmployeesWithDistance(employeesWithData);
+      setHasLoadedData(true);
     } catch (error) {
       console.error("Error calculating distances and wages:", error);
     } finally {
       setIsLoadingDistances(false);
     }
-  }, [employees, event, checkEmployeeAvailability]);
+  }, [employees, event.addresses, checkEmployeeAvailability, hasLoadedData]);
 
-  // Calculate distances and get wages when modal opens
+  // Calculate distances and get wages when modal opens (only once per event)
   useEffect(() => {
-    if (isOpen && event?.addresses && employees.length > 0) {
+    if (isOpen && event?.addresses && employees.length > 0 && !hasLoadedData) {
       calculateDistancesAndWages();
     }
-  }, [isOpen, event, employees, calculateDistancesAndWages]);
+  }, [
+    isOpen,
+    event.addresses,
+    employees.length,
+    hasLoadedData,
+    calculateDistancesAndWages,
+  ]);
+
+  // Reset data when modal closes or event changes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasLoadedData(false);
+      setEmployeesWithDistance([]);
+    }
+  }, [isOpen, eventKey]);
 
   const formatDistance = useCallback((distance: number | undefined) => {
     if (distance === undefined) return "N/A";
@@ -313,6 +345,36 @@ export default function EmployeeSelectionModal({
     return processedEmployees;
   }, [employeesWithDistance, employeeFilter, sortByDistance]);
 
+  const handleLocalEmployeeSelection = (employee: Employee) => {
+    const newSelectedEmployees = new Set(selectedEmployees);
+
+    if (newSelectedEmployees.has(employee.employee_id)) {
+      newSelectedEmployees.delete(employee.employee_id);
+    } else {
+      // Check if we can add more employees
+      if (newSelectedEmployees.size >= (event.number_of_servers_needed || 0)) {
+        alert(
+          `Maximum number of servers (${event.number_of_servers_needed}) already selected.`
+        );
+        return;
+      }
+      newSelectedEmployees.add(employee.employee_id);
+    }
+
+    setSelectedEmployees(newSelectedEmployees);
+  };
+
+  const handleSaveAssignments = () => {
+    // Convert selected employees Set to array of IDs
+    const selectedEmployeeIds = Array.from(selectedEmployees);
+
+    // Call the parent's save function
+    onSaveAssignments(selectedEmployeeIds);
+
+    // Close the modal
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -334,8 +396,7 @@ export default function EmployeeSelectionModal({
         >
           Select Employees
           <span className="text-sm font-normal text-gray-600 ml-2">
-            ({assignedEmployees.length}/{event.number_of_servers_needed}{" "}
-            assigned)
+            ({selectedEmployees.size}/{event.number_of_servers_needed} selected)
           </span>
         </h3>
         <div
@@ -392,7 +453,7 @@ export default function EmployeeSelectionModal({
               <p className="text-gray-500">Loading employees...</p>
             ) : sortedAndFilteredEmployees.length > 0 ? (
               <>
-                {assignedEmployees.length >=
+                {selectedEmployees.size >=
                   (event.number_of_servers_needed || 0) && (
                   <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg">
                     <p className="text-green-800 text-sm">
@@ -403,11 +464,11 @@ export default function EmployeeSelectionModal({
                   </div>
                 )}
                 {sortedAndFilteredEmployees.map((employee, index) => {
-                  const isAssigned = assignedEmployeeIds.has(
+                  const isAssigned = selectedEmployees.has(
                     employee.employee_id
                   );
                   const maxReached =
-                    assignedEmployees.length >=
+                    selectedEmployees.size >=
                     (event.number_of_servers_needed || 0);
                   const isDisabled = !isAssigned && maxReached;
 
@@ -417,7 +478,7 @@ export default function EmployeeSelectionModal({
                       employee={employee}
                       isAssigned={isAssigned}
                       isDisabled={isDisabled}
-                      onSelection={onEmployeeSelection}
+                      onSelection={handleLocalEmployeeSelection}
                       shouldHighlight={shouldHighlight}
                       index={index}
                       formatDistance={formatDistance}
@@ -447,7 +508,7 @@ export default function EmployeeSelectionModal({
           <TutorialHighlight
             isHighlighted={shouldHighlight(".modal-footer button.btn-primary")}
           >
-            <button className="btn-primary" onClick={onClose}>
+            <button className="btn-primary" onClick={handleSaveAssignments}>
               Save
             </button>
           </TutorialHighlight>
