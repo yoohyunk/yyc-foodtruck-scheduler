@@ -223,9 +223,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       const value = e.target.value; // allow spaces as typed
       const newFormData = { ...formData, streetNumber: value };
       setFormData(newFormData);
-      // Call onChange with the current full address
-      const fullAddress = getFullAddress(newFormData);
-      onChange(fullAddress);
+      // Address will only be updated when Check Address button is clicked
     };
 
     // Handler for street name change (allow spaces, no stripping/collapsing)
@@ -233,9 +231,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       const value = e.target.value; // allow spaces as typed
       const newFormData = { ...formData, streetName: value };
       setFormData(newFormData);
-      // Call onChange with the current full address
-      const fullAddress = getFullAddress(newFormData);
-      onChange(fullAddress);
+      // Address will only be updated when Check Address button is clicked
     };
 
     // Handler for street name blur (just validation, no abbreviation expansion)
@@ -267,9 +263,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       }
       const newFormData = { ...formData, postalCode: value };
       setFormData(newFormData);
-      // Call onChange with the current full address
-      const fullAddress = getFullAddress(newFormData);
-      onChange(fullAddress);
+      // Address will only be updated when Check Address button is clicked
     };
 
     // Parse initial value if provided
@@ -453,9 +447,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
                 const value = e.target.value;
                 const newFormData = { ...formData, direction: value };
                 setFormData(newFormData);
-                // Call onChange with the current full address
-                const fullAddress = getFullAddress(newFormData);
-                onChange(fullAddress);
+                // Address will only be updated when Check Address button is clicked
               }}
               onBlur={() => setShowErrors(true)}
               required={required}
@@ -477,9 +469,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             const value = e.target.value;
             const newFormData = { ...formData, city: value };
             setFormData(newFormData);
-            // Call onChange with the current full address
-            const fullAddress = getFullAddress(newFormData);
-            onChange(fullAddress);
+            // Address will only be updated when Check Address button is clicked
           }}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
