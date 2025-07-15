@@ -66,6 +66,7 @@ export default function EventDetailsPage(): ReactElement {
   const [editFormData, setEditFormData] = useState<EventFormData>({
     name: "",
     date: "",
+    endDate: "",
     time: "",
     endTime: "",
     location: "",
@@ -86,6 +87,7 @@ export default function EventDetailsPage(): ReactElement {
   });
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,6 +111,9 @@ export default function EventDetailsPage(): ReactElement {
   const [errorModalType, setErrorModalType] = useState<"error" | "success">(
     "error"
   );
+
+  // Server warning state
+  const [showServerWarning, setShowServerWarning] = useState<boolean>(false);
 
   // Memoize modal open/close handlers to prevent re-renders
   const openEmployeeModal = useCallback(() => setEmployeeModalOpen(true), []);
@@ -136,8 +141,8 @@ export default function EventDetailsPage(): ReactElement {
         setError(null);
         const eventData = await eventsApi.getEventById(id as string);
         setEvent(eventData);
-      } catch (err) {
-        console.error("Error fetching event:", err);
+      } catch (error) {
+        console.error("Error fetching event:", error);
         setError("Failed to load event details.");
       } finally {
         setIsLoadingEvent(false);
@@ -160,8 +165,8 @@ export default function EventDetailsPage(): ReactElement {
         const trucksData = await trucksApi.getAllTrucks();
         setTrucks(trucksData);
         setIsLoadingTrucks(false);
-      } catch (err) {
-        console.error("Error fetching data:", err);
+      } catch (error) {
+        console.error("Error fetching data:", error);
         setIsLoadingEmployees(false);
         setIsLoadingTrucks(false);
       }
@@ -192,8 +197,8 @@ export default function EventDetailsPage(): ReactElement {
         const assignments =
           await truckAssignmentsApi.getTruckAssignmentsByEventId(event.id);
         setTruckAssignments(assignments);
-      } catch (err) {
-        console.error("Error fetching truck assignments:", err);
+      } catch (error) {
+        console.error("Error fetching truck assignments:", error);
       }
     };
 
@@ -210,13 +215,23 @@ export default function EventDetailsPage(): ReactElement {
           event.id
         );
         setServerAssignments(assignments);
-      } catch (err) {
-        console.error("Error fetching server assignments:", err);
+
+        // Check if we need to show server warning
+        const requiredServers = event.number_of_servers_needed || 0;
+        const assignedServers = assignments.length;
+
+        if (assignedServers < requiredServers) {
+          setShowServerWarning(true);
+        } else {
+          setShowServerWarning(false);
+        }
+      } catch (error) {
+        console.error("Error fetching server assignments:", error);
       }
     };
 
     fetchServerAssignments();
-  }, [event?.id]);
+  }, [event?.id, event?.number_of_servers_needed]);
 
   // Update assigned employees when server assignments change
   useEffect(() => {
@@ -302,6 +317,22 @@ export default function EventDetailsPage(): ReactElement {
         await assignmentsApi.getServerAssignmentsByEventId(event.id);
       setServerAssignments(updatedAssignments);
 
+      // Refresh event data to get updated required servers count
+      const updatedEvent = await eventsApi.getEventById(event.id);
+      if (updatedEvent) {
+        setEvent(updatedEvent);
+      }
+
+      // Update server warning
+      const requiredServers = updatedEvent?.number_of_servers_needed || 0;
+      const assignedServers = updatedAssignments.length;
+
+      if (assignedServers < requiredServers) {
+        setShowServerWarning(true);
+      } else {
+        setShowServerWarning(false);
+      }
+
       showSuccess("Success", "Employee assignments updated successfully.");
     } catch (error) {
       console.error("Error saving employee assignments:", error);
@@ -331,6 +362,43 @@ export default function EventDetailsPage(): ReactElement {
     setIsErrorModalOpen(false);
   };
 
+  // Function to refresh server assignments
+  const refreshServerAssignments = async () => {
+    if (!event?.id) return;
+
+    try {
+      const assignments = await assignmentsApi.getServerAssignmentsByEventId(
+        event.id
+      );
+      setServerAssignments(assignments);
+
+      // Update server warning
+      const requiredServers = event.number_of_servers_needed || 0;
+      const assignedServers = assignments.length;
+
+      if (assignedServers < requiredServers) {
+        setShowServerWarning(true);
+      } else {
+        setShowServerWarning(false);
+      }
+    } catch (error) {
+      console.error("Error refreshing server assignments:", error);
+    }
+  };
+
+  // Function to refresh truck assignments
+  const refreshTruckAssignments = async () => {
+    if (!event?.id) return;
+
+    try {
+      const assignments =
+        await truckAssignmentsApi.getTruckAssignmentsByEventId(event.id);
+      setTruckAssignments(assignments);
+    } catch (error) {
+      console.error("Error refreshing truck assignments:", error);
+    }
+  };
+
   const handleTruckAssignment = async (
     truckId: string,
     driverId: string | null
@@ -338,6 +406,31 @@ export default function EventDetailsPage(): ReactElement {
     if (!event?.id) {
       showError("Error", "Event not found. Please refresh the page.");
       return;
+    }
+
+    // Check if driver is already assigned to another truck for this event
+    if (driverId !== null) {
+      const driverAlreadyAssigned = truckAssignments.find(
+        (assignment) =>
+          assignment.driver_id === driverId && assignment.truck_id !== truckId
+      );
+
+      if (driverAlreadyAssigned) {
+        const driver = employees.find((emp) => emp.employee_id === driverId);
+        const driverName = driver
+          ? `${driver.first_name} ${driver.last_name}`
+          : "Driver";
+        const otherTruck = trucks.find(
+          (truck) => truck.id === driverAlreadyAssigned.truck_id
+        );
+        const truckName = otherTruck?.name || "another truck";
+
+        showError(
+          "Driver Conflict",
+          `${driverName} is already assigned to ${truckName} for this event. A driver cannot be assigned to multiple trucks.`
+        );
+        return;
+      }
     }
 
     try {
@@ -351,46 +444,35 @@ export default function EventDetailsPage(): ReactElement {
           await truckAssignmentsApi.deleteTruckAssignment(
             existingAssignment.id
           );
-          setTruckAssignments(
-            truckAssignments.filter(
-              (assignment) => assignment.truck_id !== truckId
-            )
-          );
+          await refreshTruckAssignments();
           showSuccess("Success", "Truck assignment removed successfully.");
         } else {
           // Update existing assignment with new driver
-          const updatedAssignment =
-            await truckAssignmentsApi.updateTruckAssignment(
-              existingAssignment.id,
-              { driver_id: driverId }
-            );
-          setTruckAssignments(
-            truckAssignments.map((assignment) =>
-              assignment.truck_id === truckId ? updatedAssignment : assignment
-            )
+          await truckAssignmentsApi.updateTruckAssignment(
+            existingAssignment.id,
+            { driver_id: driverId }
           );
+          await refreshTruckAssignments();
           showSuccess("Success", "Truck assignment updated successfully.");
         }
       } else {
         // Create new assignment for the truck (with or without driver)
         // Only create if driverId is not null (truck is selected)
         if (driverId !== null) {
-          const newAssignment = await truckAssignmentsApi.createTruckAssignment(
-            {
-              truck_id: truckId,
-              driver_id: driverId,
-              event_id: event.id,
-              start_time: event.start_date || new Date().toISOString(),
-              end_time: event.end_date || new Date().toISOString(),
-            }
-          );
-          setTruckAssignments([...truckAssignments, newAssignment]);
+          await truckAssignmentsApi.createTruckAssignment({
+            truck_id: truckId,
+            driver_id: driverId,
+            event_id: event.id,
+            start_time: event.start_date || new Date().toISOString(),
+            end_time: event.end_date || new Date().toISOString(),
+          });
+          await refreshTruckAssignments();
           showSuccess("Success", "Truck assigned successfully.");
         }
         // If driverId is null and no existing assignment, do nothing (truck is not selected)
       }
-    } catch (err) {
-      console.error("Error handling truck assignment:", err);
+    } catch (error) {
+      console.error("Error handling truck assignment:", error);
       showError(
         "Assignment Error",
         "Failed to update truck assignment. Please try again."
@@ -410,8 +492,9 @@ export default function EventDetailsPage(): ReactElement {
   };
 
   const getAvailableDrivers = (): Employee[] => {
+    // Return all drivers and managers (not just available ones) for the dropdown
     return employees.filter(
-      (emp) => emp.employee_type === "Driver" && emp.is_available
+      (emp) => emp.employee_type === "Driver" || emp.employee_type === "Manager"
     );
   };
 
@@ -432,8 +515,8 @@ export default function EventDetailsPage(): ReactElement {
 
       // Navigate back to events page
       router.push("/events");
-    } catch (err) {
-      console.error("Error deleting event:", err);
+    } catch (error) {
+      console.error("Error deleting event:", error);
       showError("Delete Error", "Failed to delete event. Please try again.");
     }
   };
@@ -453,8 +536,8 @@ export default function EventDetailsPage(): ReactElement {
         "Success",
         `Payment status updated to ${updatedEvent.is_prepaid ? "Prepaid" : "Pending"}.`
       );
-    } catch (err) {
-      console.error("Error updating payment status:", err);
+    } catch (error) {
+      console.error("Error updating payment status:", error);
       showError(
         "Update Error",
         "Failed to update payment status. Please try again."
@@ -474,8 +557,8 @@ export default function EventDetailsPage(): ReactElement {
       });
       setEvent(updatedEvent);
       showSuccess("Success", `Event status updated to ${newStatus}.`);
-    } catch (err) {
-      console.error("Error updating event status:", err);
+    } catch (error) {
+      console.error("Error updating event status:", error);
       showError(
         "Update Error",
         "Failed to update event status. Please try again."
@@ -493,6 +576,7 @@ export default function EventDetailsPage(): ReactElement {
     setEditFormData({
       name: event.title || "",
       date: startDate ? startDate.toISOString().split("T")[0] : "",
+      endDate: endDate ? endDate.toISOString().split("T")[0] : "",
       time: startDate ? startDate.toTimeString().slice(0, 5) : "",
       endTime: endDate ? endDate.toTimeString().slice(0, 5) : "",
       location: event.description || "",
@@ -513,6 +597,7 @@ export default function EventDetailsPage(): ReactElement {
     });
 
     setSelectedDate(startDate);
+    setSelectedEndDate(endDate);
     setSelectedTime(startDate);
     setSelectedEndTime(endDate);
     openEditModal();
@@ -542,6 +627,16 @@ export default function EventDetailsPage(): ReactElement {
       setEditFormData({
         ...editFormData,
         time: time.toTimeString().slice(0, 5),
+      });
+    }
+  };
+
+  const handleEditEndDateChange = (date: Date | null) => {
+    setSelectedEndDate(date);
+    if (date) {
+      setEditFormData({
+        ...editFormData,
+        endDate: date.toISOString().split("T")[0],
       });
     }
   };
@@ -685,8 +780,8 @@ export default function EventDetailsPage(): ReactElement {
       setEvent(updatedEvent);
       closeEditModal();
       showSuccess("Success", "Event updated successfully.");
-    } catch (err) {
-      console.error("Error updating event:", err);
+    } catch (error) {
+      console.error("Error updating event:", error);
       showError("Update Error", "Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -832,6 +927,43 @@ export default function EventDetailsPage(): ReactElement {
           </div>
         </div>
 
+        {/* Server Warning */}
+        {showServerWarning && (
+          <div className="w-full">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-yellow-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Not Enough Servers Assigned
+                  </h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <p>
+                      This event requires {event?.number_of_servers_needed || 0}{" "}
+                      servers, but only {serverAssignments.length} are currently
+                      assigned. The event status has been set to
+                      &quot;Pending&quot; until all required servers are
+                      assigned.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Assign Staff and Trucks Buttons */}
         <div className="mt-6 flex gap-4">
           <TutorialHighlight
@@ -920,6 +1052,7 @@ export default function EventDetailsPage(): ReactElement {
             shouldHighlight={shouldHighlight}
             eventStartTime={event?.start_date}
             eventEndTime={event?.end_date}
+            eventId={event?.id}
           />
         )}
 
@@ -931,7 +1064,10 @@ export default function EventDetailsPage(): ReactElement {
             className="assigned-employees-section"
           >
             <div className="server-assignments-section">
-              <ServerAssignmentsSection serverAssignments={serverAssignments} />
+              <ServerAssignmentsSection
+                serverAssignments={serverAssignments}
+                onAssignmentRemoved={refreshServerAssignments}
+              />
             </div>
           </TutorialHighlight>
 
@@ -947,6 +1083,7 @@ export default function EventDetailsPage(): ReactElement {
                   truckAssignments={truckAssignments}
                   employees={employees}
                   shouldHighlight={shouldHighlight}
+                  onAssignmentRemoved={refreshTruckAssignments}
                 />
               ) : (
                 <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -996,9 +1133,11 @@ export default function EventDetailsPage(): ReactElement {
             formData={editFormData}
             onFormChange={handleEditFormChange}
             onDateChange={handleEditDateChange}
+            onEndDateChange={handleEditEndDateChange}
             onTimeChange={handleEditTimeChange}
             onEndTimeChange={handleEditEndTimeChange}
             selectedDate={selectedDate}
+            selectedEndDate={selectedEndDate}
             selectedTime={selectedTime}
             selectedEndTime={selectedEndTime}
             isSubmitting={isSubmitting}
