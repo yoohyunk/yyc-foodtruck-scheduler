@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ErrorModal from "@/app/components/ErrorModal";
+import Image from "next/image";
 import {
   validateForm,
   ValidationRule,
@@ -17,26 +18,22 @@ export default function SetPasswordPage() {
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [verified, setVerified] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
   const passwordRef = useRef<HTMLInputElement>(null);
-  const [email, setEmail] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // DEVELOPMENT ONLY: Always show the form
-    setVerified(true);
     setLoading(false);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     const validationRules: ValidationRule[] = [
       {
         field: "email",
@@ -64,14 +61,10 @@ export default function SetPasswordPage() {
       return;
     }
     // Optionally, you can use the email in your update logic if needed
-    const { error: updateError } = await supabase.auth.updateUser({
+    await supabase.auth.updateUser({
       password: sanitizedData.password,
     });
-    if (updateError) {
-      setError(updateError.message);
-    } else {
-      router.push("/set-up-employee-info");
-    }
+    router.push("/set-up-employee-info");
   };
 
   // Remove error and !verified checks for development so the form always shows
@@ -96,22 +89,31 @@ export default function SetPasswordPage() {
     >
       {/* Logo and site name */}
       <div className="flex flex-col items-center mb-8">
-        <img
+        <Image
           src="/yyctrucks.jpg"
           alt="YYC Food Trucks Logo"
           className="rounded-full shadow-lg mb-2"
-          style={{ width: 64, height: 64 }}
+          width={64}
+          height={64}
         />
-        <h1 className="text-3xl font-bold text-primary-dark mb-1" style={{ color: "#16697A" }}>
+        <h1
+          className="text-3xl font-bold text-primary-dark mb-1"
+          style={{ color: "#16697A" }}
+        >
           YYC Food Trucks
         </h1>
-        <span className="text-lg text-gray-600 font-semibold">Set Your Password</span>
+        <span className="text-lg text-gray-600 font-semibold">
+          Set Your Password
+        </span>
       </div>
       {/* Card */}
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl border border-primary-light">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block mb-1 font-semibold text-gray-700">
+            <label
+              htmlFor="email"
+              className="block mb-1 font-semibold text-gray-700"
+            >
               Email <span className="text-red-500">*</span>
             </label>
             <input
@@ -126,7 +128,10 @@ export default function SetPasswordPage() {
             />
           </div>
           <div>
-            <label htmlFor="password" className="block mb-1 font-semibold text-gray-700">
+            <label
+              htmlFor="password"
+              className="block mb-1 font-semibold text-gray-700"
+            >
               New Password <span className="text-red-500">*</span>
             </label>
             <input
