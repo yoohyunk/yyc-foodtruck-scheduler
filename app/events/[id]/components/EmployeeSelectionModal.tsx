@@ -456,12 +456,7 @@ export default function EmployeeSelectionModal({
       availableEmployeesSorted: availableEmployeesInList.sort(sortFn),
       unavailableEmployeesSorted: unavailableEmployeesInList.sort(sortFn),
     };
-  }, [
-    employeesWithDistance,
-    selectedEmployees,
-    sortByDistance,
-    assignedEmployees,
-  ]);
+  }, [employeesWithDistance, selectedEmployees, sortByDistance]);
 
   // Event handlers
   const handleChangeRequiredServers = (delta: number) => {

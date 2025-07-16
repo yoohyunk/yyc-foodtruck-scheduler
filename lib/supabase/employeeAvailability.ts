@@ -6,6 +6,25 @@ import {
   sortEmployeesByDistanceAndWage,
 } from "@/lib/utils/distance";
 
+// Type definitions for joined query results
+interface ServerAssignmentWithEvent {
+  start_date: string;
+  end_date: string;
+  event_id: string;
+  events: {
+    title: string | null;
+  };
+}
+
+interface TruckAssignmentWithEvent {
+  start_time: string;
+  end_time: string;
+  event_id: string;
+  events: {
+    title: string | null;
+  };
+}
+
 const supabase = createClient();
 
 export const employeeAvailabilityApi = {
@@ -130,14 +149,16 @@ export const employeeAvailabilityApi = {
       // Check for server assignment conflicts with 1-hour buffer
       let serverAssignmentsQuery = supabase
         .from("assignments")
-        .select(`
+        .select(
+          `
           start_date, 
           end_date, 
           event_id,
           events!inner (
             title
           )
-        `)
+        `
+        )
         .eq("employee_id", employee.employee_id);
 
       if (excludeEventId) {
@@ -166,23 +187,25 @@ export const employeeAvailabilityApi = {
         const bufferedEventStart = new Date(
           eventStart.getTime() - 60 * 60 * 1000
         ); // 1 hour before
-        const bufferedEventEnd = new Date(
-          eventEnd.getTime() + 60 * 60 * 1000
-        ); // 1 hour after
+        const bufferedEventEnd = new Date(eventEnd.getTime() + 60 * 60 * 1000); // 1 hour after
 
         const conflictingAssignment = serverAssignments.find((assignment) => {
           const assignmentStart = new Date(assignment.start_date);
           const assignmentEnd = new Date(assignment.end_date);
 
           return (
-            (assignmentStart <= bufferedEventStart && assignmentEnd > bufferedEventStart) ||
-            (assignmentStart < bufferedEventEnd && assignmentEnd >= bufferedEventEnd) ||
-            (assignmentStart >= bufferedEventStart && assignmentEnd <= bufferedEventEnd)
+            (assignmentStart <= bufferedEventStart &&
+              assignmentEnd > bufferedEventStart) ||
+            (assignmentStart < bufferedEventEnd &&
+              assignmentEnd >= bufferedEventEnd) ||
+            (assignmentStart >= bufferedEventStart &&
+              assignmentEnd <= bufferedEventEnd)
           );
-        });
+        }) as ServerAssignmentWithEvent | undefined;
 
         if (conflictingAssignment) {
-          const eventTitle = (conflictingAssignment as any).events?.title || "Unknown Event";
+          const eventTitle =
+            conflictingAssignment.events?.title || "Unknown Event";
           return {
             isAvailable: false,
             reason: `Assigned to "${eventTitle}" during this time with 1 hour buffer`,
@@ -194,14 +217,16 @@ export const employeeAvailabilityApi = {
       if (employee.employee_type === "Driver") {
         let truckAssignmentsQuery = supabase
           .from("truck_assignment")
-          .select(`
+          .select(
+            `
             start_time, 
             end_time, 
             event_id,
             events!inner (
               title
             )
-          `)
+          `
+          )
           .eq("driver_id", employee.employee_id);
 
         if (excludeEventId) {
@@ -226,22 +251,34 @@ export const employeeAvailabilityApi = {
         }
 
         if (truckAssignments && truckAssignments.length > 0) {
+          // Add 1-hour buffer before and after the event
+          const bufferedEventStart = new Date(
+            eventStart.getTime() - 60 * 60 * 1000
+          ); // 1 hour before
+          const bufferedEventEnd = new Date(
+            eventEnd.getTime() + 60 * 60 * 1000
+          ); // 1 hour after
+
           const conflictingAssignment = truckAssignments.find((assignment) => {
             const assignmentStart = new Date(assignment.start_time);
             const assignmentEnd = new Date(assignment.end_time);
 
             return (
-              (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
-              (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
-              (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
+              (assignmentStart <= bufferedEventStart &&
+                assignmentEnd > bufferedEventStart) ||
+              (assignmentStart < bufferedEventEnd &&
+                assignmentEnd >= bufferedEventEnd) ||
+              (assignmentStart >= bufferedEventStart &&
+                assignmentEnd <= bufferedEventEnd)
             );
-          });
+          }) as TruckAssignmentWithEvent | undefined;
 
           if (conflictingAssignment) {
-            const eventTitle = (conflictingAssignment as any).events?.title || "Unknown Event";
+            const eventTitle =
+              conflictingAssignment.events?.title || "Unknown Event";
             return {
               isAvailable: false,
-              reason: `Assigned to drive truck for "${eventTitle}" during this time`,
+              reason: `Assigned to drive truck for "${eventTitle}" during this time with 1 hour buffer`,
             };
           }
         }
