@@ -97,10 +97,12 @@ function formatAddress(address: string): string {
 }
 
 export async function getCoordinates(address: string): Promise<Coordinates> {
-  // Check cache first
-  if (coordinatesCache.has(address)) {
-    console.log("Using cached coordinates for:", address);
-    return coordinatesCache.get(address)!;
+  // Format address for Nominatim first
+  const formattedAddress = formatAddress(address);
+
+  // Check cache using formatted address as key
+  if (coordinatesCache.has(formattedAddress)) {
+    return coordinatesCache.get(formattedAddress)!;
   }
 
   try {
@@ -111,9 +113,6 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
       await delay(MIN_REQUEST_INTERVAL - timeSinceLastRequest);
     }
     lastRequestTime = Date.now();
-
-    // Format address for Nominatim
-    const formattedAddress = formatAddress(address);
 
     // Make request to our geocoding API
     let response = await fetch(
@@ -130,12 +129,13 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
     }
 
     let data = await response.json();
+
     if (data.success && data.coordinates) {
       const coords = {
         lat: data.coordinates.latitude,
         lng: data.coordinates.longitude,
       };
-      coordinatesCache.set(address, coords);
+      coordinatesCache.set(formattedAddress, coords);
       return coords;
     }
 
@@ -161,7 +161,7 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
             lat: data.coordinates.latitude,
             lng: data.coordinates.longitude,
           };
-          coordinatesCache.set(address, coords);
+          coordinatesCache.set(formattedAddress, coords);
           return coords;
         }
       }
@@ -172,7 +172,7 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
     console.warn(
       `No coordinates found for ${formattedAddress}, using fallback coordinates: ${fallbackCoords.lat}, ${fallbackCoords.lng}`
     );
-    coordinatesCache.set(address, fallbackCoords);
+    coordinatesCache.set(formattedAddress, fallbackCoords);
     return fallbackCoords;
   } catch (error) {
     console.error("Error getting coordinates:", error);

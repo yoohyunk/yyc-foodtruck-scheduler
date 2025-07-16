@@ -93,8 +93,16 @@ const getFullAddress = (data: {
   direction: string;
   city: string;
   postalCode: string;
-}) =>
-  `${data.streetNumber} ${data.streetName}${data.direction && data.direction !== "None" ? " " + data.direction : ""}, ${data.city}, ${data.postalCode}`;
+}) => {
+  const baseAddress = `${data.streetNumber} ${data.streetName}${data.direction && data.direction !== "None" ? " " + data.direction : ""}, ${data.city}`;
+
+  // Add postal code if provided
+  const withPostal = data.postalCode
+    ? `${baseAddress}, ${data.postalCode}`
+    : baseAddress;
+
+  return withPostal;
+};
 
 const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
   (
