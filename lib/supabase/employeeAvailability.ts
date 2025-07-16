@@ -127,10 +127,17 @@ export const employeeAvailabilityApi = {
         }
       }
 
-      // Check for server assignment conflicts
+      // Check for server assignment conflicts with 1-hour buffer
       let serverAssignmentsQuery = supabase
         .from("assignments")
-        .select("start_date, end_date")
+        .select(`
+          start_date, 
+          end_date, 
+          event_id,
+          events!inner (
+            title
+          )
+        `)
         .eq("employee_id", employee.employee_id);
 
       if (excludeEventId) {
@@ -155,21 +162,30 @@ export const employeeAvailabilityApi = {
       }
 
       if (serverAssignments && serverAssignments.length > 0) {
-        const hasServerConflict = serverAssignments.some((assignment) => {
+        // Add 1-hour buffer before and after the event
+        const bufferedEventStart = new Date(
+          eventStart.getTime() - 60 * 60 * 1000
+        ); // 1 hour before
+        const bufferedEventEnd = new Date(
+          eventEnd.getTime() + 60 * 60 * 1000
+        ); // 1 hour after
+
+        const conflictingAssignment = serverAssignments.find((assignment) => {
           const assignmentStart = new Date(assignment.start_date);
           const assignmentEnd = new Date(assignment.end_date);
 
           return (
-            (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
-            (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
-            (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
+            (assignmentStart <= bufferedEventStart && assignmentEnd > bufferedEventStart) ||
+            (assignmentStart < bufferedEventEnd && assignmentEnd >= bufferedEventEnd) ||
+            (assignmentStart >= bufferedEventStart && assignmentEnd <= bufferedEventEnd)
           );
         });
 
-        if (hasServerConflict) {
+        if (conflictingAssignment) {
+          const eventTitle = (conflictingAssignment as any).events?.title || "Unknown Event";
           return {
             isAvailable: false,
-            reason: "Assigned to another event during this time",
+            reason: `Assigned to "${eventTitle}" during this time with 1 hour buffer`,
           };
         }
       }
@@ -178,7 +194,14 @@ export const employeeAvailabilityApi = {
       if (employee.employee_type === "Driver") {
         let truckAssignmentsQuery = supabase
           .from("truck_assignment")
-          .select("start_time, end_time")
+          .select(`
+            start_time, 
+            end_time, 
+            event_id,
+            events!inner (
+              title
+            )
+          `)
           .eq("driver_id", employee.employee_id);
 
         if (excludeEventId) {
@@ -203,7 +226,7 @@ export const employeeAvailabilityApi = {
         }
 
         if (truckAssignments && truckAssignments.length > 0) {
-          const hasTruckConflict = truckAssignments.some((assignment) => {
+          const conflictingAssignment = truckAssignments.find((assignment) => {
             const assignmentStart = new Date(assignment.start_time);
             const assignmentEnd = new Date(assignment.end_time);
 
@@ -214,10 +237,11 @@ export const employeeAvailabilityApi = {
             );
           });
 
-          if (hasTruckConflict) {
+          if (conflictingAssignment) {
+            const eventTitle = (conflictingAssignment as any).events?.title || "Unknown Event";
             return {
               isAvailable: false,
-              reason: "Assigned to drive another truck during this time",
+              reason: `Assigned to drive truck for "${eventTitle}" during this time`,
             };
           }
         }
