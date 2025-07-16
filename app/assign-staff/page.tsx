@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { findClosestEmployees, EmployeeWithDistance } from "../AlgApi/distance";
-import { calculateStraightLineDistance } from "@/lib/utils/distance";
 
 interface Employee {
   id: number;

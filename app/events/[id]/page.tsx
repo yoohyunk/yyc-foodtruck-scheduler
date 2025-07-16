@@ -16,7 +16,6 @@ import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
 import { assignmentsApi } from "@/lib/supabase/assignments";
-import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 import {
   validateForm,
   ValidationRule,

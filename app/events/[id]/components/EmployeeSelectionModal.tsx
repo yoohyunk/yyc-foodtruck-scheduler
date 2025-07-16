@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import { Employee } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
-import { calculateDistance } from "../../../AlgApi/distance";
 import { calculateStraightLineDistance } from "@/lib/utils/distance";
 import { eventsApi } from "@/lib/supabase/events";
 import { Tables } from "@/database.types";
@@ -394,100 +393,12 @@ export default function EmployeeSelectionModal({
     return `$${wage.toFixed(2)}/hr`;
   }, []);
 
-  // Sort and filter employees
-  const sortedAndFilteredEmployees = useMemo(() => {
-    const assignedMap = new Map(
-      assignedEmployees.map((e) => [e.employee_id, e])
-    );
-
-    // Find assigned employees in the current list
-    const assignedInList = employeesWithDistance.filter((e) =>
-      assignedMap.has(e.employee_id)
-    );
-
-    // Find assigned employees not in the current list
-    const assignedNotInList = assignedEmployees
-      .filter(
-        (a) =>
-          !employeesWithDistance.some((e) => e.employee_id === a.employee_id)
-      )
-      .map((a) => ({
-        ...a,
-        distance: undefined,
-        currentWage: undefined,
-        isAvailable: true,
-        availabilityReason: "",
-      }));
-
-    // Get unassigned employees
-    const unassignedEmployees = employeesWithDistance.filter(
-      (employee) => !assignedMap.has(employee.employee_id)
-    );
-
-    // Sort unassigned employees with availability as first priority
-    unassignedEmployees.sort((a, b) => {
-      // ALWAYS prioritize availability first (available employees first)
-      if (a.isAvailable && !b.isAvailable) return -1;
-      if (!a.isAvailable && b.isAvailable) return 1;
-
-      // If both have same availability status, apply secondary sorting
-      if (sortByDistance) {
-        // Secondary sorting: Distance only (no wage sorting)
-        const hasDistanceA = typeof a.distance === "number";
-        const hasDistanceB = typeof b.distance === "number";
-
-        // Employees without addresses go last
-        if (hasDistanceA && !hasDistanceB) return -1;
-        if (!hasDistanceA && hasDistanceB) return 1;
-        if (!hasDistanceA && !hasDistanceB) {
-          // Both have no addresses, maintain original order
-          return 0;
-        }
-
-        // Both have addresses, sort by distance (closest first)
-        return (a.distance ?? Infinity) - (b.distance ?? Infinity);
-      } else {
-        // Secondary sorting: Wage only (when both are available)
-        const wageA = a.currentWage ?? Infinity;
-        const wageB = b.currentWage ?? Infinity;
-        return wageA - wageB;
-      }
-    });
-
-    const result = [
-      ...assignedInList,
-      ...assignedNotInList,
-      ...unassignedEmployees,
-    ];
-
-    // Debug logging
-    console.log("EmployeeSelectionModal - Sorting debug:", {
-      sortByDistance,
-      totalEmployees: result.length,
-      assignedCount: assignedInList.length,
-      unassignedCount: unassignedEmployees.length,
-      availableCount: unassignedEmployees.filter((emp) => emp.isAvailable)
-        .length,
-      unavailableCount: unassignedEmployees.filter((emp) => !emp.isAvailable)
-        .length,
-      firstFewUnassigned: unassignedEmployees.slice(0, 3).map((emp) => ({
-        name: `${emp.first_name} ${emp.last_name}`,
-        distance: emp.distance,
-        wage: emp.currentWage,
-        isAvailable: emp.isAvailable,
-      })),
-    });
-
-    return result;
-  }, [employeesWithDistance, sortByDistance, assignedEmployees]);
-
   // Split and sort employees for each section
   const {
     assignedEmployeesSorted,
     availableEmployeesSorted,
     unavailableEmployeesSorted,
   } = useMemo(() => {
-    const assignedSet = new Set(assignedEmployees.map((e) => e.employee_id));
     // Employees in the modal's current list who are assigned
     const assignedEmployeesInList = employeesWithDistance.filter((e) =>
       selectedEmployees.has(e.employee_id)

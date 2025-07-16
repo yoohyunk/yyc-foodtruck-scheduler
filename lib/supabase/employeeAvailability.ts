@@ -2,10 +2,8 @@ import { createClient } from "./client";
 import { EmployeeAvailability, Employee } from "@/app/types";
 import { wagesApi } from "./wages";
 import {
-  calculateStraightLineDistance,
   calculateEmployeeDistances,
   sortEmployeesByDistanceAndWage,
-  EmployeeWithDistanceAndWage,
 } from "@/lib/utils/distance";
 
 const supabase = createClient();
