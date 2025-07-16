@@ -36,6 +36,19 @@ function formatAddress(address: string): string {
     return address;
   }
 
+  // Check if address already has a city (from AddressForm format like "4908 23 Avenue NW, Calgary,")
+  const hasCity = /,\s*[A-Za-z\s]+,?\s*$/i.test(address);
+  if (hasCity) {
+    // Address already has a city, add Alberta and Canada if missing
+    if (!address.toLowerCase().includes("alberta") && !address.toLowerCase().includes("ab")) {
+      return `${address} Alberta, Canada`;
+    }
+    if (!address.toLowerCase().includes("canada")) {
+      return `${address}, Canada`;
+    }
+    return address;
+  }
+
   // Check if address contains an Alberta city name (matching AddressForm dropdown)
   const albertaCities = [
     "calgary",
@@ -83,6 +96,7 @@ function formatAddress(address: string): string {
 export async function getCoordinates(address: string): Promise<Coordinates> {
   // Check cache first
   if (coordinatesCache.has(address)) {
+    console.log("Using cached coordinates for:", address);
     return coordinatesCache.get(address)!;
   }
 
@@ -97,20 +111,13 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
 
     // Format address for Nominatim
     const formattedAddress = formatAddress(address);
-    // Make request to Nominatim API for geocoding
+
+    // Make request to our geocoding API
     let response = await fetch(
-      `https://nominatim.openstreetmap.org/search?` +
-        `format=json&` +
-        `q=${encodeURIComponent(formattedAddress)}&` +
-        `countrycodes=ca&` + // Limit to Canada
-        `limit=1&` + // Get only the first result
-        `addressdetails=1&` + // Include address details
-        `bounded=1&` + // Restrict results to the bounding box
-        `viewbox=-120.0,49.0,-110.0,60.0&` + // Alberta bounding box
-        `bounded=1`, // Enable bounded search
+      `/api/geocode?address=${encodeURIComponent(formattedAddress)}`,
       {
         headers: {
-          "User-Agent": "YYCFoodTrucks/1.0", // Required by Nominatim
+          "Content-Type": "application/json",
         },
       }
     );
@@ -120,10 +127,10 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
     }
 
     let data = await response.json();
-    if (data && data[0]) {
+    if (data.success && data.coordinates) {
       const coords = {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon),
+        lat: data.coordinates.latitude,
+        lng: data.coordinates.longitude,
       };
       coordinatesCache.set(address, coords);
       return coords;
@@ -137,27 +144,19 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
       .trim();
     if (addressNoPostal !== address) {
       response = await fetch(
-        `https://nominatim.openstreetmap.org/search?` +
-          `format=json&` +
-          `q=${encodeURIComponent(addressNoPostal)}&` +
-          `countrycodes=ca&` +
-          `limit=1&` +
-          `addressdetails=1&` +
-          `bounded=1&` +
-          `viewbox=-120.0,49.0,-110.0,60.0&` + // Alberta bounding box
-          `bounded=1`,
+        `/api/geocode?address=${encodeURIComponent(addressNoPostal)}`,
         {
           headers: {
-            "User-Agent": "YYCFoodTrucks/1.0",
+            "Content-Type": "application/json",
           },
         }
       );
       if (response.ok) {
         data = await response.json();
-        if (data && data[0]) {
+        if (data.success && data.coordinates) {
           const coords = {
-            lat: parseFloat(data[0].lat),
-            lng: parseFloat(data[0].lon),
+            lat: data.coordinates.latitude,
+            lng: data.coordinates.longitude,
           };
           coordinatesCache.set(address, coords);
           return coords;

@@ -346,42 +346,55 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       const fullAddress = getFullAddress(geocodeData);
       setFormData(geocodeData); // update the form with expanded name for consistency
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`;
-        const response = await fetch(url, {
-          headers: {
-            "Accept-Language": "en",
-          },
+        const apiUrl = `/api/geocode?address=${encodeURIComponent(fullAddress)}`;
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
-        if (data && data.length > 0) {
+        
+        if (data.success && data.coordinates) {
           const coords = {
-            latitude: parseFloat(data[0].lat),
-            longitude: parseFloat(data[0].lon),
+            latitude: data.coordinates.latitude,
+            longitude: data.coordinates.longitude,
           };
           setCheckStatus("success");
           setCheckMessage("Address found and validated!");
           onChange(fullAddress, coords); // Pass up to parent
         } else {
           setCheckStatus("error");
-          setCheckMessage("Address not found. Please check your input.");
+          setCheckMessage(data.error || "Address not found. Please check your input.");
           if (typeof onAddressError === "function") {
             onAddressError([
               {
                 field: "address",
-                message: "Address not found. Please check your input.",
+                message: data.error || "Address not found. Please check your input.",
                 element: streetNameRef.current,
               },
             ]);
           }
         }
-      } catch {
+      } catch (error) {
+        console.error("Geocoding error:", error);
         setCheckStatus("error");
-        setCheckMessage("Error validating address. Please try again.");
+        const errorMessage = error instanceof Error ? error.message : "Error validating address. Please try again.";
+        setCheckMessage(errorMessage);
         if (typeof onAddressError === "function") {
           onAddressError([
             {
               field: "address",
-              message: "Error validating address. Please try again.",
+              message: errorMessage,
               element: streetNameRef.current,
             },
           ]);
@@ -394,7 +407,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
 
     return (
       <div className="address-form space-y-2">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <div>
             <input
               ref={streetNumberRef}
@@ -405,6 +418,8 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
               onBlur={() => setShowErrors(true)}
               placeholder="Street Number *"
               required={required}
+              inputMode="numeric"
+              autoComplete="off"
               className={`w-full px-3 py-2 border ${
                 showErrors && !validation.streetNumber
                   ? "border-red-500"
@@ -427,6 +442,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
               onBlur={handleStreetNameBlur}
               placeholder="Street Name *"
               required={required}
+              autoComplete="off"
               className={`w-full px-3 py-2 border ${
                 showErrors && !validation.streetName
                   ? "border-red-500"
@@ -491,6 +507,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             placeholder="Postal Code (Optional)"
             required={false}
             maxLength={7}
+            autoComplete="postal-code"
             className={`w-full px-3 py-2 border ${
               showErrors && !validation.postalCode
                 ? "border-red-500"
@@ -505,7 +522,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         </div>
         <button
           type="button"
-          className="button mt-2"
+          className="button mt-2 w-full md:w-auto min-h-[44px] touch-manipulation"
           onClick={geocodeAddress}
           disabled={isChecking}
         >

@@ -825,24 +825,15 @@ export default function AddEventPage(): ReactElement {
 
         if (hasDistanceProperty) {
           // Pre-sorted employees were only sorted by distance, need to re-check availability
-          console.log(
-            `Pre-sorted employees were distance-only, re-checking availability for ${sortedEmployees.length} employees`
-          );
           availableServers = await assignmentsApi.getAvailableServers(
             formData.date,
             formData.time,
             formData.endTime,
             formData.location
           );
-          console.log(
-            `After availability check: ${availableServers.length} servers available`
-          );
         } else {
           // Pre-sorted employees were already availability-checked
           availableServers = sortedEmployees;
-          console.log(
-            `Using ${availableServers.length} pre-sorted employees (already availability-checked)`
-          );
         }
       } else {
         // Fallback to the original method if no pre-sorted employees
