@@ -306,26 +306,90 @@ export const employeeAvailabilityApi = {
         (employee) => employee.isAvailable
       );
 
-      // Calculate distances and sort by distance (closest first)
+      // Calculate distances using database coordinates and sort by distance + wage
       if (eventAddress && filteredEmployees.length > 0) {
-        const { getCoordinates, calculateDistance } = await import(
-          "@/app/AlgApi/distance"
-        );
+        // Get event coordinates from the address
+        const { getCoordinates } = await import("@/app/AlgApi/distance");
         const eventCoords = await getCoordinates(eventAddress);
 
         const employeesWithDistance = await Promise.all(
           filteredEmployees.map(async (employee) => {
-            let distance = 0;
-            if (employee.addresses) {
-              const employeeAddress = `${employee.addresses.street}, ${employee.addresses.city}, ${employee.addresses.province}`;
-              const employeeCoords = await getCoordinates(employeeAddress);
-              distance = await calculateDistance(employeeCoords, eventCoords);
+            let distance = Infinity; // Default to infinity if no coordinates
+
+            // Use database coordinates if available
+            if (employee.addresses?.latitude && employee.addresses?.longitude) {
+              const employeeCoords = {
+                lat: parseFloat(employee.addresses.latitude),
+                lng: parseFloat(employee.addresses.longitude),
+              };
+
+              // Use our distance API for accurate calculations
+              try {
+                const coord1Str = `${employeeCoords.lat.toFixed(6)},${employeeCoords.lng.toFixed(6)}`;
+                const coord2Str = `${eventCoords.lat.toFixed(6)},${eventCoords.lng.toFixed(6)}`;
+
+                const response = await fetch(
+                  `/api/route/distance?coord1=${encodeURIComponent(coord1Str)}&coord2=${encodeURIComponent(coord2Str)}`,
+                  { method: "GET" }
+                );
+
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.success) {
+                    distance = data.distance;
+                  }
+                }
+              } catch (error) {
+                console.warn(
+                  `Failed to calculate distance for ${employee.first_name} ${employee.last_name}:`,
+                  error
+                );
+                // Fallback to straight-line distance calculation
+                const R = 6371; // Earth's radius in kilometers
+                const dLat = toRad(eventCoords.lat - employeeCoords.lat);
+                const dLon = toRad(eventCoords.lng - employeeCoords.lng);
+                const a =
+                  Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(toRad(employeeCoords.lat)) *
+                    Math.cos(toRad(eventCoords.lat)) *
+                    Math.sin(dLon / 2) *
+                    Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                distance = R * c;
+              }
             }
+
             return { ...employee, distance };
           })
         );
 
-        return employeesWithDistance.sort((a, b) => a.distance - b.distance);
+        // Sort by distance first, then by wage if within 5km, with employees without addresses last
+        // IMPORTANT: Only return employees that are actually available (isAvailable: true)
+        const availableEmployeesWithDistance = employeesWithDistance.filter(
+          (employee) => employee.isAvailable === true
+        );
+
+        return availableEmployeesWithDistance.sort((a, b) => {
+          // First priority: employees without addresses go last
+          if (a.distance === Infinity && b.distance !== Infinity) {
+            return 1; // a goes after b
+          }
+          if (a.distance !== Infinity && b.distance === Infinity) {
+            return -1; // a goes before b
+          }
+          if (a.distance === Infinity && b.distance === Infinity) {
+            // Both have no addresses, sort by wage (lower first)
+            return (a.currentWage || 0) - (b.currentWage || 0);
+          }
+
+          // Both have addresses, check if within 5km of each other
+          if (Math.abs(a.distance - b.distance) <= 5) {
+            // If within 5km, sort by wage (lower first)
+            return (a.currentWage || 0) - (b.currentWage || 0);
+          }
+          // Otherwise sort by distance (closest first)
+          return a.distance - b.distance;
+        });
       }
 
       return filteredEmployees;
@@ -381,3 +445,8 @@ export const employeeAvailabilityApi = {
     );
   },
 };
+
+// Helper function for distance calculations
+function toRad(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}

@@ -16,6 +16,7 @@ import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
 import { assignmentsApi } from "@/lib/supabase/assignments";
+import { createLocalDateTime } from "@/lib/utils";
 import {
   validateForm,
   ValidationRule,
@@ -729,28 +730,32 @@ export default function EventDetailsPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      // Combine date and time to create proper datetime strings
+      // Combine date and time to create proper datetime strings with timezone
       const startDateTime =
         selectedDate && selectedTime
-          ? new Date(
-              selectedDate.getFullYear(),
-              selectedDate.getMonth(),
-              selectedDate.getDate(),
-              selectedTime.getHours(),
-              selectedTime.getMinutes()
-            ).toISOString()
+          ? createLocalDateTime(
+              selectedDate.toISOString().split('T')[0],
+              selectedTime.toTimeString().slice(0, 5)
+            )
           : null;
 
       const endDateTime =
         selectedDate && selectedEndTime
-          ? new Date(
-              selectedDate.getFullYear(),
-              selectedDate.getMonth(),
-              selectedDate.getDate(),
-              selectedEndTime.getHours(),
-              selectedEndTime.getMinutes()
-            ).toISOString()
+          ? createLocalDateTime(
+              selectedDate.toISOString().split('T')[0],
+              selectedEndTime.toTimeString().slice(0, 5)
+            )
           : null;
+
+      console.log('Updating event with times:', {
+        original: { 
+          selectedDate: selectedDate?.toISOString().split('T')[0], 
+          selectedTime: selectedTime?.toTimeString().slice(0, 5),
+          selectedEndDate: selectedEndDate?.toISOString().split('T')[0],
+          selectedEndTime: selectedEndTime?.toTimeString().slice(0, 5)
+        },
+        stored: { start_date: startDateTime, end_date: endDateTime }
+      });
 
       // Capitalize the event title
       const capitalizeTitle = (title: string) => {

@@ -3,53 +3,39 @@ interface Coordinates {
   lng: number;
 }
 
-interface OSRMResponse {
-  code: string;
-  routes: Array<{
-    distance: number; // distance in meters
-    duration: number;
-    geometry: string;
-  }>;
-}
-
 // more efficient caching system
 const coordinatesCache = new Map<string, Coordinates>();
 
-// Rate limiting
-let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 500; // 500ms between requests
-
-async function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 // Format address for Nominatim API
 function formatAddress(address: string): string {
+  // Clean up double spaces and normalize spacing first
+  const cleanAddress = address.replace(/\s+/g, " ").trim();
+
   // Check if address already has a city and province
-  const hasCityProvince = /,\s*[A-Za-z\s]+,\s*AB/i.test(address);
+  const hasCityProvince = /,\s*[A-Za-z\s]+,\s*AB/i.test(cleanAddress);
 
   if (hasCityProvince) {
     // Address already has city and Alberta province, just ensure it ends with "Canada"
-    if (!address.toLowerCase().includes("canada")) {
-      return `${address}, Canada`;
+    if (!cleanAddress.toLowerCase().includes("canada")) {
+      return `${cleanAddress}, Canada`;
     }
-    return address;
+    return cleanAddress;
   }
 
   // Check if address already has a city (from AddressForm format like "4908 23 Avenue NW, Calgary,")
-  const hasCity = /,\s*[A-Za-z\s]+,?\s*$/i.test(address);
+  const hasCity = /,\s*[A-Za-z\s]+,?\s*$/i.test(cleanAddress);
   if (hasCity) {
     // Address already has a city, add Alberta and Canada if missing
     if (
-      !address.toLowerCase().includes("alberta") &&
-      !address.toLowerCase().includes("ab")
+      !cleanAddress.toLowerCase().includes("alberta") &&
+      !cleanAddress.toLowerCase().includes("ab")
     ) {
-      return `${address} Alberta, Canada`;
+      return `${cleanAddress} Alberta, Canada`;
     }
-    if (!address.toLowerCase().includes("canada")) {
-      return `${address}, Canada`;
+    if (!cleanAddress.toLowerCase().includes("canada")) {
+      return `${cleanAddress}, Canada`;
     }
-    return address;
+    return cleanAddress;
   }
 
   // Check if address contains an Alberta city name (matching AddressForm dropdown)
@@ -71,29 +57,29 @@ function formatAddress(address: string): string {
     "st. albert",
   ];
 
-  const addressLower = address.toLowerCase();
+  const addressLower = cleanAddress.toLowerCase();
   const foundCity = albertaCities.find((city) => addressLower.includes(city));
 
   if (foundCity) {
     // Address contains a known Alberta city, add Alberta and Canada if missing
     if (!addressLower.includes("alberta") && !addressLower.includes("ab")) {
-      return `${address}, Alberta, Canada`;
+      return `${cleanAddress}, Alberta, Canada`;
     }
 
     // If Alberta is already present, just add Canada if missing
     if (!addressLower.includes("canada")) {
-      return `${address}, Canada`;
+      return `${cleanAddress}, Canada`;
     }
-    return address;
+    return cleanAddress;
   }
 
   // If no Alberta city is detected, assume it's a street address and add Calgary as default
   // (keeping backward compatibility for existing Calgary-based addresses)
-  if (!address.toLowerCase().includes("calgary")) {
-    return `${address}, Calgary, Alberta, Canada`;
+  if (!cleanAddress.toLowerCase().includes("calgary")) {
+    return `${cleanAddress}, Calgary, Alberta, Canada`;
   }
 
-  return address;
+  return cleanAddress;
 }
 
 export async function getCoordinates(address: string): Promise<Coordinates> {
@@ -106,14 +92,6 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
   }
 
   try {
-    // Rate limiting
-    const now = Date.now();
-    const timeSinceLastRequest = now - lastRequestTime;
-    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-      await delay(MIN_REQUEST_INTERVAL - timeSinceLastRequest);
-    }
-    lastRequestTime = Date.now();
-
     // Make request to our geocoding API
     let response = await fetch(
       `/api/geocode?address=${encodeURIComponent(formattedAddress)}`,
@@ -135,6 +113,7 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
         lat: data.coordinates.latitude,
         lng: data.coordinates.longitude,
       };
+
       coordinatesCache.set(formattedAddress, coords);
       return coords;
     }
@@ -145,22 +124,28 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
       .replace(/\s+,/, ",")
       .replace(/,,/, ",")
       .trim();
+
     if (addressNoPostal !== address) {
+      const formattedAddressNoPostal = formatAddress(addressNoPostal);
+
       response = await fetch(
-        `/api/geocode?address=${encodeURIComponent(addressNoPostal)}`,
+        `/api/geocode?address=${encodeURIComponent(formattedAddressNoPostal)}`,
         {
           headers: {
             "Content-Type": "application/json",
           },
         }
       );
+
       if (response.ok) {
         data = await response.json();
+
         if (data.success && data.coordinates) {
           const coords = {
             lat: data.coordinates.latitude,
             lng: data.coordinates.longitude,
           };
+
           coordinatesCache.set(formattedAddress, coords);
           return coords;
         }
@@ -169,15 +154,16 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
 
     // If all else fails, use appropriate fallback coordinates based on address
     const fallbackCoords = getFallbackCoordinates(formattedAddress);
-    console.warn(
-      `No coordinates found for ${formattedAddress}, using fallback coordinates: ${fallbackCoords.lat}, ${fallbackCoords.lng}`
-    );
+
     coordinatesCache.set(formattedAddress, fallbackCoords);
     return fallbackCoords;
   } catch (error) {
     console.error("Error getting coordinates:", error);
+
     // Return appropriate fallback coordinates
-    return getFallbackCoordinates(address);
+    const fallbackCoords = getFallbackCoordinates(address);
+
+    return fallbackCoords;
   }
 }
 
@@ -231,54 +217,34 @@ export async function calculateDistance(
     return 0.01; // Return 10 meters
   }
 
-  const maxRetries = 3;
-  let retryCount = 0;
-
-  while (retryCount < maxRetries) {
     try {
-      // Rate limiting
-      const now = Date.now();
-      const timeSinceLastRequest = now - lastRequestTime;
-      if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-        await delay(MIN_REQUEST_INTERVAL - timeSinceLastRequest);
-      }
-      lastRequestTime = Date.now();
+    // Use our backend proxy to avoid CORS issues
+    const coord1Str = `${coord1.lat.toFixed(6)},${coord1.lng.toFixed(6)}`;
+    const coord2Str = `${coord2.lat.toFixed(6)},${coord2.lng.toFixed(6)}`;
 
-      // Use OSRM public API for driving distance
-      // Format coordinates with 6 decimal places for precision
-      const url = `https://router.project-osrm.org/route/v1/driving/${coord1.lng.toFixed(6)},${coord1.lat.toFixed(6)};${coord2.lng.toFixed(6)},${coord2.lat.toFixed(6)}?overview=false&alternatives=false`;
+    const url = `/api/route/distance?coord1=${encodeURIComponent(coord1Str)}&coord2=${encodeURIComponent(coord2Str)}`;
 
       const response = await fetch(url, {
+      method: "GET",
         headers: {
-          "User-Agent": "YYCFoodTrucks/1.0",
+        "Content-Type": "application/json",
         },
       });
 
       if (!response.ok) {
-        throw new Error(`OSRM HTTP error! status: ${response.status}`);
+      throw new Error(`Distance API error! status: ${response.status}`);
       }
 
-      const data: OSRMResponse = await response.json();
+    const data = await response.json();
 
-      if (data.code === "Ok" && data.routes && data.routes.length > 0) {
-        // Convert meters to kilometers
-        const distance = data.routes[0].distance / 1000;
-        return distance;
+    if (data.success) {
+      return data.distance;
       }
 
-      // If we get here, the response was ok but no route was found
-      throw new Error("OSRM: No route found between the given coordinates.");
+    throw new Error(data.error || "Failed to calculate distance");
     } catch (error) {
-      console.error(
-        `Error calculating driving distance (attempt ${retryCount + 1}/${maxRetries}):`,
-        error
-      );
-      retryCount++;
+    console.error("Error calculating distance:", error);
 
-      if (retryCount === maxRetries) {
-        console.warn(
-          "All retries failed, falling back to straight-line distance"
-        );
         // Calculate straight-line distance as a fallback
         const R = 6371; // Earth's radius in kilometers
         const dLat = toRad(coord2.lat - coord1.lat);
@@ -299,14 +265,6 @@ export async function calculateDistance(
         );
         return straightLineDistance;
       }
-
-      // Wait before retrying
-      await delay(1000 * retryCount);
-    }
-  }
-
-  // This should never be reached due to the fallback in the catch block
-  throw new Error("Failed to calculate distance after all retries");
 }
 
 function toRad(degrees: number): number {
@@ -329,6 +287,7 @@ export async function findClosestEmployees(
     wage: number;
     address: string;
     coordinates?: { latitude: number; longitude: number };
+    isAvailable?: boolean; // Add availability check
   }>,
   eventCoordinates?: { latitude: number; longitude: number }
 ): Promise<EmployeeWithDistance[]> {
@@ -338,9 +297,12 @@ export async function findClosestEmployees(
       ? { lat: eventCoordinates.latitude, lng: eventCoordinates.longitude }
       : await getCoordinates(eventAddress);
 
-    // Process all employees at once using their stored coordinates
+    // Filter to only available employees first
+    const availableEmployees = employees.filter(emp => emp.isAvailable !== false);
+
+    // Process all available employees at once using their stored coordinates
     const results = await Promise.all(
-      employees.map(async (employee) => {
+      availableEmployees.map(async (employee) => {
         if (!employee.coordinates) {
           console.warn(
             `No coordinates found for employee ${employee.name}, skipping distance calculation`
@@ -359,8 +321,41 @@ export async function findClosestEmployees(
           lng: employee.coordinates.longitude,
         };
 
-        // Calculate distance
-        const distance = await calculateDistance(eventCoords, employeeCoords);
+        // Calculate distance using our distance API
+        let distance = Infinity;
+        try {
+          const coord1Str = `${employeeCoords.lat.toFixed(6)},${employeeCoords.lng.toFixed(6)}`;
+          const coord2Str = `${eventCoords.lat.toFixed(6)},${eventCoords.lng.toFixed(6)}`;
+
+          const response = await fetch(
+            `/api/route/distance?coord1=${encodeURIComponent(coord1Str)}&coord2=${encodeURIComponent(coord2Str)}`,
+            { method: "GET" }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              distance = data.distance;
+            }
+          }
+        } catch (error) {
+          console.warn(
+            `Failed to calculate distance for ${employee.name}:`,
+            error
+          );
+          // Fallback to straight-line distance
+          const R = 6371; // Earth's radius in kilometers
+          const dLat = toRad(eventCoords.lat - employeeCoords.lat);
+          const dLon = toRad(eventCoords.lng - employeeCoords.lng);
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(employeeCoords.lat)) *
+              Math.cos(toRad(eventCoords.lat)) *
+              Math.sin(dLon / 2) *
+              Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          distance = R * c;
+        }
 
         return {
           id: employee.id,
@@ -372,8 +367,28 @@ export async function findClosestEmployees(
       })
     );
 
-    // Sort by distance and return
-    return results.sort((a, b) => a.distance - b.distance);
+    // Sort by distance first, then by wage if within 5km, with employees without addresses last
+    return results.sort((a, b) => {
+      // First priority: employees without addresses go last
+      if (a.distance === Infinity && b.distance !== Infinity) {
+        return 1; // a goes after b
+      }
+      if (a.distance !== Infinity && b.distance === Infinity) {
+        return -1; // a goes before b
+      }
+      if (a.distance === Infinity && b.distance === Infinity) {
+        // Both have no addresses, sort by wage (lower first)
+        return a.wage - b.wage;
+      }
+
+      // Both have addresses, check if within 5km of each other
+      if (Math.abs(a.distance - b.distance) <= 5) {
+        // If within 5km, sort by wage (lower first)
+        return a.wage - b.wage;
+      }
+      // Otherwise sort by distance (closest first)
+      return a.distance - b.distance;
+    });
   } catch (error) {
     console.error("Error finding closest employees:", error);
     // Return employees in original order if there's an error

@@ -256,3 +256,8 @@ export const assignmentsApi = {
     }
   },
 };
+
+// Helper function for distance calculations
+function toRad(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}

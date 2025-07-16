@@ -62,19 +62,33 @@ export default function AssignStaffPage() {
       const event = events.find((e) => e.id === selectedEvent);
       if (!event) throw new Error("Event not found");
 
-      // Get closest employees within 5km
+      // Get closest employees within 5km - only available employees
+      const availableEmployees = employees.filter(emp => emp.isAvailable === true);
       const closestEmployees = await findClosestEmployees(
         event.location,
-        employees
+        availableEmployees
       );
 
-      // Sort by distance first, then by wage for employees within 5km
+      // Sort by distance first, then by wage for employees within 5km, with employees without addresses last
       const sortedEmployees = closestEmployees.sort((a, b) => {
-        if (Math.abs(a.distance - b.distance) <= 5) {
-          // If within 5km of each other, sort by wage
+        // First priority: employees without addresses go last
+        if (a.distance === Infinity && b.distance !== Infinity) {
+          return 1; // a goes after b
+        }
+        if (a.distance !== Infinity && b.distance === Infinity) {
+          return -1; // a goes before b
+        }
+        if (a.distance === Infinity && b.distance === Infinity) {
+          // Both have no addresses, sort by wage (lower first)
           return a.wage - b.wage;
         }
-        // Otherwise sort by distance
+
+        // Both have addresses, check if within 5km of each other
+        if (Math.abs(a.distance - b.distance) <= 5) {
+          // If within 5km, sort by wage (lower first)
+          return a.wage - b.wage;
+        }
+        // Otherwise sort by distance (closest first)
         return a.distance - b.distance;
       });
 

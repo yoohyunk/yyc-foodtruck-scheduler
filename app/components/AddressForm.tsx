@@ -49,6 +49,7 @@ interface ValidationError {
 
 export interface AddressFormRef {
   validate: () => boolean;
+  getCurrentAddress: () => string;
 }
 
 const ALBERTA_CITIES = [
@@ -94,7 +95,12 @@ const getFullAddress = (data: {
   city: string;
   postalCode: string;
 }) => {
-  const baseAddress = `${data.streetNumber} ${data.streetName}${data.direction && data.direction !== "None" ? " " + data.direction : ""}, ${data.city}`;
+  // Clean up any double spaces and normalize spacing
+  const cleanStreetName = data.streetName.replace(/\s+/g, " ").trim();
+  const cleanDirection =
+    data.direction && data.direction !== "None" ? data.direction.trim() : "";
+
+  const baseAddress = `${data.streetNumber} ${cleanStreetName}${cleanDirection ? " " + cleanDirection : ""}, ${data.city}`;
 
   // Add postal code if provided
   const withPostal = data.postalCode
@@ -199,6 +205,9 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         }
 
         return Object.values(newValidation).every(Boolean);
+      },
+      getCurrentAddress: () => {
+        return getFullAddress(formData);
       },
     }));
 
@@ -315,6 +324,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       const isValid =
         validateStreetNumber(formData.streetNumber) &&
         validateStreetName(formData.streetName);
+
       if (!isValid) {
         setShowErrors(true);
         setValidation((prev) => ({
@@ -357,7 +367,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         const apiUrl = `/api/geocode?address=${encodeURIComponent(fullAddress)}`;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout
 
         const response = await fetch(apiUrl, {
           method: "GET",
@@ -367,7 +377,9 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await response.json();
+
+          throw new Error(errorData.error || "Failed to fetch geocoding data.");
         }
 
         const data = await response.json();
@@ -377,14 +389,22 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             latitude: data.coordinates.latitude,
             longitude: data.coordinates.longitude,
           };
+
           setCheckStatus("success");
-          setCheckMessage("Address found and validated!");
+          setCheckMessage(
+            data.fallback
+              ? "Address validated using approximate coordinates (geocoding service unavailable)."
+              : "Address found and validated! (geocoded correctly)"
+          );
+
+          
           onChange(fullAddress, coords); // Pass up to parent
         } else {
           setCheckStatus("error");
           setCheckMessage(
             data.error || "Address not found. Please check your input."
           );
+
           if (typeof onAddressError === "function") {
             onAddressError([
               {
@@ -397,12 +417,28 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           }
         }
       } catch (error) {
-        console.error("Geocoding error:", error);
         setCheckStatus("error");
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Error validating address. Please try again.";
+
+        let errorMessage = "Error validating address. Please try again.";
+
+        if (error instanceof Error) {
+          if (
+            error.name === "AbortError" ||
+            error.message.includes("timeout")
+          ) {
+            errorMessage =
+              "Request timed out. Please check your internet connection and try again.";
+            console.log(`[ADDRESSFORM DEBUG] Timeout error detected`);
+          } else if (error.message.includes("fetch failed")) {
+            errorMessage =
+              "Network error. Please check your internet connection and try again.";
+            console.log(`[ADDRESSFORM DEBUG] Network error detected`);
+          } else {
+            errorMessage = error.message;
+            console.log(`[ADDRESSFORM DEBUG] Other error detected`);
+          }
+        }
+
         setCheckMessage(errorMessage);
         if (typeof onAddressError === "function") {
           onAddressError([
