@@ -347,23 +347,23 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       setFormData(geocodeData); // update the form with expanded name for consistency
       try {
         const apiUrl = `/api/geocode?address=${encodeURIComponent(fullAddress)}`;
-        
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
+
         const response = await fetch(apiUrl, {
-          method: 'GET',
+          method: "GET",
           signal: controller.signal,
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.success && data.coordinates) {
           const coords = {
             latitude: data.coordinates.latitude,
@@ -374,12 +374,15 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           onChange(fullAddress, coords); // Pass up to parent
         } else {
           setCheckStatus("error");
-          setCheckMessage(data.error || "Address not found. Please check your input.");
+          setCheckMessage(
+            data.error || "Address not found. Please check your input."
+          );
           if (typeof onAddressError === "function") {
             onAddressError([
               {
                 field: "address",
-                message: data.error || "Address not found. Please check your input.",
+                message:
+                  data.error || "Address not found. Please check your input.",
                 element: streetNameRef.current,
               },
             ]);
@@ -388,7 +391,10 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       } catch (error) {
         console.error("Geocoding error:", error);
         setCheckStatus("error");
-        const errorMessage = error instanceof Error ? error.message : "Error validating address. Please try again.";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Error validating address. Please try again.";
         setCheckMessage(errorMessage);
         if (typeof onAddressError === "function") {
           onAddressError([

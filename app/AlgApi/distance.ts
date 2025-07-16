@@ -40,7 +40,10 @@ function formatAddress(address: string): string {
   const hasCity = /,\s*[A-Za-z\s]+,?\s*$/i.test(address);
   if (hasCity) {
     // Address already has a city, add Alberta and Canada if missing
-    if (!address.toLowerCase().includes("alberta") && !address.toLowerCase().includes("ab")) {
+    if (
+      !address.toLowerCase().includes("alberta") &&
+      !address.toLowerCase().includes("ab")
+    ) {
       return `${address} Alberta, Canada`;
     }
     if (!address.toLowerCase().includes("canada")) {
