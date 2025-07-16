@@ -16,7 +16,7 @@ import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
 import { assignmentsApi } from "@/lib/supabase/assignments";
-import { createLocalDateTime } from "@/lib/utils";
+import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 import {
   validateForm,
   ValidationRule,
@@ -157,7 +157,7 @@ export default function EventDetailsPage(): ReactElement {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch employees
+        // Fetch all employees (not just available ones) so the modal can show unavailable employees
         const employeesData = await employeesApi.getAllEmployees();
         setEmployees(employeesData);
         setIsLoadingEmployees(false);
@@ -730,32 +730,28 @@ export default function EventDetailsPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      // Combine date and time to create proper datetime strings with timezone
+      // Function to combine date and time exactly as entered, preserving local time
+      const combineDateTime = (date: Date, time: Date): string => {
+        const dateStr = date.toISOString().split("T")[0];
+        const hours = time.getHours().toString().padStart(2, "0");
+        const minutes = time.getMinutes().toString().padStart(2, "0");
+        const timeStr = `${hours}:${minutes}`;
+
+        // Create a datetime string that preserves the exact time as entered
+        // Format: YYYY-MM-DDTHH:MM:SS (local time, no timezone conversion)
+        return `${dateStr}T${timeStr}:00`;
+      };
+
+      // Combine date and time to create proper datetime strings
       const startDateTime =
         selectedDate && selectedTime
-          ? createLocalDateTime(
-              selectedDate.toISOString().split('T')[0],
-              selectedTime.toTimeString().slice(0, 5)
-            )
+          ? combineDateTime(selectedDate, selectedTime)
           : null;
 
       const endDateTime =
         selectedDate && selectedEndTime
-          ? createLocalDateTime(
-              selectedDate.toISOString().split('T')[0],
-              selectedEndTime.toTimeString().slice(0, 5)
-            )
+          ? combineDateTime(selectedDate, selectedEndTime)
           : null;
-
-      console.log('Updating event with times:', {
-        original: { 
-          selectedDate: selectedDate?.toISOString().split('T')[0], 
-          selectedTime: selectedTime?.toTimeString().slice(0, 5),
-          selectedEndDate: selectedEndDate?.toISOString().split('T')[0],
-          selectedEndTime: selectedEndTime?.toTimeString().slice(0, 5)
-        },
-        stored: { start_date: startDateTime, end_date: endDateTime }
-      });
 
       // Capitalize the event title
       const capitalizeTitle = (title: string) => {

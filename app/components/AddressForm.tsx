@@ -49,7 +49,6 @@ interface ValidationError {
 
 export interface AddressFormRef {
   validate: () => boolean;
-  getCurrentAddress: () => string;
 }
 
 const ALBERTA_CITIES = [
@@ -206,9 +205,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
 
         return Object.values(newValidation).every(Boolean);
       },
-      getCurrentAddress: () => {
-        return getFullAddress(formData);
-      },
     }));
 
     // Validate postal code format
@@ -324,7 +320,6 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       const isValid =
         validateStreetNumber(formData.streetNumber) &&
         validateStreetName(formData.streetName);
-
       if (!isValid) {
         setShowErrors(true);
         setValidation((prev) => ({
@@ -377,9 +372,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          const errorData = await response.json();
-
-          throw new Error(errorData.error || "Failed to fetch geocoding data.");
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
@@ -389,22 +382,18 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             latitude: data.coordinates.latitude,
             longitude: data.coordinates.longitude,
           };
-
           setCheckStatus("success");
           setCheckMessage(
             data.fallback
               ? "Address validated using approximate coordinates (geocoding service unavailable)."
-              : "Address found and validated! (geocoded correctly)"
+              : "Address found and validated!"
           );
-
-          
           onChange(fullAddress, coords); // Pass up to parent
         } else {
           setCheckStatus("error");
           setCheckMessage(
             data.error || "Address not found. Please check your input."
           );
-
           if (typeof onAddressError === "function") {
             onAddressError([
               {
@@ -417,6 +406,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           }
         }
       } catch (error) {
+        console.error("Geocoding error:", error);
         setCheckStatus("error");
 
         let errorMessage = "Error validating address. Please try again.";
@@ -428,14 +418,11 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           ) {
             errorMessage =
               "Request timed out. Please check your internet connection and try again.";
-            console.log(`[ADDRESSFORM DEBUG] Timeout error detected`);
           } else if (error.message.includes("fetch failed")) {
             errorMessage =
               "Network error. Please check your internet connection and try again.";
-            console.log(`[ADDRESSFORM DEBUG] Network error detected`);
           } else {
             errorMessage = error.message;
-            console.log(`[ADDRESSFORM DEBUG] Other error detected`);
           }
         }
 

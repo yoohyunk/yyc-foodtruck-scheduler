@@ -136,16 +136,13 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
           },
         }
       );
-
       if (response.ok) {
         data = await response.json();
-
         if (data.success && data.coordinates) {
           const coords = {
             lat: data.coordinates.latitude,
             lng: data.coordinates.longitude,
           };
-
           coordinatesCache.set(formattedAddress, coords);
           return coords;
         }
@@ -159,7 +156,6 @@ export async function getCoordinates(address: string): Promise<Coordinates> {
     return fallbackCoords;
   } catch (error) {
     console.error("Error getting coordinates:", error);
-
     // Return appropriate fallback coordinates
     const fallbackCoords = getFallbackCoordinates(address);
 
@@ -205,70 +201,11 @@ export async function calculateDistance(
   coord1: Coordinates,
   coord2: Coordinates
 ): Promise<number> {
-  // If coordinates are exactly the same, return 0
-  if (coord1.lat === coord2.lat && coord1.lng === coord2.lng) {
-    return 0;
-  }
-
-  // If coordinates are very close (within ~10 meters), return a small distance
-  const latDiff = Math.abs(coord1.lat - coord2.lat);
-  const lngDiff = Math.abs(coord1.lng - coord2.lng);
-  if (latDiff < 0.0001 && lngDiff < 0.0001) {
-    return 0.01; // Return 10 meters
-  }
-
-    try {
-    // Use our backend proxy to avoid CORS issues
-    const coord1Str = `${coord1.lat.toFixed(6)},${coord1.lng.toFixed(6)}`;
-    const coord2Str = `${coord2.lat.toFixed(6)},${coord2.lng.toFixed(6)}`;
-
-    const url = `/api/route/distance?coord1=${encodeURIComponent(coord1Str)}&coord2=${encodeURIComponent(coord2Str)}`;
-
-      const response = await fetch(url, {
-      method: "GET",
-        headers: {
-        "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-      throw new Error(`Distance API error! status: ${response.status}`);
-      }
-
-    const data = await response.json();
-
-    if (data.success) {
-      return data.distance;
-      }
-
-    throw new Error(data.error || "Failed to calculate distance");
-    } catch (error) {
-    console.error("Error calculating distance:", error);
-
-        // Calculate straight-line distance as a fallback
-        const R = 6371; // Earth's radius in kilometers
-        const dLat = toRad(coord2.lat - coord1.lat);
-        const dLon = toRad(coord2.lng - coord1.lng);
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(toRad(coord1.lat)) *
-            Math.cos(toRad(coord2.lat)) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const straightLineDistance = R * c;
-
-        console.warn(
-          "Using straight-line distance as fallback:",
-          straightLineDistance,
-          "km"
-        );
-        return straightLineDistance;
-      }
-}
-
-function toRad(degrees: number): number {
-  return degrees * (Math.PI / 180);
+  // Import the utility function for straight-line distance calculation
+  const { calculateStraightLineDistance } = await import(
+    "@/lib/utils/distance"
+  );
+  return calculateStraightLineDistance(coord1, coord2);
 }
 
 export interface EmployeeWithDistance {
@@ -287,7 +224,7 @@ export async function findClosestEmployees(
     wage: number;
     address: string;
     coordinates?: { latitude: number; longitude: number };
-    isAvailable?: boolean; // Add availability check
+    isAvailable?: boolean;
   }>,
   eventCoordinates?: { latitude: number; longitude: number }
 ): Promise<EmployeeWithDistance[]> {
@@ -298,7 +235,14 @@ export async function findClosestEmployees(
       : await getCoordinates(eventAddress);
 
     // Filter to only available employees first
-    const availableEmployees = employees.filter(emp => emp.isAvailable !== false);
+    const availableEmployees = employees.filter(
+      (emp) => emp.isAvailable !== false
+    );
+
+    // Import utility functions
+    const { calculateStraightLineDistance } = await import(
+      "@/lib/utils/distance"
+    );
 
     // Process all available employees at once using their stored coordinates
     const results = await Promise.all(
@@ -321,40 +265,16 @@ export async function findClosestEmployees(
           lng: employee.coordinates.longitude,
         };
 
-        // Calculate distance using our distance API
+        // Calculate distance using straight-line distance
         let distance = Infinity;
         try {
-          const coord1Str = `${employeeCoords.lat.toFixed(6)},${employeeCoords.lng.toFixed(6)}`;
-          const coord2Str = `${eventCoords.lat.toFixed(6)},${eventCoords.lng.toFixed(6)}`;
-
-          const response = await fetch(
-            `/api/route/distance?coord1=${encodeURIComponent(coord1Str)}&coord2=${encodeURIComponent(coord2Str)}`,
-            { method: "GET" }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              distance = data.distance;
-            }
-          }
+          distance = calculateStraightLineDistance(employeeCoords, eventCoords);
         } catch (error) {
           console.warn(
             `Failed to calculate distance for ${employee.name}:`,
             error
           );
-          // Fallback to straight-line distance
-          const R = 6371; // Earth's radius in kilometers
-          const dLat = toRad(eventCoords.lat - employeeCoords.lat);
-          const dLon = toRad(eventCoords.lng - employeeCoords.lng);
-          const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(toRad(employeeCoords.lat)) *
-              Math.cos(toRad(eventCoords.lat)) *
-              Math.sin(dLon / 2) *
-              Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          distance = R * c;
+          distance = Infinity;
         }
 
         return {

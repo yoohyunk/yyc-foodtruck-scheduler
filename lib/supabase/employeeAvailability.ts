@@ -1,5 +1,12 @@
 import { createClient } from "./client";
 import { EmployeeAvailability, Employee } from "@/app/types";
+import { wagesApi } from "./wages";
+import {
+  calculateStraightLineDistance,
+  calculateEmployeeDistances,
+  sortEmployeesByDistanceAndWage,
+  EmployeeWithDistanceAndWage,
+} from "@/lib/utils/distance";
 
 const supabase = createClient();
 
@@ -231,7 +238,8 @@ export const employeeAvailabilityApi = {
     eventStartDate: string,
     eventEndDate: string,
     eventAddress: string,
-    excludeEventId?: string
+    excludeEventId?: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     try {
       // Build query to get employees
@@ -257,8 +265,14 @@ export const employeeAvailabilityApi = {
       }
 
       if (!employees || employees.length === 0) {
+        console.log("EmployeeAvailability - No employees found in database");
         return [];
       }
+
+      console.log(
+        "EmployeeAvailability - Found employees in database:",
+        employees.length
+      );
 
       // Get the day of the week for the event
       const eventDateTime = new Date(eventStartDate);
@@ -280,7 +294,17 @@ export const employeeAvailabilityApi = {
         return availability && availability.includes(eventDay);
       });
 
+      console.log(
+        "EmployeeAvailability - Employees with day availability for",
+        eventDay + ":",
+        employeesWithDayAvailability.length
+      );
+
       if (employeesWithDayAvailability.length === 0) {
+        console.log(
+          "EmployeeAvailability - No employees available for day:",
+          eventDay
+        );
         return [];
       }
 
@@ -307,89 +331,54 @@ export const employeeAvailabilityApi = {
       );
 
       // Calculate distances using database coordinates and sort by distance + wage
-      if (eventAddress && filteredEmployees.length > 0) {
-        // Get event coordinates from the address
-        const { getCoordinates } = await import("@/app/AlgApi/distance");
-        const eventCoords = await getCoordinates(eventAddress);
+      if (filteredEmployees.length > 0) {
+        let eventCoords: { lat: number; lng: number };
 
-        const employeesWithDistance = await Promise.all(
-          filteredEmployees.map(async (employee) => {
-            let distance = Infinity; // Default to infinity if no coordinates
+        if (eventCoordinates) {
+          // Use provided coordinates directly
+          eventCoords = {
+            lat: eventCoordinates.latitude,
+            lng: eventCoordinates.longitude,
+          };
+        } else if (eventAddress) {
+          // Fallback to geocoding API if no coordinates provided
+          const { getCoordinates } = await import("@/app/AlgApi/distance");
+          eventCoords = await getCoordinates(eventAddress);
+        } else {
+          // No coordinates available, return employees without distance sorting
+          return filteredEmployees;
+        }
 
-            // Use database coordinates if available
-            if (employee.addresses?.latitude && employee.addresses?.longitude) {
-              const employeeCoords = {
-                lat: parseFloat(employee.addresses.latitude),
-                lng: parseFloat(employee.addresses.longitude),
-              };
+        // Calculate distances using database coordinates
+        const employeesWithDistance = calculateEmployeeDistances(
+          filteredEmployees,
+          eventCoords
+        );
 
-              // Use our distance API for accurate calculations
-              try {
-                const coord1Str = `${employeeCoords.lat.toFixed(6)},${employeeCoords.lng.toFixed(6)}`;
-                const coord2Str = `${eventCoords.lat.toFixed(6)},${eventCoords.lng.toFixed(6)}`;
+        // Get current wages for all employees
+        const employeesWithWages = await Promise.all(
+          employeesWithDistance.map(async (employee) => {
+            try {
+              const wageRecord = await wagesApi.getCurrentWage(
+                employee.employee_id
+              );
+              const currentWage = wageRecord?.hourly_wage || 0;
 
-                const response = await fetch(
-                  `/api/route/distance?coord1=${encodeURIComponent(coord1Str)}&coord2=${encodeURIComponent(coord2Str)}`,
-                  { method: "GET" }
-                );
-
-                if (response.ok) {
-                  const data = await response.json();
-                  if (data.success) {
-                    distance = data.distance;
-                  }
-                }
-              } catch (error) {
-                console.warn(
-                  `Failed to calculate distance for ${employee.first_name} ${employee.last_name}:`,
-                  error
-                );
-                // Fallback to straight-line distance calculation
-                const R = 6371; // Earth's radius in kilometers
-                const dLat = toRad(eventCoords.lat - employeeCoords.lat);
-                const dLon = toRad(eventCoords.lng - employeeCoords.lng);
-                const a =
-                  Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos(toRad(employeeCoords.lat)) *
-                    Math.cos(toRad(eventCoords.lat)) *
-                    Math.sin(dLon / 2) *
-                    Math.sin(dLon / 2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                distance = R * c;
-              }
+              return { ...employee, currentWage };
+            } catch (error) {
+              console.warn(
+                `Failed to get wage for employee ${employee.employee_id}:`,
+                error
+              );
+              return { ...employee, currentWage: 0 };
             }
-
-            return { ...employee, distance };
           })
         );
 
         // Sort by distance first, then by wage if within 5km, with employees without addresses last
-        // IMPORTANT: Only return employees that are actually available (isAvailable: true)
-        const availableEmployeesWithDistance = employeesWithDistance.filter(
-          (employee) => employee.isAvailable === true
-        );
-
-        return availableEmployeesWithDistance.sort((a, b) => {
-          // First priority: employees without addresses go last
-          if (a.distance === Infinity && b.distance !== Infinity) {
-            return 1; // a goes after b
-          }
-          if (a.distance !== Infinity && b.distance === Infinity) {
-            return -1; // a goes before b
-          }
-          if (a.distance === Infinity && b.distance === Infinity) {
-            // Both have no addresses, sort by wage (lower first)
-            return (a.currentWage || 0) - (b.currentWage || 0);
-          }
-
-          // Both have addresses, check if within 5km of each other
-          if (Math.abs(a.distance - b.distance) <= 5) {
-            // If within 5km, sort by wage (lower first)
-            return (a.currentWage || 0) - (b.currentWage || 0);
-          }
-          // Otherwise sort by distance (closest first)
-          return a.distance - b.distance;
-        });
+        const sortedEmployees =
+          sortEmployeesByDistanceAndWage(employeesWithWages);
+        return sortedEmployees;
       }
 
       return filteredEmployees;
@@ -404,14 +393,16 @@ export const employeeAvailabilityApi = {
     eventStartDate: string,
     eventEndDate: string,
     eventAddress: string,
-    excludeEventId?: string
+    excludeEventId?: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     return this.getAvailableEmployees(
       "Server",
       eventStartDate,
       eventEndDate,
       eventAddress,
-      excludeEventId
+      excludeEventId,
+      eventCoordinates
     );
   },
 
@@ -419,14 +410,16 @@ export const employeeAvailabilityApi = {
     eventStartDate: string,
     eventEndDate: string,
     eventAddress: string,
-    excludeEventId?: string
+    excludeEventId?: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     return this.getAvailableEmployees(
       "Driver",
       eventStartDate,
       eventEndDate,
       eventAddress,
-      excludeEventId
+      excludeEventId,
+      eventCoordinates
     );
   },
 
@@ -434,19 +427,16 @@ export const employeeAvailabilityApi = {
     eventStartDate: string,
     eventEndDate: string,
     eventAddress: string,
-    excludeEventId?: string
+    excludeEventId?: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     return this.getAvailableEmployees(
       "Manager",
       eventStartDate,
       eventEndDate,
       eventAddress,
-      excludeEventId
+      excludeEventId,
+      eventCoordinates
     );
   },
 };
-
-// Helper function for distance calculations
-function toRad(degrees: number): number {
-  return degrees * (Math.PI / 180);
-}

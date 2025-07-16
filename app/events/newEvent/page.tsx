@@ -36,12 +36,15 @@ import {
 } from "../../../lib/formValidation";
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
-import { createLocalDateTime } from "@/lib/utils";
+import { calculateStraightLineDistance } from "@/lib/utils/distance";
 
-// Helper function for distance calculations
-function toRad(degrees: number): number {
-  return degrees * (Math.PI / 180);
-}
+// Function to combine date and time exactly as entered, preserving local time
+const combineDateTime = (date: string, time: string): string => {
+  // Create a datetime string that preserves the exact time as entered
+  // Format: YYYY-MM-DDTHH:MM:SS (local time, no timezone conversion)
+  // Store as local time string without timezone conversion
+  return `${date}T${time}:00`;
+};
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -221,9 +224,14 @@ export default function AddEventPage(): ReactElement {
   const handleTimeChange = (time: Date | null) => {
     setSelectedTime(time);
     if (time) {
+      // Extract time exactly as displayed in the picker (HH:MM format)
+      const hours = time.getHours().toString().padStart(2, "0");
+      const minutes = time.getMinutes().toString().padStart(2, "0");
+      const timeString = `${hours}:${minutes}`;
+
       setFormData((prev) => ({
         ...prev,
-        time: time.toTimeString().slice(0, 5),
+        time: timeString,
       }));
     }
     // Clear sorted employees when time changes
@@ -236,9 +244,14 @@ export default function AddEventPage(): ReactElement {
   const handleEndTimeChange = (time: Date | null) => {
     setSelectedEndTime(time);
     if (time) {
+      // Extract time exactly as displayed in the picker (HH:MM format)
+      const hours = time.getHours().toString().padStart(2, "0");
+      const minutes = time.getMinutes().toString().padStart(2, "0");
+      const timeString = `${hours}:${minutes}`;
+
       setFormData((prev) => ({
         ...prev,
-        endTime: time.toTimeString().slice(0, 5),
+        endTime: timeString,
       }));
     }
     // Clear sorted employees when end time changes
@@ -255,8 +268,8 @@ export default function AddEventPage(): ReactElement {
     console.log("handleLocationChange called with:", address, coords);
     setFormData((prev) => {
       const updated = {
-      ...prev,
-      location: address,
+        ...prev,
+        location: address,
       };
       console.log("Updated formData:", updated);
       return updated;
@@ -625,15 +638,6 @@ export default function AddEventPage(): ReactElement {
     // Only update state if AddressForm validates
     const valid = addressFormRef.current?.validate() ?? false;
     if (valid) {
-      // Ensure the location is set from the AddressForm's current value
-      const currentAddress = addressFormRef.current?.getCurrentAddress?.();
-      if (currentAddress && !formData.location) {
-        setFormData((prev) => ({
-          ...prev,
-          location: currentAddress,
-        }));
-      }
-
       // Only check truck availability if we have the required date/time fields
       if (formData.date && formData.time && formData.endTime) {
         checkTruckAvailability();
@@ -646,28 +650,32 @@ export default function AddEventPage(): ReactElement {
           try {
             // Removed serverMessage and truckMessage variables since they are no longer used
 
-            // Check server availability - only get employees that are marked as available
+            // Check server availability
             const availableServers = employees.filter(
-              (emp) => emp.employee_type === "Server" && emp.is_available === true
+              (emp) =>
+                emp.employee_type === "Server" && emp.is_available === true
             );
 
             if (availableServers.length > 0) {
               // If we have date and time, use availability checking with distance + wage sorting
               if (formData.date && formData.time && formData.endTime) {
                 // Use the optimized getAvailableServers function which includes distance + wage sorting
+                const eventStartDate = `${formData.date}T${formData.time}`;
+                const eventEndDate = `${formData.endDate}T${formData.endTime}`;
                 const sortedAvailableServers =
-                  await assignmentsApi.getAvailableServers(
-                    formData.date,
-                    formData.time,
-                    formData.endTime,
-                    formData.location
+                  await employeeAvailabilityApi.getAvailableServers(
+                    eventStartDate,
+                    eventEndDate,
+                    formData.location,
+                    undefined, // excludeEventId
+                    coordinates // Pass the coordinates directly
                   );
                 setSortedEmployees(sortedAvailableServers);
               } else {
                 // If no date/time yet, use distance + wage sorting without availability checking
                 const serversWithDistance = await Promise.all(
                   availableServers.map(async (server) => {
-                    let distance = Infinity;
+                    let distance = 0;
                     if (
                       server.addresses?.latitude &&
                       server.addresses?.longitude
@@ -706,23 +714,11 @@ export default function AddEventPage(): ReactElement {
                           `Failed to calculate distance for ${server.first_name} ${server.last_name}:`,
                           error
                         );
-                        // Fallback to straight-line distance
-                        const R = 6371;
-                        const dLat = toRad(
-                          eventCoords.lat - employeeCoords.lat
+                        // Use straight-line distance calculation
+                        distance = calculateStraightLineDistance(
+                          employeeCoords,
+                          eventCoords
                         );
-                        const dLon = toRad(
-                          eventCoords.lng - employeeCoords.lng
-                        );
-                        const a =
-                          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                          Math.cos(toRad(employeeCoords.lat)) *
-                            Math.cos(toRad(eventCoords.lat)) *
-                            Math.sin(dLon / 2) *
-                            Math.sin(dLon / 2);
-                        const c =
-                          2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                        distance = R * c;
                       }
                     }
                     return { ...server, distance };
@@ -817,11 +813,8 @@ export default function AddEventPage(): ReactElement {
       createValidationRule(
         "location",
         true,
-        (value: unknown) => {
-          console.log("Validating location field:", value);
-          return typeof value === "string" && value.trim().length > 0;
-        },
-        "Location is required. Please use the 'Check Address' button to validate your address.",
+        undefined,
+        "Location is required.",
         null
       ),
       createValidationRule(
@@ -973,13 +966,8 @@ export default function AddEventPage(): ReactElement {
       };
 
       // Create event data with address
-      const startDateTime = createLocalDateTime(formData.date, formData.time);
-      const endDateTime = createLocalDateTime(formData.endDate, formData.endTime);
-      
-      console.log('Creating event with times:', {
-        original: { date: formData.date, time: formData.time, endDate: formData.endDate, endTime: formData.endTime },
-        stored: { start_date: startDateTime, end_date: endDateTime }
-      });
+      const startDateTime = combineDateTime(formData.date, formData.time);
+      const endDateTime = combineDateTime(formData.endDate, formData.endTime);
 
       const eventData = {
         title: capitalizeTitle(formData.name),
@@ -1016,8 +1004,8 @@ export default function AddEventPage(): ReactElement {
           truck_id: assignment.truck_id,
           driver_id: assignment.driver_id,
           event_id: newEvent.id,
-          start_time: createLocalDateTime(formData.date, assignment.start_time),
-          end_time: createLocalDateTime(formData.endDate, assignment.end_time),
+          start_time: combineDateTime(formData.date, assignment.start_time),
+          end_time: combineDateTime(formData.endDate, assignment.end_time),
         });
       }
 

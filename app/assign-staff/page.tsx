@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { findClosestEmployees, EmployeeWithDistance } from "../AlgApi/distance";
+import { calculateStraightLineDistance } from "@/lib/utils/distance";
 
 interface Employee {
   id: number;
@@ -63,7 +64,9 @@ export default function AssignStaffPage() {
       if (!event) throw new Error("Event not found");
 
       // Get closest employees within 5km - only available employees
-      const availableEmployees = employees.filter(emp => emp.isAvailable === true);
+      const availableEmployees = employees.filter(
+        (emp) => emp.isAvailable === true
+      );
       const closestEmployees = await findClosestEmployees(
         event.location,
         availableEmployees
