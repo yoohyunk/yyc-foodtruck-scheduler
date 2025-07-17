@@ -26,9 +26,10 @@ export default function Home(): ReactElement {
 
         // Only show upcoming events with status 'Pending'
         const upcomingEvents = eventsData
-          .filter((event) =>
-            new Date(event.start_date) >= new Date() &&
-            (event.status === 'Pending' || !event.status)
+          .filter(
+            (event) =>
+              new Date(event.start_date) >= new Date() &&
+              (event.status === "Pending" || !event.status)
           )
           .slice(0, 6)
           .map((event) => ({

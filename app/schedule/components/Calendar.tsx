@@ -43,27 +43,25 @@ export const Calendar = ({
 }: CalendarProps) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth;
       setIsMobile(width <= 768);
       setIsTablet(width > 768 && width <= 1024);
-      setIsDesktop(width > 1024);
     };
 
     checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    
-    return () => window.removeEventListener('resize', checkScreenSize);
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   const viewType =
     viewMode === "daily"
       ? "timeGridDay"
       : viewMode === "weekly"
-        ? "dayGridWeek" 
+        ? "dayGridWeek"
         : "dayGridMonth";
 
   // Responsive configurations based on screen size
@@ -76,8 +74,8 @@ export const Calendar = ({
         slotLabelInterval: "02:00",
         dayMaxEventRows: 2,
         aspectRatio: 0.6,
-        fontSize: '10px',
-        padding: '1px 2px'
+        fontSize: "10px",
+        padding: "1px 2px",
       };
     } else if (isTablet) {
       return {
@@ -87,8 +85,8 @@ export const Calendar = ({
         slotLabelInterval: "01:30",
         dayMaxEventRows: 3,
         aspectRatio: 1.0,
-        fontSize: '12px',
-        padding: '2px 4px'
+        fontSize: "12px",
+        padding: "2px 4px",
       };
     } else {
       return {
@@ -98,18 +96,18 @@ export const Calendar = ({
         slotLabelInterval: "01:00",
         dayMaxEventRows: 4,
         aspectRatio: 1.35,
-        fontSize: '14px',
-        padding: '4px 6px'
+        fontSize: "14px",
+        padding: "4px 6px",
       };
     }
   };
 
   const config = getResponsiveConfig();
-  
+
   return (
     <div className={`${viewMode}-schedule mobile-calendar responsive-calendar`}>
       <FullCalendar
-        key={`${viewMode}-${selectedDate.toISOString()}-${isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop'}`}
+        key={`${viewMode}-${selectedDate.toISOString()}-${isMobile ? "mobile" : isTablet ? "tablet" : "desktop"}`}
         plugins={plugins}
         initialView={viewType}
         initialDate={selectedDate}
@@ -131,10 +129,18 @@ export const Calendar = ({
         }}
         dayHeaderFormat={{ weekday: "long", day: "numeric" }}
         dayHeaderContent={({ date }) => {
-          const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+          const dayName = date.toLocaleDateString("en-US", {
+            weekday: "short",
+          });
           const dayNum = date.getDate();
           return (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
               <div>{dayNum}</div>
               <div>{dayName}</div>
             </div>
@@ -156,7 +162,9 @@ export const Calendar = ({
         allDaySlot={false}
         showNonCurrentDates={viewMode === "monthly"}
         fixedWeekCount={viewMode === "monthly"}
-        dayMaxEventRows={viewMode === "monthly" ? false : config.dayMaxEventRows}
+        dayMaxEventRows={
+          viewMode === "monthly" ? false : config.dayMaxEventRows
+        }
         eventDisplay="block"
         eventOverlap={false}
         firstDay={1}
@@ -173,7 +181,7 @@ export const Calendar = ({
           info.el.style.fontSize = config.fontSize;
           info.el.style.padding = config.padding;
           if (isMobile) {
-            info.el.style.cursor = 'pointer';
+            info.el.style.cursor = "pointer";
           }
         }}
         // Touch-friendly interactions

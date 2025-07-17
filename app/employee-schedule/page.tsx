@@ -185,6 +185,15 @@ export default function EmplpyeeSchedule(): React.ReactElement {
           title: assignment.event?.title || "Assignment",
           start: startDate,
           end: endDate,
+          extendedProps: {
+            location: assignment.event?.description || "N/A",
+            trucks: [],
+            assignedStaff: [],
+            requiredServers: 0,
+            startTime: assignment.start_date || "",
+            endTime: assignment.end_date || "",
+            status: "Pending" as "Pending" | "Scheduled",
+          },
         };
       })
       .filter((event) => {
