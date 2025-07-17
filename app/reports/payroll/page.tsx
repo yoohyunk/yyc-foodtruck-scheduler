@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { employeesApi } from "@/lib/supabase/employees";
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { wagesApi } from "@/lib/supabase/wages";
+import { createClient } from "@/lib/supabase/client";
 import { Employee } from "../../types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
@@ -15,6 +16,7 @@ interface PayrollData {
   employee: Employee;
   currentWage: number;
   totalHours: number;
+  totalEvents: number;
   totalPay: number;
   assignments: Array<{
     id: string;
@@ -34,37 +36,38 @@ interface PayPeriod {
 }
 
 export default function PayrollReport(): ReactElement {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { shouldHighlight } = useTutorial();
   const [selectedPayPeriod, setSelectedPayPeriod] = useState<string>("");
   const [payrollData, setPayrollData] = useState<PayrollData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   // Generate pay periods for current year
   const generatePayPeriods = (): PayPeriod[] => {
     const currentYear = new Date().getFullYear();
     const periods: PayPeriod[] = [];
-    
+
     for (let month = 1; month <= 12; month++) {
       const firstHalf: PayPeriod = {
-        id: `${currentYear}-${month.toString().padStart(2, '0')}-01`,
-        label: `${new Date(currentYear, month - 1, 1).toLocaleDateString('en-US', { month: 'short' })} 1-15`,
-        startDate: `${currentYear}-${month.toString().padStart(2, '0')}-01`,
-        endDate: `${currentYear}-${month.toString().padStart(2, '0')}-15`,
+        id: `${currentYear}-${month.toString().padStart(2, "0")}-01`,
+        label: `${new Date(currentYear, month - 1, 1).toLocaleDateString("en-US", { month: "short" })} 1-15`,
+        startDate: `${currentYear}-${month.toString().padStart(2, "0")}-01`,
+        endDate: `${currentYear}-${month.toString().padStart(2, "0")}-15`,
       };
-      
+
       const lastDay = new Date(currentYear, month, 0).getDate();
       const secondHalf: PayPeriod = {
-        id: `${currentYear}-${month.toString().padStart(2, '0')}-16`,
-        label: `${new Date(currentYear, month - 1, 1).toLocaleDateString('en-US', { month: 'short' })} 16-${lastDay}`,
-        startDate: `${currentYear}-${month.toString().padStart(2, '0')}-16`,
-        endDate: `${currentYear}-${month.toString().padStart(2, '0')}-${lastDay}`,
+        id: `${currentYear}-${month.toString().padStart(2, "0")}-16`,
+        label: `${new Date(currentYear, month - 1, 1).toLocaleDateString("en-US", { month: "short" })} 16-${lastDay}`,
+        startDate: `${currentYear}-${month.toString().padStart(2, "0")}-16`,
+        endDate: `${currentYear}-${month.toString().padStart(2, "0")}-${lastDay}`,
       };
-      
+
       periods.push(firstHalf, secondHalf);
     }
-    
+
     return periods;
   };
 
@@ -76,14 +79,14 @@ export default function PayrollReport(): ReactElement {
     const day = today.getDate();
     const month = today.getMonth() + 1;
     const year = today.getFullYear();
-    
+
     let periodId: string;
     if (day <= 15) {
-      periodId = `${year}-${month.toString().padStart(2, '0')}-01`;
+      periodId = `${year}-${month.toString().padStart(2, "0")}-01`;
     } else {
-      periodId = `${year}-${month.toString().padStart(2, '0')}-16`;
+      periodId = `${year}-${month.toString().padStart(2, "0")}-16`;
     }
-    
+
     setSelectedPayPeriod(periodId);
   }, []);
 
@@ -94,24 +97,53 @@ export default function PayrollReport(): ReactElement {
     setError(null);
 
     try {
-      const selectedPeriod = payPeriods.find(p => p.id === selectedPayPeriod);
+      const selectedPeriod = payPeriods.find((p) => p.id === selectedPayPeriod);
       if (!selectedPeriod) return;
 
-      // Get all employees
-      const allEmployees = await employeesApi.getAllEmployees();
-      
+      let employeesToProcess: Employee[] = [];
+
+      if (isAdmin) {
+        // Admin sees all employees
+        const allEmployees = await employeesApi.getAllEmployees();
+        employeesToProcess = allEmployees;
+      } else {
+        // Employee sees only themselves
+        if (!user?.id) {
+          setError("User not found.");
+          return;
+        }
+
+        const { data: employee, error: employeeError } = await supabase
+          .from("employees")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+
+        if (employeeError || !employee) {
+          setError("Employee information not found.");
+          return;
+        }
+
+        employeesToProcess = [employee];
+      }
+
       // Sort employees alphabetically by first name, then last name
-      const sortedEmployees = allEmployees.sort((a, b) => {
-        const nameA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
-        const nameB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+      const sortedEmployees = employeesToProcess.sort((a, b) => {
+        const nameA =
+          `${a.first_name || ""} ${a.last_name || ""}`.toLowerCase();
+        const nameB =
+          `${b.first_name || ""} ${b.last_name || ""}`.toLowerCase();
         return nameA.localeCompare(nameB);
       });
-      
+
       const payrollDataArray: PayrollData[] = [];
 
       for (const employee of sortedEmployees) {
         // Get current wage
-        const currentWage = await wagesApi.getCurrentWage(employee.employee_id);
+        const currentWageData = await wagesApi.getCurrentWage(employee.employee_id);
+        
+        // Extract hourly wage from the wage object
+        const currentWage = currentWageData?.hourly_wage || 0;
         
         // Get assignments for this pay period
         const assignments = await assignmentsApi.getAssignmentsByEmployeeId(employee.employee_id);
@@ -141,18 +173,26 @@ export default function PayrollReport(): ReactElement {
           totalHours += daysDiff * 8; // 8 hours per day
         }
 
-        const totalPay = totalHours * (currentWage || 0);
+        // Ensure wage is a valid number, default to 0 if null/undefined
+        const wage = typeof currentWage === 'number' && !isNaN(currentWage) ? currentWage : 0;
+        const totalPay = totalHours * wage;
 
         payrollDataArray.push({
           employee,
-          currentWage: currentWage || 0,
+          currentWage: wage,
           totalHours,
+          totalEvents: periodAssignments.length,
           totalPay,
           assignments: periodAssignmentsEnriched,
         });
       }
 
-      setPayrollData(payrollDataArray);
+      // Filter to only show employees with hours > 0 for admin view
+      const filteredData = isAdmin
+        ? payrollDataArray.filter((data) => data.totalHours > 0)
+        : payrollDataArray;
+
+      setPayrollData(filteredData);
     } catch (err) {
       console.error("Error fetching payroll data:", err);
       setError("Failed to load payroll data.");
@@ -183,51 +223,69 @@ export default function PayrollReport(): ReactElement {
   };
 
   const getSelectedPeriodLabel = () => {
-    const period = payPeriods.find(p => p.id === selectedPayPeriod);
+    const period = payPeriods.find((p) => p.id === selectedPayPeriod);
     return period ? period.label : "";
   };
 
   const calculateTotals = () => {
-    const totalHours = payrollData.reduce((sum, data) => sum + data.totalHours, 0);
+    const totalHours = payrollData.reduce(
+      (sum, data) => sum + data.totalHours,
+      0
+    );
     const totalPay = payrollData.reduce((sum, data) => sum + data.totalPay, 0);
-    const totalEmployees = payrollData.filter(data => data.totalHours > 0).length;
-    
-    return { totalHours, totalPay, totalEmployees };
+    const totalEvents = payrollData.reduce(
+      (sum, data) => sum + data.totalEvents,
+      0
+    );
+    const totalEmployees = payrollData.length;
+
+    return { totalHours, totalPay, totalEvents, totalEmployees };
   };
 
-  if (!isAdmin) {
+  if (!isAdmin && !user) {
     return (
       <div className="payroll-report">
         <h2 className="text-2xl text-primary-dark mb-4">Payroll Report</h2>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">
-            Access denied. Only administrators can view reports.
+            Please log in to view your payroll information.
           </p>
         </div>
       </div>
     );
   }
 
-  const { totalHours, totalPay, totalEmployees } = calculateTotals();
+  const { totalHours, totalPay, totalEvents, totalEmployees } =
+    calculateTotals();
 
   return (
     <div className="payroll-report">
       <div className="mb-6">
         <div className="flex items-center mb-4">
-          <Link href="/reports" className="mr-4 text-primary-dark hover:text-primary-medium">
+          <Link
+            href="/reports"
+            className="mr-4 text-primary-dark hover:text-primary-medium"
+          >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
           <h2 className="text-2xl text-primary-dark">Payroll Report</h2>
         </div>
         <p className="text-gray-600">
-          Calculate employee hours and wages for the selected pay period.
+          {isAdmin
+            ? "View employee hours and wages for the selected pay period."
+            : "View your hours and wages for the selected pay period."}
         </p>
       </div>
 
       {/* Pay Period Selection */}
-      <TutorialHighlight isHighlighted={shouldHighlight(".pay-period-selector")}>
+      <TutorialHighlight
+        isHighlighted={shouldHighlight(".pay-period-selector")}
+      >
         <div className="mb-6 p-4 bg-white rounded-lg shadow">
-          <label htmlFor="pay-period-selector" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="pay-period-selector"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Select Pay Period
           </label>
           <select
@@ -238,7 +296,8 @@ export default function PayrollReport(): ReactElement {
           >
             {payPeriods.map((period) => (
               <option key={period.id} value={period.id}>
-                {period.label} ({formatDate(period.startDate)} - {formatDate(period.endDate)})
+                {period.label} ({formatDate(period.startDate)} -{" "}
+                {formatDate(period.endDate)})
               </option>
             ))}
           </select>
@@ -259,10 +318,12 @@ export default function PayrollReport(): ReactElement {
       {/* Summary Stats */}
       {!isLoading && payrollData.length > 0 && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h3 className="text-sm font-medium text-green-800 mb-2">Payroll Summary</h3>
+          <h3 className="text-sm font-medium text-green-800 mb-2">
+            Payroll Summary
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <span className="text-green-600">Employees with Hours:</span>
+              <span className="text-green-600">Employees:</span>
               <span className="ml-2 font-medium">{totalEmployees}</span>
             </div>
             <div>
@@ -270,13 +331,13 @@ export default function PayrollReport(): ReactElement {
               <span className="ml-2 font-medium">{totalHours.toFixed(1)}</span>
             </div>
             <div>
-              <span className="text-green-600">Total Payroll:</span>
-              <span className="ml-2 font-medium">{formatCurrency(totalPay)}</span>
+              <span className="text-green-600">Total Events:</span>
+              <span className="ml-2 font-medium">{totalEvents}</span>
             </div>
             <div>
-              <span className="text-green-600">Average per Employee:</span>
+              <span className="text-green-600">Total Payroll:</span>
               <span className="ml-2 font-medium">
-                {totalEmployees > 0 ? formatCurrency(totalPay / totalEmployees) : "$0.00"}
+                {formatCurrency(totalPay)}
               </span>
             </div>
           </div>
@@ -289,92 +350,68 @@ export default function PayrollReport(): ReactElement {
           <span className="ml-2 text-gray-600">Loading payroll data...</span>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {payrollData
-            .filter(data => data.totalHours > 0) // Only show employees with hours
-            .sort((a, b) => b.totalPay - a.totalPay) // Sort by total pay descending
-            .map((data) => (
-            <div key={data.employee.employee_id} className="employee-card bg-white p-6 rounded shadow">
-              {/* Employee Header */}
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center">
-                  <FiUsers className="text-gray-400 mr-3 text-lg" />
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-800">
-                      {data.employee.first_name} {data.employee.last_name}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {data.employee.employee_type} • {data.employee.user_email}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-green-600">
-                    {formatCurrency(data.totalPay)}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {data.totalHours.toFixed(1)} hours
-                  </div>
-                </div>
-              </div>
-
-              {/* Wage Information */}
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Hourly Rate:</span>
-                    <span className="ml-2 font-medium">{formatCurrency(data.currentWage)}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Total Hours:</span>
-                    <span className="ml-2 font-medium">{data.totalHours.toFixed(1)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Assignments */}
-              {data.assignments.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-800 mb-2 flex items-center">
-                    <FiCalendar className="mr-2" />
-                    Event Assignments
-                  </h4>
-                  <div className="space-y-2">
-                    {data.assignments.map((assignment) => (
-                      <div key={assignment.id} className="p-3 bg-blue-50 rounded border border-blue-200">
-                        <p className="font-medium text-blue-800">
-                          {assignment.events.title || "Untitled Event"}
-                        </p>
-                        <p className="text-sm text-blue-600">
-                          {formatDate(assignment.start_date)} - {formatDate(assignment.end_date)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Pay Calculation */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">
-                    {data.currentWage} × {data.totalHours.toFixed(1)} hours
-                  </span>
-                  <span className="font-medium text-green-600">
-                    = {formatCurrency(data.totalPay)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!isLoading && payrollData.filter(data => data.totalHours > 0).length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          No payroll data found for the selected pay period.
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Employee
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Events
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Hours
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Hourly Rate
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Pay
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {payrollData.length > 0 ? (
+                  payrollData.map((data) => (
+                    <tr key={data.employee.employee_id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {data.employee.first_name} {data.employee.last_name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {data.employee.employee_type}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {data.totalEvents}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {data.totalHours.toFixed(1)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(data.currentWage)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                        {formatCurrency(data.totalPay)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                      No payroll data found for the selected pay period.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
   );
-} 
+}
