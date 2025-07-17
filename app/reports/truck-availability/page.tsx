@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, ReactElement } from "react";
+import React, { useState, useEffect, ReactElement, useCallback } from "react";
 import { FiTruck, FiCalendar, FiArrowLeft } from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { trucksApi } from "@/lib/supabase/trucks";
-import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
-import { Truck, Event } from "../../types";
+import { truckAssignmentsApi } from "@/lib/supabase/events";
+import { Truck } from "../../types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 
@@ -46,7 +46,7 @@ export default function TruckAvailabilityReport(): ReactElement {
     setSelectedWeek(monday.toISOString().split("T")[0]);
   }, []);
 
-  const fetchTruckAvailability = async () => {
+  const fetchTruckAvailability = useCallback(async () => {
     if (!selectedWeek) return;
 
     setIsLoading(true);
@@ -81,11 +81,13 @@ export default function TruckAvailabilityReport(): ReactElement {
         // Get truck assignments for this week
         const truckAssignments =
           await truckAssignmentsApi.getTruckAssignmentsByTruckId(truck.id);
-        const weekAssignments = truckAssignments.filter((assignment: any) => {
-          const assignmentStart = new Date(assignment.start_time);
-          const assignmentEnd = new Date(assignment.end_time);
-          return assignmentStart <= weekEnd && assignmentEnd >= weekStart;
-        });
+        const weekAssignments = truckAssignments.filter(
+          (assignment: { start_time: string; end_time: string }) => {
+            const assignmentStart = new Date(assignment.start_time);
+            const assignmentEnd = new Date(assignment.end_time);
+            return assignmentStart <= weekEnd && assignmentEnd >= weekStart;
+          }
+        );
 
         truckData.push({
           truck,
@@ -102,13 +104,13 @@ export default function TruckAvailabilityReport(): ReactElement {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedWeek]);
 
   useEffect(() => {
     if (selectedWeek) {
       fetchTruckAvailability();
     }
-  }, [selectedWeek]);
+  }, [selectedWeek, fetchTruckAvailability]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -306,8 +308,8 @@ export default function TruckAvailabilityReport(): ReactElement {
                   <div>
                     <span className="font-medium">Location:</span>
                     <span className="ml-2">
-                      {(truckData.truck as any).addresses?.street ||
-                        "No address"}
+                      {(truckData.truck as { addresses?: { street?: string } })
+                        .addresses?.street || "No address"}
                     </span>
                   </div>
                   <div>

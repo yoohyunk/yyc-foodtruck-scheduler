@@ -1,13 +1,7 @@
 "use client";
 
 import React, { ReactElement } from "react";
-import {
-  FiUsers,
-  FiTruck,
-  FiDollarSign,
-  FiCalendar,
-  FiClock,
-} from "react-icons/fi";
+import { FiUsers, FiTruck, FiDollarSign, FiCalendar } from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTutorial } from "../tutorial/TutorialContext";
@@ -131,7 +125,7 @@ export default function ReportsPage(): ReactElement {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {reports.map((report, index) => (
           <ReportCard
             key={index}

@@ -77,7 +77,7 @@ export default function TimeOffRequestsReport(): ReactElement {
                   address_id: null,
                   availability: null,
                   user_id: null,
-                } as any),
+                } as Employee),
             };
           });
 
@@ -243,7 +243,7 @@ export default function TimeOffRequestsReport(): ReactElement {
             Filters
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Employee Filter */}
             <div>
               <label
@@ -374,7 +374,7 @@ export default function TimeOffRequestsReport(): ReactElement {
       {!isLoading && (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <h3 className="text-sm font-medium text-blue-800 mb-2">Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
             <div>
               <span className="text-blue-600">Total Requests:</span>
               <span className="ml-2 font-medium">{total}</span>
@@ -450,7 +450,7 @@ export default function TimeOffRequestsReport(): ReactElement {
                   </div>
 
                   {/* Request Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                     <div className="bg-gray-50 p-3 rounded-lg">
                       <div className="flex items-center mb-2">
                         <FiCalendar className="text-blue-500 mr-2" />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, ReactElement } from "react";
+import React, { useState, useEffect, ReactElement, useCallback } from "react";
 import { FiCalendar, FiClock, FiUser, FiArrowLeft } from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,7 +49,7 @@ export default function EmployeeAvailabilityReport(): ReactElement {
     setSelectedWeek(monday.toISOString().split("T")[0]);
   }, []);
 
-  const fetchEmployeeAvailability = async () => {
+  const fetchEmployeeAvailability = useCallback(async () => {
     if (!selectedWeek) return;
 
     setIsLoading(true);
@@ -73,9 +73,6 @@ export default function EmployeeAvailabilityReport(): ReactElement {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
 
-      const weekStartStr = weekStart.toISOString().split("T")[0];
-      const weekEndStr = weekEnd.toISOString().split("T")[0];
-
       const employeeData: EmployeeAvailabilityData[] = [];
 
       for (const employee of sortedEmployees) {
@@ -95,7 +92,7 @@ export default function EmployeeAvailabilityReport(): ReactElement {
           event_id: a.event_id,
           start_date: a.start_date,
           end_date: a.end_date,
-          status: (a as any).status || "Scheduled",
+          status: (a as { status?: string }).status || "Scheduled",
           events: {
             id: a.event_id,
             title:
@@ -148,13 +145,13 @@ export default function EmployeeAvailabilityReport(): ReactElement {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedWeek]);
 
   useEffect(() => {
     if (selectedWeek) {
       fetchEmployeeAvailability();
     }
-  }, [selectedWeek]);
+  }, [selectedWeek, fetchEmployeeAvailability]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
