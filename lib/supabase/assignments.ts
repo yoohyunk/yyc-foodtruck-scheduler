@@ -11,14 +11,17 @@ export const assignmentsApi = {
     eventDate: string,
     eventStartTime: string,
     eventEndTime: string,
-    eventAddress: string
+    eventAddress: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     const eventStartDate = `${eventDate}T${eventStartTime}`;
     const eventEndDate = `${eventDate}T${eventEndTime}`;
     return employeeAvailabilityApi.getAvailableServers(
       eventStartDate,
       eventEndDate,
-      eventAddress
+      eventAddress,
+      undefined, // excludeEventId
+      eventCoordinates
     );
   },
 
