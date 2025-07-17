@@ -93,8 +93,21 @@ const getFullAddress = (data: {
   direction: string;
   city: string;
   postalCode: string;
-}) =>
-  `${data.streetNumber} ${data.streetName}${data.direction && data.direction !== "None" ? " " + data.direction : ""}, ${data.city}, ${data.postalCode}`;
+}) => {
+  // Clean up any double spaces and normalize spacing
+  const cleanStreetName = data.streetName.replace(/\s+/g, " ").trim();
+  const cleanDirection =
+    data.direction && data.direction !== "None" ? data.direction.trim() : "";
+
+  const baseAddress = `${data.streetNumber} ${cleanStreetName}${cleanDirection ? " " + cleanDirection : ""}, ${data.city}`;
+
+  // Add postal code if provided
+  const withPostal = data.postalCode
+    ? `${baseAddress}, ${data.postalCode}`
+    : baseAddress;
+
+  return withPostal;
+};
 
 const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
   (
@@ -223,9 +236,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       const value = e.target.value; // allow spaces as typed
       const newFormData = { ...formData, streetNumber: value };
       setFormData(newFormData);
-      // Call onChange with the current full address
-      const fullAddress = getFullAddress(newFormData);
-      onChange(fullAddress);
+      // Address will only be updated when Check Address button is clicked
     };
 
     // Handler for street name change (allow spaces, no stripping/collapsing)
@@ -233,9 +244,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       const value = e.target.value; // allow spaces as typed
       const newFormData = { ...formData, streetName: value };
       setFormData(newFormData);
-      // Call onChange with the current full address
-      const fullAddress = getFullAddress(newFormData);
-      onChange(fullAddress);
+      // Address will only be updated when Check Address button is clicked
     };
 
     // Handler for street name blur (just validation, no abbreviation expansion)
@@ -267,9 +276,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       }
       const newFormData = { ...formData, postalCode: value };
       setFormData(newFormData);
-      // Call onChange with the current full address
-      const fullAddress = getFullAddress(newFormData);
-      onChange(fullAddress);
+      // Address will only be updated when Check Address button is clicked
     };
 
     // Parse initial value if provided
@@ -352,42 +359,79 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       const fullAddress = getFullAddress(geocodeData);
       setFormData(geocodeData); // update the form with expanded name for consistency
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`;
-        const response = await fetch(url, {
-          headers: {
-            "Accept-Language": "en",
-          },
+        const apiUrl = `/api/geocode?address=${encodeURIComponent(fullAddress)}`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout
+
+        const response = await fetch(apiUrl, {
+          method: "GET",
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
-        if (data && data.length > 0) {
+
+        if (data.success && data.coordinates) {
           const coords = {
-            latitude: parseFloat(data[0].lat),
-            longitude: parseFloat(data[0].lon),
+            latitude: data.coordinates.latitude,
+            longitude: data.coordinates.longitude,
           };
           setCheckStatus("success");
-          setCheckMessage("Address found and validated!");
+          setCheckMessage(
+            data.fallback
+              ? "Address validated using approximate coordinates (geocoding service unavailable)."
+              : "Address found and validated!"
+          );
           onChange(fullAddress, coords); // Pass up to parent
         } else {
           setCheckStatus("error");
-          setCheckMessage("Address not found. Please check your input.");
+          setCheckMessage(
+            data.error || "Address not found. Please check your input."
+          );
           if (typeof onAddressError === "function") {
             onAddressError([
               {
                 field: "address",
-                message: "Address not found. Please check your input.",
+                message:
+                  data.error || "Address not found. Please check your input.",
                 element: streetNameRef.current,
               },
             ]);
           }
         }
-      } catch {
+      } catch (error) {
+        console.error("Geocoding error:", error);
         setCheckStatus("error");
-        setCheckMessage("Error validating address. Please try again.");
+
+        let errorMessage = "Error validating address. Please try again.";
+
+        if (error instanceof Error) {
+          if (
+            error.name === "AbortError" ||
+            error.message.includes("timeout")
+          ) {
+            errorMessage =
+              "Request timed out. Please check your internet connection and try again.";
+          } else if (error.message.includes("fetch failed")) {
+            errorMessage =
+              "Network error. Please check your internet connection and try again.";
+          } else {
+            errorMessage = error.message;
+          }
+        }
+
+        setCheckMessage(errorMessage);
         if (typeof onAddressError === "function") {
           onAddressError([
             {
               field: "address",
-              message: "Error validating address. Please try again.",
+              message: errorMessage,
               element: streetNameRef.current,
             },
           ]);
@@ -400,7 +444,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
 
     return (
       <div className="address-form space-y-2">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <div>
             <input
               ref={streetNumberRef}
@@ -411,6 +455,8 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
               onBlur={() => setShowErrors(true)}
               placeholder="Street Number *"
               required={required}
+              inputMode="numeric"
+              autoComplete="off"
               className={`w-full px-3 py-2 border ${
                 showErrors && !validation.streetNumber
                   ? "border-red-500"
@@ -433,6 +479,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
               onBlur={handleStreetNameBlur}
               placeholder="Street Name *"
               required={required}
+              autoComplete="off"
               className={`w-full px-3 py-2 border ${
                 showErrors && !validation.streetName
                   ? "border-red-500"
@@ -453,9 +500,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
                 const value = e.target.value;
                 const newFormData = { ...formData, direction: value };
                 setFormData(newFormData);
-                // Call onChange with the current full address
-                const fullAddress = getFullAddress(newFormData);
-                onChange(fullAddress);
+                // Address will only be updated when Check Address button is clicked
               }}
               onBlur={() => setShowErrors(true)}
               required={required}
@@ -477,9 +522,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             const value = e.target.value;
             const newFormData = { ...formData, city: value };
             setFormData(newFormData);
-            // Call onChange with the current full address
-            const fullAddress = getFullAddress(newFormData);
-            onChange(fullAddress);
+            // Address will only be updated when Check Address button is clicked
           }}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
@@ -501,6 +544,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             placeholder="Postal Code (Optional)"
             required={false}
             maxLength={7}
+            autoComplete="postal-code"
             className={`w-full px-3 py-2 border ${
               showErrors && !validation.postalCode
                 ? "border-red-500"
@@ -515,7 +559,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         </div>
         <button
           type="button"
-          className="button mt-2"
+          className="button mt-2 w-full md:w-auto min-h-[44px] touch-manipulation"
           onClick={geocodeAddress}
           disabled={isChecking}
         >

@@ -1,5 +1,29 @@
 import { createClient } from "./client";
 import { EmployeeAvailability, Employee } from "@/app/types";
+import { wagesApi } from "./wages";
+import {
+  calculateEmployeeDistances,
+  sortEmployeesByDistanceAndWage,
+} from "@/lib/utils/distance";
+
+// Type definitions for joined query results
+interface ServerAssignmentWithEvent {
+  start_date: string;
+  end_date: string;
+  event_id: string;
+  events: {
+    title: string | null;
+  };
+}
+
+interface TruckAssignmentWithEvent {
+  start_time: string;
+  end_time: string;
+  event_id: string;
+  events: {
+    title: string | null;
+  };
+}
 
 const supabase = createClient();
 
@@ -122,10 +146,19 @@ export const employeeAvailabilityApi = {
         }
       }
 
-      // Check for server assignment conflicts
+      // Check for server assignment conflicts with 1-hour buffer
       let serverAssignmentsQuery = supabase
         .from("assignments")
-        .select("start_date, end_date")
+        .select(
+          `
+          start_date, 
+          end_date, 
+          event_id,
+          events!inner (
+            title
+          )
+        `
+        )
         .eq("employee_id", employee.employee_id);
 
       if (excludeEventId) {
@@ -150,21 +183,32 @@ export const employeeAvailabilityApi = {
       }
 
       if (serverAssignments && serverAssignments.length > 0) {
-        const hasServerConflict = serverAssignments.some((assignment) => {
+        // Add 1-hour buffer before and after the event
+        const bufferedEventStart = new Date(
+          eventStart.getTime() - 60 * 60 * 1000
+        ); // 1 hour before
+        const bufferedEventEnd = new Date(eventEnd.getTime() + 60 * 60 * 1000); // 1 hour after
+
+        const conflictingAssignment = serverAssignments.find((assignment) => {
           const assignmentStart = new Date(assignment.start_date);
           const assignmentEnd = new Date(assignment.end_date);
 
           return (
-            (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
-            (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
-            (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
+            (assignmentStart <= bufferedEventStart &&
+              assignmentEnd > bufferedEventStart) ||
+            (assignmentStart < bufferedEventEnd &&
+              assignmentEnd >= bufferedEventEnd) ||
+            (assignmentStart >= bufferedEventStart &&
+              assignmentEnd <= bufferedEventEnd)
           );
-        });
+        }) as ServerAssignmentWithEvent | undefined;
 
-        if (hasServerConflict) {
+        if (conflictingAssignment) {
+          const eventTitle =
+            conflictingAssignment.events?.title || "Unknown Event";
           return {
             isAvailable: false,
-            reason: "Assigned to another event during this time",
+            reason: `Assigned to "${eventTitle}" during this time with 1 hour buffer`,
           };
         }
       }
@@ -173,7 +217,16 @@ export const employeeAvailabilityApi = {
       if (employee.employee_type === "Driver") {
         let truckAssignmentsQuery = supabase
           .from("truck_assignment")
-          .select("start_time, end_time")
+          .select(
+            `
+            start_time, 
+            end_time, 
+            event_id,
+            events!inner (
+              title
+            )
+          `
+          )
           .eq("driver_id", employee.employee_id);
 
         if (excludeEventId) {
@@ -198,21 +251,34 @@ export const employeeAvailabilityApi = {
         }
 
         if (truckAssignments && truckAssignments.length > 0) {
-          const hasTruckConflict = truckAssignments.some((assignment) => {
+          // Add 1-hour buffer before and after the event
+          const bufferedEventStart = new Date(
+            eventStart.getTime() - 60 * 60 * 1000
+          ); // 1 hour before
+          const bufferedEventEnd = new Date(
+            eventEnd.getTime() + 60 * 60 * 1000
+          ); // 1 hour after
+
+          const conflictingAssignment = truckAssignments.find((assignment) => {
             const assignmentStart = new Date(assignment.start_time);
             const assignmentEnd = new Date(assignment.end_time);
 
             return (
-              (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
-              (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
-              (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
+              (assignmentStart <= bufferedEventStart &&
+                assignmentEnd > bufferedEventStart) ||
+              (assignmentStart < bufferedEventEnd &&
+                assignmentEnd >= bufferedEventEnd) ||
+              (assignmentStart >= bufferedEventStart &&
+                assignmentEnd <= bufferedEventEnd)
             );
-          });
+          }) as TruckAssignmentWithEvent | undefined;
 
-          if (hasTruckConflict) {
+          if (conflictingAssignment) {
+            const eventTitle =
+              conflictingAssignment.events?.title || "Unknown Event";
             return {
               isAvailable: false,
-              reason: "Assigned to drive another truck during this time",
+              reason: `Assigned to drive truck for "${eventTitle}" during this time with 1 hour buffer`,
             };
           }
         }
@@ -231,7 +297,8 @@ export const employeeAvailabilityApi = {
     eventStartDate: string,
     eventEndDate: string,
     eventAddress: string,
-    excludeEventId?: string
+    excludeEventId?: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     try {
       // Build query to get employees
@@ -257,8 +324,14 @@ export const employeeAvailabilityApi = {
       }
 
       if (!employees || employees.length === 0) {
+        console.log("EmployeeAvailability - No employees found in database");
         return [];
       }
+
+      console.log(
+        "EmployeeAvailability - Found employees in database:",
+        employees.length
+      );
 
       // Get the day of the week for the event
       const eventDateTime = new Date(eventStartDate);
@@ -280,7 +353,17 @@ export const employeeAvailabilityApi = {
         return availability && availability.includes(eventDay);
       });
 
+      console.log(
+        "EmployeeAvailability - Employees with day availability for",
+        eventDay + ":",
+        employeesWithDayAvailability.length
+      );
+
       if (employeesWithDayAvailability.length === 0) {
+        console.log(
+          "EmployeeAvailability - No employees available for day:",
+          eventDay
+        );
         return [];
       }
 
@@ -306,26 +389,55 @@ export const employeeAvailabilityApi = {
         (employee) => employee.isAvailable
       );
 
-      // Calculate distances and sort by distance (closest first)
-      if (eventAddress && filteredEmployees.length > 0) {
-        const { getCoordinates, calculateDistance } = await import(
-          "@/app/AlgApi/distance"
-        );
-        const eventCoords = await getCoordinates(eventAddress);
+      // Calculate distances using database coordinates and sort by distance + wage
+      if (filteredEmployees.length > 0) {
+        let eventCoords: { lat: number; lng: number };
 
-        const employeesWithDistance = await Promise.all(
-          filteredEmployees.map(async (employee) => {
-            let distance = 0;
-            if (employee.addresses) {
-              const employeeAddress = `${employee.addresses.street}, ${employee.addresses.city}, ${employee.addresses.province}`;
-              const employeeCoords = await getCoordinates(employeeAddress);
-              distance = await calculateDistance(employeeCoords, eventCoords);
+        if (eventCoordinates) {
+          // Use provided coordinates directly
+          eventCoords = {
+            lat: eventCoordinates.latitude,
+            lng: eventCoordinates.longitude,
+          };
+        } else if (eventAddress) {
+          // Fallback to geocoding API if no coordinates provided
+          const { getCoordinates } = await import("@/app/AlgApi/distance");
+          eventCoords = await getCoordinates(eventAddress);
+        } else {
+          // No coordinates available, return employees without distance sorting
+          return filteredEmployees;
+        }
+
+        // Calculate distances using database coordinates
+        const employeesWithDistance = calculateEmployeeDistances(
+          filteredEmployees,
+          eventCoords
+        );
+
+        // Get current wages for all employees
+        const employeesWithWages = await Promise.all(
+          employeesWithDistance.map(async (employee) => {
+            try {
+              const wageRecord = await wagesApi.getCurrentWage(
+                employee.employee_id
+              );
+              const currentWage = wageRecord?.hourly_wage || 0;
+
+              return { ...employee, currentWage };
+            } catch (error) {
+              console.warn(
+                `Failed to get wage for employee ${employee.employee_id}:`,
+                error
+              );
+              return { ...employee, currentWage: 0 };
             }
-            return { ...employee, distance };
           })
         );
 
-        return employeesWithDistance.sort((a, b) => a.distance - b.distance);
+        // Sort by distance first, then by wage if within 5km, with employees without addresses last
+        const sortedEmployees =
+          sortEmployeesByDistanceAndWage(employeesWithWages);
+        return sortedEmployees;
       }
 
       return filteredEmployees;
@@ -340,14 +452,16 @@ export const employeeAvailabilityApi = {
     eventStartDate: string,
     eventEndDate: string,
     eventAddress: string,
-    excludeEventId?: string
+    excludeEventId?: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     return this.getAvailableEmployees(
       "Server",
       eventStartDate,
       eventEndDate,
       eventAddress,
-      excludeEventId
+      excludeEventId,
+      eventCoordinates
     );
   },
 
@@ -355,14 +469,16 @@ export const employeeAvailabilityApi = {
     eventStartDate: string,
     eventEndDate: string,
     eventAddress: string,
-    excludeEventId?: string
+    excludeEventId?: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     return this.getAvailableEmployees(
       "Driver",
       eventStartDate,
       eventEndDate,
       eventAddress,
-      excludeEventId
+      excludeEventId,
+      eventCoordinates
     );
   },
 
@@ -370,14 +486,16 @@ export const employeeAvailabilityApi = {
     eventStartDate: string,
     eventEndDate: string,
     eventAddress: string,
-    excludeEventId?: string
+    excludeEventId?: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     return this.getAvailableEmployees(
       "Manager",
       eventStartDate,
       eventEndDate,
       eventAddress,
-      excludeEventId
+      excludeEventId,
+      eventCoordinates
     );
   },
 };

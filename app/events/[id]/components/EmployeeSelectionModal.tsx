@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { Employee } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
-import { calculateDistance } from "../../../AlgApi/distance";
+import { calculateStraightLineDistance } from "@/lib/utils/distance";
 import { eventsApi } from "@/lib/supabase/events";
 import { Tables } from "@/database.types";
 import { createClient } from "@/lib/supabase/client";
@@ -74,18 +74,27 @@ const EmployeeItem = React.memo(
         } ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
       >
         <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
-          <div>
-            <span className="font-semibold" style={{ whiteSpace: "nowrap" }}>
-              {employee.first_name} {employee.last_name}
-            </span>
-            <span className="text-sm text-gray-500 ml-2">
-              ({employee.employee_type || "Unknown"})
-            </span>
-            {!employee.isAvailable && employee.availabilityReason && (
-              <div className="text-xs text-red-600 mt-1">
-                ⚠️ {employee.availabilityReason}
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            {/* Availability indicator */}
+            <span
+              className={`inline-block w-2 h-2 rounded-full ${
+                employee.isAvailable ? "bg-green-500" : "bg-red-500"
+              }`}
+              title={employee.isAvailable ? "Available" : "Not Available"}
+            />
+            <div>
+              <span className="font-semibold" style={{ whiteSpace: "nowrap" }}>
+                {employee.first_name} {employee.last_name}
+              </span>
+              <span className="text-sm text-gray-500 ml-2">
+                ({employee.employee_type || "Unknown"})
+              </span>
+              {!employee.isAvailable && employee.availabilityReason && (
+                <div className="text-xs text-red-600 mt-1">
+                  ⚠️ {employee.availabilityReason}
+                </div>
+              )}
+            </div>
           </div>
           <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
             <span className="mr-4">{formatDistance(employee.distance)}</span>
@@ -125,7 +134,7 @@ export default function EmployeeSelectionModal({
     EmployeeWithDistanceAndWage[]
   >([]);
   const [isLoadingDistances, setIsLoadingDistances] = useState(false);
-  const [sortByDistance, setSortByDistance] = useState(false);
+  const [sortByDistance, setSortByDistance] = useState(true);
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(
     new Set()
   );
@@ -199,7 +208,6 @@ export default function EmployeeSelectionModal({
         }
       });
     }
-
     return wageMap;
   }, [employees, supabase]);
 
@@ -270,7 +278,18 @@ export default function EmployeeSelectionModal({
                   lng: parseFloat(eventAddress.longitude as string),
                 };
 
-                distance = await calculateDistance(employeeCoords, eventCoords);
+                distance = calculateStraightLineDistance(
+                  employeeCoords,
+                  eventCoords
+                );
+                console.log(
+                  `Distance for ${employee.first_name} ${employee.last_name}:`,
+                  {
+                    employeeCoords,
+                    eventCoords,
+                    distance,
+                  }
+                );
               } catch (error) {
                 console.error(
                   `Error calculating distance for employee ${employee.employee_id}:`,
@@ -281,6 +300,18 @@ export default function EmployeeSelectionModal({
 
             // Check availability
             const availability = await checkEmployeeAvailability(employee);
+
+            console.log(
+              `Availability for ${employee.first_name} ${employee.last_name}:`,
+              {
+                isAvailable: availability.isAvailable,
+                reason: availability.reason,
+                employeeId: employee.employee_id,
+                employeeType: employee.employee_type,
+                isAvailableFlag: employee.is_available,
+                availability: employee.availability,
+              }
+            );
 
             return {
               ...employee,
@@ -362,63 +393,70 @@ export default function EmployeeSelectionModal({
     return `$${wage.toFixed(2)}/hr`;
   }, []);
 
-  // Sort and filter employees
-  const sortedAndFilteredEmployees = useMemo(() => {
-    const assignedMap = new Map(
-      assignedEmployees.map((e) => [e.employee_id, e])
+  // Split and sort employees for each section
+  const {
+    assignedEmployeesSorted,
+    availableEmployeesSorted,
+    unavailableEmployeesSorted,
+  } = useMemo(() => {
+    // Employees in the modal's current list who are assigned
+    const assignedEmployeesInList = employeesWithDistance.filter((e) =>
+      selectedEmployees.has(e.employee_id)
+    );
+    // Employees in the modal's current list who are not assigned but available
+    const availableEmployeesInList = employeesWithDistance.filter(
+      (e) => !selectedEmployees.has(e.employee_id) && e.isAvailable
+    );
+    // Employees in the modal's current list who are not available
+    const unavailableEmployeesInList = employeesWithDistance.filter(
+      (e) => !e.isAvailable
     );
 
-    // Find assigned employees in the current list
-    const assignedInList = employeesWithDistance.filter((e) =>
-      assignedMap.has(e.employee_id)
-    );
+    // Debug logging for unavailable employees
+    console.log("EmployeeSelectionModal - Unavailable employees:", {
+      totalEmployees: employeesWithDistance.length,
+      unavailableCount: unavailableEmployeesInList.length,
+      unavailableEmployees: unavailableEmployeesInList.map((emp) => ({
+        name: `${emp.first_name} ${emp.last_name}`,
+        isAvailable: emp.isAvailable,
+        reason: emp.availabilityReason,
+        employeeType: emp.employee_type,
+      })),
+    });
 
-    // Find assigned employees not in the current list
-    const assignedNotInList = assignedEmployees
-      .filter(
-        (a) =>
-          !employeesWithDistance.some((e) => e.employee_id === a.employee_id)
-      )
-      .map((a) => ({
-        ...a,
-        distance: undefined,
-        currentWage: undefined,
-        isAvailable: true,
-        availabilityReason: "",
-      }));
+    // Sort each section independently
+    const sortFn = (
+      a: EmployeeWithDistanceAndWage,
+      b: EmployeeWithDistanceAndWage
+    ) => {
+      if (sortByDistance) {
+        // Sort by distance first, then by wage
+        if (a.distance === Infinity && b.distance !== Infinity) return 1;
+        if (a.distance !== Infinity && b.distance === Infinity) return -1;
+        if (a.distance === Infinity && b.distance === Infinity) {
+          return (a.currentWage || 0) - (b.currentWage || 0);
+        }
+        if (Math.abs((a.distance || 0) - (b.distance || 0)) <= 5) {
+          return (a.currentWage || 0) - (b.currentWage || 0);
+        }
+        return (a.distance || 0) - (b.distance || 0);
+      } else {
+        // Sort by wage first, then by distance
+        if ((a.currentWage || 0) !== (b.currentWage || 0)) {
+          return (a.currentWage || 0) - (b.currentWage || 0);
+        }
+        if (a.distance === Infinity && b.distance !== Infinity) return 1;
+        if (a.distance !== Infinity && b.distance === Infinity) return -1;
+        return (a.distance || 0) - (b.distance || 0);
+      }
+    };
 
-    // Get unassigned employees
-    const unassignedEmployees = employeesWithDistance.filter(
-      (employee) => !assignedMap.has(employee.employee_id)
-    );
-
-    // Sort unassigned employees
-    if (sortByDistance) {
-      // Sort by distance (closest first), employees without distance last
-      unassignedEmployees.sort((a, b) => {
-        const hasDistanceA = typeof a.distance === "number";
-        const hasDistanceB = typeof b.distance === "number";
-        if (hasDistanceA && !hasDistanceB) return -1;
-        if (!hasDistanceA && hasDistanceB) return 1;
-        if (!hasDistanceA && !hasDistanceB) return 0;
-        return (a.distance ?? Infinity) - (b.distance ?? Infinity);
-      });
-    } else {
-      // Default sorting: availability first, then by wage (lowest first)
-      unassignedEmployees.sort((a, b) => {
-        // First priority: availability (available employees first)
-        if (a.isAvailable && !b.isAvailable) return -1;
-        if (!a.isAvailable && b.isAvailable) return 1;
-
-        // Second priority: wage (lowest wage first)
-        const wageA = a.currentWage ?? Infinity;
-        const wageB = b.currentWage ?? Infinity;
-        return wageA - wageB;
-      });
-    }
-
-    return [...assignedInList, ...assignedNotInList, ...unassignedEmployees];
-  }, [employeesWithDistance, sortByDistance, assignedEmployees]);
+    return {
+      assignedEmployeesSorted: assignedEmployeesInList.sort(sortFn),
+      availableEmployeesSorted: availableEmployeesInList.sort(sortFn),
+      unavailableEmployeesSorted: unavailableEmployeesInList.sort(sortFn),
+    };
+  }, [employeesWithDistance, selectedEmployees, sortByDistance]);
 
   // Event handlers
   const handleChangeRequiredServers = (delta: number) => {
@@ -566,21 +604,25 @@ export default function EmployeeSelectionModal({
               </div>
 
               {/* Sort by Distance Button */}
-              <TutorialHighlight
-                isHighlighted={shouldHighlight(".sort-by-distance-button")}
-              >
-                <button
-                  type="button"
-                  onClick={() => setSortByDistance(!sortByDistance)}
-                  className={`btn sort-by-distance-button ${
-                    sortByDistance ? "btn-primary" : "btn-secondary"
-                  } text-xs h-8 px-3`}
+              <div className="flex flex-col items-end">
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".sort-by-distance-button")}
                 >
-                  {sortByDistance
-                    ? "Sort by Availability & Wage"
-                    : "Sort by Distance"}
-                </button>
-              </TutorialHighlight>
+                  <button
+                    type="button"
+                    onClick={() => setSortByDistance(!sortByDistance)}
+                    className={`btn sort-by-distance-button ${
+                      sortByDistance ? "btn-primary" : "btn-secondary"
+                    } text-xs h-8 px-3`}
+                  >
+                    {sortByDistance ? "Distance" : "Wage"}
+                  </button>
+                </TutorialHighlight>
+                <span className="text-xs text-gray-500 mt-1">
+                  Available employees always shown first • Distance: closest
+                  first • Wage: lowest first
+                </span>
+              </div>
             </div>
           </div>
 
@@ -591,7 +633,10 @@ export default function EmployeeSelectionModal({
           >
             {isLoadingEmployees || isLoadingDistances ? (
               <p className="text-gray-500">Loading employees...</p>
-            ) : sortedAndFilteredEmployees.length > 0 ? (
+            ) : assignedEmployeesSorted.length +
+                availableEmployeesSorted.length +
+                unavailableEmployeesSorted.length >
+              0 ? (
               <>
                 {selectedEmployees.size >= localRequiredServers &&
                   localRequiredServers > 0 && (
@@ -603,28 +648,91 @@ export default function EmployeeSelectionModal({
                       </p>
                     </div>
                   )}
-                {sortedAndFilteredEmployees.map((employee, index) => {
-                  const isAssigned = selectedEmployees.has(
-                    employee.employee_id
-                  );
-                  const maxReached =
-                    selectedEmployees.size >= localRequiredServers;
-                  const isDisabled = !isAssigned && maxReached;
-
-                  return (
-                    <EmployeeItem
-                      key={employee.employee_id}
-                      employee={employee}
-                      isAssigned={isAssigned}
-                      isDisabled={isDisabled}
-                      onSelection={handleLocalEmployeeSelection}
-                      shouldHighlight={shouldHighlight}
-                      index={index}
-                      formatDistance={formatDistance}
-                      formatWage={formatWage}
-                    />
-                  );
-                })}
+                {/* Assigned Employees Section */}
+                <div className="mb-4">
+                  <h4 className="font-semibold text-base mb-2 border-b pb-1">
+                    Assigned Employees
+                  </h4>
+                  {assignedEmployeesSorted.length === 0 ? (
+                    <p className="text-gray-400 text-sm">
+                      No employees assigned.
+                    </p>
+                  ) : (
+                    assignedEmployeesSorted.map((employee, index) => {
+                      const isAssigned = true;
+                      const isDisabled = false; // Always allow unassigning
+                      return (
+                        <EmployeeItem
+                          key={employee.employee_id}
+                          employee={employee}
+                          isAssigned={isAssigned}
+                          isDisabled={isDisabled}
+                          onSelection={handleLocalEmployeeSelection}
+                          shouldHighlight={shouldHighlight}
+                          index={index}
+                          formatDistance={formatDistance}
+                          formatWage={formatWage}
+                        />
+                      );
+                    })
+                  )}
+                </div>
+                {/* Available Employees Section */}
+                <div>
+                  <h4 className="font-semibold text-base mb-2 border-b pb-1">
+                    Available Employees
+                  </h4>
+                  {availableEmployeesSorted.length === 0 ? (
+                    <p className="text-gray-400 text-sm">
+                      No available employees.
+                    </p>
+                  ) : (
+                    availableEmployeesSorted.map((employee, index) => {
+                      const isAssigned = false;
+                      const maxReached =
+                        selectedEmployees.size >= localRequiredServers;
+                      const isDisabled = !isAssigned && maxReached;
+                      return (
+                        <EmployeeItem
+                          key={employee.employee_id}
+                          employee={employee}
+                          isAssigned={isAssigned}
+                          isDisabled={isDisabled}
+                          onSelection={handleLocalEmployeeSelection}
+                          shouldHighlight={shouldHighlight}
+                          index={index}
+                          formatDistance={formatDistance}
+                          formatWage={formatWage}
+                        />
+                      );
+                    })
+                  )}
+                </div>
+                {/* Unavailable Employees Section */}
+                <div>
+                  <h4 className="font-semibold text-base mb-2 border-b pb-1">
+                    Unavailable Employees
+                  </h4>
+                  {unavailableEmployeesSorted.length === 0 ? (
+                    <p className="text-gray-400 text-sm">
+                      No unavailable employees.
+                    </p>
+                  ) : (
+                    unavailableEmployeesSorted.map((employee, index) => (
+                      <EmployeeItem
+                        key={employee.employee_id}
+                        employee={employee}
+                        isAssigned={false} // Always false for unavailable
+                        isDisabled={true} // Always disabled for unavailable
+                        onSelection={() => {}} // No selection for unavailable
+                        shouldHighlight={shouldHighlight}
+                        index={index}
+                        formatDistance={formatDistance}
+                        formatWage={formatWage}
+                      />
+                    ))
+                  )}
+                </div>
               </>
             ) : (
               <p className="text-gray-500">No employees available.</p>
