@@ -254,4 +254,51 @@ export const truckAssignmentsApi = {
       throw new Error("Failed to delete truck assignments");
     }
   },
+
+  async getTruckAssignmentsByTruckId(
+    truckId: string
+  ): Promise<Array<{
+    id: string;
+    event_id: string;
+    start_time: string;
+    end_time: string;
+    events: {
+      id: string;
+      title: string;
+      start_date: string;
+      end_date: string;
+    };
+  }>> {
+    const { data, error } = await supabase
+      .from("truck_assignment")
+      .select(`
+        id,
+        event_id,
+        start_time,
+        end_time,
+        events (
+          id,
+          title,
+          start_date,
+          end_date
+        )
+      `)
+      .eq("truck_id", truckId);
+
+    if (error) {
+      console.error("Error fetching truck assignments:", error);
+      throw new Error("Failed to fetch truck assignments");
+    }
+
+    return (data || []).map((item) => ({
+      ...item,
+      // If events is an array, take the first element; otherwise fallback to empty object
+      events: Array.isArray(item.events) ? item.events[0] || {
+        id: "",
+        title: "",
+        start_date: "",
+        end_date: ""
+      } : item.events
+    }));
+  },
 };

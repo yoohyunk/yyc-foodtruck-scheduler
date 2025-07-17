@@ -5,14 +5,25 @@ import { FiTruck, FiCalendar, FiArrowLeft } from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { trucksApi } from "@/lib/supabase/trucks";
-import { eventsApi } from "@/lib/supabase/events";
+import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { Truck, Event } from "../../types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 
 interface TruckAvailabilityData {
   truck: Truck;
-  events: Event[];
+  assignments: Array<{
+    id: string;
+    event_id: string;
+    start_time: string;
+    end_time: string;
+    events: {
+      id: string;
+      title: string;
+      start_date: string;
+      end_date: string;
+    };
+  }>;
   isAvailable: boolean;
   availabilityReason: string;
 }
@@ -60,21 +71,17 @@ export default function TruckAvailabilityReport(): ReactElement {
           weekEnd.toISOString().split('T')[0]
         );
 
-        // Get events for this week (we'll need to get all events and filter)
-        const allEvents = await eventsApi.getAllEvents();
-        const weekEvents = allEvents.filter(event => {
-          const eventStart = new Date(event.start_date);
-          const eventEnd = new Date(event.end_date);
-          return eventStart <= weekEnd && eventEnd >= weekStart;
+        // Get truck assignments for this week
+        const truckAssignments = await truckAssignmentsApi.getTruckAssignmentsByTruckId(truck.id);
+        const weekAssignments = truckAssignments.filter((assignment: any) => {
+          const assignmentStart = new Date(assignment.start_time);
+          const assignmentEnd = new Date(assignment.end_time);
+          return assignmentStart <= weekEnd && assignmentEnd >= weekStart;
         });
-
-        // For now, we'll assume events are assigned to trucks based on truck assignments
-        // In a real implementation, you'd have a truck_event_assignment table
-        const truckEvents: Event[] = []; // This would be populated based on actual truck assignments
 
         truckData.push({
           truck,
-          events: truckEvents,
+          assignments: weekAssignments,
           isAvailable: availability.isAvailable,
           availabilityReason: availability.reason,
         });
@@ -235,23 +242,23 @@ export default function TruckAvailabilityReport(): ReactElement {
               </div>
 
               {/* Events */}
-              {truckData.events.length > 0 ? (
+              {truckData.assignments.length > 0 ? (
                 <div className="mb-4">
                   <h4 className="font-medium text-gray-800 mb-2 flex items-center">
                     <FiCalendar className="mr-2" />
                     Scheduled Events
                   </h4>
                   <div className="space-y-2">
-                    {truckData.events.map((event) => (
-                      <div key={event.id} className="p-3 bg-blue-50 rounded border border-blue-200">
+                    {truckData.assignments.map((assignment) => (
+                      <div key={assignment.id} className="p-3 bg-blue-50 rounded border border-blue-200">
                         <p className="font-medium text-blue-800">
-                          {event.title || "Untitled Event"}
+                          {assignment.events.title || "Untitled Event"}
                         </p>
                         <p className="text-sm text-blue-600">
-                          {formatDate(event.start_date)} - {formatDate(event.end_date)}
+                          {formatDate(assignment.events.start_date)} - {formatDate(assignment.events.end_date)}
                         </p>
                         <p className="text-xs text-blue-500">
-                          Status: {event.status || "Scheduled"}
+                          Time: {formatTime(assignment.start_time)} - {formatTime(assignment.end_time)}
                         </p>
                       </div>
                     ))}
@@ -315,7 +322,7 @@ export default function TruckAvailabilityReport(): ReactElement {
             <div>
               <span className="text-blue-600">With Events:</span>
               <span className="ml-2 font-medium">
-                {trucks.filter(t => t.events.length > 0).length}
+                {trucks.filter(t => t.assignments.length > 0).length}
               </span>
             </div>
           </div>
