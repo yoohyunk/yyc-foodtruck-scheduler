@@ -25,12 +25,34 @@ export default function SetPasswordPage() {
     []
   );
   const passwordRef = useRef<HTMLInputElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // DEVELOPMENT ONLY: Always show the form
-    setLoading(false);
-  }, []);
+    const hash = window.location.hash;
+    if (!hash) {
+      setError("Invalid invite link.");
+      setLoading(false);
+      return;
+    }
+    const params = new URLSearchParams(hash.substring(1));
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
+    if (access_token && refresh_token) {
+      supabase.auth
+        .setSession({ access_token, refresh_token })
+        .then(({ data, error: sessionError }) => {
+          if (sessionError || !data.session) {
+            setError("Failed to verify invitation. Please try again.");
+          } else {
+            setVerified(true);
+          }
+        })
+        .catch(() => setError("Error setting session. Please try again."))
+        .finally(() => setLoading(false));
+    } else {
+      setError("Missing tokens in URL.");
+      setLoading(false);
+    }
+  }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
