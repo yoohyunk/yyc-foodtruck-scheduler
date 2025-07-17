@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  useEffect,
-  ReactElement,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, ReactElement, useCallback } from "react";
 import { FiArrowLeft } from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +12,8 @@ import { Employee } from "../../types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 import taxCalculations from "./taxCalculations.json";
+
+import Holidays from "date-holidays";
 
 interface PayrollData {
   employee: Employee;
@@ -40,14 +36,8 @@ interface PayrollData {
     events: {
       title: string | null;
     };
+    isHoliday: boolean;
   }>;
-}
-
-interface PayPeriod {
-  id: string;
-  label: string;
-  startDate: string;
-  endDate: string;
 }
 
 // Tax calculation functions
@@ -161,6 +151,13 @@ const calculateTaxDeductions = (
   };
 };
 
+// Add a helper to check if a date is a stat holiday in Alberta
+const hd = new Holidays();
+hd.init("CA", "AB");
+const isStatHoliday = (date: Date) => {
+  return !!hd.isHoliday(date);
+};
+
 export default function PayrollReport(): ReactElement {
   const { isAdmin, user } = useAuth();
   const { shouldHighlight } = useTutorial();
@@ -214,7 +211,7 @@ export default function PayrollReport(): ReactElement {
     if (selectedDate) {
       setPayPeriod(calculatePayPeriod(selectedDate));
     }
-  }, [selectedDate]);
+  }, [selectedDate, calculatePayPeriod]);
 
   // Fetch payroll data for the current pay period
   const fetchPayrollData = useCallback(async () => {
@@ -267,6 +264,21 @@ export default function PayrollReport(): ReactElement {
           const periodEnd = new Date(payPeriod.end);
           return assignmentStart <= periodEnd && assignmentEnd >= periodStart;
         });
+
+        // Get truck assignments for this pay period (for drivers)
+        const truckAssignments =
+          await assignmentsApi.getTruckAssignmentsByEmployeeId(
+            employee.employee_id
+          );
+        const periodTruckAssignments = truckAssignments.filter((assignment) => {
+          const assignmentStart = new Date(assignment.start_date);
+          const assignmentEnd = new Date(assignment.end_date);
+          const periodStart = new Date(payPeriod.start);
+          const periodEnd = new Date(payPeriod.end);
+          return assignmentStart <= periodEnd && assignmentEnd >= periodStart;
+        });
+
+        // Map assignments to include required fields (events)
         const periodAssignmentsEnriched = periodAssignments.map((a) => ({
           id: a.id,
           start_date: a.start_date,
@@ -276,9 +288,34 @@ export default function PayrollReport(): ReactElement {
               (a as { events?: { title?: string } }).events?.title ??
               "Untitled Event",
           },
+          isHoliday: isStatHoliday(new Date(a.start_date)),
         }));
+
+        // Map truck assignments to include required fields
+        const periodTruckAssignmentsEnriched = periodTruckAssignments.map(
+          (a) => ({
+            id: a.id,
+            start_date: a.start_date,
+            end_date: a.end_date,
+            events: {
+              title: "Truck Assignment",
+            },
+            isHoliday: isStatHoliday(new Date(a.start_date)),
+          })
+        );
+
+        // Combine all assignments for hours calculation
+        const allAssignments = [
+          ...periodAssignments,
+          ...periodTruckAssignments,
+        ];
+        const allAssignmentsEnriched = [
+          ...periodAssignmentsEnriched,
+          ...periodTruckAssignmentsEnriched,
+        ];
+
         let totalHours = 0;
-        for (const assignment of periodAssignments) {
+        for (const assignment of allAssignments) {
           const start = new Date(assignment.start_date);
           const end = new Date(assignment.end_date);
           const diffTime = end.getTime() - start.getTime();
@@ -296,11 +333,11 @@ export default function PayrollReport(): ReactElement {
           employee,
           currentWage: wage,
           totalHours,
-          totalEvents: periodAssignments.length,
+          totalEvents: allAssignments.length,
           grossPay,
           netPay,
           taxDeductions,
-          assignments: periodAssignmentsEnriched,
+          assignments: allAssignmentsEnriched,
         });
       }
       const filteredData = isAdmin
@@ -321,23 +358,11 @@ export default function PayrollReport(): ReactElement {
     }
   }, [payPeriod, fetchPayrollData]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "CAD",
     }).format(amount);
-  };
-
-  const getSelectedPeriodLabel = () => {
-    return payPeriod.label;
   };
 
   const calculateTotals = () => {
