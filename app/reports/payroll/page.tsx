@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, ReactElement, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  ReactElement,
+  useCallback,
+  useMemo,
+} from "react";
 import { FiArrowLeft } from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -191,7 +197,8 @@ export default function PayrollReport(): ReactElement {
     return periods;
   };
 
-  const payPeriods = generatePayPeriods();
+  // Memoize payPeriods to prevent infinite re-renders
+  const payPeriods = useMemo(() => generatePayPeriods(), []);
 
   // Set default to current pay period
   useEffect(() => {
