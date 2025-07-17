@@ -25,11 +25,16 @@ export default function SetPasswordPage() {
     []
   );
   const passwordRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  // Removed unused error and verified state
 
   useEffect(() => {
     const hash = window.location.hash;
     if (!hash) {
-      setError("Invalid invite link.");
+      setValidationErrors([
+        { field: "", message: "Invalid invite link.", element: null },
+      ]);
+      setShowErrorModal(true);
       setLoading(false);
       return;
     }
@@ -41,15 +46,32 @@ export default function SetPasswordPage() {
         .setSession({ access_token, refresh_token })
         .then(({ data, error: sessionError }) => {
           if (sessionError || !data.session) {
-            setError("Failed to verify invitation. Please try again.");
-          } else {
-            setVerified(true);
+            setValidationErrors([
+              {
+                field: "",
+                message: "Failed to verify invitation. Please try again.",
+                element: null,
+              },
+            ]);
+            setShowErrorModal(true);
           }
         })
-        .catch(() => setError("Error setting session. Please try again."))
+        .catch(() => {
+          setValidationErrors([
+            {
+              field: "",
+              message: "Error setting session. Please try again.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
+        })
         .finally(() => setLoading(false));
     } else {
-      setError("Missing tokens in URL.");
+      setValidationErrors([
+        { field: "", message: "Missing tokens in URL.", element: null },
+      ]);
+      setShowErrorModal(true);
       setLoading(false);
     }
   }, [supabase]);

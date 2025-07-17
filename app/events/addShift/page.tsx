@@ -15,7 +15,9 @@ export default function AddShiftPage(): ReactElement {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -120,8 +122,12 @@ export default function AddShiftPage(): ReactElement {
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
-        errors={validationErrors.map((msg) => ({ field: "", message: msg, element: null }))}
+        errors={validationErrors.map((msg) => ({
+          field: "",
+          message: msg,
+          element: null,
+        }))}
       />
     </div>
   );
-} 
+}
