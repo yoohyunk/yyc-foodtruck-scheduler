@@ -20,14 +20,12 @@ import {
   createValidationRule,
 } from "../../../lib/formValidation";
 import { trucksApi } from "@/lib/supabase/trucks";
-import ShopLocationDropdown from "../../components/ShopLocationDropdown";
 
 interface TruckFormData {
   name: string;
   type: string;
   capacity: string;
   isAvailable: boolean;
-  address: string;
   packingList: string[];
   [key: string]: unknown;
 }
@@ -42,10 +40,6 @@ export default function EditTruckPage(): ReactElement {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
-  const [newPackingItem, setNewPackingItem] = useState<string>("");
-  const [coordinates, setCoordinates] = useState<
-    { latitude: number; longitude: number } | undefined
-  >();
   const { shouldHighlight } = useTutorial();
 
   // Add missing refs
@@ -55,35 +49,23 @@ export default function EditTruckPage(): ReactElement {
 
   // Add missing arrays
   const truckTypes = ["Food Truck", "Beverage Truck", "Dessert Truck"];
-  const capacityOptions = [
-    "Small (1-50 people)",
-    "Medium (51-100 people)",
-    "Large (101-200 people)",
-    "Extra Large (200+ people)",
-  ];
+  const capacityOptions = ["Small", "Medium", "Large"];
   const packingListOptions = [
-    "Bleach Spray",
-    "Cash Float",
-    "Cloths",
-    "Cups",
-    "Diesel",
-    "Engine Oil",
-    "Fire Extinguisher",
-    "First Aid Kit",
-    "Fryer Oil",
-    "Gas",
-    "Garbage Bags",
-    "Garbage Can",
+    "Grill",
+    "Fryer",
+    "Refrigerator",
+    "Freezer",
+    "Sink",
+    "Prep Station",
+    "Storage Cabinets",
     "Generator",
-    "Generator Gas",
-    "Menu Board",
-    "Plates & Cups",
-    "POS",
-    "Propane Tank",
-    "Signs",
-    "Utensils",
     "Water Tank",
-    "WiFi",
+    "Propane Tank",
+    "Utensils",
+    "Plates & Cups",
+    "Cleaning Supplies",
+    "First Aid Kit",
+    "Fire Extinguisher",
   ];
 
   const [formData, setFormData] = useState<TruckFormData>({
@@ -91,7 +73,6 @@ export default function EditTruckPage(): ReactElement {
     type: "",
     capacity: "",
     isAvailable: false,
-    address: "",
     packingList: [],
   });
 
@@ -146,9 +127,6 @@ export default function EditTruckPage(): ReactElement {
           type: truckData.type || "",
           capacity: truckData.capacity ? String(truckData.capacity) : "",
           isAvailable: truckData.is_available || false,
-          address: truckData.addresses?.street
-            ? `${truckData.addresses.street}, ${truckData.addresses.city}, ${truckData.addresses.postal_code}`
-            : "",
           packingList: (truckData.packing_list as string[]) || [],
         });
 
@@ -184,69 +162,12 @@ export default function EditTruckPage(): ReactElement {
     }));
   };
 
-  const handleShopLocationChange = (
-    address: string,
-    coords?: { latitude: number; longitude: number }
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      address: address,
-    }));
-    setCoordinates(coords);
-  };
-
   const handlePackingListChange = (item: string) => {
     setFormData((prev) => ({
       ...prev,
       packingList: prev.packingList.includes(item)
         ? prev.packingList.filter((i) => i !== item)
         : [...prev.packingList, item],
-    }));
-  };
-
-  const handleAddPackingItem = () => {
-    if (
-      newPackingItem.trim() &&
-      !formData.packingList.includes(newPackingItem.trim())
-    ) {
-      setFormData((prev) => ({
-        ...prev,
-        packingList: [...prev.packingList, newPackingItem.trim()],
-      }));
-      setNewPackingItem("");
-    }
-  };
-
-  const handleRemovePackingItem = (item: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      packingList: prev.packingList.filter((i) => i !== item),
-    }));
-  };
-
-  const handleAutoSelectDefaults = () => {
-    const defaultItems = [
-      "Bleach Spray",
-      "Cash Float",
-      "Cloths",
-      "Cups",
-      "Engine Oil",
-      "Fire Extinguisher",
-      "First Aid Kit",
-      "Garbage Bags",
-      "Garbage Can",
-      "Menu Board",
-      "Plates & Cups",
-      "POS",
-      "Signs",
-      "Utensils",
-      "Water Tank",
-      "WiFi",
-    ];
-
-    setFormData((prev) => ({
-      ...prev,
-      packingList: defaultItems,
     }));
   };
 
@@ -291,43 +212,6 @@ export default function EditTruckPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      // First, get the current truck to get the address_id
-      const { data: currentTruck, error: fetchError } = await supabase
-        .from("trucks")
-        .select("address_id")
-        .eq("id", id)
-        .single();
-
-      if (fetchError) {
-        throw new Error("Failed to fetch current truck data");
-      }
-
-      // Update address if location changed
-      if (formData.address && coordinates && currentTruck?.address_id) {
-        const addressParts = formData.address.split(", ");
-        const streetPart = addressParts[0] || "";
-        const city = addressParts[1] || "Calgary";
-        const postalCode = addressParts[2] || "";
-
-        const { error: addressError } = await supabase
-          .from("addresses")
-          .update({
-            street: streetPart,
-            city: city,
-            province: "Alberta",
-            postal_code: postalCode,
-            country: "Canada",
-            latitude: coordinates.latitude.toString(),
-            longitude: coordinates.longitude.toString(),
-          })
-          .eq("id", currentTruck.address_id);
-
-        if (addressError) {
-          console.error("Error updating address:", addressError);
-          throw new Error("Failed to update address");
-        }
-      }
-
       // Prepare update payload to match DB structure
       const updateData = {
         name: formData.name,
@@ -460,18 +344,6 @@ export default function EditTruckPage(): ReactElement {
           </div>
 
           <div className="input-group">
-            <label htmlFor="location" className="input-label">
-              Shop Location <span className="text-red-500">*</span>
-            </label>
-            <ShopLocationDropdown
-              value={formData.address}
-              onChange={handleShopLocationChange}
-              placeholder="Select shop location"
-              required={false}
-            />
-          </div>
-
-          <div className="input-group">
             <label className="input-label">Availability</label>
             <div className="flex items-center space-x-2">
               <input
@@ -490,116 +362,19 @@ export default function EditTruckPage(): ReactElement {
 
           <div className="input-group">
             <label className="input-label">Packing List</label>
-
-            {/* Predefined items */}
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="input-label">Predefined Items</h4>
-                <button
-                  type="button"
-                  onClick={handleAutoSelectDefaults}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Auto-select Defaults
-                </button>
-              </div>
-              <div className="packing-list-grid">
-                {packingListOptions.map((item) => (
-                  <label key={item} className="packing-list-item">
-                    <input
-                      type="checkbox"
-                      checked={formData.packingList.includes(item)}
-                      onChange={() => handlePackingListChange(item)}
-                      className="packing-list-checkbox"
-                    />
-                    <span className="packing-list-text">{item}</span>
-                  </label>
-                ))}
-              </div>
+            <div className="packing-list-grid">
+              {packingListOptions.map((item) => (
+                <label key={item} className="packing-list-item">
+                  <input
+                    type="checkbox"
+                    checked={formData.packingList.includes(item)}
+                    onChange={() => handlePackingListChange(item)}
+                    className="packing-list-checkbox"
+                  />
+                  <span className="packing-list-text">{item}</span>
+                </label>
+              ))}
             </div>
-
-            {/* Add new item section */}
-            <div
-              className="section-card mb-4"
-              style={{
-                borderLeft: "6px solid var(--primary-light)",
-                borderTop: "4px solid var(--secondary-light)",
-              }}
-              data-no-before="true"
-            >
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  value={newPackingItem}
-                  onChange={(e) => setNewPackingItem(e.target.value)}
-                  placeholder="Enter custom item..."
-                  className="input-field flex-1"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddPackingItem();
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddPackingItem}
-                  disabled={
-                    !newPackingItem.trim() ||
-                    formData.packingList.includes(newPackingItem.trim())
-                  }
-                  className="button btn-primary"
-                  style={{ minHeight: "auto", padding: "0.75rem 1.5rem" }}
-                >
-                  Add
-                </button>
-              </div>
-              <p className="text-sm text-gray-500">
-                Press Enter or click Add to include custom items in the packing
-                list
-              </p>
-            </div>
-
-            {/* Custom items */}
-            {formData.packingList.filter(
-              (item) => !packingListOptions.includes(item)
-            ).length > 0 && (
-              <div className="mb-4">
-                <h4 className="input-label mb-2">Custom Items</h4>
-                <div className="space-y-2">
-                  {formData.packingList
-                    .filter((item) => !packingListOptions.includes(item))
-                    .map((item) => (
-                      <div
-                        key={item}
-                        className="section-card flex items-center justify-between"
-                      >
-                        <span className="packing-list-text font-medium">
-                          {item}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePackingItem(item)}
-                          className="text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Selected items summary */}
-            {formData.packingList.length > 0 && (
-              <div className="success-message">
-                <p>
-                  <strong>{formData.packingList.length}</strong> item
-                  {formData.packingList.length !== 1 ? "s" : ""} selected for
-                  packing list
-                </p>
-              </div>
-            )}
           </div>
 
           <div className="flex justify-center space-x-4">
