@@ -19,7 +19,7 @@ export default function SetPasswordPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
-  const [verified, setVerified] = useState(true);
+  const [verified, setVerified] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
