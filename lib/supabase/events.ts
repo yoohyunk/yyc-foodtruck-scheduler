@@ -194,7 +194,9 @@ export const truckAssignmentsApi = {
 
     return (data || []).map((item) => ({
       ...item,
-      events: Array.isArray(item.events) ? item.events[0] || { title: null } : item.events,
+      events: Array.isArray(item.events)
+        ? item.events[0] || { title: null }
+        : item.events,
     }));
   },
 
@@ -258,23 +260,24 @@ export const truckAssignmentsApi = {
     }
   },
 
-  async getTruckAssignmentsByTruckId(
-    truckId: string
-  ): Promise<Array<{
-    id: string;
-    event_id: string;
-    start_time: string;
-    end_time: string;
-    events: {
+  async getTruckAssignmentsByTruckId(truckId: string): Promise<
+    Array<{
       id: string;
-      title: string;
-      start_date: string;
-      end_date: string;
-    };
-  }>> {
+      event_id: string;
+      start_time: string;
+      end_time: string;
+      events: {
+        id: string;
+        title: string;
+        start_date: string;
+        end_date: string;
+      };
+    }>
+  > {
     const { data, error } = await supabase
       .from("truck_assignment")
-      .select(`
+      .select(
+        `
         id,
         event_id,
         start_time,
@@ -285,7 +288,8 @@ export const truckAssignmentsApi = {
           start_date,
           end_date
         )
-      `)
+      `
+      )
       .eq("truck_id", truckId);
 
     if (error) {
@@ -296,12 +300,14 @@ export const truckAssignmentsApi = {
     return (data || []).map((item) => ({
       ...item,
       // If events is an array, take the first element; otherwise fallback to empty object
-      events: Array.isArray(item.events) ? item.events[0] || {
-        id: "",
-        title: "",
-        start_date: "",
-        end_date: ""
-      } : item.events
+      events: Array.isArray(item.events)
+        ? item.events[0] || {
+            id: "",
+            title: "",
+            start_date: "",
+            end_date: "",
+          }
+        : item.events,
     }));
   },
 };

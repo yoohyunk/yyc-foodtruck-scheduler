@@ -1,7 +1,13 @@
 "use client";
 
 import React, { ReactElement } from "react";
-import { FiUsers, FiTruck, FiDollarSign, FiCalendar, FiClock } from "react-icons/fi";
+import {
+  FiUsers,
+  FiTruck,
+  FiDollarSign,
+  FiCalendar,
+  FiClock,
+} from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTutorial } from "../tutorial/TutorialContext";
@@ -28,20 +34,30 @@ const ReportCard: React.FC<ReportCardProps> = ({
 }) => (
   <TutorialHighlight isHighlighted={shouldHighlight(highlightClass)}>
     <Link href={href} className="block">
-      <div className={`employee-card bg-white p-6 rounded shadow hover:shadow-lg transition-shadow duration-200 ${color}`}>
+      <div
+        className={`employee-card bg-white p-6 rounded shadow hover:shadow-lg transition-shadow duration-200 ${color}`}
+      >
         <div className="flex items-center mb-4">
           <div className="p-3 rounded-full bg-primary-light mr-4">
-            <div className="w-6 h-6 text-primary-dark">
-              {icon}
-            </div>
+            <div className="w-6 h-6 text-primary-dark">{icon}</div>
           </div>
           <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
         </div>
         <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
         <div className="mt-4 flex items-center text-primary-dark font-medium text-sm">
           <span>View Report</span>
-          <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <svg
+            className="w-4 h-4 ml-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </div>
       </div>
@@ -56,7 +72,8 @@ export default function ReportsPage(): ReactElement {
   const reports = [
     {
       title: "Employee Availability Report",
-      description: "View all current assignments, time off requests, and availability for each employee for the selected week.",
+      description:
+        "View all current assignments, time off requests, and availability for each employee for the selected week.",
       icon: <FiUsers />,
       href: "/reports/employee-availability",
       color: "hover:border-blue-300",
@@ -64,7 +81,8 @@ export default function ReportsPage(): ReactElement {
     },
     {
       title: "Truck Availability Report",
-      description: "See events booked for each truck and their availability status for the selected week.",
+      description:
+        "See events booked for each truck and their availability status for the selected week.",
       icon: <FiTruck />,
       href: "/reports/truck-availability",
       color: "hover:border-orange-300",
@@ -72,7 +90,8 @@ export default function ReportsPage(): ReactElement {
     },
     {
       title: "Payroll Report",
-      description: "Calculate total employee hours and wages for the selected pay period (1st-15th or 16th-end of month).",
+      description:
+        "Calculate total employee hours and wages for the selected pay period (1st-15th or 16th-end of month).",
       icon: <FiDollarSign />,
       href: "/reports/payroll",
       color: "hover:border-green-300",
@@ -80,7 +99,8 @@ export default function ReportsPage(): ReactElement {
     },
     {
       title: "Time Off Requests Report",
-      description: "View detailed time off requests for specific employees with filtering and status tracking.",
+      description:
+        "View detailed time off requests for specific employees with filtering and status tracking.",
       icon: <FiCalendar />,
       href: "/reports/time-off-requests",
       color: "hover:border-purple-300",
@@ -106,7 +126,8 @@ export default function ReportsPage(): ReactElement {
       <div className="mb-6">
         <h2 className="text-2xl text-primary-dark mb-2">Reports Dashboard</h2>
         <p className="text-gray-600">
-          Generate comprehensive reports for business operations and employee management.
+          Generate comprehensive reports for business operations and employee
+          management.
         </p>
       </div>
 
@@ -126,4 +147,4 @@ export default function ReportsPage(): ReactElement {
       </div>
     </div>
   );
-} 
+}

@@ -210,7 +210,8 @@ export const assignmentsApi = {
   > {
     const { data, error } = await supabase
       .from("assignments")
-      .select(`
+      .select(
+        `
         *,
         events (
           id,
@@ -218,7 +219,8 @@ export const assignmentsApi = {
           start_date,
           end_date
         )
-      `)
+      `
+      )
       .eq("employee_id", employeeId);
 
     if (error) {
@@ -227,7 +229,9 @@ export const assignmentsApi = {
 
     return (data || []).map((item) => ({
       ...item,
-      events: Array.isArray(item.events) ? item.events[0] || { title: null } : item.events,
+      events: Array.isArray(item.events)
+        ? item.events[0] || { title: null }
+        : item.events,
     }));
   },
 

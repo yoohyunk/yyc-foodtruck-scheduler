@@ -46,7 +46,7 @@ export default function EmployeeAvailabilityReport(): ReactElement {
     const day = today.getDay();
     const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
     monday.setDate(diff);
-    setSelectedWeek(monday.toISOString().split('T')[0]);
+    setSelectedWeek(monday.toISOString().split("T")[0]);
   }, []);
 
   const fetchEmployeeAvailability = async () => {
@@ -58,11 +58,13 @@ export default function EmployeeAvailabilityReport(): ReactElement {
     try {
       // Get all employees
       const allEmployees = await employeesApi.getAllEmployees();
-      
+
       // Sort employees alphabetically by first name, then last name
       const sortedEmployees = allEmployees.sort((a, b) => {
-        const nameA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
-        const nameB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+        const nameA =
+          `${a.first_name || ""} ${a.last_name || ""}`.toLowerCase();
+        const nameB =
+          `${b.first_name || ""} ${b.last_name || ""}`.toLowerCase();
         return nameA.localeCompare(nameB);
       });
 
@@ -71,15 +73,17 @@ export default function EmployeeAvailabilityReport(): ReactElement {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
 
-      const weekStartStr = weekStart.toISOString().split('T')[0];
-      const weekEndStr = weekEnd.toISOString().split('T')[0];
+      const weekStartStr = weekStart.toISOString().split("T")[0];
+      const weekEndStr = weekEnd.toISOString().split("T")[0];
 
       const employeeData: EmployeeAvailabilityData[] = [];
 
       for (const employee of sortedEmployees) {
         // Get assignments for this week
-        const assignments = await assignmentsApi.getAssignmentsByEmployeeId(employee.employee_id);
-        const weekAssignments = assignments.filter(assignment => {
+        const assignments = await assignmentsApi.getAssignmentsByEmployeeId(
+          employee.employee_id
+        );
+        const weekAssignments = assignments.filter((assignment) => {
           const assignmentStart = new Date(assignment.start_date);
           const assignmentEnd = new Date(assignment.end_date);
           return assignmentStart <= weekEnd && assignmentEnd >= weekStart;
@@ -92,26 +96,32 @@ export default function EmployeeAvailabilityReport(): ReactElement {
           start_date: a.start_date,
           end_date: a.end_date,
           status: (a as any).status || "Scheduled",
-          events: { 
+          events: {
             id: a.event_id,
-            title: a.events?.title ?? `Event ${a.event_id?.slice(0, 8) || 'Unknown'}`,
+            title:
+              a.events?.title ??
+              `Event ${a.event_id?.slice(0, 8) || "Unknown"}`,
             start_date: a.start_date,
             end_date: a.end_date,
           },
         }));
 
         // Get time off requests for this week
-        const timeOffRequests = await timeOffRequestsApi.getTimeOffRequestsByEmployeeId(employee.employee_id);
-        const weekTimeOffRequests = timeOffRequests.filter(request => {
+        const timeOffRequests =
+          await timeOffRequestsApi.getTimeOffRequestsByEmployeeId(
+            employee.employee_id
+          );
+        const weekTimeOffRequests = timeOffRequests.filter((request) => {
           const requestStart = new Date(request.start_datetime);
           const requestEnd = new Date(request.end_datetime);
           return requestStart <= weekEnd && requestEnd >= weekStart;
         });
 
         // Check if employee is available (no conflicts)
-        const hasConflicts = weekAssignments.length > 0 || weekTimeOffRequests.length > 0;
+        const hasConflicts =
+          weekAssignments.length > 0 || weekTimeOffRequests.length > 0;
         let availabilityReason = "";
-        
+
         if (hasConflicts) {
           if (weekAssignments.length > 0) {
             availabilityReason = `Assigned to ${weekAssignments.length} event(s)`;
@@ -172,7 +182,9 @@ export default function EmployeeAvailabilityReport(): ReactElement {
   if (!isAdmin) {
     return (
       <div className="employee-availability-report">
-        <h2 className="text-2xl text-primary-dark mb-4">Employee Availability Report</h2>
+        <h2 className="text-2xl text-primary-dark mb-4">
+          Employee Availability Report
+        </h2>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">
             Access denied. Only administrators can view reports.
@@ -186,20 +198,29 @@ export default function EmployeeAvailabilityReport(): ReactElement {
     <div className="employee-availability-report">
       <div className="mb-6">
         <div className="flex items-center mb-4">
-          <Link href="/reports" className="mr-4 text-primary-dark hover:text-primary-medium">
+          <Link
+            href="/reports"
+            className="mr-4 text-primary-dark hover:text-primary-medium"
+          >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h2 className="text-2xl text-primary-dark">Employee Availability Report</h2>
+          <h2 className="text-2xl text-primary-dark">
+            Employee Availability Report
+          </h2>
         </div>
         <p className="text-gray-600">
-          View employee assignments, time off requests, and availability for the selected week.
+          View employee assignments, time off requests, and availability for the
+          selected week.
         </p>
       </div>
 
       {/* Week Selection */}
       <TutorialHighlight isHighlighted={shouldHighlight(".week-selector")}>
         <div className="mb-6 p-4 bg-white rounded-lg shadow">
-          <label htmlFor="week-selector" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="week-selector"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Select Week (Monday)
           </label>
           <input
@@ -231,17 +252,22 @@ export default function EmployeeAvailabilityReport(): ReactElement {
       ) : (
         <div className="grid gap-4">
           {employees.map((employeeData) => (
-            <div key={employeeData.employee.employee_id} className="employee-card bg-white p-6 rounded shadow">
+            <div
+              key={employeeData.employee.employee_id}
+              className="employee-card bg-white p-6 rounded shadow"
+            >
               {/* Employee Header */}
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center">
                   <FiUser className="text-gray-400 mr-3 text-lg" />
                   <div>
                     <h3 className="font-semibold text-lg text-gray-800">
-                      {employeeData.employee.first_name} {employeeData.employee.last_name}
+                      {employeeData.employee.first_name}{" "}
+                      {employeeData.employee.last_name}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {employeeData.employee.employee_type} • {employeeData.employee.user_email}
+                      {employeeData.employee.employee_type} •{" "}
+                      {employeeData.employee.user_email}
                     </p>
                   </div>
                 </div>
@@ -274,15 +300,20 @@ export default function EmployeeAvailabilityReport(): ReactElement {
                   </h4>
                   <div className="space-y-2">
                     {employeeData.assignments.map((assignment) => (
-                      <div key={assignment.id} className="p-3 bg-blue-50 rounded border border-blue-200">
+                      <div
+                        key={assignment.id}
+                        className="p-3 bg-blue-50 rounded border border-blue-200"
+                      >
                         <p className="font-medium text-blue-800">
                           {assignment.events.title || "Untitled Event"}
                         </p>
                         <p className="text-sm text-blue-600">
-                          {formatDate(assignment.start_date)} - {formatDate(assignment.end_date)}
+                          {formatDate(assignment.start_date)} -{" "}
+                          {formatDate(assignment.end_date)}
                         </p>
                         <p className="text-xs text-blue-500">
-                          Time: {formatTime(assignment.events.start_date)} - {formatTime(assignment.events.end_date)}
+                          Time: {formatTime(assignment.events.start_date)} -{" "}
+                          {formatTime(assignment.events.end_date)}
                         </p>
                       </div>
                     ))}
@@ -299,13 +330,18 @@ export default function EmployeeAvailabilityReport(): ReactElement {
                   </h4>
                   <div className="space-y-2">
                     {employeeData.timeOffRequests.map((request) => (
-                      <div key={request.id} className="p-3 bg-yellow-50 rounded border border-yellow-200">
+                      <div
+                        key={request.id}
+                        className="p-3 bg-yellow-50 rounded border border-yellow-200"
+                      >
                         <p className="font-medium text-yellow-800">
                           {request.type} - {request.status}
                         </p>
                         <p className="text-sm text-yellow-600">
-                          {formatDate(request.start_datetime)} {formatTime(request.start_datetime)} - 
-                          {formatDate(request.end_datetime)} {formatTime(request.end_datetime)}
+                          {formatDate(request.start_datetime)}{" "}
+                          {formatTime(request.start_datetime)} -
+                          {formatDate(request.end_datetime)}{" "}
+                          {formatTime(request.end_datetime)}
                         </p>
                         {request.reason && (
                           <p className="text-xs text-yellow-500 mt-1">
@@ -319,13 +355,14 @@ export default function EmployeeAvailabilityReport(): ReactElement {
               )}
 
               {/* No Conflicts Message */}
-              {employeeData.assignments.length === 0 && employeeData.timeOffRequests.length === 0 && (
-                <div className="p-3 bg-green-50 rounded border border-green-200">
-                  <p className="text-sm text-green-700">
-                    No conflicts or assignments for this week.
-                  </p>
-                </div>
-              )}
+              {employeeData.assignments.length === 0 &&
+                employeeData.timeOffRequests.length === 0 && (
+                  <div className="p-3 bg-green-50 rounded border border-green-200">
+                    <p className="text-sm text-green-700">
+                      No conflicts or assignments for this week.
+                    </p>
+                  </div>
+                )}
             </div>
           ))}
         </div>
@@ -343,19 +380,19 @@ export default function EmployeeAvailabilityReport(): ReactElement {
             <div>
               <span className="text-green-600">Available:</span>
               <span className="ml-2 font-medium">
-                {employees.filter(e => e.isAvailable).length}
+                {employees.filter((e) => e.isAvailable).length}
               </span>
             </div>
             <div>
               <span className="text-red-600">Unavailable:</span>
               <span className="ml-2 font-medium">
-                {employees.filter(e => !e.isAvailable).length}
+                {employees.filter((e) => !e.isAvailable).length}
               </span>
             </div>
             <div>
               <span className="text-blue-600">With Assignments:</span>
               <span className="ml-2 font-medium">
-                {employees.filter(e => e.assignments.length > 0).length}
+                {employees.filter((e) => e.assignments.length > 0).length}
               </span>
             </div>
           </div>
@@ -363,4 +400,4 @@ export default function EmployeeAvailabilityReport(): ReactElement {
       )}
     </div>
   );
-} 
+}

@@ -43,7 +43,7 @@ export default function TruckAvailabilityReport(): ReactElement {
     const day = today.getDay();
     const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
     monday.setDate(diff);
-    setSelectedWeek(monday.toISOString().split('T')[0]);
+    setSelectedWeek(monday.toISOString().split("T")[0]);
   }, []);
 
   const fetchTruckAvailability = async () => {
@@ -55,14 +55,14 @@ export default function TruckAvailabilityReport(): ReactElement {
     try {
       // Fetch trucks with addresses relation
       const allTrucks = await trucksApi.getAllTrucks(); // Ensure this returns addresses as well
-      
+
       // Sort trucks alphabetically by name
       const sortedTrucks = allTrucks.sort((a, b) => {
-        const nameA = (a.name || '').toLowerCase();
-        const nameB = (b.name || '').toLowerCase();
+        const nameA = (a.name || "").toLowerCase();
+        const nameB = (b.name || "").toLowerCase();
         return nameA.localeCompare(nameB);
       });
-      
+
       // Calculate week start and end dates
       const weekStart = new Date(selectedWeek);
       const weekEnd = new Date(weekStart);
@@ -74,12 +74,13 @@ export default function TruckAvailabilityReport(): ReactElement {
         // Check truck availability for this week
         const availability = await trucksApi.checkTruckAvailability(
           truck.id,
-          weekStart.toISOString().split('T')[0],
-          weekEnd.toISOString().split('T')[0]
+          weekStart.toISOString().split("T")[0],
+          weekEnd.toISOString().split("T")[0]
         );
 
         // Get truck assignments for this week
-        const truckAssignments = await truckAssignmentsApi.getTruckAssignmentsByTruckId(truck.id);
+        const truckAssignments =
+          await truckAssignmentsApi.getTruckAssignmentsByTruckId(truck.id);
         const weekAssignments = truckAssignments.filter((assignment: any) => {
           const assignmentStart = new Date(assignment.start_time);
           const assignmentEnd = new Date(assignment.end_time);
@@ -150,7 +151,9 @@ export default function TruckAvailabilityReport(): ReactElement {
   if (!isAdmin) {
     return (
       <div className="truck-availability-report">
-        <h2 className="text-2xl text-primary-dark mb-4">Truck Availability Report</h2>
+        <h2 className="text-2xl text-primary-dark mb-4">
+          Truck Availability Report
+        </h2>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">
             Access denied. Only administrators can view reports.
@@ -164,10 +167,15 @@ export default function TruckAvailabilityReport(): ReactElement {
     <div className="truck-availability-report">
       <div className="mb-6">
         <div className="flex items-center mb-4">
-          <Link href="/reports" className="mr-4 text-primary-dark hover:text-primary-medium">
+          <Link
+            href="/reports"
+            className="mr-4 text-primary-dark hover:text-primary-medium"
+          >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h2 className="text-2xl text-primary-dark">Truck Availability Report</h2>
+          <h2 className="text-2xl text-primary-dark">
+            Truck Availability Report
+          </h2>
         </div>
         <p className="text-gray-600">
           View truck assignments and availability status for the selected week.
@@ -177,7 +185,10 @@ export default function TruckAvailabilityReport(): ReactElement {
       {/* Week Selection */}
       <TutorialHighlight isHighlighted={shouldHighlight(".week-selector")}>
         <div className="mb-6 p-4 bg-white rounded-lg shadow">
-          <label htmlFor="week-selector" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="week-selector"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Select Week (Monday)
           </label>
           <input
@@ -209,7 +220,10 @@ export default function TruckAvailabilityReport(): ReactElement {
       ) : (
         <div className="grid gap-4">
           {trucks.map((truckData) => (
-            <div key={truckData.truck.id} className="employee-card bg-white p-6 rounded shadow">
+            <div
+              key={truckData.truck.id}
+              className="employee-card bg-white p-6 rounded shadow"
+            >
               {/* Truck Header */}
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center">
@@ -219,7 +233,9 @@ export default function TruckAvailabilityReport(): ReactElement {
                       {truckData.truck.name}
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTruckTypeColor(truckData.truck.type)}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getTruckTypeColor(truckData.truck.type)}`}
+                      >
                         {truckData.truck.type}
                       </span>
                       <span className="text-sm text-gray-600">
@@ -257,15 +273,20 @@ export default function TruckAvailabilityReport(): ReactElement {
                   </h4>
                   <div className="space-y-2">
                     {truckData.assignments.map((assignment) => (
-                      <div key={assignment.id} className="p-3 bg-blue-50 rounded border border-blue-200">
+                      <div
+                        key={assignment.id}
+                        className="p-3 bg-blue-50 rounded border border-blue-200"
+                      >
                         <p className="font-medium text-blue-800">
                           {assignment.events.title || "Untitled Event"}
                         </p>
                         <p className="text-sm text-blue-600">
-                          {formatDate(assignment.events.start_date)} - {formatDate(assignment.events.end_date)}
+                          {formatDate(assignment.events.start_date)} -{" "}
+                          {formatDate(assignment.events.end_date)}
                         </p>
                         <p className="text-xs text-blue-500">
-                          Time: {formatTime(assignment.start_time)} - {formatTime(assignment.end_time)}
+                          Time: {formatTime(assignment.start_time)} -{" "}
+                          {formatTime(assignment.end_time)}
                         </p>
                       </div>
                     ))}
@@ -285,17 +306,22 @@ export default function TruckAvailabilityReport(): ReactElement {
                   <div>
                     <span className="font-medium">Location:</span>
                     <span className="ml-2">
-                      {(truckData.truck as any).addresses?.street || "No address"}
+                      {(truckData.truck as any).addresses?.street ||
+                        "No address"}
                     </span>
                   </div>
                   <div>
                     <span className="font-medium">General Status:</span>
-                    <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                      truckData.truck.is_available 
-                        ? "bg-green-100 text-green-800" 
-                        : "bg-red-100 text-red-800"
-                    }`}>
-                      {truckData.truck.is_available ? "Available" : "Unavailable"}
+                    <span
+                      className={`ml-2 px-2 py-1 rounded text-xs ${
+                        truckData.truck.is_available
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {truckData.truck.is_available
+                        ? "Available"
+                        : "Unavailable"}
                     </span>
                   </div>
                 </div>
@@ -317,19 +343,19 @@ export default function TruckAvailabilityReport(): ReactElement {
             <div>
               <span className="text-green-600">Available:</span>
               <span className="ml-2 font-medium">
-                {trucks.filter(t => t.isAvailable).length}
+                {trucks.filter((t) => t.isAvailable).length}
               </span>
             </div>
             <div>
               <span className="text-red-600">Unavailable:</span>
               <span className="ml-2 font-medium">
-                {trucks.filter(t => !t.isAvailable).length}
+                {trucks.filter((t) => !t.isAvailable).length}
               </span>
             </div>
             <div>
               <span className="text-blue-600">With Events:</span>
               <span className="ml-2 font-medium">
-                {trucks.filter(t => t.assignments.length > 0).length}
+                {trucks.filter((t) => t.assignments.length > 0).length}
               </span>
             </div>
           </div>
@@ -337,4 +363,4 @@ export default function TruckAvailabilityReport(): ReactElement {
       )}
     </div>
   );
-} 
+}
