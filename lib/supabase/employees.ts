@@ -3,6 +3,16 @@ import { Employee } from "@/app/types";
 
 const supabase = createClient();
 
+// Helper function to capitalize each word
+function capitalizeWords(str: string | null | undefined): string {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export const employeesApi = {
   async getAllEmployees(): Promise<Employee[]> {
     const { data, error } = await supabase
@@ -20,7 +30,12 @@ export const employeesApi = {
       throw new Error("Failed to fetch employees");
     }
 
-    return data || [];
+    // Auto-capitalize names
+    return (data || []).map((emp) => ({
+      ...emp,
+      first_name: capitalizeWords(emp.first_name),
+      last_name: capitalizeWords(emp.last_name),
+    }));
   },
 
   async getEmployeeById(employeeId: string): Promise<Employee | null> {
@@ -40,7 +55,14 @@ export const employeesApi = {
       return null;
     }
 
-    return data;
+    // Auto-capitalize names
+    return data
+      ? {
+          ...data,
+          first_name: capitalizeWords(data.first_name),
+          last_name: capitalizeWords(data.last_name),
+        }
+      : null;
   },
 
   async getAvailableDrivers(): Promise<Employee[]> {
@@ -61,7 +83,12 @@ export const employeesApi = {
       throw new Error("Failed to fetch available drivers");
     }
 
-    return data || [];
+    // Auto-capitalize names
+    return (data || []).map((emp) => ({
+      ...emp,
+      first_name: capitalizeWords(emp.first_name),
+      last_name: capitalizeWords(emp.last_name),
+    }));
   },
 
   async getAvailableServers(): Promise<Employee[]> {
@@ -82,15 +109,26 @@ export const employeesApi = {
       throw new Error("Failed to fetch available servers");
     }
 
-    return data || [];
+    // Auto-capitalize names
+    return (data || []).map((emp) => ({
+      ...emp,
+      first_name: capitalizeWords(emp.first_name),
+      last_name: capitalizeWords(emp.last_name),
+    }));
   },
 
   async createEmployee(
     employeeData: Omit<Employee, "employee_id" | "created_at">
   ): Promise<Employee> {
+    // Capitalize names before sending to DB
+    const dataToSend = {
+      ...employeeData,
+      first_name: capitalizeWords(employeeData.first_name),
+      last_name: capitalizeWords(employeeData.last_name),
+    };
     const { data, error } = await supabase
       .from("employees")
-      .insert([employeeData])
+      .insert([dataToSend])
       .select()
       .single();
 
@@ -106,9 +144,15 @@ export const employeesApi = {
     employeeId: string,
     updates: Partial<Employee>
   ): Promise<Employee> {
+    // Capitalize names before sending to DB
+    const updatesToSend = {
+      ...updates,
+      first_name: capitalizeWords(updates.first_name),
+      last_name: capitalizeWords(updates.last_name),
+    };
     const { data, error } = await supabase
       .from("employees")
-      .update(updates)
+      .update(updatesToSend)
       .eq("employee_id", employeeId)
       .select()
       .single();

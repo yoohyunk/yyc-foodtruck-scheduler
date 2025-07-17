@@ -221,13 +221,21 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       e: React.ChangeEvent<HTMLInputElement>
     ) => {
       const value = e.target.value; // allow spaces as typed
-      setFormData((prev) => ({ ...prev, streetNumber: value }));
+      const newFormData = { ...formData, streetNumber: value };
+      setFormData(newFormData);
+      // Call onChange with the current full address
+      const fullAddress = getFullAddress(newFormData);
+      onChange(fullAddress);
     };
 
     // Handler for street name change (allow spaces, no stripping/collapsing)
     const handleStreetNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value; // allow spaces as typed
-      setFormData((prev) => ({ ...prev, streetName: value }));
+      const newFormData = { ...formData, streetName: value };
+      setFormData(newFormData);
+      // Call onChange with the current full address
+      const fullAddress = getFullAddress(newFormData);
+      onChange(fullAddress);
     };
 
     // Handler for street name blur (just validation, no abbreviation expansion)
@@ -257,7 +265,11 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       if (value.length > 6 && value[3] !== " ") {
         value = value.slice(0, 3) + " " + value.slice(3);
       }
-      setFormData((prev) => ({ ...prev, postalCode: value }));
+      const newFormData = { ...formData, postalCode: value };
+      setFormData(newFormData);
+      // Call onChange with the current full address
+      const fullAddress = getFullAddress(newFormData);
+      onChange(fullAddress);
     };
 
     // Parse initial value if provided
@@ -439,7 +451,11 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
               value={formData.direction}
               onChange={(e) => {
                 const value = e.target.value;
-                setFormData((prev) => ({ ...prev, direction: value }));
+                const newFormData = { ...formData, direction: value };
+                setFormData(newFormData);
+                // Call onChange with the current full address
+                const fullAddress = getFullAddress(newFormData);
+                onChange(fullAddress);
               }}
               onBlur={() => setShowErrors(true)}
               required={required}
@@ -459,7 +475,11 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           value={formData.city}
           onChange={(e) => {
             const value = e.target.value;
-            setFormData((prev) => ({ ...prev, city: value }));
+            const newFormData = { ...formData, city: value };
+            setFormData(newFormData);
+            // Call onChange with the current full address
+            const fullAddress = getFullAddress(newFormData);
+            onChange(fullAddress);
           }}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
