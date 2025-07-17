@@ -56,6 +56,13 @@ export default function TruckAvailabilityReport(): ReactElement {
       // Fetch trucks with addresses relation
       const allTrucks = await trucksApi.getAllTrucks(); // Ensure this returns addresses as well
       
+      // Sort trucks alphabetically by name
+      const sortedTrucks = allTrucks.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      
       // Calculate week start and end dates
       const weekStart = new Date(selectedWeek);
       const weekEnd = new Date(weekStart);
@@ -63,7 +70,7 @@ export default function TruckAvailabilityReport(): ReactElement {
 
       const truckData: TruckAvailabilityData[] = [];
 
-      for (const truck of allTrucks) {
+      for (const truck of sortedTrucks) {
         // Check truck availability for this week
         const availability = await trucksApi.checkTruckAvailability(
           truck.id,

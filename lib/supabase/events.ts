@@ -192,7 +192,10 @@ export const truckAssignmentsApi = {
       throw new Error("Failed to fetch truck assignments");
     }
 
-    return data || [];
+    return (data || []).map((item) => ({
+      ...item,
+      events: Array.isArray(item.events) ? item.events[0] || { title: null } : item.events,
+    }));
   },
 
   async createTruckAssignment(

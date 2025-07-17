@@ -225,7 +225,10 @@ export const assignmentsApi = {
       throw new Error(`Error fetching assignments: ${error.message}`);
     }
 
-    return data || [];
+    return (data || []).map((item) => ({
+      ...item,
+      events: Array.isArray(item.events) ? item.events[0] || { title: null } : item.events,
+    }));
   },
 
   // Get all truck assignments for an employee

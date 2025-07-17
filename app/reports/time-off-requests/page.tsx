@@ -42,7 +42,15 @@ export default function TimeOffRequestsReport(): ReactElement {
         
         // Fetch all employees
         const allEmployees = await employeesApi.getAllEmployees();
-        setEmployees(allEmployees);
+        
+        // Sort employees alphabetically by first name, then last name
+        const sortedEmployees = allEmployees.sort((a, b) => {
+          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
+          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+        
+        setEmployees(sortedEmployees);
 
         // Combine requests with employee data
         const requestsWithEmployees: TimeOffRequestWithEmployee[] = allRequests.map(request => {

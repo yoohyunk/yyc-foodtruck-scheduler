@@ -59,6 +59,13 @@ export default function EmployeeAvailabilityReport(): ReactElement {
       // Get all employees
       const allEmployees = await employeesApi.getAllEmployees();
       
+      // Sort employees alphabetically by first name, then last name
+      const sortedEmployees = allEmployees.sort((a, b) => {
+        const nameA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
+        const nameB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
       // Calculate week start and end dates
       const weekStart = new Date(selectedWeek);
       const weekEnd = new Date(weekStart);
@@ -69,7 +76,7 @@ export default function EmployeeAvailabilityReport(): ReactElement {
 
       const employeeData: EmployeeAvailabilityData[] = [];
 
-      for (const employee of allEmployees) {
+      for (const employee of sortedEmployees) {
         // Get assignments for this week
         const assignments = await assignmentsApi.getAssignmentsByEmployeeId(employee.employee_id);
         const weekAssignments = assignments.filter(assignment => {

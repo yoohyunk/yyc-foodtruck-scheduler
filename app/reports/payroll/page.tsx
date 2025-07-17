@@ -100,9 +100,16 @@ export default function PayrollReport(): ReactElement {
       // Get all employees
       const allEmployees = await employeesApi.getAllEmployees();
       
+      // Sort employees alphabetically by first name, then last name
+      const sortedEmployees = allEmployees.sort((a, b) => {
+        const nameA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
+        const nameB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      
       const payrollDataArray: PayrollData[] = [];
 
-      for (const employee of allEmployees) {
+      for (const employee of sortedEmployees) {
         // Get current wage
         const currentWage = await wagesApi.getCurrentWage(employee.employee_id);
         
