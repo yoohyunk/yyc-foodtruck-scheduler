@@ -4,7 +4,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ErrorModal from "@/app/components/ErrorModal";
-import Image from "next/image";
 import {
   validateForm,
   ValidationRule,
@@ -18,75 +17,34 @@ export default function SetPasswordPage() {
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
+  const [verified, setVerified] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
   const passwordRef = useRef<HTMLInputElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
-  // Removed unused error and verified state
-
   useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) {
-      setValidationErrors([
-        { field: "", message: "Invalid invite link.", element: null },
-      ]);
-      setShowErrorModal(true);
-      setLoading(false);
-      return;
-    }
-    const params = new URLSearchParams(hash.substring(1));
-    const access_token = params.get("access_token");
-    const refresh_token = params.get("refresh_token");
-    if (access_token && refresh_token) {
-      supabase.auth
-        .setSession({ access_token, refresh_token })
-        .then(({ data, error: sessionError }) => {
-          if (sessionError || !data.session) {
-            setValidationErrors([
-              {
-                field: "",
-                message: "Failed to verify invitation. Please try again.",
-                element: null,
-              },
-            ]);
-            setShowErrorModal(true);
-          }
-        })
-        .catch(() => {
-          setValidationErrors([
-            {
-              field: "",
-              message: "Error setting session. Please try again.",
-              element: null,
-            },
-          ]);
-          setShowErrorModal(true);
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setValidationErrors([
-        { field: "", message: "Missing tokens in URL.", element: null },
-      ]);
-      setShowErrorModal(true);
-      setLoading(false);
-    }
+    //  CHECK IF USER IS LOGGED IN. IF THEY ARE LOGGED IN, JUST SHOW PASSWORD RESET FORM
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setVerified(true);
+        setLoading(false);
+        return;
+      }
+      // ...rest of your logic
+    };
+    checkUser();
   }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     const validationRules: ValidationRule[] = [
-      {
-        field: "email",
-        required: true,
-        validator: (value: unknown) =>
-          typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
-        message: "Please enter a valid email address.",
-        element: emailRef.current,
-      },
       {
         field: "password",
         required: true,
@@ -97,21 +55,23 @@ export default function SetPasswordPage() {
         element: passwordRef.current,
       },
     ];
-    const sanitizedData = sanitizeFormData({ email, password });
+    const sanitizedData = sanitizeFormData({ password });
     const validationErrors = validateForm(sanitizedData, validationRules);
     setValidationErrors(validationErrors);
     if (validationErrors.length > 0) {
       setShowErrorModal(true);
       return;
     }
-    // Optionally, you can use the email in your update logic if needed
-    await supabase.auth.updateUser({
+    const { error: updateError } = await supabase.auth.updateUser({
       password: sanitizedData.password,
     });
-    router.push("/set-up-employee-info");
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      router.push("/set-up-employee-info");
+    }
   };
 
-  // Remove error and !verified checks for development so the form always shows
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -122,94 +82,72 @@ export default function SetPasswordPage() {
     );
   }
 
-  // Updated layout for branding
-  return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center"
-      style={{
-        background: "var(--background-light, #f8fafc)",
-        minHeight: "100vh",
-      }}
-    >
-      {/* Logo and site name */}
-      <div className="flex flex-col items-center mb-8">
-        <Image
-          src="/yyctrucks.jpg"
-          alt="YYC Food Trucks Logo"
-          className="rounded-full shadow-lg mb-2"
-          width={64}
-          height={64}
-        />
-        <h1
-          className="text-3xl font-bold text-primary-dark mb-1"
-          style={{ color: "#16697A" }}
-        >
-          YYC Food Trucks
-        </h1>
-        <span className="text-lg text-gray-600 font-semibold">
-          Set Your Password
-        </span>
-      </div>
-      {/* Card */}
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl border border-primary-light">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="email"
-              className="block mb-1 font-semibold text-gray-700"
-            >
-              Email <span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={emailRef}
-              id="email"
-              name="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-primary-dark focus:outline-none"
-              autoComplete="email"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="password"
-              className="block mb-1 font-semibold text-gray-700"
-            >
-              New Password <span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={passwordRef}
-              id="password"
-              name="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-primary-dark focus:outline-none"
-              autoComplete="new-password"
-            />
-            <div className="mt-2 text-right">
-              <a
-                href="/forgot-password"
-                className="text-sm text-green-600 hover:underline"
-              >
-                Forgot Password?
-              </a>
-            </div>
-          </div>
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow text-center">
+          <p className="text-red-600 mb-4">{error}</p>
           <button
-            type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition"
+            onClick={() => router.push("/login")}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
           >
-            Set Password
+            Back to Login
           </button>
-        </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (!verified) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow text-center">
+          <p className="text-red-600 mb-4">Unable to set password.</p>
+          <button
+            onClick={() => router.push("/login")}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Back to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow">
+          <h2 className="text-2xl font-bold mb-4">Set Your Password</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="password" className="block mb-1">
+                New Password <span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={passwordRef}
+                id="password"
+                name="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border px-3 py-2 rounded"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+            >
+              Set Password
+            </button>
+          </form>
+        </div>
       </div>
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
         errors={validationErrors}
       />
-    </div>
+    </>
   );
 }
