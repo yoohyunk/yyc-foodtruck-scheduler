@@ -20,7 +20,10 @@ interface EmployeeAvailabilityData {
     end_date: string;
     status: string;
     events: {
-      title: string | null;
+      id: string;
+      title: string;
+      start_date: string;
+      end_date: string;
     };
   }>;
   timeOffRequests: TimeOffRequest[];
@@ -82,7 +85,12 @@ export default function EmployeeAvailabilityReport(): ReactElement {
           start_date: a.start_date,
           end_date: a.end_date,
           status: (a as any).status || "Scheduled",
-          events: { title: (a as any).events?.title ?? "Untitled Event" },
+          events: { 
+            id: a.event_id,
+            title: a.events?.title ?? `Event ${a.event_id?.slice(0, 8) || 'Unknown'}`,
+            start_date: a.start_date,
+            end_date: a.end_date,
+          },
         }));
 
         // Get time off requests for this week
@@ -267,7 +275,7 @@ export default function EmployeeAvailabilityReport(): ReactElement {
                           {formatDate(assignment.start_date)} - {formatDate(assignment.end_date)}
                         </p>
                         <p className="text-xs text-blue-500">
-                          Status: {assignment.status}
+                          Time: {formatTime(assignment.events.start_date)} - {formatTime(assignment.events.end_date)}
                         </p>
                       </div>
                     ))}

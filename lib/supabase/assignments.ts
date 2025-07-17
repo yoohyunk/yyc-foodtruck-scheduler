@@ -200,11 +200,25 @@ export const assignmentsApi = {
       event_id: string;
       start_date: string;
       end_date: string;
+      events: {
+        id: string;
+        title: string;
+        start_date: string;
+        end_date: string;
+      };
     }>
   > {
     const { data, error } = await supabase
       .from("assignments")
-      .select("*")
+      .select(`
+        *,
+        events (
+          id,
+          title,
+          start_date,
+          end_date
+        )
+      `)
       .eq("employee_id", employeeId);
 
     if (error) {
