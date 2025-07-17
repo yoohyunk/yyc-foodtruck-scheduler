@@ -164,97 +164,85 @@ const calculateTaxDeductions = (
 export default function PayrollReport(): ReactElement {
   const { isAdmin, user } = useAuth();
   const { shouldHighlight } = useTutorial();
-  const [selectedPayPeriod, setSelectedPayPeriod] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [payPeriod, setPayPeriod] = useState<{
+    start: string;
+    end: string;
+    label: string;
+  }>({ start: "", end: "", label: "" });
   const [payrollData, setPayrollData] = useState<PayrollData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  // Generate pay periods for current year
-  const generatePayPeriods = (): PayPeriod[] => {
-    const currentYear = new Date().getFullYear();
-    const periods: PayPeriod[] = [];
-
-    for (let month = 1; month <= 12; month++) {
-      const firstHalf: PayPeriod = {
-        id: `${currentYear}-${month.toString().padStart(2, "0")}-01`,
-        label: `${new Date(currentYear, month - 1, 1).toLocaleDateString("en-US", { month: "short" })} 1-15`,
-        startDate: `${currentYear}-${month.toString().padStart(2, "0")}-01`,
-        endDate: `${currentYear}-${month.toString().padStart(2, "0")}-15`,
-      };
-
-      const lastDay = new Date(currentYear, month, 0).getDate();
-      const secondHalf: PayPeriod = {
-        id: `${currentYear}-${month.toString().padStart(2, "0")}-16`,
-        label: `${new Date(currentYear, month - 1, 1).toLocaleDateString("en-US", { month: "short" })} 16-${lastDay}`,
-        startDate: `${currentYear}-${month.toString().padStart(2, "0")}-16`,
-        endDate: `${currentYear}-${month.toString().padStart(2, "0")}-${lastDay}`,
-      };
-
-      periods.push(firstHalf, secondHalf);
-    }
-
-    return periods;
+  // Helper to get last day of month
+  const getLastDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
   };
 
-  // Memoize payPeriods to prevent infinite re-renders
-  const payPeriods = useMemo(() => generatePayPeriods(), []);
+  // Calculate pay period based on selected date
+  const calculatePayPeriod = (dateStr: string) => {
+    if (!dateStr) return { start: "", end: "", label: "" };
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    let start, end, label;
+    if (day <= 15) {
+      start = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+      end = `${year}-${String(month + 1).padStart(2, "0")}-15`;
+      label = `${date.toLocaleString("en-US", { month: "short" })} 1–15, ${year}`;
+    } else {
+      const lastDay = getLastDayOfMonth(year, month);
+      start = `${year}-${String(month + 1).padStart(2, "0")}-16`;
+      end = `${year}-${String(month + 1).padStart(2, "0")}-${lastDay}`;
+      label = `${date.toLocaleString("en-US", { month: "short" })} 16–${lastDay}, ${year}`;
+    }
+    return { start, end, label };
+  };
 
-  // Set default to current pay period
+  // Set default date to today on mount
   useEffect(() => {
     const today = new Date();
-    const day = today.getDate();
-    const month = today.getMonth() + 1;
-    const year = today.getFullYear();
-
-    let periodId: string;
-    if (day <= 15) {
-      periodId = `${year}-${month.toString().padStart(2, "0")}-01`;
-    } else {
-      periodId = `${year}-${month.toString().padStart(2, "0")}-16`;
-    }
-
-    setSelectedPayPeriod(periodId);
+    const iso = today.toISOString().split("T")[0];
+    setSelectedDate(iso);
+    setPayPeriod(calculatePayPeriod(iso));
   }, []);
 
-  const fetchPayrollData = useCallback(async () => {
-    if (!selectedPayPeriod) return;
+  // Update pay period when date changes
+  useEffect(() => {
+    if (selectedDate) {
+      setPayPeriod(calculatePayPeriod(selectedDate));
+    }
+  }, [selectedDate]);
 
+  // Fetch payroll data for the current pay period
+  const fetchPayrollData = useCallback(async () => {
+    if (!payPeriod.start || !payPeriod.end) return;
     setIsLoading(true);
     setError(null);
-
     try {
-      const selectedPeriod = payPeriods.find((p) => p.id === selectedPayPeriod);
-      if (!selectedPeriod) return;
-
       let employeesToProcess: Employee[] = [];
-
       if (isAdmin) {
-        // Admin sees all employees
         const allEmployees = await employeesApi.getAllEmployees();
         employeesToProcess = allEmployees;
       } else {
-        // Employee sees only themselves
         if (!user?.id) {
           setError("User not found.");
           return;
         }
-
         const { data: employee, error: employeeError } = await supabase
           .from("employees")
           .select("*")
           .eq("user_id", user.id)
           .single();
-
         if (employeeError || !employee) {
           setError("Employee information not found.");
           return;
         }
-
         employeesToProcess = [employee];
       }
-
-      // Sort employees alphabetically by first name, then last name
+      // Sort employees alphabetically
       const sortedEmployees = employeesToProcess.sort((a, b) => {
         const nameA =
           `${a.first_name || ""} ${a.last_name || ""}`.toLowerCase();
@@ -262,18 +250,12 @@ export default function PayrollReport(): ReactElement {
           `${b.first_name || ""} ${b.last_name || ""}`.toLowerCase();
         return nameA.localeCompare(nameB);
       });
-
       const payrollDataArray: PayrollData[] = [];
-
       for (const employee of sortedEmployees) {
-        // Get current wage
         const currentWageData = await wagesApi.getCurrentWage(
           employee.employee_id
         );
-
-        // Extract hourly wage from the wage object
         const currentWage = currentWageData?.hourly_wage || 0;
-
         // Get assignments for this pay period
         const assignments = await assignmentsApi.getAssignmentsByEmployeeId(
           employee.employee_id
@@ -281,13 +263,10 @@ export default function PayrollReport(): ReactElement {
         const periodAssignments = assignments.filter((assignment) => {
           const assignmentStart = new Date(assignment.start_date);
           const assignmentEnd = new Date(assignment.end_date);
-          const periodStart = new Date(selectedPeriod.startDate);
-          const periodEnd = new Date(selectedPeriod.endDate);
-
+          const periodStart = new Date(payPeriod.start);
+          const periodEnd = new Date(payPeriod.end);
           return assignmentStart <= periodEnd && assignmentEnd >= periodStart;
         });
-
-        // Map assignments to include required fields (events)
         const periodAssignmentsEnriched = periodAssignments.map((a) => ({
           id: a.id,
           start_date: a.start_date,
@@ -298,21 +277,14 @@ export default function PayrollReport(): ReactElement {
               "Untitled Event",
           },
         }));
-
-        // Calculate total hours based on actual shift times
         let totalHours = 0;
         for (const assignment of periodAssignments) {
           const start = new Date(assignment.start_date);
           const end = new Date(assignment.end_date);
-
-          // Calculate the difference in hours (including partial hours)
           const diffTime = end.getTime() - start.getTime();
-          const diffHours = diffTime / (1000 * 60 * 60); // Convert milliseconds to hours
-
+          const diffHours = diffTime / (1000 * 60 * 60);
           totalHours += diffHours;
         }
-
-        // Ensure wage is a valid number, default to 0 if null/undefined
         const wage =
           typeof currentWage === "number" && !isNaN(currentWage)
             ? currentWage
@@ -320,7 +292,6 @@ export default function PayrollReport(): ReactElement {
         const grossPay = totalHours * wage;
         const taxDeductions = calculateTaxDeductions(grossPay);
         const netPay = calculateNetPay(grossPay);
-
         payrollDataArray.push({
           employee,
           currentWage: wage,
@@ -332,12 +303,9 @@ export default function PayrollReport(): ReactElement {
           assignments: periodAssignmentsEnriched,
         });
       }
-
-      // Filter to only show employees with hours > 0 for admin view
       const filteredData = isAdmin
         ? payrollDataArray.filter((data) => data.totalHours > 0)
         : payrollDataArray;
-
       setPayrollData(filteredData);
     } catch (err) {
       console.error("Error fetching payroll data:", err);
@@ -345,13 +313,13 @@ export default function PayrollReport(): ReactElement {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedPayPeriod, isAdmin, user?.id, supabase, payPeriods]);
+  }, [payPeriod, isAdmin, user?.id, supabase]);
 
   useEffect(() => {
-    if (selectedPayPeriod) {
+    if (payPeriod.start && payPeriod.end) {
       fetchPayrollData();
     }
-  }, [selectedPayPeriod, fetchPayrollData]);
+  }, [payPeriod, fetchPayrollData]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -369,8 +337,7 @@ export default function PayrollReport(): ReactElement {
   };
 
   const getSelectedPeriodLabel = () => {
-    const period = payPeriods.find((p) => p.id === selectedPayPeriod);
-    return period ? period.label : "";
+    return payPeriod.label;
   };
 
   const calculateTotals = () => {
@@ -450,27 +417,21 @@ export default function PayrollReport(): ReactElement {
       >
         <div className="mb-6 p-4 bg-white rounded-lg shadow">
           <label
-            htmlFor="pay-period-selector"
+            htmlFor="pay-period-date-picker"
             className="block text-sm font-medium text-gray-700 mb-2"
           >
-            Select Pay Period
+            Select Date (Pay Period auto-calculated)
           </label>
-          <select
-            id="pay-period-selector"
-            value={selectedPayPeriod}
-            onChange={(e) => setSelectedPayPeriod(e.target.value)}
+          <input
+            type="date"
+            id="pay-period-date-picker"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
             className="input-field"
-          >
-            {payPeriods.map((period) => (
-              <option key={period.id} value={period.id}>
-                {period.label} ({formatDate(period.startDate)} -{" "}
-                {formatDate(period.endDate)})
-              </option>
-            ))}
-          </select>
-          {selectedPayPeriod && (
+          />
+          {payPeriod.label && (
             <p className="mt-2 text-sm text-gray-600">
-              Selected: {getSelectedPeriodLabel()}
+              Pay Period: {payPeriod.label}
             </p>
           )}
         </div>
