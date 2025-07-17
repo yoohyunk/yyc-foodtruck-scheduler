@@ -27,7 +27,11 @@ export default function SetPasswordPage() {
   const passwordRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     //  CHECK IF USER IS LOGGED IN. IF THEY ARE LOGGED IN, JUST SHOW PASSWORD RESET FORM
-    const checkUser = async () => {
+    const verifyUserOrHash = async () => {
+      setLoading(true);
+      setError(null);
+
+      // 1. 이미 로그인되어 있는 경우
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -36,9 +40,39 @@ export default function SetPasswordPage() {
         setLoading(false);
         return;
       }
-      // ...rest of your logic
+
+      // 2. 해시에서 토큰 추출 (초대 링크 케이스)
+      const hash = window.location.hash;
+      if (!hash) {
+        setError("Invalid invite link.");
+        setLoading(false);
+        return;
+      }
+      const params = new URLSearchParams(hash.substring(1));
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+
+      if (access_token && refresh_token) {
+        const { data, error: sessionError } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+        if (sessionError || !data.session) {
+          setError(
+            "Failed to verify invitation. Please try again or request a new invite."
+          );
+          setLoading(false);
+        } else {
+          setVerified(true);
+          setLoading(false);
+        }
+      } else {
+        setError("Missing tokens in invite URL.");
+        setLoading(false);
+      }
     };
-    checkUser();
+
+    verifyUserOrHash();
   }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
