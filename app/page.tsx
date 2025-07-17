@@ -124,7 +124,11 @@ export default function Home(): ReactElement {
                     <div
                       key={index}
                       className="section-card cursor-pointer hover:bg-blue-50"
-                      onClick={() => router.push(`/requests?employee_id=${request.employee_id}`)}
+                      onClick={() =>
+                        router.push(
+                          `/requests?employee_id=${request.employee_id}`
+                        )
+                      }
                     >
                       <h3 className="section-card-title">{request.type}</h3>
                       <p className="section-card-text">
@@ -144,14 +148,14 @@ export default function Home(): ReactElement {
                               request.status === "Approved"
                                 ? "var(--success-light)"
                                 : request.status === "Rejected"
-                                ? "var(--error-light)"
-                                : "var(--warning-light)",
+                                  ? "var(--error-light)"
+                                  : "var(--warning-light)",
                             color:
                               request.status === "Approved"
                                 ? "var(--success-dark)"
                                 : request.status === "Rejected"
-                                ? "var(--error-dark)"
-                                : "var(--warning-dark)",
+                                  ? "var(--error-dark)"
+                                  : "var(--warning-dark)",
                           }}
                         >
                           {request.status}
@@ -178,17 +182,21 @@ export default function Home(): ReactElement {
           <h2 className="section-title">Approved Time-Off Requests</h2>
           <div className="grid gap-4">
             {isLoading ? (
-              <p style={{ color: "var(--text-muted)" }}>
-                Loading requests...
-              </p>
-            ) : timeOffRequests.filter((request) => request.status === "Approved").length > 0 ? (
+              <p style={{ color: "var(--text-muted)" }}>Loading requests...</p>
+            ) : timeOffRequests.filter(
+                (request) => request.status === "Approved"
+              ).length > 0 ? (
               timeOffRequests
                 .filter((request) => request.status === "Approved")
                 .map((request, index) => (
                   <div
                     key={index}
                     className="section-card cursor-pointer hover:bg-green-50"
-                    onClick={() => router.push(`/requests?employee_id=${request.employee_id}&status=Approved`)}
+                    onClick={() =>
+                      router.push(
+                        `/requests?employee_id=${request.employee_id}&status=Approved`
+                      )
+                    }
                   >
                     <h3 className="section-card-title">{request.type}</h3>
                     <p className="section-card-text">
