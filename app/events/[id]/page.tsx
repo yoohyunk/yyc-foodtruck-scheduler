@@ -156,7 +156,7 @@ export default function EventDetailsPage(): ReactElement {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch employees
+        // Fetch all employees (not just available ones) so the modal can show unavailable employees
         const employeesData = await employeesApi.getAllEmployees();
         setEmployees(employeesData);
         setIsLoadingEmployees(false);
@@ -729,27 +729,27 @@ export default function EventDetailsPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
+      // Function to combine date and time exactly as entered, preserving local time
+      const combineDateTime = (date: Date, time: Date): string => {
+        const dateStr = date.toISOString().split("T")[0];
+        const hours = time.getHours().toString().padStart(2, "0");
+        const minutes = time.getMinutes().toString().padStart(2, "0");
+        const timeStr = `${hours}:${minutes}`;
+
+        // Create a datetime string that preserves the exact time as entered
+        // Format: YYYY-MM-DDTHH:MM:SS (local time, no timezone conversion)
+        return `${dateStr}T${timeStr}:00`;
+      };
+
       // Combine date and time to create proper datetime strings
       const startDateTime =
         selectedDate && selectedTime
-          ? new Date(
-              selectedDate.getFullYear(),
-              selectedDate.getMonth(),
-              selectedDate.getDate(),
-              selectedTime.getHours(),
-              selectedTime.getMinutes()
-            ).toISOString()
+          ? combineDateTime(selectedDate, selectedTime)
           : null;
 
       const endDateTime =
         selectedDate && selectedEndTime
-          ? new Date(
-              selectedDate.getFullYear(),
-              selectedDate.getMonth(),
-              selectedDate.getDate(),
-              selectedEndTime.getHours(),
-              selectedEndTime.getMinutes()
-            ).toISOString()
+          ? combineDateTime(selectedDate, selectedEndTime)
           : null;
 
       // Capitalize the event title

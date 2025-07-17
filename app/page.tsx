@@ -23,8 +23,13 @@ export default function Home(): ReactElement {
 
         // Fetch upcoming events
         const eventsData = await eventsApi.getAllEvents();
+
+        // Only show upcoming events with status 'Pending'
         const upcomingEvents = eventsData
-          .filter((event) => new Date(event.start_date) >= new Date())
+          .filter((event) =>
+            new Date(event.start_date) >= new Date() &&
+            (event.status === 'Pending' || !event.status)
+          )
           .slice(0, 6)
           .map((event) => ({
             title: event.title || "Untitled Event",
@@ -78,7 +83,7 @@ export default function Home(): ReactElement {
           className="upcoming-events-highlight"
         >
           <section data-section="upcoming-events">
-            <h2 className="section-title">Upcoming Events</h2>
+            <h2 className="section-title">Upcoming Pending Events</h2>
             <div className="grid gap-4">
               {isLoading ? (
                 <p style={{ color: "var(--text-muted)" }}>Loading events...</p>
@@ -96,7 +101,7 @@ export default function Home(): ReactElement {
                 ))
               ) : (
                 <p style={{ color: "var(--text-muted)" }}>
-                  No upcoming events.
+                  No upcoming pending events.
                 </p>
               )}
             </div>
