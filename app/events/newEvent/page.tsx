@@ -36,6 +36,15 @@ import {
 } from "../../../lib/formValidation";
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
+import { calculateStraightLineDistance } from "@/lib/utils/distance";
+
+// Function to combine date and time exactly as entered, preserving local time
+const combineDateTime = (date: string, time: string): string => {
+  // Create a datetime string that preserves the exact time as entered
+  // Format: YYYY-MM-DDTHH:MM:SS (local time, no timezone conversion)
+  // Store as local time string without timezone conversion
+  return `${date}T${time}:00`;
+};
 
 export default function AddEventPage(): ReactElement {
   const [formData, setFormData] = useState<EventFormData>({
@@ -174,20 +183,20 @@ export default function AddEventPage(): ReactElement {
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ): void => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   };
 
   const handleDateChange = (date: Date | null) => {
     setSelectedDate(date);
     if (date) {
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         date: date.toISOString().split("T")[0],
         endDate: date.toISOString().split("T")[0], // Set end date to same as start date
-      });
+      }));
       setSelectedEndDate(date); // Also update the end date picker
     }
     // Clear sorted employees when date changes so they can be re-sorted with new availability
@@ -200,10 +209,10 @@ export default function AddEventPage(): ReactElement {
   const handleEndDateChange = (date: Date | null) => {
     setSelectedEndDate(date);
     if (date) {
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         endDate: date.toISOString().split("T")[0],
-      });
+      }));
     }
     // Clear sorted employees when end date changes
     setSortedEmployees([]);
@@ -215,10 +224,15 @@ export default function AddEventPage(): ReactElement {
   const handleTimeChange = (time: Date | null) => {
     setSelectedTime(time);
     if (time) {
-      setFormData({
-        ...formData,
-        time: time.toTimeString().slice(0, 5),
-      });
+      // Extract time exactly as displayed in the picker (HH:MM format)
+      const hours = time.getHours().toString().padStart(2, "0");
+      const minutes = time.getMinutes().toString().padStart(2, "0");
+      const timeString = `${hours}:${minutes}`;
+
+      setFormData((prev) => ({
+        ...prev,
+        time: timeString,
+      }));
     }
     // Clear sorted employees when time changes
     setSortedEmployees([]);
@@ -230,10 +244,15 @@ export default function AddEventPage(): ReactElement {
   const handleEndTimeChange = (time: Date | null) => {
     setSelectedEndTime(time);
     if (time) {
-      setFormData({
-        ...formData,
-        endTime: time.toTimeString().slice(0, 5),
-      });
+      // Extract time exactly as displayed in the picker (HH:MM format)
+      const hours = time.getHours().toString().padStart(2, "0");
+      const minutes = time.getMinutes().toString().padStart(2, "0");
+      const timeString = `${hours}:${minutes}`;
+
+      setFormData((prev) => ({
+        ...prev,
+        endTime: timeString,
+      }));
     }
     // Clear sorted employees when end time changes
     setSortedEmployees([]);
@@ -246,10 +265,15 @@ export default function AddEventPage(): ReactElement {
     address: string,
     coords?: { latitude: number; longitude: number }
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      location: address,
-    }));
+    console.log("handleLocationChange called with:", address, coords);
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        location: address,
+      };
+      console.log("Updated formData:", updated);
+      return updated;
+    });
     setCoordinates(coords);
   };
 
@@ -291,10 +315,10 @@ export default function AddEventPage(): ReactElement {
           )
         );
         // Also remove from formData.trucks
-        setFormData({
-          ...formData,
-          trucks: formData.trucks.filter((id) => id !== truckId),
-        });
+        setFormData((prev) => ({
+          ...prev,
+          trucks: prev.trucks.filter((id) => id !== truckId),
+        }));
       } else {
         // Update existing assignment
         setTruckAssignments(
@@ -317,10 +341,10 @@ export default function AddEventPage(): ReactElement {
       };
       setTruckAssignments([...truckAssignments, newAssignment]);
 
-      setFormData({
-        ...formData,
-        trucks: [...formData.trucks, truckId],
-      });
+      setFormData((prev) => ({
+        ...prev,
+        trucks: [...prev.trucks, truckId],
+      }));
     }
   };
 
@@ -339,10 +363,10 @@ export default function AddEventPage(): ReactElement {
           end_time: formData.endTime,
         };
         setTruckAssignments([...truckAssignments, newAssignment]);
-        setFormData({
-          ...formData,
-          trucks: [...formData.trucks, truckId],
-        });
+        setFormData((prev) => ({
+          ...prev,
+          trucks: [...prev.trucks, truckId],
+        }));
       }
     } else {
       // When truck is deselected, remove assignment
@@ -353,10 +377,10 @@ export default function AddEventPage(): ReactElement {
   // New function to reset all truck selections
   const handleResetTruckSelections = () => {
     setTruckAssignments([]);
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       trucks: [],
-    });
+    }));
   };
 
   const getAssignedDriverForTruck = (truckId: string): Employee | null => {
@@ -531,10 +555,10 @@ export default function AddEventPage(): ReactElement {
         );
 
         setTruckAssignments(updatedAssignments);
-        setFormData({
-          ...formData,
+        setFormData((prev) => ({
+          ...prev,
           trucks: updatedTruckIds,
-        });
+        }));
       }
 
       setHasCheckedTruckAvailability(true);
@@ -628,50 +652,104 @@ export default function AddEventPage(): ReactElement {
 
             // Check server availability
             const availableServers = employees.filter(
-              (emp) => emp.employee_type === "Server" && emp.is_available
+              (emp) =>
+                emp.employee_type === "Server" && emp.is_available === true
             );
 
             if (availableServers.length > 0) {
-              // If we have date and time, use availability checking
+              // If we have date and time, use availability checking with distance + wage sorting
               if (formData.date && formData.time && formData.endTime) {
-                // Use the existing getAvailableServers function which checks availability
+                // Use the optimized getAvailableServers function which includes distance + wage sorting
+                const eventStartDate = `${formData.date}T${formData.time}`;
+                const eventEndDate = `${formData.endDate}T${formData.endTime}`;
                 const sortedAvailableServers =
-                  await assignmentsApi.getAvailableServers(
-                    formData.date,
-                    formData.time,
-                    formData.endTime,
-                    formData.location
+                  await employeeAvailabilityApi.getAvailableServers(
+                    eventStartDate,
+                    eventEndDate,
+                    formData.location,
+                    undefined, // excludeEventId
+                    coordinates // Pass the coordinates directly
                   );
                 setSortedEmployees(sortedAvailableServers);
               } else {
-                // If no date/time yet, just sort by distance without availability checking
-                // We'll use a simplified version that sorts by distance only
+                // If no date/time yet, use distance + wage sorting without availability checking
                 const serversWithDistance = await Promise.all(
                   availableServers.map(async (server) => {
                     let distance = 0;
-                    if (server.addresses) {
-                      const employeeAddress = `${server.addresses.street}, ${server.addresses.city}, ${server.addresses.province}`;
-                      const { calculateDistance, getCoordinates } =
-                        await import("@/app/AlgApi/distance");
-                      const employeeCoords =
-                        await getCoordinates(employeeAddress);
+                    if (
+                      server.addresses?.latitude &&
+                      server.addresses?.longitude
+                    ) {
+                      const employeeCoords = {
+                        lat: parseFloat(server.addresses.latitude),
+                        lng: parseFloat(server.addresses.longitude),
+                      };
+
+                      // Get event coordinates
+                      const { getCoordinates } = await import(
+                        "@/app/AlgApi/distance"
+                      );
                       const eventCoords = await getCoordinates(
                         formData.location
                       );
-                      distance = await calculateDistance(
-                        employeeCoords,
-                        eventCoords
-                      );
+
+                      // Use our distance API
+                      try {
+                        const coord1Str = `${employeeCoords.lat.toFixed(6)},${employeeCoords.lng.toFixed(6)}`;
+                        const coord2Str = `${eventCoords.lat.toFixed(6)},${eventCoords.lng.toFixed(6)}`;
+
+                        const response = await fetch(
+                          `/api/route/distance?coord1=${encodeURIComponent(coord1Str)}&coord2=${encodeURIComponent(coord2Str)}`,
+                          { method: "GET" }
+                        );
+
+                        if (response.ok) {
+                          const data = await response.json();
+                          if (data.success) {
+                            distance = data.distance;
+                          }
+                        }
+                      } catch (error) {
+                        console.warn(
+                          `Failed to calculate distance for ${server.first_name} ${server.last_name}:`,
+                          error
+                        );
+                        // Use straight-line distance calculation
+                        distance = calculateStraightLineDistance(
+                          employeeCoords,
+                          eventCoords
+                        );
+                      }
                     }
                     return { ...server, distance };
                   })
                 );
 
-                // Sort by distance (closest first)
-                const sortedByDistance = serversWithDistance.sort(
-                  (a, b) => a.distance - b.distance
+                // Sort by distance first, then by wage if within 5km, with employees without addresses last
+                const sortedByDistanceAndWage = serversWithDistance.sort(
+                  (a, b) => {
+                    // First priority: employees without addresses go last
+                    if (a.distance === Infinity && b.distance !== Infinity) {
+                      return 1; // a goes after b
+                    }
+                    if (a.distance !== Infinity && b.distance === Infinity) {
+                      return -1; // a goes before b
+                    }
+                    if (a.distance === Infinity && b.distance === Infinity) {
+                      // Both have no addresses, sort by wage (lower first)
+                      return (a.currentWage || 0) - (b.currentWage || 0);
+                    }
+
+                    // Both have addresses, check if within 5km of each other
+                    if (Math.abs(a.distance - b.distance) <= 5) {
+                      // If within 5km, sort by wage (lower first)
+                      return (a.currentWage || 0) - (b.currentWage || 0);
+                    }
+                    // Otherwise sort by distance (closest first)
+                    return a.distance - b.distance;
+                  }
                 );
-                setSortedEmployees(sortedByDistance);
+                setSortedEmployees(sortedByDistanceAndWage);
               }
             }
 
@@ -695,6 +773,7 @@ export default function AddEventPage(): ReactElement {
   };
 
   const validateFormData = (): ValidationError[] => {
+    console.log("validateFormData - current formData:", formData);
     const validationRules: ValidationRule[] = [
       createValidationRule(
         "name",
@@ -796,11 +875,24 @@ export default function AddEventPage(): ReactElement {
       });
     }
 
+    // Check if address was validated (coordinates exist)
+    if (!coordinates) {
+      errors.push({
+        field: "location",
+        message:
+          "Please validate your address using the 'Check Address' button.",
+        element: null,
+      });
+    }
+
     return errors;
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
+
+    // Force a re-render to ensure we have the latest state
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     const validationErrors = validateFormData();
 
@@ -825,24 +917,15 @@ export default function AddEventPage(): ReactElement {
 
         if (hasDistanceProperty) {
           // Pre-sorted employees were only sorted by distance, need to re-check availability
-          console.log(
-            `Pre-sorted employees were distance-only, re-checking availability for ${sortedEmployees.length} employees`
-          );
           availableServers = await assignmentsApi.getAvailableServers(
             formData.date,
             formData.time,
             formData.endTime,
             formData.location
           );
-          console.log(
-            `After availability check: ${availableServers.length} servers available`
-          );
         } else {
           // Pre-sorted employees were already availability-checked
           availableServers = sortedEmployees;
-          console.log(
-            `Using ${availableServers.length} pre-sorted employees (already availability-checked)`
-          );
         }
       } else {
         // Fallback to the original method if no pre-sorted employees
@@ -883,10 +966,13 @@ export default function AddEventPage(): ReactElement {
       };
 
       // Create event data with address
+      const startDateTime = combineDateTime(formData.date, formData.time);
+      const endDateTime = combineDateTime(formData.endDate, formData.endTime);
+
       const eventData = {
         title: capitalizeTitle(formData.name),
-        start_date: `${formData.date}T${formData.time}`,
-        end_date: `${formData.endDate}T${formData.endTime}`,
+        start_date: startDateTime,
+        end_date: endDateTime,
         description: formData.location,
         contact_name: formData.contactName,
         contact_email: formData.contactEmail,
@@ -918,8 +1004,8 @@ export default function AddEventPage(): ReactElement {
           truck_id: assignment.truck_id,
           driver_id: assignment.driver_id,
           event_id: newEvent.id,
-          start_time: `${formData.date}T${assignment.start_time}`,
-          end_time: `${formData.endDate}T${assignment.end_time}`,
+          start_time: combineDateTime(formData.date, assignment.start_time),
+          end_time: combineDateTime(formData.endDate, assignment.end_time),
         });
       }
 
@@ -1161,10 +1247,10 @@ export default function AddEventPage(): ReactElement {
                   name="isPrepaid"
                   checked={formData.isPrepaid}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    setFormData((prev) => ({
+                      ...prev,
                       isPrepaid: e.target.checked,
-                    })
+                    }))
                   }
                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                 />
