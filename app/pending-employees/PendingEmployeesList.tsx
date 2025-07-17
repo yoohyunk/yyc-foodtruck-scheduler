@@ -17,7 +17,6 @@ export function PendingEmployeesTable({
 }) {
   const [search, setSearch] = useState("");
 
-  // 이름, 성 기준 검색 (대소문자 구분 없이)
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return employees;

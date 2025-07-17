@@ -26,12 +26,10 @@ export default function SetPasswordPage() {
   );
   const passwordRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    //  CHECK IF USER IS LOGGED IN. IF THEY ARE LOGGED IN, JUST SHOW PASSWORD RESET FORM
     const verifyUserOrHash = async () => {
       setLoading(true);
       setError(null);
 
-      // 1. 이미 로그인되어 있는 경우
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -41,7 +39,6 @@ export default function SetPasswordPage() {
         return;
       }
 
-      // 2. 해시에서 토큰 추출 (초대 링크 케이스)
       const hash = window.location.hash;
       if (!hash) {
         setError("Invalid invite link.");

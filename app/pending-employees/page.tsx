@@ -23,7 +23,7 @@ export default async function PendingEmployeesPage() {
   const pendingUsers = users.users.filter((user: User) => !user.confirmed_at);
 
   if (pendingUsers.length === 0) {
-    return <div>가입 대기중인 직원이 없습니다.</div>;
+    return <div>No pending employees.</div>;
   }
 
   const userIds = pendingUsers.map((user: User) => user.id);
@@ -37,7 +37,6 @@ export default async function PendingEmployeesPage() {
     return <div>Error getting employees: {empError.message}</div>;
   }
 
-  // 타입 명시!
   const pendingEmployeeList: PendingEmployee[] = employees.map(
     (emp: Employee) => {
       const user = pendingUsers.find((u: User) => u.id === emp.user_id);
@@ -49,6 +48,5 @@ export default async function PendingEmployeesPage() {
     }
   );
 
-  // 클라이언트 컴포넌트로 테이블 렌더링
   return <PendingEmployeesTable employees={pendingEmployeeList} />;
 }
