@@ -25,6 +25,8 @@ export interface CalendarEvent {
     startTime: string;
     endTime: string;
     status: "Scheduled" | "Pending";
+    type?: "event" | "shift";
+    employeeType?: string;
   };
 }
 

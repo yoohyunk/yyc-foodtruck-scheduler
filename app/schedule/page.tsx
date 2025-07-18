@@ -9,6 +9,8 @@ import { Event } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
+import { assignmentsApi } from "@/lib/supabase/assignments";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Schedule(): React.ReactElement {
   const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">(
@@ -16,25 +18,49 @@ export default function Schedule(): React.ReactElement {
   );
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
+  const supabase = createClient();
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        const data = await eventsApi.getAllEvents();
-        setEvents(data);
+        // Fetch events
+        const eventsData = await eventsApi.getAllEvents();
+        setEvents(eventsData);
+
+        // Fetch all assignments (shifts)
+        const { data: assignmentsData, error } = await supabase
+          .from("assignments")
+          .select(`
+            *,
+            employees (
+              first_name,
+              last_name,
+              employee_type
+            )
+          `)
+          .is("event_id", null); // Only get standalone shifts (not event assignments)
+
+        if (error) {
+          console.error("Error fetching assignments:", error);
+          setAssignments([]);
+        } else {
+          setAssignments(assignmentsData || []);
+        }
       } catch (err) {
-        console.error("Failed to fetch events:", err);
+        console.error("Failed to fetch data:", err);
         setEvents([]);
+        setAssignments([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchEvents();
+    fetchData();
   }, []);
 
   const formatDate = (date: Date, options: Intl.DateTimeFormatOptions = {}) =>
@@ -106,56 +132,94 @@ export default function Schedule(): React.ReactElement {
   }, [viewMode]);
 
   const getCalendarEvents = useCallback((): CalendarEvent[] => {
-    if (!events || !Array.isArray(events)) {
-      return [];
+    const calendarEvents: CalendarEvent[] = [];
+
+    // Add events
+    if (events && Array.isArray(events)) {
+      events
+        .filter((event) => event.start_date && event.end_date && event.id)
+        .forEach((event) => {
+          const startDate = new Date(event.start_date!);
+          const endDate = new Date(event.end_date!);
+
+          calendarEvents.push({
+            id: event.id,
+            title: event.title || "Untitled Event",
+            start: startDate,
+            end: endDate,
+            extendedProps: {
+              location: event.description || "N/A",
+              trucks: [],
+              assignedStaff: [],
+              requiredServers: event.number_of_servers_needed || 0,
+              startTime: event.start_date || "",
+              endTime: event.end_date || "",
+              status: "Pending" as "Pending" | "Scheduled",
+              type: "event",
+            },
+          });
+        });
     }
 
-    return events
-      .filter((event) => event.start_date && event.end_date && event.id)
-      .map((event) => {
-        const startDate = new Date(event.start_date!);
-        const endDate = new Date(event.end_date!);
+    // Add shifts (assignments)
+    if (assignments && Array.isArray(assignments)) {
+      assignments
+        .filter((assignment) => assignment.start_date && assignment.end_date && assignment.id)
+        .forEach((assignment) => {
+          const startDate = new Date(assignment.start_date);
+          const endDate = new Date(assignment.end_date);
+          const employee = assignment.employees;
 
-        return {
-          id: event.id,
-          title: event.title || "Untitled Event",
-          start: startDate,
-          end: endDate,
-          extendedProps: {
-            location: event.description || "N/A",
-            // The following are placeholders as we don't have this data yet
-            trucks: [],
-            assignedStaff: [],
-            requiredServers: event.number_of_servers_needed || 0,
-            startTime: event.start_date || "",
-            endTime: event.end_date || "",
-            status: "Pending" as "Pending" | "Scheduled",
-          },
-        };
-      })
-      .filter((event) => {
-        const eventDate = new Date(event.start);
+          calendarEvents.push({
+            id: `shift-${assignment.id}`,
+            title: `Shift: ${employee?.first_name} ${employee?.last_name}`,
+            start: startDate,
+            end: endDate,
+            extendedProps: {
+              location: "Standalone Shift",
+              trucks: [],
+              assignedStaff: [employee?.first_name + " " + employee?.last_name],
+              requiredServers: 0,
+              startTime: assignment.start_date,
+              endTime: assignment.end_date,
+              status: "Scheduled" as "Pending" | "Scheduled",
+              type: "shift",
+              employeeType: employee?.employee_type,
+            },
+          });
+        });
+    }
 
-        if (viewMode === "daily") {
-          return (
-            eventDate.getDate() === selectedDate.getDate() &&
-            eventDate.getMonth() === selectedDate.getMonth() &&
-            eventDate.getFullYear() === selectedDate.getFullYear()
-          );
-        } else if (viewMode === "weekly") {
-          const weekStart = new Date(selectedDate);
-          weekStart.setDate(selectedDate.getDate() - selectedDate.getDay());
-          const weekEnd = new Date(selectedDate);
-          weekEnd.setDate(selectedDate.getDate() + 6);
-          return eventDate >= weekStart && eventDate <= weekEnd;
-        }
-        return true; // monthly view shows all events
-      });
-  }, [events, viewMode, selectedDate]);
+    // Filter by view mode
+    return calendarEvents.filter((event) => {
+      const eventDate = new Date(event.start);
+
+      if (viewMode === "daily") {
+        return (
+          eventDate.getDate() === selectedDate.getDate() &&
+          eventDate.getMonth() === selectedDate.getMonth() &&
+          eventDate.getFullYear() === selectedDate.getFullYear()
+        );
+      } else if (viewMode === "weekly") {
+        const weekStart = new Date(selectedDate);
+        weekStart.setDate(selectedDate.getDate() - selectedDate.getDay());
+        const weekEnd = new Date(selectedDate);
+        weekEnd.setDate(selectedDate.getDate() + 6);
+        return eventDate >= weekStart && eventDate <= weekEnd;
+      }
+      return true; // monthly view shows all events
+    });
+  }, [events, assignments, viewMode, selectedDate]);
 
   const handleEventClick = useCallback(
     (eventId: string) => {
-      router.push(`/events/${eventId}`);
+      if (eventId.startsWith("shift-")) {
+        // Handle shift click - could redirect to shift details or employee schedule
+        router.push("/employee-schedule");
+      } else {
+        // Handle event click
+        router.push(`/events/${eventId}`);
+      }
     },
     [router]
   );
@@ -197,7 +261,7 @@ export default function Schedule(): React.ReactElement {
 
       {isLoading ? (
         <div className="loading-container">
-          <p className="text-primary-dark">Loading events...</p>
+          <p className="text-primary-dark">Loading events and shifts...</p>
         </div>
       ) : (
         <TutorialHighlight
@@ -218,9 +282,10 @@ export default function Schedule(): React.ReactElement {
         className="shift-list"
       >
         <div className="mt-4">
-          {/* This is where shifts would be displayed */}
           <p className="text-gray-500 text-center">
-            No shift scheduled for this event
+            {assignments.length > 0 
+              ? `${assignments.length} shift(s) scheduled` 
+              : "No shifts scheduled"}
           </p>
         </div>
       </TutorialHighlight>

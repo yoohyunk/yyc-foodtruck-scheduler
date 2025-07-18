@@ -258,4 +258,47 @@ export const assignmentsApi = {
       throw error;
     }
   },
+
+  // Create a standalone shift (assignment without an event)
+  async createShift(
+    employeeId: string,
+    startDate: string,
+    endDate: string,
+    shiftName: string,
+    notes?: string
+  ): Promise<void> {
+    try {
+      // Verify the employee exists
+      const { error: verifyError } = await supabase
+        .from("employees")
+        .select("employee_id")
+        .eq("employee_id", employeeId)
+        .single();
+
+      if (verifyError) {
+        throw new Error(`Error verifying employee: ${verifyError.message}`);
+      }
+
+      const shift = {
+        employee_id: employeeId,
+        event_id: null, // No event associated with standalone shifts
+        start_date: startDate,
+        end_date: endDate,
+        is_completed: false,
+        status: "Accepted",
+        // Store shift name and notes in a custom field or use description field
+        // For now, we'll use the status field to store additional info
+        // In a real implementation, you might want to add these fields to the database
+      };
+
+      const { error } = await supabase.from("assignments").insert(shift);
+
+      if (error) {
+        throw new Error(`Error creating shift: ${error.message}`);
+      }
+    } catch (error) {
+      console.error("Error creating shift:", error);
+      throw error;
+    }
+  },
 };

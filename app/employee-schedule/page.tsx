@@ -62,11 +62,26 @@ export default function EmplpyeeSchedule(): React.ReactElement {
         const serverScheduleData =
           await assignmentsApi.getAssignmentsByEmployeeId(employee.employee_id);
 
-        // Combine assignments and fetch event details
-        const allAssignments = [...driverScheduleData, ...serverScheduleData];
+        // Also fetch standalone shifts (assignments without events)
+        const { data: standaloneShifts, error: shiftsError } = await supabase
+          .from("assignments")
+          .select("*")
+          .eq("employee_id", employee.employee_id)
+          .is("event_id", null);
 
-        // Get unique event IDs
-        const eventIds = [...new Set(allAssignments.map((a) => a.event_id))];
+        if (shiftsError) {
+          console.error("Error fetching standalone shifts:", shiftsError);
+        }
+
+        // Combine all assignments
+        const allAssignments = [
+          ...driverScheduleData, 
+          ...serverScheduleData, 
+          ...(standaloneShifts || [])
+        ];
+
+        // Get unique event IDs (excluding null for standalone shifts)
+        const eventIds = [...new Set(allAssignments.map((a) => a.event_id).filter(id => id !== null))];
 
         // Fetch event details
         const { data: events } = await supabase
@@ -83,7 +98,7 @@ export default function EmplpyeeSchedule(): React.ReactElement {
         // Add event details to assignments
         const assignmentsWithEvents = allAssignments.map((assignment) => ({
           ...assignment,
-          event: eventMap.get(assignment.event_id),
+          event: assignment.event_id ? eventMap.get(assignment.event_id) : null,
         }));
 
         setAssignments(assignmentsWithEvents);
@@ -180,9 +195,17 @@ export default function EmplpyeeSchedule(): React.ReactElement {
         const startDate = new Date(assignment.start_date);
         const endDate = new Date(assignment.end_date);
 
+        // Determine title based on whether it's an event assignment or standalone shift
+        let title = "Assignment";
+        if (assignment.event?.title) {
+          title = assignment.event.title;
+        } else if (!assignment.event_id) {
+          title = "Standalone Shift";
+        }
+
         return {
           id: assignment.event_id || assignment.id,
-          title: assignment.event?.title || "Assignment",
+          title: title,
           start: startDate,
           end: endDate,
         };
