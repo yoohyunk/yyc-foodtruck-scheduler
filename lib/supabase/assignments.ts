@@ -200,18 +200,39 @@ export const assignmentsApi = {
       event_id: string;
       start_date: string;
       end_date: string;
+      events: {
+        id: string;
+        title: string;
+        start_date: string;
+        end_date: string;
+      };
     }>
   > {
     const { data, error } = await supabase
       .from("assignments")
-      .select("*")
+      .select(
+        `
+        *,
+        events (
+          id,
+          title,
+          start_date,
+          end_date
+        )
+      `
+      )
       .eq("employee_id", employeeId);
 
     if (error) {
       throw new Error(`Error fetching assignments: ${error.message}`);
     }
 
-    return data || [];
+    return (data || []).map((item) => ({
+      ...item,
+      events: Array.isArray(item.events)
+        ? item.events[0] || { title: null }
+        : item.events,
+    }));
   },
 
   // Get all truck assignments for an employee

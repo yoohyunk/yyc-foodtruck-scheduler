@@ -1,0 +1,112 @@
+{
+  "province": "Alberta",
+  "year": 2025,
+  "federal_brackets": [
+    {
+      "from": 0,
+      "to": 55967,
+      "rate": 0.15
+    },
+    {
+      "from": 55967,
+      "to": 111733,
+      "rate": 0.205
+    },
+    {
+      "from": 111733,
+      "to": 173205,
+      "rate": 0.26
+    },
+    {
+      "from": 173205,
+      "to": 246752,
+      "rate": 0.29
+    },
+    {
+      "from": 246752,
+      "to": null,
+      "rate": 0.33
+    }
+  ],
+  "provincial_brackets": [
+    {
+      "from": 0,
+      "to": 60000,
+      "rate": 0.08
+    },
+    {
+      "from": 60000,
+      "to": 151234,
+      "rate": 0.1
+    },
+    {
+      "from": 151234,
+      "to": 181481,
+      "rate": 0.12
+    },
+    {
+      "from": 181481,
+      "to": 241974,
+      "rate": 0.13
+    },
+    {
+      "from": 241974,
+      "to": 362961,
+      "rate": 0.14
+    },
+    {
+      "from": 362961,
+      "to": null,
+      "rate": 0.15
+    }
+  ],
+  "cpp_contribution": {
+    "rate": 0.0595,
+    "max_contribution": 3754.45,
+    "exemption": 3500
+  },
+  "ei_premium": {
+    "rate": 0.0163,
+    "max_contribution": 1002.45
+  },
+  "calculation_method": {
+    "federal_tax": "For each bracket, compute tax = max(min(income, to) - from, 0) × rate, then sum all bracket taxes",
+    "provincial_tax": "Same calculation method as federal, using provincial brackets",
+    "cpp": "min(income - exemption, max_contribution) × rate",
+    "ei": "min(income, max_contribution) × rate"
+  },
+  "example": {
+    "taxable_income": 75000,
+    "federal_tax_breakdown": [
+      {
+        "range": "0–55,967",
+        "tax": 8395.05
+      },
+      {
+        "range": "55,967–75,000",
+        "tax": 3896.77
+      }
+    ],
+    "provincial_tax_breakdown": [
+      {
+        "range": "0–60,000",
+        "tax": 4800.0
+      },
+      {
+        "range": "60,000–75,000",
+        "tax": 1500.0
+      }
+    ],
+    "cpp_contribution": 4254.45,
+    "ei_premium": 1002.45
+  },
+  "notes": [
+    "Federal brackets indexed for 2025 inflation",
+    "Alberta provincial brackets indexed 2% from 2024 via Bill 32",
+    "New 8% bracket for first $60k in Alberta",
+    "CPP contribution rate increased to 5.95% for 2025",
+    "EI premium rate set at 1.63% for 2025",
+    "All amounts are annual and subject to change based on government announcements"
+  ],
+  "source": "Canada Revenue Agency and Alberta Treasury Board and Finance"
+}
