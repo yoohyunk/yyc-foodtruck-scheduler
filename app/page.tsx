@@ -7,11 +7,13 @@ import { useTutorial } from "./tutorial/TutorialContext";
 import { TutorialHighlight } from "./components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
+import { useRouter } from "next/navigation";
 
 export default function Home(): ReactElement {
   const [events, setEvents] = useState<HomePageEvent[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   const { shouldHighlight } = useTutorial();
 
@@ -116,8 +118,78 @@ export default function Home(): ReactElement {
                   Loading requests...
                 </p>
               ) : timeOffRequests.length > 0 ? (
-                timeOffRequests.map((request, index) => (
-                  <div key={index} className="section-card">
+                timeOffRequests
+                  .filter((request) => request.status !== "Approved")
+                  .map((request, index) => (
+                    <div
+                      key={index}
+                      className="section-card cursor-pointer hover:bg-blue-50"
+                      onClick={() => router.push(`/requests?employee_id=${request.employee_id}`)}
+                    >
+                      <h3 className="section-card-title">{request.type}</h3>
+                      <p className="section-card-text">
+                        <strong>Start Date:</strong>{" "}
+                        {new Date(request.start_datetime).toLocaleDateString()}
+                      </p>
+                      <p className="section-card-text">
+                        <strong>End Date:</strong>{" "}
+                        {new Date(request.end_datetime).toLocaleDateString()}
+                      </p>
+                      <p className="section-card-text">
+                        <strong>Status:</strong>
+                        <span
+                          className="ml-2 px-2 py-1 rounded text-xs"
+                          style={{
+                            background:
+                              request.status === "Approved"
+                                ? "var(--success-light)"
+                                : request.status === "Rejected"
+                                ? "var(--error-light)"
+                                : "var(--warning-light)",
+                            color:
+                              request.status === "Approved"
+                                ? "var(--success-dark)"
+                                : request.status === "Rejected"
+                                ? "var(--error-dark)"
+                                : "var(--warning-dark)",
+                          }}
+                        >
+                          {request.status}
+                        </span>
+                      </p>
+                      {request.reason && (
+                        <p className="section-card-text">
+                          <strong>Reason:</strong> {request.reason}
+                        </p>
+                      )}
+                    </div>
+                  ))
+              ) : (
+                <p style={{ color: "var(--text-muted)" }}>
+                  No upcoming time-off requests.
+                </p>
+              )}
+            </div>
+          </section>
+        </TutorialHighlight>
+
+        {/* Approved Time-Off Requests Section */}
+        <section data-section="approved-timeoff-requests">
+          <h2 className="section-title">Approved Time-Off Requests</h2>
+          <div className="grid gap-4">
+            {isLoading ? (
+              <p style={{ color: "var(--text-muted)" }}>
+                Loading requests...
+              </p>
+            ) : timeOffRequests.filter((request) => request.status === "Approved").length > 0 ? (
+              timeOffRequests
+                .filter((request) => request.status === "Approved")
+                .map((request, index) => (
+                  <div
+                    key={index}
+                    className="section-card cursor-pointer hover:bg-green-50"
+                    onClick={() => router.push(`/requests?employee_id=${request.employee_id}&status=Approved`)}
+                  >
                     <h3 className="section-card-title">{request.type}</h3>
                     <p className="section-card-text">
                       <strong>Start Date:</strong>{" "}
@@ -132,18 +204,8 @@ export default function Home(): ReactElement {
                       <span
                         className="ml-2 px-2 py-1 rounded text-xs"
                         style={{
-                          background:
-                            request.status === "Approved"
-                              ? "var(--success-light)"
-                              : request.status === "Rejected"
-                                ? "var(--error-light)"
-                                : "var(--warning-light)",
-                          color:
-                            request.status === "Approved"
-                              ? "var(--success-dark)"
-                              : request.status === "Rejected"
-                                ? "var(--error-dark)"
-                                : "var(--warning-dark)",
+                          background: "var(--success-light)",
+                          color: "var(--success-dark)",
                         }}
                       >
                         {request.status}
@@ -156,14 +218,13 @@ export default function Home(): ReactElement {
                     )}
                   </div>
                 ))
-              ) : (
-                <p style={{ color: "var(--text-muted)" }}>
-                  No upcoming time-off requests.
-                </p>
-              )}
-            </div>
-          </section>
-        </TutorialHighlight>
+            ) : (
+              <p style={{ color: "var(--text-muted)" }}>
+                No approved time-off requests.
+              </p>
+            )}
+          </div>
+        </section>
       </main>
     </div>
   );
