@@ -79,14 +79,6 @@ export const employeeAvailabilityApi = {
     excludeEventId?: string
   ): Promise<{ isAvailable: boolean; reason: string }> {
     try {
-      // First check if employee is marked as available
-      if (!employee.is_available) {
-        return {
-          isAvailable: false,
-          reason: "Employee is marked as unavailable",
-        };
-      }
-
       // Parse event times
       const eventStart = new Date(eventStartDate);
       const eventEnd = new Date(eventEndDate);
@@ -102,12 +94,38 @@ export const employeeAvailabilityApi = {
       ];
       const eventDay = dayNames[dayOfWeek];
 
-      // Check day availability
-      const availability = employee.availability as string[] | null;
-      if (!availability || !availability.includes(eventDay)) {
+      // Check day availability from employee_availability table
+      const { data: availabilityData, error: availabilityError } = await supabase
+        .from("employee_availability")
+        .select("day_of_week, start_time, end_time")
+        .eq("employee_id", employee.employee_id)
+        .eq("day_of_week", eventDay);
+
+      if (availabilityError) {
+        console.error("Error fetching employee availability:", availabilityError);
+        return {
+          isAvailable: false,
+          reason: "Error checking employee availability",
+        };
+      }
+
+      // Check if employee is available on this day
+      if (!availabilityData || availabilityData.length === 0) {
         return {
           isAvailable: false,
           reason: `Not available on ${eventDay}`,
+        };
+      }
+
+      // Check if the event time falls within the employee's available hours
+      const dayAvailability = availabilityData[0];
+      const eventStartTime = eventStart.toTimeString().slice(0, 5); // HH:MM format
+      const eventEndTime = eventEnd.toTimeString().slice(0, 5); // HH:MM format
+
+      if (eventStartTime < dayAvailability.start_time || eventEndTime > dayAvailability.end_time) {
+        return {
+          isAvailable: false,
+          reason: `Event time (${eventStartTime}-${eventEndTime}) outside available hours (${dayAvailability.start_time}-${dayAvailability.end_time}) on ${eventDay}`,
         };
       }
 
@@ -301,7 +319,38 @@ export const employeeAvailabilityApi = {
     eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     try {
-      // Build query to get employees
+      // Get the day of the week for the event
+      const eventDateTime = new Date(eventStartDate);
+      const dayOfWeek = eventDateTime.getDay();
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const eventDay = dayNames[dayOfWeek];
+
+      // First get employee IDs who have availability for this day
+      const { data: availableEmployeeIds, error: availabilityError } = await supabase
+        .from("employee_availability")
+        .select("employee_id")
+        .eq("day_of_week", eventDay);
+
+      if (availabilityError) {
+        throw new Error(`Error fetching available employee IDs: ${availabilityError.message}`);
+      }
+
+      if (!availableEmployeeIds || availableEmployeeIds.length === 0) {
+        console.log("EmployeeAvailability - No employees available for day:", eventDay);
+        return [];
+      }
+
+      const employeeIds = availableEmployeeIds.map(row => row.employee_id);
+
+      // Build query to get employees who have availability for this day
       let query = supabase
         .from("employees")
         .select(
@@ -310,7 +359,7 @@ export const employeeAvailabilityApi = {
           addresses (*)
         `
         )
-        .eq("is_available", true);
+        .in("employee_id", employeeIds);
 
       // Filter by employee type if specified
       if (employeeType !== "all") {
@@ -333,33 +382,13 @@ export const employeeAvailabilityApi = {
         employees.length
       );
 
-      // Get the day of the week for the event
-      const eventDateTime = new Date(eventStartDate);
-      const dayOfWeek = eventDateTime.getDay();
-      const dayNames = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ];
-      const eventDay = dayNames[dayOfWeek];
-
-      // Filter employees by day availability first (fast filter)
-      const employeesWithDayAvailability = employees.filter((employee) => {
-        const availability = employee.availability as string[] | null;
-        return availability && availability.includes(eventDay);
-      });
-
       console.log(
         "EmployeeAvailability - Employees with day availability for",
         eventDay + ":",
-        employeesWithDayAvailability.length
+        employees.length
       );
 
-      if (employeesWithDayAvailability.length === 0) {
+      if (employees.length === 0) {
         console.log(
           "EmployeeAvailability - No employees available for day:",
           eventDay
@@ -369,7 +398,7 @@ export const employeeAvailabilityApi = {
 
       // Check availability for each employee
       const availableEmployees = await Promise.all(
-        employeesWithDayAvailability.map(async (employee) => {
+        employees.map(async (employee) => {
           const availability = await this.checkEmployeeAvailability(
             employee,
             eventStartDate,
