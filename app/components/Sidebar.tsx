@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import {
   FiUsers,
   FiCalendar,
@@ -11,36 +10,67 @@ import {
   FiBarChart2,
   FiHome,
   FiInfo,
-  FiList,
 } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { NavLink } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
-import { TutorialHighlight } from "./TutorialHighlight";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { SidebarSection } from "./SidebarSection";
+import { SidebarLink } from "./SidebarLink";
 
-// Sidebar navigation links
-const sidebarLinks: NavLink[] = [
-  { name: "Dashboard", href: "/", icon: <FiHome /> },
-  { name: "Employees", href: "/employees/", icon: <FiUsers /> },
-  { name: "Add Employee", href: "/employees/newEmployee", icon: <FiPlus /> },
-  { name: "Pending Employees", href: "/pending-employees/", icon: <FiList /> },
-  { name: "Events", href: "/events/", icon: <FaRegCalendarAlt /> },
-  { name: "Add Shift", href: "/schedule/new", icon: <FiPlus /> },
-  { name: "Add Event", href: "/events/newEvent", icon: <FiPlus /> },
-  { name: "Schedule", href: "/schedule/", icon: <FiCalendar /> },
-  { name: "Trucks", href: "/trucks/", icon: <FiTruck /> },
-  { name: "Add Trucks", href: "/trucks/add-trucks", icon: <FiPlus /> },
-  { name: "Packing List", href: "/about", icon: <FiInfo /> },
+// Sidebar sections with nested navigation links
+const sidebarSections = [
+  {
+    name: "Employees",
+    icon: <FiUsers />,
+    mainHref: "/employees/",
+    links: [
+      {
+        name: "Add Employee",
+        href: "/employees/newEmployee",
+        icon: <FiPlus />,
+      },
+      {
+        name: "Pending Employees",
+        href: "/pending-employees",
+        icon: <FiUsers />,
+      },
+    ],
+  },
+  {
+    name: "Events",
+    icon: <FaRegCalendarAlt />,
+    mainHref: "/events/",
+    links: [{ name: "Add Event", href: "/events/newEvent", icon: <FiPlus /> }],
+  },
+  {
+    name: "Schedule",
+    icon: <FiCalendar />,
+    mainHref: "/schedule/",
+    links: [{ name: "Add Shift", href: "/schedule/new", icon: <FiPlus /> }],
+  },
+  {
+    name: "Trucks",
+    icon: <FiTruck />,
+    mainHref: "/trucks/",
+    links: [
+      { name: "Add Trucks", href: "/trucks/add-trucks", icon: <FiPlus /> },
+    ],
+  },
+];
+
+// Simple navigation links (non-dropdown)
+const simpleLinks: NavLink[] = [
   { name: "Requests", href: "/requests/", icon: <FiFileText /> },
-
   { name: "Reports", href: "/reports/", icon: <FiBarChart2 /> },
+  { name: "Packing List", href: "/about", icon: <FiInfo /> },
 ];
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const pathname = usePathname();
   const { isAdmin, loading } = useAuth();
   const shouldDisable = !loading && !isAdmin;
@@ -74,12 +104,59 @@ export default function Sidebar() {
       window.removeEventListener("toggleSidebar", handleToggleSidebar);
   }, []);
 
-  const isActive = (href: string) => {
-    const normalize = (path: string) => path.replace(/\/$/, "");
-    return normalize(pathname) === normalize(href.replace(/\/$/, ""));
-  };
+  const isActive = React.useCallback(
+    (href: string) => {
+      const normalize = (path: string) => path.replace(/\/$/, "");
+      return normalize(pathname) === normalize(href.replace(/\/$/, ""));
+    },
+    [pathname]
+  );
 
   const closeSidebar = () => setIsOpen(false);
+
+  const toggleSection = React.useCallback((sectionName: string) => {
+    setExpandedSections((prev) => {
+      const isCurrentlyExpanded = prev.includes(sectionName);
+      if (isCurrentlyExpanded) {
+        return prev.filter((name) => name !== sectionName);
+      } else {
+        return [...prev, sectionName];
+      }
+    });
+  }, []);
+
+  const isSectionExpanded = (sectionName: string) => {
+    return expandedSections.includes(sectionName);
+  };
+
+  const hasActiveLinkInSection = React.useCallback(
+    (section: { links: NavLink[]; mainHref: string }) => {
+      return isActive(section.mainHref);
+    },
+    [isActive]
+  );
+
+  useEffect(() => {
+    const newExpandedSections: string[] = [];
+
+    sidebarSections.forEach((section) => {
+      if (
+        isActive(section.mainHref) ||
+        section.links.some((link) => isActive(link.href))
+      ) {
+        newExpandedSections.push(section.name);
+      }
+    });
+
+    setExpandedSections((prev) => {
+      if (prev.length !== newExpandedSections.length)
+        return newExpandedSections;
+      return prev.every((section) => newExpandedSections.includes(section)) &&
+        newExpandedSections.every((section) => prev.includes(section))
+        ? prev
+        : newExpandedSections;
+    });
+  }, [pathname, isActive]);
 
   return (
     <>
@@ -97,7 +174,7 @@ export default function Sidebar() {
         style={{ background: "var(--primary-dark)" }}
       >
         <div className="sidebar-content">
-          {/* Navigation Links */}
+          {/* Navigation Sections */}
           <div>
             <nav
               style={{
@@ -107,110 +184,42 @@ export default function Sidebar() {
                 maxHeight: "100%",
               }}
             >
-              {sidebarLinks.map((link) => {
-                const isAddItem =
-                  link.name.startsWith("Add") ||
-                  link.name === "Packing List" ||
-                  link.name === "Pending Employees";
-                return (
-                  <TutorialHighlight
-                    key={link.href}
-                    isHighlighted={shouldHighlight(
-                      `.sidebar-nav-${link.name.toLowerCase().replace(/\s/g, "-")}`
-                    )}
-                    className={`sidebar-nav-${link.name.toLowerCase().replace(/\s/g, "-")}`}
-                  >
-                    <Link
-                      href={link.href}
-                      className="flex items-center gap-4 rounded-xl transition-all duration-200 group"
-                      style={{
-                        paddingLeft: isAddItem ? "3.5rem" : "1rem",
-                        paddingRight: "1rem",
-                        paddingTop: isAddItem ? "0.5rem" : "0.75rem",
-                        paddingBottom: isAddItem ? "0.5rem" : "0.75rem",
-                        background: isActive(link.href)
-                          ? "var(--primary-light)"
-                          : "transparent",
-                        color: isActive(link.href)
-                          ? "var(--secondary-dark)"
-                          : "var(--primary-light)",
-                        boxShadow: isActive(link.href)
-                          ? "0 4px 16px rgba(255, 213, 134, 0.3)"
-                          : undefined,
-                        transform: isActive(link.href)
-                          ? "scale(1.05)"
-                          : undefined,
-                        fontWeight: 600,
-                        opacity:
-                          link.name.startsWith("Add") && shouldDisable
-                            ? 0.5
-                            : 1,
-                        cursor:
-                          link.name.startsWith("Add") && shouldDisable
-                            ? "not-allowed"
-                            : "pointer",
-                        border: isActive(link.href)
-                          ? "2px solid var(--primary-light)"
-                          : "2px solid transparent",
-                      }}
-                      tabIndex={
-                        link.name.startsWith("Add") && shouldDisable ? -1 : 0
-                      }
-                      aria-disabled={
-                        link.name.startsWith("Add") && shouldDisable
-                      }
-                      onClick={(e) => {
-                        if (link.name.startsWith("Add") && shouldDisable)
-                          e.preventDefault();
-                        if (isMobile) closeSidebar();
-                      }}
-                      title={
-                        link.name.startsWith("Add") && shouldDisable
-                          ? "Admin only"
-                          : link.name
-                      }
-                      onMouseEnter={(e) => {
-                        if (
-                          !isActive(link.href) &&
-                          !(link.name.startsWith("Add") && shouldDisable)
-                        ) {
-                          e.currentTarget.style.background =
-                            "var(--primary-light)";
-                          e.currentTarget.style.color = "var(--secondary-dark)";
-                          e.currentTarget.style.transform = "scale(1.02)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive(link.href)) {
-                          e.currentTarget.style.background = "transparent";
-                          e.currentTarget.style.color = "var(--primary-light)";
-                          e.currentTarget.style.transform = "scale(1)";
-                        }
-                      }}
-                    >
-                      <span
-                        className="transition-colors duration-200"
-                        style={{
-                          color: isActive(link.href)
-                            ? "var(--secondary-dark)"
-                            : "var(--primary-light)",
-                          fontSize: isAddItem ? "1rem" : "1.25rem",
-                        }}
-                      >
-                        {link.icon}
-                      </span>
-                      <span
-                        className="font-semibold"
-                        style={{
-                          fontSize: isAddItem ? "0.875rem" : "1rem",
-                        }}
-                      >
-                        {link.name}
-                      </span>
-                    </Link>
-                  </TutorialHighlight>
-                );
-              })}
+              <SidebarLink
+                link={{ name: "Dashboard", href: "/", icon: <FiHome /> }}
+                isActive={isActive}
+                shouldHighlight={shouldHighlight}
+                shouldDisable={shouldDisable}
+                onCloseSidebar={closeSidebar}
+                isMobile={isMobile}
+              />
+              {/* Dropdown Sections */}
+              {sidebarSections.map((section) => (
+                <SidebarSection
+                  key={section.name}
+                  section={section}
+                  isExpanded={isSectionExpanded(section.name)}
+                  hasActive={hasActiveLinkInSection(section)}
+                  onToggle={() => toggleSection(section.name)}
+                  onCloseSidebar={closeSidebar}
+                  isActive={isActive}
+                  shouldHighlight={shouldHighlight}
+                  shouldDisable={shouldDisable}
+                  isMobile={isMobile}
+                />
+              ))}
+
+              {/* Simple Links */}
+              {simpleLinks.map((link) => (
+                <SidebarLink
+                  key={link.href}
+                  link={link}
+                  isActive={isActive}
+                  shouldHighlight={shouldHighlight}
+                  shouldDisable={shouldDisable}
+                  onCloseSidebar={closeSidebar}
+                  isMobile={isMobile}
+                />
+              ))}
             </nav>
           </div>
         </div>
