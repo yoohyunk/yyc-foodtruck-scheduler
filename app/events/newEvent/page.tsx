@@ -57,6 +57,7 @@ export default function AddEventPage(): ReactElement {
     country: "",
     latitude: "",
     longitude: "",
+    notes: "",
   });
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -159,7 +160,7 @@ export default function AddEventPage(): ReactElement {
   }, []);
 
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ): void => {
     const { name, value } = e.target;
     setFormData({
@@ -760,6 +761,19 @@ export default function AddEventPage(): ReactElement {
                 Check if payment has been received in advance
               </span>
             </div>
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="notes" className="input-label">
+              Notes (Optional)
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              value={formData.notes as string}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
 
           <div className="input-group">
