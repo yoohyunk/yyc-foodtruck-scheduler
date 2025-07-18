@@ -11,6 +11,7 @@ import {
   FiBarChart2,
   FiHome,
   FiInfo,
+  FiList,
 } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { NavLink } from "../types";
@@ -24,6 +25,7 @@ const sidebarLinks: NavLink[] = [
   { name: "Dashboard", href: "/", icon: <FiHome /> },
   { name: "Employees", href: "/employees/", icon: <FiUsers /> },
   { name: "Add Employee", href: "/employees/newEmployee", icon: <FiPlus /> },
+  { name: "Pending Employees", href: "/pending-employees/", icon: <FiList /> },
   { name: "Events", href: "/events/", icon: <FaRegCalendarAlt /> },
   { name: "Add Shift", href: "/schedule/new", icon: <FiPlus /> },
   { name: "Add Event", href: "/events/newEvent", icon: <FiPlus /> },
@@ -32,6 +34,7 @@ const sidebarLinks: NavLink[] = [
   { name: "Add Trucks", href: "/trucks/add-trucks", icon: <FiPlus /> },
   { name: "Packing List", href: "/about", icon: <FiInfo /> },
   { name: "Requests", href: "/requests/", icon: <FiFileText /> },
+
   { name: "Reports", href: "/reports/", icon: <FiBarChart2 /> },
 ];
 
@@ -106,7 +109,9 @@ export default function Sidebar() {
             >
               {sidebarLinks.map((link) => {
                 const isAddItem =
-                  link.name.startsWith("Add") || link.name === "Packing List";
+                  link.name.startsWith("Add") ||
+                  link.name === "Packing List" ||
+                  link.name === "Pending Employees";
                 return (
                   <TutorialHighlight
                     key={link.href}
