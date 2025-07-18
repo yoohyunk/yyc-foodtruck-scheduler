@@ -47,17 +47,51 @@ export const employeeAvailabilityApi = {
     employeeId: string,
     availability: EmployeeAvailability
   ): Promise<EmployeeAvailability> {
-    const { data, error } = await supabase
-      .from("employee_availability")
-      .upsert({ ...availability, employee_id: employeeId })
-      .select()
-      .single();
+    console.log(`🔄 Upserting availability for ${employeeId}:`, availability);
+    
+    // Remove id from the payload if present
+    const { id, ...upsertPayload } = availability;
+    
+    try {
+      // First, delete any existing availability for this employee and day
+      const { error: deleteError } = await supabase
+        .from("employee_availability")
+        .delete()
+        .eq("employee_id", employeeId)
+        .eq("day_of_week", availability.day_of_week);
 
-    if (error) {
-      throw new Error("Failed to upsert employee availability");
+      if (deleteError) {
+        console.error(`❌ Error deleting existing availability:`, deleteError);
+        if (deleteError.code === '42501') {
+          throw new Error("Permission denied: Cannot delete availability due to security policies");
+        }
+        throw new Error(`Failed to delete existing employee availability: ${deleteError.message}`);
+      }
+
+      // Then insert the new availability
+      const { data, error } = await supabase
+        .from("employee_availability")
+        .insert({ ...upsertPayload, employee_id: employeeId })
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`❌ Error upserting availability for ${employeeId}:`, error);
+        if (error.code === '42501') {
+          throw new Error("Permission denied: Cannot insert availability due to security policies");
+        }
+        if (error.code === '23505') {
+          throw new Error("Duplicate availability record: This day is already set for this employee");
+        }
+        throw new Error(`Failed to upsert employee availability: ${error.message}`);
+      }
+
+      console.log(`✅ Successfully upserted availability for ${employeeId}:`, data);
+      return data;
+    } catch (error) {
+      console.error(`❌ Error in upsertEmployeeAvailability for ${employeeId}:`, error);
+      throw error;
     }
-
-    return data;
   },
 
   async deleteEmployeeAvailability(availabilityId: string): Promise<void> {

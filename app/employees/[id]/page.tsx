@@ -583,7 +583,29 @@ export default function EditEmployeePage(): ReactElement {
         }
       }
 
-      // Show success modal instead of alert
+      // upsert availability
+      try {
+        console.log("🔄 Starting availability update...");
+        await handleUpsertAvailability();
+        console.log("✅ Availability updated successfully");
+      } catch (error) {
+        console.error("❌ Error updating availability:", error);
+        console.error("❌ Error details:", {
+          message: error instanceof Error ? error.message : "Unknown error",
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        setValidationErrors([
+          {
+            field: "availability",
+            message: `Failed to update availability: ${error instanceof Error ? error.message : "Unknown error"}`,
+            element: null,
+          },
+        ]);
+        setShowErrorModal(true);
+        return;
+      }
+
+      // Show success modal only after ALL operations succeed
       setValidationErrors([
         {
           field: "success",
@@ -592,9 +614,6 @@ export default function EditEmployeePage(): ReactElement {
         },
       ]);
       setShowErrorModal(true);
-
-      // upsert availability
-      handleUpsertAvailability();
 
       // Redirect after closing modal
       setTimeout(() => {
@@ -1218,59 +1237,64 @@ const useAvailability = (id: string) => {
     setFormAvailability(newAvailability);
   };
 
-  const handleUpsertAvailability = () => {
-    // If formAvailability is empty, delete all existing availability
-    if (formAvailability.length === 0) {
-      employeeAvailability?.forEach((availability) => {
-        deleteAvailability(availability.id);
-      });
-      return;
-    }
+  const handleUpsertAvailability = async () => {
+    console.log("🔄 Starting availability upsert...");
+    
+    try {
+      // If formAvailability is empty, delete all existing availability
+      if (formAvailability.length === 0) {
+        console.log("🗑️ Deleting all availability records...");
+        if (employeeAvailability && employeeAvailability.length > 0) {
+          for (const availability of employeeAvailability) {
+            await deleteAvailability(availability.id);
+          }
+        }
+        console.log("✅ All availability records deleted");
+        return;
+      }
 
-    formAvailability.forEach((availability) => {
-      const originalDayAvailability = employeeAvailability?.find(
-        (a) => a.day_of_week === availability.day_of_week
+      console.log("📝 Upserting availability records:", formAvailability);
+
+      // Only process days that are actually selected (have times set)
+      const selectedAvailability = formAvailability.filter(
+        (availability) => availability.start_time && availability.end_time
       );
 
-      // If the day is selected in formData.availability but has empty times,
-      // use default times (00:00 - 23:59)
-      let startTime = availability.start_time;
-      let endTime = availability.end_time;
+      console.log("📝 Selected availability records to upsert:", selectedAvailability);
 
-      if (startTime === "" || endTime === "") {
-        startTime = "00:00";
-        endTime = "23:59:59";
+      for (const availability of selectedAvailability) {
+        // Ensure we have valid times
+        let startTime = availability.start_time;
+        let endTime = availability.end_time;
+
+        // Use defaults if times are empty or invalid
+        if (!startTime || startTime === "") {
+          startTime = "00:00";
+        }
+        if (!endTime || endTime === "") {
+          endTime = "23:59";
+        }
+
+        if (startTime >= endTime) {
+          throw new Error("Start time must be before end time");
+        }
+
+        // Create availability object with valid times
+        const availabilityToUpsert = {
+          ...availability,
+          start_time: startTime,
+          end_time: endTime,
+        };
+
+        console.log(`🔄 Upserting day: ${availability.day_of_week} (${startTime} - ${endTime})`);
+        await upsertEmployeeAvailability(availabilityToUpsert);
       }
 
-      // If there was an original availability but now we have empty times,
-      // delete the original entry
-      if (
-        Boolean(originalDayAvailability) &&
-        availability.start_time === "" &&
-        availability.end_time === ""
-      ) {
-        deleteAvailability(originalDayAvailability?.id || "");
-        return;
-      }
-
-      // Skip if both times are empty (day is not selected)
-      if (availability.start_time === "" && availability.end_time === "") {
-        return;
-      }
-
-      if (startTime >= endTime) {
-        throw new Error("Start time must be before end time");
-      }
-
-      // Create availability object with potentially default times
-      const availabilityToUpsert = {
-        ...availability,
-        start_time: startTime,
-        end_time: endTime,
-      };
-
-      upsertEmployeeAvailability(availabilityToUpsert);
-    });
+      console.log("✅ All availability records upserted successfully");
+    } catch (error) {
+      console.error("❌ Error in handleUpsertAvailability:", error);
+      throw error;
+    }
   };
 
   return {
