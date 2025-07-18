@@ -1,10 +1,18 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { Employee } from "@/app/types";
 import { TutorialHighlight } from "../../../components/TutorialHighlight";
-import { calculateDistance } from "../../../AlgApi/distance";
-import { wagesApi } from "@/lib/supabase/wages";
+import { calculateStraightLineDistance } from "@/lib/utils/distance";
+import { eventsApi } from "@/lib/supabase/events";
 import { Tables } from "@/database.types";
 import { createClient } from "@/lib/supabase/client";
+import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
+import ErrorModal from "../../../components/ErrorModal";
 
 interface EmployeeWithDistanceAndWage extends Employee {
   distance?: number;
@@ -32,7 +40,7 @@ interface EmployeeSelectionModalProps {
   onFilterChange: (filter: string) => void;
 }
 
-// Memoized employee item component to prevent unnecessary re-renders
+// Memoized employee item component
 const EmployeeItem = React.memo(
   ({
     employee,
@@ -66,18 +74,27 @@ const EmployeeItem = React.memo(
         } ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
       >
         <div className="flex-grow flex items-center justify-between w-full pl-3 mr-4">
-          <div>
-            <span className="font-semibold" style={{ whiteSpace: "nowrap" }}>
-              {employee.first_name} {employee.last_name}
-            </span>
-            <span className="text-sm text-gray-500 ml-2">
-              ({employee.employee_type || "Unknown"})
-            </span>
-            {!employee.isAvailable && employee.availabilityReason && (
-              <div className="text-xs text-red-600 mt-1">
-                ⚠️ {employee.availabilityReason}
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            {/* Availability indicator */}
+            <span
+              className={`inline-block w-2 h-2 rounded-full ${
+                employee.isAvailable ? "bg-green-500" : "bg-red-500"
+              }`}
+              title={employee.isAvailable ? "Available" : "Not Available"}
+            />
+            <div>
+              <span className="font-semibold" style={{ whiteSpace: "nowrap" }}>
+                {employee.first_name} {employee.last_name}
+              </span>
+              <span className="text-sm text-gray-500 ml-2">
+                ({employee.employee_type || "Unknown"})
+              </span>
+              {!employee.isAvailable && employee.availabilityReason && (
+                <div className="text-xs text-red-600 mt-1">
+                  ⚠️ {employee.availabilityReason}
+                </div>
+              )}
+            </div>
           </div>
           <div className="text-sm text-gray-700 flex items-center justify-end gap-4">
             <span className="mr-4">{formatDistance(employee.distance)}</span>
@@ -98,6 +115,9 @@ const EmployeeItem = React.memo(
 
 EmployeeItem.displayName = "EmployeeItem";
 
+// Global cache for employee data
+const employeeDataCache = new Map<string, EmployeeWithDistanceAndWage[]>();
+
 export default function EmployeeSelectionModal({
   isOpen,
   onClose,
@@ -114,12 +134,28 @@ export default function EmployeeSelectionModal({
     EmployeeWithDistanceAndWage[]
   >([]);
   const [isLoadingDistances, setIsLoadingDistances] = useState(false);
-  const [sortByDistance, setSortByDistance] = useState(false);
+  const [sortByDistance, setSortByDistance] = useState(true);
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(
     new Set()
   );
-  const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [localRequiredServers, setLocalRequiredServers] = useState(
+    event.number_of_servers_needed || 0
+  );
+  const [showServerDecreaseWarning, setShowServerDecreaseWarning] =
+    useState(false);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
   const supabase = createClient();
+
+  // Generate cache key for this event and filter combination
+  const cacheKey = useMemo(() => {
+    const employeeIds = employees
+      .map((emp) => emp.employee_id)
+      .sort()
+      .join(",");
+    const eventKey = `${event.id}-${event.start_date}-${event.end_date}`;
+    return `${eventKey}-${employeeFilter}-${employeeIds}`;
+  }, [event.id, event.start_date, event.end_date, employeeFilter, employees]);
 
   // Initialize selected employees when modal opens
   useEffect(() => {
@@ -129,197 +165,223 @@ export default function EmployeeSelectionModal({
         newSelectedEmployees.add(emp.employee_id);
       });
       setSelectedEmployees(newSelectedEmployees);
+      setLocalRequiredServers(event.number_of_servers_needed || 0);
     }
-  }, [isOpen, assignedEmployees]);
+  }, [isOpen, assignedEmployees, event.number_of_servers_needed]);
 
-  // Memoize the event key to prevent unnecessary recalculations
-  const eventKey = useMemo(() => {
-    return `${event.id}-${event.start_date}-${event.end_date}`;
-  }, [event.id, event.start_date, event.end_date]);
-
-  // Check employee availability for the event
+  // Check employee availability using centralized function
   const checkEmployeeAvailability = useCallback(
-    async (employee: Employee) => {
+    async (
+      employee: Employee
+    ): Promise<{ isAvailable: boolean; reason: string }> => {
       if (!event.start_date || !event.end_date) {
         return { isAvailable: true, reason: "" };
       }
 
-      const eventStart = new Date(event.start_date);
-      const eventEnd = new Date(event.end_date);
-      const dayOfWeek = eventStart.getDay();
-      const dayNames = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ];
-      const eventDay = dayNames[dayOfWeek];
-
-      // Check day availability
-      const availability = employee.availability as string[] | null;
-      if (!availability || !availability.includes(eventDay)) {
-        return {
-          isAvailable: false,
-          reason: `Not available on ${eventDay}`,
-        };
-      }
-
-      // Check for time off conflicts
-      const { data: timeOffRequests } = await supabase
-        .from("time_off_request")
-        .select("*")
-        .eq("employee_id", employee.employee_id)
-        .eq("status", "Accepted");
-
-      if (timeOffRequests && timeOffRequests.length > 0) {
-        const hasTimeOffConflict = timeOffRequests.some((request) => {
-          const requestStart = new Date(request.start_datetime);
-          const requestEnd = new Date(request.end_datetime);
-
-          return (
-            (requestStart <= eventStart && requestEnd > eventStart) ||
-            (requestStart < eventEnd && requestEnd >= eventEnd) ||
-            (requestStart >= eventStart && requestEnd <= eventEnd)
-          );
-        });
-
-        if (hasTimeOffConflict) {
-          return {
-            isAvailable: false,
-            reason: "Has approved time off during this period",
-          };
-        }
-      }
-
-      // Check for other event conflicts
-      const { data: otherAssignments } = await supabase
-        .from("assignments")
-        .select("start_date, end_date")
-        .eq("employee_id", employee.employee_id)
-        .neq("event_id", event.id || "");
-
-      if (otherAssignments && otherAssignments.length > 0) {
-        const hasEventConflict = otherAssignments.some((assignment) => {
-          const assignmentStart = new Date(assignment.start_date);
-          const assignmentEnd = new Date(assignment.end_date);
-
-          return (
-            (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
-            (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
-            (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
-          );
-        });
-
-        if (hasEventConflict) {
-          return {
-            isAvailable: false,
-            reason: "Assigned to another event during this time",
-          };
-        }
-      }
-
-      return { isAvailable: true, reason: "" };
+      return employeeAvailabilityApi.checkEmployeeAvailability(
+        employee,
+        event.start_date,
+        event.end_date,
+        event.id
+      );
     },
-    [event.id, event.start_date, event.end_date, supabase]
+    [event.id, event.start_date, event.end_date]
   );
 
-  const calculateDistancesAndWages = useCallback(async () => {
-    // Only calculate if we haven't loaded data for this event yet
-    if (hasLoadedData) return;
+  // Load employee wages
+  const loadEmployeeWages = useCallback(async () => {
+    if (employees.length === 0) return new Map();
 
-    setIsLoadingDistances(true);
-    try {
-      const eventAddress = event.addresses;
-      if (!eventAddress) return;
+    const employeeIds = employees.map((emp) => emp.employee_id);
+    const { data: wagesData } = await supabase
+      .from("wage")
+      .select("employee_id, hourly_wage")
+      .in("employee_id", employeeIds)
+      .order("start_date", { ascending: false });
 
-      const employeesWithData = await Promise.all(
-        employees.map(async (employee) => {
-          let distance = undefined;
-          let currentWage = undefined;
-
-          // Get employee's current wage
-          try {
-            const wage = await wagesApi.getCurrentWage(employee.employee_id);
-            currentWage = wage?.hourly_wage;
-          } catch (error) {
-            console.error(
-              `Error fetching wage for employee ${employee.employee_id}:`,
-              error
-            );
-          }
-
-          // Calculate distance if employee has address
-          if (
-            employee.addresses?.latitude &&
-            employee.addresses?.longitude &&
-            eventAddress?.latitude &&
-            eventAddress?.longitude
-          ) {
-            try {
-              const employeeCoords = {
-                lat: parseFloat(employee.addresses.latitude as string),
-                lng: parseFloat(employee.addresses.longitude as string),
-              };
-              const eventCoords = {
-                lat: parseFloat(eventAddress.latitude as string),
-                lng: parseFloat(eventAddress.longitude as string),
-              };
-
-              distance = await calculateDistance(employeeCoords, eventCoords);
-            } catch (error) {
-              console.error(
-                `Error calculating distance for employee ${employee.employee_id}:`,
-                error
-              );
-            }
-          }
-
-          // Check availability
-          const availability = await checkEmployeeAvailability(employee);
-
-          return {
-            ...employee,
-            distance,
-            currentWage,
-            isAvailable: availability.isAvailable,
-            availabilityReason: availability.reason,
-          };
-        })
-      );
-
-      setEmployeesWithDistance(employeesWithData);
-      setHasLoadedData(true);
-    } catch (error) {
-      console.error("Error calculating distances and wages:", error);
-    } finally {
-      setIsLoadingDistances(false);
+    const wageMap = new Map();
+    if (wagesData) {
+      // Group by employee_id and take the most recent wage for each
+      wagesData.forEach((wage) => {
+        if (!wageMap.has(wage.employee_id)) {
+          wageMap.set(wage.employee_id, wage.hourly_wage);
+        }
+      });
     }
-  }, [employees, event.addresses, checkEmployeeAvailability, hasLoadedData]);
+    return wageMap;
+  }, [employees, supabase]);
 
-  // Calculate distances and get wages when modal opens (only once per event)
+  // Calculate distances and process employee data
+  const calculateDistancesAndWages = useCallback(
+    async (filter: string) => {
+      // Cancel any ongoing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      setIsLoadingDistances(true);
+
+      try {
+        const eventAddress = event.addresses;
+        if (!eventAddress) {
+          setIsLoadingDistances(false);
+          return;
+        }
+
+        // Check cache first
+        if (employeeDataCache.has(cacheKey)) {
+          const cachedData = employeeDataCache.get(cacheKey)!;
+          setEmployeesWithDistance(cachedData);
+          setIsLoadingDistances(false);
+          return;
+        }
+
+        // Load wages
+        const wageMap = await loadEmployeeWages();
+
+        // Filter employees by type
+        let filteredEmployees = employees;
+        if (filter !== "all") {
+          filteredEmployees = employees.filter(
+            (e) => e.employee_type === filter
+          );
+        }
+
+        // Process employees
+        const employeesWithData = await Promise.all(
+          filteredEmployees.map(async (employee) => {
+            // Check if request was cancelled
+            if (abortController.signal.aborted) {
+              throw new Error("Request cancelled");
+            }
+
+            let distance: number | undefined;
+            const currentWage = wageMap.get(employee.employee_id);
+
+            // Calculate distance if employee has address
+            if (
+              employee.addresses?.latitude &&
+              employee.addresses?.longitude &&
+              eventAddress?.latitude &&
+              eventAddress?.longitude
+            ) {
+              try {
+                const employeeCoords = {
+                  lat: parseFloat(employee.addresses.latitude as string),
+                  lng: parseFloat(employee.addresses.longitude as string),
+                };
+                const eventCoords = {
+                  lat: parseFloat(eventAddress.latitude as string),
+                  lng: parseFloat(eventAddress.longitude as string),
+                };
+
+                distance = calculateStraightLineDistance(
+                  employeeCoords,
+                  eventCoords
+                );
+                console.log(
+                  `Distance for ${employee.first_name} ${employee.last_name}:`,
+                  {
+                    employeeCoords,
+                    eventCoords,
+                    distance,
+                  }
+                );
+              } catch (error) {
+                console.error(
+                  `Error calculating distance for employee ${employee.employee_id}:`,
+                  error
+                );
+              }
+            }
+
+            // Check availability
+            const availability = await checkEmployeeAvailability(employee);
+
+            console.log(
+              `Availability for ${employee.first_name} ${employee.last_name}:`,
+              {
+                isAvailable: availability.isAvailable,
+                reason: availability.reason,
+                employeeId: employee.employee_id,
+                employeeType: employee.employee_type,
+                isAvailableFlag: employee.is_available,
+                availability: employee.availability,
+              }
+            );
+
+            return {
+              ...employee,
+              distance,
+              currentWage,
+              isAvailable: availability.isAvailable,
+              availabilityReason: availability.reason,
+            };
+          })
+        );
+
+        // Check if request was cancelled before updating state
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        // Cache the results
+        employeeDataCache.set(cacheKey, employeesWithData);
+        setEmployeesWithDistance(employeesWithData);
+        setIsLoadingDistances(false);
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          console.error("Error calculating distances and wages:", error);
+          setIsLoadingDistances(false);
+        }
+      }
+    },
+    [
+      event.addresses,
+      employees,
+      loadEmployeeWages,
+      checkEmployeeAvailability,
+      cacheKey,
+    ]
+  );
+
+  // Load employee data when modal opens or filter changes
   useEffect(() => {
-    if (isOpen && event?.addresses && employees.length > 0 && !hasLoadedData) {
-      calculateDistancesAndWages();
+    if (isOpen && event?.addresses && employees.length > 0) {
+      calculateDistancesAndWages(employeeFilter);
     }
   }, [
     isOpen,
-    event.addresses,
+    event?.addresses,
     employees.length,
-    hasLoadedData,
+    employeeFilter,
     calculateDistancesAndWages,
   ]);
 
-  // Reset data when modal closes or event changes
+  // Cleanup on modal close
   useEffect(() => {
     if (!isOpen) {
-      setHasLoadedData(false);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
       setEmployeesWithDistance([]);
+      setIsLoadingDistances(false);
     }
-  }, [isOpen, eventKey]);
+  }, [isOpen]);
 
+  // Clear cache when event changes
+  useEffect(() => {
+    const eventKey = `${event.id}-${event.start_date}-${event.end_date}`;
+    const keysToDelete = Array.from(employeeDataCache.keys()).filter(
+      (key) => !key.startsWith(eventKey)
+    );
+    keysToDelete.forEach((key) => employeeDataCache.delete(key));
+  }, [event.id, event.start_date, event.end_date]);
+
+  // Utility functions
   const formatDistance = useCallback((distance: number | undefined) => {
     if (distance === undefined) return "N/A";
     if (distance < 1) return `${(distance * 1000).toFixed(0)}m`;
@@ -331,19 +393,79 @@ export default function EmployeeSelectionModal({
     return `$${wage.toFixed(2)}/hr`;
   }, []);
 
-  const sortedAndFilteredEmployees = useMemo(() => {
-    const processedEmployees = employeesWithDistance.filter(
-      (employee) =>
-        employeeFilter === "all" || employee.employee_type === employeeFilter
+  // Split and sort employees for each section
+  const {
+    assignedEmployeesSorted,
+    availableEmployeesSorted,
+    unavailableEmployeesSorted,
+  } = useMemo(() => {
+    // Employees in the modal's current list who are assigned
+    const assignedEmployeesInList = employeesWithDistance.filter((e) =>
+      selectedEmployees.has(e.employee_id)
+    );
+    // Employees in the modal's current list who are not assigned but available
+    const availableEmployeesInList = employeesWithDistance.filter(
+      (e) => !selectedEmployees.has(e.employee_id) && e.isAvailable
+    );
+    // Employees in the modal's current list who are not available
+    const unavailableEmployeesInList = employeesWithDistance.filter(
+      (e) => !e.isAvailable
     );
 
-    if (sortByDistance) {
-      processedEmployees.sort(
-        (a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)
-      );
+    // Debug logging for unavailable employees
+    console.log("EmployeeSelectionModal - Unavailable employees:", {
+      totalEmployees: employeesWithDistance.length,
+      unavailableCount: unavailableEmployeesInList.length,
+      unavailableEmployees: unavailableEmployeesInList.map((emp) => ({
+        name: `${emp.first_name} ${emp.last_name}`,
+        isAvailable: emp.isAvailable,
+        reason: emp.availabilityReason,
+        employeeType: emp.employee_type,
+      })),
+    });
+
+    // Sort each section independently
+    const sortFn = (
+      a: EmployeeWithDistanceAndWage,
+      b: EmployeeWithDistanceAndWage
+    ) => {
+      if (sortByDistance) {
+        // Sort by distance first, then by wage
+        if (a.distance === Infinity && b.distance !== Infinity) return 1;
+        if (a.distance !== Infinity && b.distance === Infinity) return -1;
+        if (a.distance === Infinity && b.distance === Infinity) {
+          return (a.currentWage || 0) - (b.currentWage || 0);
+        }
+        if (Math.abs((a.distance || 0) - (b.distance || 0)) <= 5) {
+          return (a.currentWage || 0) - (b.currentWage || 0);
+        }
+        return (a.distance || 0) - (b.distance || 0);
+      } else {
+        // Sort by wage first, then by distance
+        if ((a.currentWage || 0) !== (b.currentWage || 0)) {
+          return (a.currentWage || 0) - (b.currentWage || 0);
+        }
+        if (a.distance === Infinity && b.distance !== Infinity) return 1;
+        if (a.distance !== Infinity && b.distance === Infinity) return -1;
+        return (a.distance || 0) - (b.distance || 0);
+      }
+    };
+
+    return {
+      assignedEmployeesSorted: assignedEmployeesInList.sort(sortFn),
+      availableEmployeesSorted: availableEmployeesInList.sort(sortFn),
+      unavailableEmployeesSorted: unavailableEmployeesInList.sort(sortFn),
+    };
+  }, [employeesWithDistance, selectedEmployees, sortByDistance]);
+
+  // Event handlers
+  const handleChangeRequiredServers = (delta: number) => {
+    if (delta < 0 && selectedEmployees.size > localRequiredServers - 1) {
+      setShowServerDecreaseWarning(true);
+      return;
     }
-    return processedEmployees;
-  }, [employeesWithDistance, employeeFilter, sortByDistance]);
+    setLocalRequiredServers((prev) => Math.max(0, prev + delta));
+  };
 
   const handleLocalEmployeeSelection = (employee: Employee) => {
     const newSelectedEmployees = new Set(selectedEmployees);
@@ -351,10 +473,9 @@ export default function EmployeeSelectionModal({
     if (newSelectedEmployees.has(employee.employee_id)) {
       newSelectedEmployees.delete(employee.employee_id);
     } else {
-      // Check if we can add more employees
-      if (newSelectedEmployees.size >= (event.number_of_servers_needed || 0)) {
+      if (newSelectedEmployees.size >= localRequiredServers) {
         alert(
-          `Maximum number of servers (${event.number_of_servers_needed}) already selected.`
+          `Maximum number of servers (${localRequiredServers}) already selected.`
         );
         return;
       }
@@ -364,14 +485,23 @@ export default function EmployeeSelectionModal({
     setSelectedEmployees(newSelectedEmployees);
   };
 
-  const handleSaveAssignments = () => {
-    // Convert selected employees Set to array of IDs
+  const handleSaveAssignments = async () => {
     const selectedEmployeeIds = Array.from(selectedEmployees);
 
-    // Call the parent's save function
-    onSaveAssignments(selectedEmployeeIds);
+    // Update event if required server number changed
+    if (localRequiredServers !== event.number_of_servers_needed && event.id) {
+      try {
+        await eventsApi.updateEvent(event.id, {
+          number_of_servers_needed: localRequiredServers,
+        });
+      } catch (error) {
+        console.error("Failed to update required server number:", error);
+        alert("Failed to update required server number.");
+        return;
+      }
+    }
 
-    // Close the modal
+    onSaveAssignments(selectedEmployeeIds);
     onClose();
   };
 
@@ -396,7 +526,7 @@ export default function EmployeeSelectionModal({
         >
           Select Employees
           <span className="text-sm font-normal text-gray-600 ml-2">
-            ({selectedEmployees.size}/{event.number_of_servers_needed} selected)
+            ({selectedEmployees.size}/{localRequiredServers} selected)
           </span>
         </h3>
         <div
@@ -409,13 +539,14 @@ export default function EmployeeSelectionModal({
             flexDirection: "column",
           }}
         >
-          {/* Employee Filter and Sort */}
+          {/* Controls */}
           <div
-            className="flex justify-between items-end mb-6"
+            className="flex flex-wrap items-end mb-3 gap-2"
             style={{ flexShrink: 0 }}
           >
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            {/* Filter by Type Dropdown */}
+            <div className="flex-shrink-0">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Filter by Type
               </label>
               <TutorialHighlight
@@ -424,7 +555,8 @@ export default function EmployeeSelectionModal({
                 <select
                   value={employeeFilter}
                   onChange={(e) => onFilterChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 employee-filter-dropdown"
+                  className="input-field employee-filter-dropdown text-sm px-3 py-1"
+                  style={{ minWidth: "180px", maxWidth: "240px" }}
                 >
                   <option value="all">All Employees</option>
                   <option value="Server">Server Only</option>
@@ -433,65 +565,182 @@ export default function EmployeeSelectionModal({
                 </select>
               </TutorialHighlight>
             </div>
-            <TutorialHighlight
-              isHighlighted={shouldHighlight(".sort-by-distance-button")}
-            >
-              <button
-                onClick={() => setSortByDistance((prev) => !prev)}
-                className="btn-secondary sort-by-distance-button"
-              >
-                {sortByDistance ? "Clear Sort" : "Sort by Distance"}
-              </button>
-            </TutorialHighlight>
+
+            <div className="flex-grow" />
+
+            {/* Required Servers and Sort Controls */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Required Servers Control */}
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-700">Servers:</span>
+                <button
+                  type="button"
+                  onClick={() => handleChangeRequiredServers(-1)}
+                  className="btn btn-secondary px-2 py-0.5 text-base font-bold h-7 w-7 flex items-center justify-center"
+                  aria-label="Decrease required servers"
+                  style={{ minWidth: "1.75rem" }}
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={0}
+                  value={localRequiredServers}
+                  onChange={(e) =>
+                    setLocalRequiredServers(Math.max(0, Number(e.target.value)))
+                  }
+                  className="input-field w-10 text-center font-semibold text-sm h-7 px-1"
+                  style={{ minWidth: "2.25rem" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleChangeRequiredServers(1)}
+                  className="btn btn-secondary px-2 py-0.5 text-base font-bold h-7 w-7 flex items-center justify-center"
+                  aria-label="Increase required servers"
+                  style={{ minWidth: "1.75rem" }}
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Sort by Distance Button */}
+              <div className="flex flex-col items-end">
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".sort-by-distance-button")}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSortByDistance(!sortByDistance)}
+                    className={`btn sort-by-distance-button ${
+                      sortByDistance ? "btn-primary" : "btn-secondary"
+                    } text-xs h-8 px-3`}
+                  >
+                    {sortByDistance ? "Distance" : "Wage"}
+                  </button>
+                </TutorialHighlight>
+                <span className="text-xs text-gray-500 mt-1">
+                  Available employees always shown first • Distance: closest
+                  first • Wage: lowest first
+                </span>
+              </div>
+            </div>
           </div>
 
+          {/* Employee List */}
           <div
             className="employee-list-container"
             style={{ flexGrow: 1, overflowY: "auto" }}
           >
             {isLoadingEmployees || isLoadingDistances ? (
               <p className="text-gray-500">Loading employees...</p>
-            ) : sortedAndFilteredEmployees.length > 0 ? (
+            ) : assignedEmployeesSorted.length +
+                availableEmployeesSorted.length +
+                unavailableEmployeesSorted.length >
+              0 ? (
               <>
-                {selectedEmployees.size >=
-                  (event.number_of_servers_needed || 0) && (
-                  <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg">
-                    <p className="text-green-800 text-sm">
-                      ✅ Maximum number of servers (
-                      {event.number_of_servers_needed}) assigned. You can
-                      unassign servers to add different ones.
+                {selectedEmployees.size >= localRequiredServers &&
+                  localRequiredServers > 0 && (
+                    <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+                      <p className="text-green-800 text-sm">
+                        ✅ Maximum number of servers ({localRequiredServers})
+                        assigned. You can unassign servers to add different
+                        ones.
+                      </p>
+                    </div>
+                  )}
+                {/* Assigned Employees Section */}
+                <div className="mb-4">
+                  <h4 className="font-semibold text-base mb-2 border-b pb-1">
+                    Assigned Employees
+                  </h4>
+                  {assignedEmployeesSorted.length === 0 ? (
+                    <p className="text-gray-400 text-sm">
+                      No employees assigned.
                     </p>
-                  </div>
-                )}
-                {sortedAndFilteredEmployees.map((employee, index) => {
-                  const isAssigned = selectedEmployees.has(
-                    employee.employee_id
-                  );
-                  const maxReached =
-                    selectedEmployees.size >=
-                    (event.number_of_servers_needed || 0);
-                  const isDisabled = !isAssigned && maxReached;
-
-                  return (
-                    <EmployeeItem
-                      key={employee.employee_id}
-                      employee={employee}
-                      isAssigned={isAssigned}
-                      isDisabled={isDisabled}
-                      onSelection={handleLocalEmployeeSelection}
-                      shouldHighlight={shouldHighlight}
-                      index={index}
-                      formatDistance={formatDistance}
-                      formatWage={formatWage}
-                    />
-                  );
-                })}
+                  ) : (
+                    assignedEmployeesSorted.map((employee, index) => {
+                      const isAssigned = true;
+                      const isDisabled = false; // Always allow unassigning
+                      return (
+                        <EmployeeItem
+                          key={employee.employee_id}
+                          employee={employee}
+                          isAssigned={isAssigned}
+                          isDisabled={isDisabled}
+                          onSelection={handleLocalEmployeeSelection}
+                          shouldHighlight={shouldHighlight}
+                          index={index}
+                          formatDistance={formatDistance}
+                          formatWage={formatWage}
+                        />
+                      );
+                    })
+                  )}
+                </div>
+                {/* Available Employees Section */}
+                <div>
+                  <h4 className="font-semibold text-base mb-2 border-b pb-1">
+                    Available Employees
+                  </h4>
+                  {availableEmployeesSorted.length === 0 ? (
+                    <p className="text-gray-400 text-sm">
+                      No available employees.
+                    </p>
+                  ) : (
+                    availableEmployeesSorted.map((employee, index) => {
+                      const isAssigned = false;
+                      const maxReached =
+                        selectedEmployees.size >= localRequiredServers;
+                      const isDisabled = !isAssigned && maxReached;
+                      return (
+                        <EmployeeItem
+                          key={employee.employee_id}
+                          employee={employee}
+                          isAssigned={isAssigned}
+                          isDisabled={isDisabled}
+                          onSelection={handleLocalEmployeeSelection}
+                          shouldHighlight={shouldHighlight}
+                          index={index}
+                          formatDistance={formatDistance}
+                          formatWage={formatWage}
+                        />
+                      );
+                    })
+                  )}
+                </div>
+                {/* Unavailable Employees Section */}
+                <div>
+                  <h4 className="font-semibold text-base mb-2 border-b pb-1">
+                    Unavailable Employees
+                  </h4>
+                  {unavailableEmployeesSorted.length === 0 ? (
+                    <p className="text-gray-400 text-sm">
+                      No unavailable employees.
+                    </p>
+                  ) : (
+                    unavailableEmployeesSorted.map((employee, index) => (
+                      <EmployeeItem
+                        key={employee.employee_id}
+                        employee={employee}
+                        isAssigned={false} // Always false for unavailable
+                        isDisabled={true} // Always disabled for unavailable
+                        onSelection={() => {}} // No selection for unavailable
+                        shouldHighlight={shouldHighlight}
+                        index={index}
+                        formatDistance={formatDistance}
+                        formatWage={formatWage}
+                      />
+                    ))
+                  )}
+                </div>
               </>
             ) : (
               <p className="text-gray-500">No employees available.</p>
             )}
           </div>
         </div>
+
+        {/* Footer */}
         <div
           className="modal-footer"
           style={{ flexShrink: 0, padding: "1.5rem 2rem" }}
@@ -514,6 +763,20 @@ export default function EmployeeSelectionModal({
           </TutorialHighlight>
         </div>
       </div>
+
+      {/* Warning Modal */}
+      <ErrorModal
+        isOpen={showServerDecreaseWarning}
+        onClose={() => setShowServerDecreaseWarning(false)}
+        errors={[
+          {
+            field: "general",
+            message: `You have selected more employees (${selectedEmployees.size}) than the required number of servers (${localRequiredServers - 1}). Please deselect some employees before decreasing.`,
+          },
+        ]}
+        type="error"
+        title="Too Many Selected"
+      />
     </div>
   );
 }

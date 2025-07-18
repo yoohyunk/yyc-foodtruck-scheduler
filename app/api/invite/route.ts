@@ -25,19 +25,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
   }
 
-  const redirectUrl = `${getEnvVar("NEXT_PUBLIC_APP_URL")}/set-password`;
-  console.log("Redirect URL:", redirectUrl);
-
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `https://yyc-foodtruck-scheduler.vercel.app/set-password?email=${encodeURIComponent(email)}`,
+    redirectTo: `https://yyc-foodtruck-scheduler.vercel.app/set-password`,
   });
 
   if (error) {
     console.error("Invite error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  console.log("Invite successful for:", email);
 
   const { data: employeeData, error: employeeError } = await supabase
     .from("employees")
@@ -57,7 +52,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: employeeError.message }, { status: 500 });
   }
 
-  console.log("Wage value received for insertion:", wage);
   await supabase.from("wage").insert({
     employee_id: employeeData?.employee_id,
     hourly_wage: wage,

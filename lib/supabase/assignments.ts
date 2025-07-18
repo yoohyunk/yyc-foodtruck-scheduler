@@ -1,7 +1,7 @@
 import { createClient } from "./client";
 import { Employee } from "@/app/types";
-import { calculateDistance, getCoordinates } from "@/app/AlgApi/distance";
 import { eventsApi } from "./events";
+import { employeeAvailabilityApi } from "./employeeAvailability";
 
 const supabase = createClient();
 
@@ -11,192 +11,61 @@ export const assignmentsApi = {
     eventDate: string,
     eventStartTime: string,
     eventEndTime: string,
+    eventAddress: string,
+    eventCoordinates?: { latitude: number; longitude: number }
+  ): Promise<Employee[]> {
+    const eventStartDate = `${eventDate}T${eventStartTime}`;
+    const eventEndDate = `${eventDate}T${eventEndTime}`;
+    return employeeAvailabilityApi.getAvailableServers(
+      eventStartDate,
+      eventEndDate,
+      eventAddress,
+      undefined, // excludeEventId
+      eventCoordinates
+    );
+  },
+
+  // Get available drivers for a specific date and time
+  async getAvailableDrivers(
+    eventDate: string,
+    eventStartTime: string,
+    eventEndTime: string,
     eventAddress: string
   ): Promise<Employee[]> {
-    try {
-      // Get all employees who are servers and available
-      const { data: employees, error } = await supabase
-        .from("employees")
-        .select(
-          `
-          *,
-          addresses (*)
-        `
-        )
-        .eq("employee_type", "Server")
-        .eq("is_available", true);
-
-      if (error) {
-        throw new Error(`Error fetching employees: ${error.message}`);
-      }
-
-      if (!employees) {
-        return [];
-      }
-
-      // Get the day of the week for the event
-      const eventDateTime = new Date(`${eventDate}T${eventStartTime}`);
-      const dayOfWeek = eventDateTime.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const dayNames = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ];
-      const eventDay = dayNames[dayOfWeek];
-
-      // Filter employees based on availability and time off requests
-      const availableEmployees = await Promise.all(
-        employees.map(async (employee) => {
-          // Check if employee has availability for this day
-          const availability = employee.availability as string[] | null;
-          if (!availability || !availability.includes(eventDay)) {
-            return null;
-          }
-
-          // Check if employee has approved time off requests for this date
-          const { data: timeOffRequests } = await supabase
-            .from("time_off_request")
-            .select("*")
-            .eq("employee_id", employee.employee_id)
-            .eq("status", "Accepted");
-
-          if (timeOffRequests && timeOffRequests.length > 0) {
-            // Check if any approved time off overlaps with the event
-            const hasTimeOffConflict = timeOffRequests.some((request) => {
-              const requestStart = new Date(request.start_datetime);
-              const requestEnd = new Date(request.end_datetime);
-              const eventStart = new Date(`${eventDate}T${eventStartTime}`);
-              const eventEnd = new Date(`${eventDate}T${eventEndTime}`);
-
-              // Check for overlap
-              return (
-                (requestStart <= eventStart && requestEnd > eventStart) ||
-                (requestStart < eventEnd && requestEnd >= eventEnd) ||
-                (requestStart >= eventStart && requestEnd <= eventEnd)
-              );
-            });
-
-            if (hasTimeOffConflict) {
-              return null;
-            }
-          }
-
-          // Check for other event conflicts
-          const { data: otherAssignments } = await supabase
-            .from("assignments")
-            .select("start_date, end_date")
-            .eq("employee_id", employee.employee_id);
-
-          if (otherAssignments && otherAssignments.length > 0) {
-            const hasEventConflict = otherAssignments.some((assignment) => {
-              const assignmentStart = new Date(assignment.start_date);
-              const assignmentEnd = new Date(assignment.end_date);
-              const eventStart = new Date(`${eventDate}T${eventStartTime}`);
-              const eventEnd = new Date(`${eventDate}T${eventEndTime}`);
-
-              return (
-                (assignmentStart <= eventStart && assignmentEnd > eventStart) ||
-                (assignmentStart < eventEnd && assignmentEnd >= eventEnd) ||
-                (assignmentStart >= eventStart && assignmentEnd <= eventEnd)
-              );
-            });
-
-            if (hasEventConflict) {
-              return null;
-            }
-          }
-
-          return employee;
-        })
-      );
-
-      // Remove null values and calculate distances
-      const validEmployees = availableEmployees.filter(
-        (emp) => emp !== null
-      ) as Employee[];
-
-      if (validEmployees.length === 0) {
-        return [];
-      }
-
-      // Calculate distances for all employees
-      const employeesWithDistance = await Promise.all(
-        validEmployees.map(async (employee) => {
-          let distance = 0;
-
-          if (employee.addresses) {
-            const employeeAddress = `${employee.addresses.street}, ${employee.addresses.city}, ${employee.addresses.province}`;
-            const employeeCoords = await getCoordinates(employeeAddress);
-            const eventCoords = await getCoordinates(eventAddress);
-
-            distance = await calculateDistance(employeeCoords, eventCoords);
-          }
-
-          return {
-            ...employee,
-            distance,
-          };
-        })
-      );
-
-      // Sort by distance (closest first)
-      return employeesWithDistance.sort((a, b) => a.distance - b.distance);
-    } catch (error) {
-      console.error("Error getting available servers:", error);
-      throw error;
-    }
+    const eventStartDate = `${eventDate}T${eventStartTime}`;
+    const eventEndDate = `${eventDate}T${eventEndTime}`;
+    return employeeAvailabilityApi.getAvailableDrivers(
+      eventStartDate,
+      eventEndDate,
+      eventAddress
+    );
   },
 
   // Create server assignments for an event
   async createServerAssignments(
     eventId: string,
-    serverIds: string[],
-    eventDate: string,
-    eventStartTime: string,
-    eventEndTime: string
+    employeeIds: string[],
+    startDate: string,
+    startTime: string,
+    endDate: string,
+    endTime: string
   ): Promise<void> {
     try {
-      // Verify that all provided IDs are actually servers
-      const { data: employees, error: verifyError } = await supabase
-        .from("employees")
-        .select("employee_id, employee_type")
-        .in("employee_id", serverIds);
-
-      if (verifyError) {
-        throw new Error(`Error verifying employees: ${verifyError.message}`);
-      }
-
-      // Check if all employees are servers
-      const nonServerEmployees = employees?.filter(
-        (emp) => emp.employee_type !== "Server"
-      );
-      if (nonServerEmployees && nonServerEmployees.length > 0) {
-        throw new Error(
-          `The following employees are not servers: ${nonServerEmployees.map((emp) => emp.employee_id).join(", ")}`
-        );
-      }
-
-      const assignments = serverIds.map((serverId) => ({
-        employee_id: serverId,
+      const assignments = employeeIds.map((employeeId) => ({
+        employee_id: employeeId,
         event_id: eventId,
-        start_date: `${eventDate}T${eventStartTime}`,
-        end_date: `${eventDate}T${eventEndTime}`,
-        is_completed: false,
+        start_date: `${startDate}T${startTime}`,
+        end_date: `${endDate}T${endTime}`,
         status: "Accepted",
+        is_completed: false,
       }));
 
       const { error } = await supabase.from("assignments").insert(assignments);
 
       if (error) {
-        throw new Error(`Error creating server assignments: ${error.message}`);
+        console.error("Error creating server assignments:", error);
+        throw new Error("Failed to create server assignments");
       }
-
-      // Check if all required servers are assigned and update event status
-      await this.checkAndUpdateEventStatus(eventId);
     } catch (error) {
       console.error("Error creating server assignments:", error);
       throw error;
@@ -268,8 +137,7 @@ export const assignmentsApi = {
           employees!inner(*)
         `
         )
-        .eq("event_id", eventId)
-        .eq("employees.employee_type", "Server");
+        .eq("event_id", eventId);
 
       if (error) {
         throw new Error(`Error fetching server assignments: ${error.message}`);
@@ -291,7 +159,7 @@ export const assignmentsApi = {
   ): Promise<void> {
     try {
       // Verify the employee is a server
-      const { data: employee, error: verifyError } = await supabase
+      const { error: verifyError } = await supabase
         .from("employees")
         .select("employee_id, employee_type")
         .eq("employee_id", serverId)
@@ -299,10 +167,6 @@ export const assignmentsApi = {
 
       if (verifyError) {
         throw new Error(`Error verifying employee: ${verifyError.message}`);
-      }
-
-      if (employee.employee_type !== "Server") {
-        throw new Error(`Employee ${serverId} is not a server`);
       }
 
       const assignment = {
@@ -336,18 +200,39 @@ export const assignmentsApi = {
       event_id: string;
       start_date: string;
       end_date: string;
+      events: {
+        id: string;
+        title: string;
+        start_date: string;
+        end_date: string;
+      };
     }>
   > {
     const { data, error } = await supabase
       .from("assignments")
-      .select("*")
+      .select(
+        `
+        *,
+        events (
+          id,
+          title,
+          start_date,
+          end_date
+        )
+      `
+      )
       .eq("employee_id", employeeId);
 
     if (error) {
       throw new Error(`Error fetching assignments: ${error.message}`);
     }
 
-    return data || [];
+    return (data || []).map((item) => ({
+      ...item,
+      events: Array.isArray(item.events)
+        ? item.events[0] || { title: null }
+        : item.events,
+    }));
   },
 
   // Get all truck assignments for an employee
