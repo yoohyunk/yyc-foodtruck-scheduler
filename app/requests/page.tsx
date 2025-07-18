@@ -157,16 +157,14 @@ export default function RequestsPage(): ReactElement {
       : "Unknown Employee";
   };
 
-  const formatDateTime = (dateTimeString: string) => {
-    const date = new Date(dateTimeString);
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  // Helper to display local time as selected (no timezone conversion)
+  function formatLocalDateTimeString(dateTimeString: string) {
+    if (!dateTimeString) return "";
+    const [date, time] = dateTimeString.split("T");
+    if (!date || !time) return dateTimeString;
+    const [hour, minute] = time.split(":");
+    return `${date} ${hour}:${minute}`;
+  }
 
   const formatDateOnly = (dateTimeString: string) => {
     const date = new Date(dateTimeString);
@@ -486,7 +484,7 @@ export default function RequestsPage(): ReactElement {
                     </span>
                   </div>
                   <span className="text-sm text-gray-600">
-                    {formatDateTime(request.start_datetime)}
+                    {formatLocalDateTimeString(request.start_datetime)}
                   </span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
@@ -497,7 +495,7 @@ export default function RequestsPage(): ReactElement {
                     </span>
                   </div>
                   <span className="text-sm text-gray-600">
-                    {formatDateTime(request.end_datetime)}
+                    {formatLocalDateTimeString(request.end_datetime)}
                   </span>
                 </div>
               </div>
