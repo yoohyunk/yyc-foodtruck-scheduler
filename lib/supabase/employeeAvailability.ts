@@ -95,14 +95,18 @@ export const employeeAvailabilityApi = {
       const eventDay = dayNames[dayOfWeek];
 
       // Check day availability from employee_availability table
-      const { data: availabilityData, error: availabilityError } = await supabase
-        .from("employee_availability")
-        .select("day_of_week, start_time, end_time")
-        .eq("employee_id", employee.employee_id)
-        .eq("day_of_week", eventDay);
+      const { data: availabilityData, error: availabilityError } =
+        await supabase
+          .from("employee_availability")
+          .select("day_of_week, start_time, end_time")
+          .eq("employee_id", employee.employee_id)
+          .eq("day_of_week", eventDay);
 
       if (availabilityError) {
-        console.error("Error fetching employee availability:", availabilityError);
+        console.error(
+          "Error fetching employee availability:",
+          availabilityError
+        );
         return {
           isAvailable: false,
           reason: "Error checking employee availability",
@@ -122,7 +126,10 @@ export const employeeAvailabilityApi = {
       const eventStartTime = eventStart.toTimeString().slice(0, 5); // HH:MM format
       const eventEndTime = eventEnd.toTimeString().slice(0, 5); // HH:MM format
 
-      if (eventStartTime < dayAvailability.start_time || eventEndTime > dayAvailability.end_time) {
+      if (
+        eventStartTime < dayAvailability.start_time ||
+        eventEndTime > dayAvailability.end_time
+      ) {
         return {
           isAvailable: false,
           reason: `Event time (${eventStartTime}-${eventEndTime}) outside available hours (${dayAvailability.start_time}-${dayAvailability.end_time}) on ${eventDay}`,
@@ -334,21 +341,27 @@ export const employeeAvailabilityApi = {
       const eventDay = dayNames[dayOfWeek];
 
       // First get employee IDs who have availability for this day
-      const { data: availableEmployeeIds, error: availabilityError } = await supabase
-        .from("employee_availability")
-        .select("employee_id")
-        .eq("day_of_week", eventDay);
+      const { data: availableEmployeeIds, error: availabilityError } =
+        await supabase
+          .from("employee_availability")
+          .select("employee_id")
+          .eq("day_of_week", eventDay);
 
       if (availabilityError) {
-        throw new Error(`Error fetching available employee IDs: ${availabilityError.message}`);
+        throw new Error(
+          `Error fetching available employee IDs: ${availabilityError.message}`
+        );
       }
 
       if (!availableEmployeeIds || availableEmployeeIds.length === 0) {
-        console.log("EmployeeAvailability - No employees available for day:", eventDay);
+        console.log(
+          "EmployeeAvailability - No employees available for day:",
+          eventDay
+        );
         return [];
       }
 
-      const employeeIds = availableEmployeeIds.map(row => row.employee_id);
+      const employeeIds = availableEmployeeIds.map((row) => row.employee_id);
 
       // Build query to get employees who have availability for this day
       let query = supabase
