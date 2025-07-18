@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ReactElement } from "react";
+import { useState, ReactElement, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { TimeOffRequestFormData } from "../types";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import ErrorModal from "../components/ErrorModal";
 import { ValidationError } from "@/lib/formValidation";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function TimeOffRequestPage(): ReactElement {
   const router = useRouter();
@@ -21,10 +23,23 @@ export default function TimeOffRequestPage(): ReactElement {
     reason: "",
     type: "",
   });
+
+  // Date and time state for pickers
+  const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
+  const [selectedStartTime, setSelectedStartTime] = useState<Date | null>(null);
+  const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const { shouldHighlight } = useTutorial();
+
+  // Refs for form fields
+  const startDateRef = useRef<DatePicker>(null);
+  const endDateRef = useRef<DatePicker>(null);
+  const startTimeRef = useRef<DatePicker>(null);
+  const endTimeRef = useRef<DatePicker>(null);
 
   // Error modal state
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -55,6 +70,64 @@ export default function TimeOffRequestPage(): ReactElement {
     setShowErrorModal(false);
   };
 
+  // Function to combine date and time into a local datetime string (no timezone conversion)
+  const combineDateTime = (date: Date | null, time: Date | null): string => {
+    if (!date || !time) return "";
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(time.getHours()).padStart(2, "0");
+    const minutes = String(time.getMinutes()).padStart(2, "0");
+
+    // Return as local datetime string without timezone info
+    return `${year}-${month}-${day}T${hours}:${minutes}:00`;
+  };
+
+  // Date and time change handlers
+  const handleStartDateChange = (date: Date | null) => {
+    setSelectedStartDate(date);
+    if (date) {
+      setSelectedEndDate(date); // Set end date to same as start date
+      updateFormData();
+    }
+    setDateError(null);
+  };
+
+  const handleEndDateChange = (date: Date | null) => {
+    setSelectedEndDate(date);
+    updateFormData();
+    setDateError(null);
+  };
+
+  const handleStartTimeChange = (time: Date | null) => {
+    setSelectedStartTime(time);
+    if (time && !selectedEndTime) {
+      // Set end time to 1 hour after start time if not set
+      const endTime = new Date(time.getTime() + 60 * 60 * 1000);
+      setSelectedEndTime(endTime);
+    }
+    updateFormData();
+    setDateError(null);
+  };
+
+  const handleEndTimeChange = (time: Date | null) => {
+    setSelectedEndTime(time);
+    updateFormData();
+    setDateError(null);
+  };
+
+  const updateFormData = () => {
+    const startDateTime = combineDateTime(selectedStartDate, selectedStartTime);
+    const endDateTime = combineDateTime(selectedEndDate, selectedEndTime);
+
+    setFormData((prev) => ({
+      ...prev,
+      start_datetime: startDateTime,
+      end_datetime: endDateTime,
+    }));
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -65,50 +138,24 @@ export default function TimeOffRequestPage(): ReactElement {
       ...formData,
       [name]: value,
     });
-
-    // Clear date error when user starts typing
-    setDateError(null);
-
-    // Validate dates
-    if (name === "start_datetime" && value) {
-      const selectedDate = new Date(value);
-      const currentDate = new Date();
-
-      if (selectedDate < currentDate) {
-        setDateError("Start date and time cannot be in the past.");
-        return;
-      }
-    }
-
-    if (name === "end_datetime" && value) {
-      const selectedDate = new Date(value);
-      const currentDate = new Date();
-
-      if (selectedDate < currentDate) {
-        setDateError("End date and time cannot be in the past.");
-        return;
-      }
-    }
-
-    // If start datetime changes, ensure end datetime is not before it
-    if (name === "start_datetime" && value && formData.end_datetime) {
-      if (new Date(value) >= new Date(formData.end_datetime)) {
-        // Set end datetime to 1 hour after start datetime
-        const startDate = new Date(value);
-        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Add 1 hour
-        const endDateTimeLocal = endDate.toISOString().slice(0, 16);
-        setFormData((prev) => ({
-          ...prev,
-          end_datetime: endDateTimeLocal,
-        }));
-      }
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form first
+    const errors = validateForm();
+    if (errors.length > 0) {
+      setErrorModalTitle("Form Validation Errors");
+      setErrorModalErrors(errors);
+      setErrorModalType("error");
+      setShowErrorModal(true);
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
+    setDateError(null);
 
     try {
       if (!user) {
@@ -116,6 +163,56 @@ export default function TimeOffRequestPage(): ReactElement {
           "Authentication Error",
           "Please log in to submit a time off request."
         );
+        return;
+      }
+
+      // Validate dates
+      if (
+        !selectedStartDate ||
+        !selectedEndDate ||
+        !selectedStartTime ||
+        !selectedEndTime
+      ) {
+        setDateError("Please select both start and end dates and times.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const startDateTimeString = combineDateTime(
+        selectedStartDate,
+        selectedStartTime
+      );
+      const endDateTimeString = combineDateTime(
+        selectedEndDate,
+        selectedEndTime
+      );
+
+      if (!startDateTimeString || !endDateTimeString) {
+        setDateError("Please select both start and end dates and times.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create Date objects for validation (but store strings in DB)
+      const startDateTime = new Date(startDateTimeString);
+      const endDateTime = new Date(endDateTimeString);
+      const currentDate = new Date();
+
+      if (startDateTime < currentDate) {
+        setDateError("Start date and time cannot be in the past.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (endDateTime < currentDate) {
+        setDateError("End date and time cannot be in the past.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (startDateTime >= endDateTime) {
+        setDateError("End date and time must be after start date and time.");
+        setIsSubmitting(false);
         return;
       }
 
@@ -136,8 +233,8 @@ export default function TimeOffRequestPage(): ReactElement {
 
       await timeOffRequestsApi.createTimeOffRequest({
         employee_id: employee.employee_id,
-        start_datetime: formData.start_datetime,
-        end_datetime: formData.end_datetime,
+        start_datetime: startDateTimeString,
+        end_datetime: endDateTimeString,
         reason: formData.reason,
         type: formData.type,
         status: "Pending",
@@ -159,27 +256,110 @@ export default function TimeOffRequestPage(): ReactElement {
     }
   };
 
-  const isFormValid = () => {
-    return (
-      formData.start_datetime &&
-      formData.end_datetime &&
-      formData.reason.trim() &&
-      formData.type &&
-      new Date(formData.start_datetime) < new Date(formData.end_datetime) &&
-      new Date(formData.start_datetime) >= new Date() &&
-      !dateError
-    );
+  const validateForm = (): ValidationError[] => {
+    const errors: ValidationError[] = [];
+
+    // Check required fields
+    if (!selectedStartDate) {
+      errors.push({
+        field: "startDate",
+        message: "Start date is required.",
+        element: null,
+      });
+    }
+
+    if (!selectedEndDate) {
+      errors.push({
+        field: "endDate",
+        message: "End date is required.",
+        element: null,
+      });
+    }
+
+    if (!selectedStartTime) {
+      errors.push({
+        field: "startTime",
+        message: "Start time is required.",
+        element: null,
+      });
+    }
+
+    if (!selectedEndTime) {
+      errors.push({
+        field: "endTime",
+        message: "End time is required.",
+        element: null,
+      });
+    }
+
+    if (!formData.reason.trim()) {
+      errors.push({
+        field: "reason",
+        message: "Reason for time off is required.",
+        element: null,
+      });
+    }
+
+    if (!formData.type) {
+      errors.push({
+        field: "type",
+        message: "Type of time off is required.",
+        element: null,
+      });
+    }
+
+    // Check date/time logic if we have all the required fields
+    if (
+      selectedStartDate &&
+      selectedEndDate &&
+      selectedStartTime &&
+      selectedEndTime
+    ) {
+      const startDateTime = new Date(
+        selectedStartDate.getFullYear(),
+        selectedStartDate.getMonth(),
+        selectedStartDate.getDate(),
+        selectedStartTime.getHours(),
+        selectedStartTime.getMinutes(),
+        0,
+        0
+      );
+
+      const endDateTime = new Date(
+        selectedEndDate.getFullYear(),
+        selectedEndDate.getMonth(),
+        selectedEndDate.getDate(),
+        selectedEndTime.getHours(),
+        selectedEndTime.getMinutes(),
+        0,
+        0
+      );
+
+      const currentDate = new Date();
+
+      if (startDateTime >= endDateTime) {
+        errors.push({
+          field: "datetime",
+          message: "End date and time must be after start date and time.",
+          element: null,
+        });
+      }
+
+      if (startDateTime < currentDate) {
+        errors.push({
+          field: "startDateTime",
+          message: "Start date and time cannot be in the past.",
+          element: null,
+        });
+      }
+    }
+
+    return errors;
   };
 
-  // Get current datetime in local format for min attribute
-  const getCurrentDateTimeLocal = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  const isFormValid = () => {
+    const errors = validateForm();
+    return errors.length === 0;
   };
 
   return (
@@ -206,49 +386,95 @@ export default function TimeOffRequestPage(): ReactElement {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <TutorialHighlight
-              isHighlighted={shouldHighlight(".start-datetime-field")}
-              className="start-datetime-field"
+              isHighlighted={shouldHighlight(".start-date-field")}
+              className="start-date-field"
             >
-              <div>
-                <label
-                  htmlFor="start_datetime"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Start Date & Time *
+              <div className="input-group">
+                <label htmlFor="startDate" className="input-label">
+                  Start Date <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="datetime-local"
-                  id="start_datetime"
-                  name="start_datetime"
-                  value={formData.start_datetime}
-                  onChange={handleInputChange}
-                  required
-                  className="input-field w-full"
-                  min={getCurrentDateTimeLocal()}
+                <DatePicker
+                  ref={startDateRef}
+                  selected={selectedStartDate}
+                  onChange={handleStartDateChange}
+                  dateFormat="MMMM d, yyyy"
+                  minDate={new Date()}
+                  className="input-field"
+                  placeholderText="Select start date"
                 />
               </div>
             </TutorialHighlight>
 
             <TutorialHighlight
-              isHighlighted={shouldHighlight(".end-datetime-field")}
-              className="end-datetime-field"
+              isHighlighted={shouldHighlight(".end-date-field")}
+              className="end-date-field"
             >
-              <div>
-                <label
-                  htmlFor="end_datetime"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  End Date & Time *
+              <div className="input-group">
+                <label htmlFor="endDate" className="input-label">
+                  End Date <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="datetime-local"
-                  id="end_datetime"
-                  name="end_datetime"
-                  value={formData.end_datetime}
-                  onChange={handleInputChange}
-                  required
-                  min={formData.start_datetime || getCurrentDateTimeLocal()}
-                  className="input-field w-full"
+                <DatePicker
+                  ref={endDateRef}
+                  selected={selectedEndDate}
+                  onChange={handleEndDateChange}
+                  dateFormat="MMMM d, yyyy"
+                  minDate={selectedStartDate || new Date()}
+                  className="input-field"
+                  placeholderText="Select end date"
+                />
+              </div>
+            </TutorialHighlight>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TutorialHighlight
+              isHighlighted={shouldHighlight(".start-time-field")}
+              className="start-time-field"
+            >
+              <div className="input-group">
+                <label htmlFor="startTime" className="input-label">
+                  Start Time <span className="text-red-500">*</span>
+                </label>
+                <DatePicker
+                  ref={startTimeRef}
+                  selected={selectedStartTime}
+                  onChange={handleStartTimeChange}
+                  showTimeSelect
+                  showTimeSelectOnly
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="h:mm aa"
+                  className="input-field"
+                  placeholderText="Select start time"
+                  openToDate={new Date()}
+                  minTime={new Date(0, 0, 0, 0, 0, 0)}
+                  maxTime={new Date(0, 0, 0, 23, 59, 59)}
+                />
+              </div>
+            </TutorialHighlight>
+
+            <TutorialHighlight
+              isHighlighted={shouldHighlight(".end-time-field")}
+              className="end-time-field"
+            >
+              <div className="input-group">
+                <label htmlFor="endTime" className="input-label">
+                  End Time <span className="text-red-500">*</span>
+                </label>
+                <DatePicker
+                  ref={endTimeRef}
+                  selected={selectedEndTime}
+                  onChange={handleEndTimeChange}
+                  showTimeSelect
+                  showTimeSelectOnly
+                  timeIntervals={15}
+                  timeCaption="End Time"
+                  dateFormat="h:mm aa"
+                  className="input-field"
+                  placeholderText="Select end time"
+                  openToDate={new Date()}
+                  minTime={new Date(0, 0, 0, 0, 0, 0)}
+                  maxTime={new Date(0, 0, 0, 23, 59, 59)}
                 />
               </div>
             </TutorialHighlight>
@@ -258,12 +484,9 @@ export default function TimeOffRequestPage(): ReactElement {
             isHighlighted={shouldHighlight(".type-field")}
             className="type-field"
           >
-            <div>
-              <label
-                htmlFor="type"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Type of Time Off *
+            <div className="input-group">
+              <label htmlFor="type" className="input-label">
+                Type of Time Off <span className="text-red-500">*</span>
               </label>
               <select
                 id="type"
@@ -271,7 +494,7 @@ export default function TimeOffRequestPage(): ReactElement {
                 value={formData.type}
                 onChange={handleInputChange}
                 required
-                className="input-field w-full"
+                className="input-field"
               >
                 <option value="">Select a type</option>
                 <option value="Vacation">Vacation</option>
@@ -287,12 +510,9 @@ export default function TimeOffRequestPage(): ReactElement {
             isHighlighted={shouldHighlight(".reason-field")}
             className="reason-field"
           >
-            <div>
-              <label
-                htmlFor="reason"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Reason for Time Off *
+            <div className="input-group">
+              <label htmlFor="reason" className="input-label">
+                Reason for Time Off <span className="text-red-500">*</span>
               </label>
               <textarea
                 id="reason"
@@ -302,7 +522,7 @@ export default function TimeOffRequestPage(): ReactElement {
                 required
                 rows={4}
                 placeholder="Please provide a detailed reason for your time off request..."
-                className="input-field w-full"
+                className="input-field"
               />
             </div>
           </TutorialHighlight>
@@ -314,8 +534,22 @@ export default function TimeOffRequestPage(): ReactElement {
             >
               <button
                 type="submit"
-                disabled={!isFormValid() || isSubmitting}
-                className="button bg-primary-dark text-white py-3 px-6 rounded-lg hover:bg-primary-medium disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex-1"
+                disabled={isSubmitting}
+                className={`btn flex-1 ${
+                  isFormValid()
+                    ? "btn-primary"
+                    : "btn-secondary opacity-50 cursor-not-allowed"
+                }`}
+                onClick={(e) => {
+                  if (!isFormValid()) {
+                    e.preventDefault();
+                    const errors = validateForm();
+                    setErrorModalTitle("Please Fix the Following Issues");
+                    setErrorModalErrors(errors);
+                    setErrorModalType("error");
+                    setShowErrorModal(true);
+                  }
+                }}
               >
                 {isSubmitting ? "Submitting..." : "Submit Request"}
               </button>
@@ -328,7 +562,7 @@ export default function TimeOffRequestPage(): ReactElement {
               <button
                 type="button"
                 onClick={() => router.push("/requests")}
-                className="button bg-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-400 transition-colors flex-1"
+                className="btn btn-secondary flex-1"
               >
                 Cancel
               </button>
@@ -343,7 +577,6 @@ export default function TimeOffRequestPage(): ReactElement {
           <ul className="text-sm text-blue-700 space-y-1">
             <li>• Please submit your request at least 2 weeks in advance</li>
             <li>• Your request will be reviewed by management</li>
-
             <li>
               • Emergency requests may be considered on a case-by-case basis
             </li>
@@ -359,6 +592,28 @@ export default function TimeOffRequestPage(): ReactElement {
         title={errorModalTitle}
         type={errorModalType}
       />
+
+      {/* Validation Status Indicator */}
+      {!isFormValid() && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center">
+            <svg
+              className="w-5 h-5 text-yellow-600 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-yellow-800 text-sm font-medium">
+              Please complete all required fields to submit your request
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
