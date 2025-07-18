@@ -75,13 +75,17 @@ export default function EmplpyeeSchedule(): React.ReactElement {
 
         // Combine all assignments
         const allAssignments = [
-          ...driverScheduleData, 
-          ...serverScheduleData, 
-          ...(standaloneShifts || [])
+          ...driverScheduleData,
+          ...serverScheduleData,
+          ...(standaloneShifts || []),
         ];
 
         // Get unique event IDs (excluding null for standalone shifts)
-        const eventIds = [...new Set(allAssignments.map((a) => a.event_id).filter(id => id !== null))];
+        const eventIds = [
+          ...new Set(
+            allAssignments.map((a) => a.event_id).filter((id) => id !== null)
+          ),
+        ];
 
         // Fetch event details
         const { data: events } = await supabase

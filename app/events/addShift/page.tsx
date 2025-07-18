@@ -41,7 +41,9 @@ export default function AddShiftPage(): ReactElement {
   }, []);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -66,27 +68,27 @@ export default function AddShiftPage(): ReactElement {
       return;
     }
     setIsSubmitting(true);
-    
+
     try {
       // Combine date and time for database
       const startDateTime = `${formData.date}T${formData.startTime}:00`;
       const endDateTime = `${formData.date}T${formData.endTime}:00`;
-      
+
       // Create the shift in the database
       await assignmentsApi.createShift(
         formData.employeeId,
         startDateTime,
-        endDateTime,
-        formData.shiftName,
-        formData.notes
+        endDateTime
       );
-      
+
       // Success - redirect to schedule page
       window.location.href = "/schedule";
     } catch (error) {
       console.error("Error creating shift:", error);
       setValidationErrors([
-        error instanceof Error ? error.message : "Failed to create shift. Please try again."
+        error instanceof Error
+          ? error.message
+          : "Failed to create shift. Please try again.",
       ]);
       setShowErrorModal(true);
     } finally {
@@ -126,7 +128,8 @@ export default function AddShiftPage(): ReactElement {
             <option value="">Select an employee</option>
             {employees.map((employee) => (
               <option key={employee.employee_id} value={employee.employee_id}>
-                {employee.first_name} {employee.last_name} - {employee.employee_type}
+                {employee.first_name} {employee.last_name} -{" "}
+                {employee.employee_type}
               </option>
             ))}
           </select>

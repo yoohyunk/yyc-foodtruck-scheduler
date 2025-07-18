@@ -9,7 +9,6 @@ import { Event } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
-import { assignmentsApi } from "@/lib/supabase/assignments";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Schedule(): React.ReactElement {
@@ -18,7 +17,22 @@ export default function Schedule(): React.ReactElement {
   );
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
-  const [assignments, setAssignments] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<
+    Array<{
+      id: string;
+      employee_id: string;
+      event_id: string | null;
+      start_date: string;
+      end_date: string;
+      is_completed: boolean;
+      status: string;
+      employees?: {
+        first_name: string;
+        last_name: string;
+        employee_type: string;
+      };
+    }>
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
@@ -35,14 +49,16 @@ export default function Schedule(): React.ReactElement {
         // Fetch all assignments (shifts)
         const { data: assignmentsData, error } = await supabase
           .from("assignments")
-          .select(`
+          .select(
+            `
             *,
             employees (
               first_name,
               last_name,
               employee_type
             )
-          `)
+          `
+          )
           .is("event_id", null); // Only get standalone shifts (not event assignments)
 
         if (error) {
@@ -61,7 +77,7 @@ export default function Schedule(): React.ReactElement {
     };
 
     fetchData();
-  }, []);
+  }, [supabase]);
 
   const formatDate = (date: Date, options: Intl.DateTimeFormatOptions = {}) =>
     new Intl.DateTimeFormat("en-US", {
@@ -164,7 +180,10 @@ export default function Schedule(): React.ReactElement {
     // Add shifts (assignments)
     if (assignments && Array.isArray(assignments)) {
       assignments
-        .filter((assignment) => assignment.start_date && assignment.end_date && assignment.id)
+        .filter(
+          (assignment) =>
+            assignment.start_date && assignment.end_date && assignment.id
+        )
         .forEach((assignment) => {
           const startDate = new Date(assignment.start_date);
           const endDate = new Date(assignment.end_date);
@@ -283,8 +302,8 @@ export default function Schedule(): React.ReactElement {
       >
         <div className="mt-4">
           <p className="text-gray-500 text-center">
-            {assignments.length > 0 
-              ? `${assignments.length} shift(s) scheduled` 
+            {assignments.length > 0
+              ? `${assignments.length} shift(s) scheduled`
               : "No shifts scheduled"}
           </p>
         </div>
