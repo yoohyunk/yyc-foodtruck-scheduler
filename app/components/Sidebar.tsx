@@ -140,7 +140,6 @@ export default function Sidebar() {
     const newExpandedSections: string[] = [];
 
     sidebarSections.forEach((section) => {
-      // 메인 페이지이거나 해당 섹션의 하위 페이지일 때 섹션 펼치기
       if (
         isActive(section.mainHref) ||
         section.links.some((link) => isActive(link.href))
