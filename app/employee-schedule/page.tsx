@@ -67,11 +67,11 @@ export default function EmplpyeeSchedule(): React.ReactElement {
           // Server assignments (already have start_date/end_date)
           ...serverScheduleData,
           // Driver assignments (need to map start_time/end_time to start_date/end_date for consistency)
-          ...driverScheduleData.map(assignment => ({
+          ...driverScheduleData.map((assignment) => ({
             ...assignment,
             start_date: assignment.start_time,
             end_date: assignment.end_time,
-          }))
+          })),
         ];
 
         // Get unique event IDs
