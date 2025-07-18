@@ -27,7 +27,7 @@ const sidebarLinks: NavLink[] = [
   { name: "Add Employee", href: "/employees/newEmployee", icon: <FiPlus /> },
   { name: "Pending Employees", href: "/pending-employees/", icon: <FiList /> },
   { name: "Events", href: "/events/", icon: <FaRegCalendarAlt /> },
-  { name: "Add Shift", href: "/schedule/new", icon: <FiPlus /> },
+  { name: "Add Shift", href: "/events/addShift", icon: <FiPlus /> },
   { name: "Add Event", href: "/events/newEvent", icon: <FiPlus /> },
   { name: "Schedule", href: "/schedule/", icon: <FiCalendar /> },
   { name: "Trucks", href: "/trucks/", icon: <FiTruck /> },

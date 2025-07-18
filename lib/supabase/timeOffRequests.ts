@@ -41,7 +41,6 @@ export const timeOffRequestsApi = {
       .order("created_at", { ascending: false });
 
     if (error) {
-      throw new Error(`Error fetching time off requests: ${error.message}`);
     }
 
     return data || [];
