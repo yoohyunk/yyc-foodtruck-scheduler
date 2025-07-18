@@ -92,13 +92,13 @@ export default function ReportsPage(): ReactElement {
       highlightClass: ".payroll-report",
     },
     {
-      title: "Time Off Requests Report",
+      title: "Assignment Report",
       description:
-        "View detailed time off requests for specific employees with filtering and status tracking.",
+        "View detailed assignment information for all employees including server assignments, driver assignments, and standalone shifts.",
       icon: <FiCalendar />,
-      href: "/reports/time-off-requests",
+      href: "/reports/shifts",
       color: "hover:border-purple-300",
-      highlightClass: ".time-off-requests-report",
+      highlightClass: ".assignment-report",
     },
   ];
 

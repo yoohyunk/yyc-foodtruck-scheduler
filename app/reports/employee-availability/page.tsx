@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { employeesApi } from "@/lib/supabase/employees";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 import { assignmentsApi } from "@/lib/supabase/assignments";
+import { eventsApi } from "@/lib/supabase/events";
 import { Employee, TimeOffRequest } from "../../types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
@@ -15,12 +16,13 @@ interface EmployeeAvailabilityData {
   employee: Employee;
   assignments: Array<{
     id: string;
-    event_id: string;
+    event_id: string | null;
     start_date: string;
     end_date: string;
     status: string;
+    assignment_type: "server" | "driver" | "standalone";
     events: {
-      id: string;
+      id: string | null;
       title: string;
       start_date: string;
       end_date: string;
@@ -29,6 +31,17 @@ interface EmployeeAvailabilityData {
   timeOffRequests: TimeOffRequest[];
   isAvailable: boolean;
   availabilityReason: string;
+}
+
+// Add type for driver assignments
+interface DriverAssignment {
+  id: string;
+  event_id: string | null;
+  start_time: string;
+  end_time: string;
+  eventDetails?: {
+    title?: string | null;
+  } | null;
 }
 
 export default function EmployeeAvailabilityReport(): ReactElement {
@@ -76,32 +89,112 @@ export default function EmployeeAvailabilityReport(): ReactElement {
       const employeeData: EmployeeAvailabilityData[] = [];
 
       for (const employee of sortedEmployees) {
-        // Get assignments for this week
-        const assignments = await assignmentsApi.getAssignmentsByEmployeeId(
-          employee.employee_id
-        );
-        const weekAssignments = assignments.filter((assignment) => {
+        // Get server assignments for this week
+        const serverAssignments =
+          await assignmentsApi.getAssignmentsByEmployeeId(employee.employee_id);
+        const weekServerAssignments = serverAssignments.filter((assignment) => {
           const assignmentStart = new Date(assignment.start_date);
           const assignmentEnd = new Date(assignment.end_date);
           return assignmentStart <= weekEnd && assignmentEnd >= weekStart;
         });
 
-        // Map assignments to include required fields (status and events)
-        const weekAssignmentsEnriched = weekAssignments.map((a) => ({
-          id: a.id,
-          event_id: a.event_id,
-          start_date: a.start_date,
-          end_date: a.end_date,
-          status: (a as { status?: string }).status || "Scheduled",
-          events: {
-            id: a.event_id,
-            title:
-              a.events?.title ??
-              `Event ${a.event_id?.slice(0, 8) || "Unknown"}`,
+        // Separate event-linked assignments from standalone shifts
+        const eventLinkedAssignments = weekServerAssignments.filter(
+          (a) => a.event_id
+        );
+        const standaloneShifts = weekServerAssignments.filter(
+          (a) => !a.event_id
+        );
+
+        // Get driver assignments for this week (if employee is a driver)
+        let weekDriverAssignments: DriverAssignment[] = [];
+        if (
+          employee.employee_type === "Driver" ||
+          employee.employee_type === "Manager"
+        ) {
+          const driverAssignments =
+            await assignmentsApi.getTruckAssignmentsByEmployeeId(
+              employee.employee_id
+            );
+          weekDriverAssignments = driverAssignments.filter((assignment) => {
+            const assignmentStart = new Date(assignment.start_time);
+            const assignmentEnd = new Date(assignment.end_time);
+            return assignmentStart <= weekEnd && assignmentEnd >= weekStart;
+          });
+
+          // Fetch event details for driver assignments
+          for (const assignment of weekDriverAssignments) {
+            if (assignment.event_id) {
+              try {
+                const eventDetails = await eventsApi.getEventById(
+                  assignment.event_id
+                );
+                assignment.eventDetails = eventDetails;
+              } catch (error) {
+                console.warn(
+                  `Failed to fetch event details for ${assignment.event_id}:`,
+                  error
+                );
+                assignment.eventDetails = null;
+              }
+            } else {
+              assignment.eventDetails = null;
+            }
+          }
+        }
+
+        // Combine and enrich all assignments
+        const allAssignments = [
+          // Event-linked server assignments
+          ...eventLinkedAssignments.map((a) => ({
+            id: a.id,
+            event_id: a.event_id,
             start_date: a.start_date,
             end_date: a.end_date,
-          },
-        }));
+            status: (a as { status?: string }).status || "Scheduled",
+            assignment_type: "server" as const,
+            events: {
+              id: a.event_id,
+              title:
+                a.events?.title ??
+                `Event ${a.event_id?.slice(0, 8) || "Unknown"}`,
+              start_date: a.start_date,
+              end_date: a.end_date,
+            },
+          })),
+          // Standalone shifts (no event linked)
+          ...standaloneShifts.map((a) => ({
+            id: a.id,
+            event_id: null,
+            start_date: a.start_date,
+            end_date: a.end_date,
+            status: (a as { status?: string }).status || "Scheduled",
+            assignment_type: "standalone" as const,
+            events: {
+              id: null,
+              title: "Standalone Shift",
+              start_date: a.start_date,
+              end_date: a.end_date,
+            },
+          })),
+          // Driver assignments
+          ...weekDriverAssignments.map((a) => ({
+            id: a.id,
+            event_id: a.event_id,
+            start_date: a.start_time,
+            end_date: a.end_time,
+            status: "Scheduled",
+            assignment_type: "driver" as const,
+            events: {
+              id: a.event_id,
+              title:
+                a.eventDetails?.title ||
+                `Event ${a.event_id?.slice(0, 8) || "Unknown"}`,
+              start_date: a.start_time,
+              end_date: a.end_time,
+            },
+          })),
+        ];
 
         // Get time off requests for this week
         const timeOffRequests =
@@ -116,12 +209,28 @@ export default function EmployeeAvailabilityReport(): ReactElement {
 
         // Check if employee is available (no conflicts)
         const hasConflicts =
-          weekAssignments.length > 0 || weekTimeOffRequests.length > 0;
+          allAssignments.length > 0 || weekTimeOffRequests.length > 0;
         let availabilityReason = "";
 
         if (hasConflicts) {
-          if (weekAssignments.length > 0) {
-            availabilityReason = `Assigned to ${weekAssignments.length} event(s)`;
+          if (allAssignments.length > 0) {
+            const serverCount = allAssignments.filter(
+              (a) => a.assignment_type === "server"
+            ).length;
+            const driverCount = allAssignments.filter(
+              (a) => a.assignment_type === "driver"
+            ).length;
+            const standaloneCount = allAssignments.filter(
+              (a) => a.assignment_type === "standalone"
+            ).length;
+
+            const parts = [];
+            if (serverCount > 0) parts.push(`${serverCount} server event(s)`);
+            if (driverCount > 0) parts.push(`${driverCount} driver event(s)`);
+            if (standaloneCount > 0)
+              parts.push(`${standaloneCount} standalone shift(s)`);
+
+            availabilityReason = `Assigned to ${parts.join(", ")}`;
           } else if (weekTimeOffRequests.length > 0) {
             availabilityReason = `Has ${weekTimeOffRequests.length} time off request(s)`;
           }
@@ -131,7 +240,7 @@ export default function EmployeeAvailabilityReport(): ReactElement {
 
         employeeData.push({
           employee,
-          assignments: weekAssignmentsEnriched,
+          assignments: allAssignments,
           timeOffRequests: weekTimeOffRequests,
           isAvailable: !hasConflicts,
           availabilityReason,
@@ -288,32 +397,122 @@ export default function EmployeeAvailabilityReport(): ReactElement {
                 </p>
               </div>
 
-              {/* Assignments */}
-              {employeeData.assignments.length > 0 && (
+              {/* Event Assignments */}
+              {employeeData.assignments.filter(
+                (a) => a.assignment_type !== "standalone"
+              ).length > 0 && (
                 <div className="mb-4">
                   <h4 className="font-medium text-gray-800 mb-2 flex items-center">
                     <FiCalendar className="mr-2" />
                     Event Assignments
                   </h4>
                   <div className="space-y-2">
-                    {employeeData.assignments.map((assignment) => (
-                      <div
-                        key={assignment.id}
-                        className="p-3 bg-blue-50 rounded border border-blue-200"
-                      >
-                        <p className="font-medium text-blue-800">
-                          {assignment.events.title || "Untitled Event"}
-                        </p>
-                        <p className="text-sm text-blue-600">
-                          {formatDate(assignment.start_date)} -{" "}
-                          {formatDate(assignment.end_date)}
-                        </p>
-                        <p className="text-xs text-blue-500">
-                          Time: {formatTime(assignment.events.start_date)} -{" "}
-                          {formatTime(assignment.events.end_date)}
-                        </p>
-                      </div>
-                    ))}
+                    {employeeData.assignments
+                      .filter((a) => a.assignment_type !== "standalone")
+                      .map((assignment) => (
+                        <div
+                          key={assignment.id}
+                          className={`p-3 rounded border ${
+                            assignment.assignment_type === "server"
+                              ? "bg-blue-50 border-blue-200"
+                              : assignment.assignment_type === "driver"
+                                ? "bg-green-50 border-green-200"
+                                : "bg-orange-50 border-orange-200"
+                          }`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <p
+                              className={`font-medium ${
+                                assignment.assignment_type === "server"
+                                  ? "text-blue-800"
+                                  : assignment.assignment_type === "driver"
+                                    ? "text-green-800"
+                                    : "text-orange-800"
+                              }`}
+                            >
+                              {assignment.events.title || "Untitled Event"}
+                            </p>
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${
+                                assignment.assignment_type === "server"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : assignment.assignment_type === "driver"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-orange-100 text-orange-700"
+                              }`}
+                            >
+                              {assignment.assignment_type === "server"
+                                ? "Server"
+                                : assignment.assignment_type === "driver"
+                                  ? "Driver"
+                                  : "Potential"}
+                            </span>
+                          </div>
+                          <p
+                            className={`text-sm ${
+                              assignment.assignment_type === "server"
+                                ? "text-blue-600"
+                                : assignment.assignment_type === "driver"
+                                  ? "text-green-600"
+                                  : "text-orange-600"
+                            }`}
+                          >
+                            {formatDate(assignment.start_date)} -{" "}
+                            {formatDate(assignment.end_date)}
+                          </p>
+                          <p
+                            className={`text-xs ${
+                              assignment.assignment_type === "server"
+                                ? "text-blue-500"
+                                : assignment.assignment_type === "driver"
+                                  ? "text-green-500"
+                                  : "text-orange-500"
+                            }`}
+                          >
+                            Time: {formatTime(assignment.events.start_date)} -{" "}
+                            {formatTime(assignment.events.end_date)}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Standalone Shifts */}
+              {employeeData.assignments.filter(
+                (a) => a.assignment_type === "standalone"
+              ).length > 0 && (
+                <div className="mb-4">
+                  <h4 className="font-medium text-gray-800 mb-2 flex items-center">
+                    <FiCalendar className="mr-2" />
+                    Standalone Shifts
+                  </h4>
+                  <div className="space-y-2">
+                    {employeeData.assignments
+                      .filter((a) => a.assignment_type === "standalone")
+                      .map((assignment) => (
+                        <div
+                          key={assignment.id}
+                          className="p-3 rounded border bg-purple-50 border-purple-200"
+                        >
+                          <div className="flex justify-between items-start">
+                            <p className="font-medium text-purple-800">
+                              Standalone Shift
+                            </p>
+                            <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700">
+                              Standalone
+                            </span>
+                          </div>
+                          <p className="text-sm text-purple-600">
+                            {formatDate(assignment.start_date)} -{" "}
+                            {formatDate(assignment.end_date)}
+                          </p>
+                          <p className="text-xs text-purple-500">
+                            Time: {formatTime(assignment.events.start_date)} -{" "}
+                            {formatTime(assignment.events.end_date)}
+                          </p>
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}

@@ -1,23 +1,66 @@
 "use client";
 
 import React, { useState, useEffect, ReactElement } from "react";
-import { FiCalendar, FiUser, FiArrowLeft, FiFilter } from "react-icons/fi";
+import {
+  FiCalendar,
+  FiUser,
+  FiArrowLeft,
+  FiFilter,
+  FiClock,
+} from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
+import { assignmentsApi } from "@/lib/supabase/assignments";
 import { employeesApi } from "@/lib/supabase/employees";
-import { TimeOffRequest, Employee } from "../../types";
+import { eventsApi } from "@/lib/supabase/events";
+import { Employee } from "../../types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
 
-interface TimeOffRequestWithEmployee extends TimeOffRequest {
+interface AssignmentWithEmployee {
+  id: string;
+  employee_id: string | null;
+  event_id: string | null;
+  start_date: string;
+  end_date: string;
+  is_completed: boolean | null;
+  status: string | null;
+  created_at: string;
   employee: Employee;
+  events?: {
+    id: string;
+    title: string | null;
+    start_date: string;
+    end_date: string;
+  } | null;
+  assignment_type: "server" | "driver" | "standalone";
 }
 
-export default function TimeOffRequestsReport(): ReactElement {
+interface DriverAssignmentWithEmployee {
+  id: string;
+  driver_id: string | null;
+  event_id: string | null;
+  start_time: string;
+  end_time: string;
+  created_at: string;
+  truck_id: string | null;
+  employee: Employee;
+  events?: {
+    id: string;
+    title: string | null;
+    start_date: string;
+    end_date: string;
+  } | null;
+  assignment_type: "driver";
+}
+
+export default function AssignmentReport(): ReactElement {
   const { isAdmin } = useAuth();
   const { shouldHighlight } = useTutorial();
-  const [requests, setRequests] = useState<TimeOffRequestWithEmployee[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentWithEmployee[]>([]);
+  const [driverAssignments, setDriverAssignments] = useState<
+    DriverAssignmentWithEmployee[]
+  >([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +80,6 @@ export default function TimeOffRequestsReport(): ReactElement {
       setError(null);
 
       try {
-        // Fetch all time off requests
-        const allRequests = await timeOffRequestsApi.getAllTimeOffRequests();
-
         // Fetch all employees
         const allEmployees = await employeesApi.getAllEmployees();
 
@@ -54,18 +94,25 @@ export default function TimeOffRequestsReport(): ReactElement {
 
         setEmployees(sortedEmployees);
 
-        // Combine requests with employee data
-        const requestsWithEmployees: TimeOffRequestWithEmployee[] =
-          allRequests.map((request) => {
+        // Fetch all assignments
+        const allAssignments = await assignmentsApi.getAllAssignments();
+
+        // Fetch all driver assignments
+        const allDriverAssignments =
+          await assignmentsApi.getAllTruckAssignments();
+
+        // Combine assignments with employee data
+        const assignmentsWithEmployees: AssignmentWithEmployee[] =
+          allAssignments.map((assignment) => {
             const employee = allEmployees.find(
-              (emp) => emp.employee_id === request.employee_id
+              (emp) => emp.employee_id === assignment.employee_id
             );
             return {
-              ...request,
+              ...assignment,
               employee:
                 employee ||
                 ({
-                  employee_id: request.employee_id || "",
+                  employee_id: assignment.employee_id || "",
                   first_name: "Unknown",
                   last_name: "Employee",
                   employee_type: "Unknown",
@@ -78,13 +125,81 @@ export default function TimeOffRequestsReport(): ReactElement {
                   availability: null,
                   user_id: null,
                 } as Employee),
+              assignment_type: assignment.event_id
+                ? "server"
+                : ("standalone" as const),
             };
           });
 
-        setRequests(requestsWithEmployees);
+        // Combine driver assignments with employee data
+        const driverAssignmentsWithEmployees: DriverAssignmentWithEmployee[] =
+          allDriverAssignments.map((assignment) => {
+            const employee = allEmployees.find(
+              (emp) => emp.employee_id === assignment.driver_id
+            );
+            return {
+              ...assignment,
+              employee:
+                employee ||
+                ({
+                  employee_id: assignment.driver_id || "",
+                  first_name: "Unknown",
+                  last_name: "Driver",
+                  employee_type: "Driver",
+                  user_email: "unknown@example.com",
+                  user_phone: "",
+                  is_available: true,
+                  is_pending: false,
+                  created_at: "",
+                  address_id: null,
+                  availability: null,
+                  user_id: null,
+                } as Employee),
+              assignment_type: "driver" as const,
+            };
+          });
+
+        // Fetch event details for assignments
+        for (const assignment of assignmentsWithEmployees) {
+          if (assignment.event_id) {
+            try {
+              const eventDetails = await eventsApi.getEventById(
+                assignment.event_id
+              );
+              assignment.events = eventDetails;
+            } catch (error) {
+              console.warn(
+                `Failed to fetch event details for ${assignment.event_id}:`,
+                error
+              );
+              assignment.events = null;
+            }
+          }
+        }
+
+        // Fetch event details for driver assignments
+        for (const assignment of driverAssignmentsWithEmployees) {
+          if (assignment.event_id) {
+            try {
+              const eventDetails = await eventsApi.getEventById(
+                assignment.event_id
+              );
+              assignment.events = eventDetails;
+            } catch (error) {
+              console.warn(
+                `Failed to fetch event details for ${assignment.event_id}:`,
+                error
+              );
+              assignment.events = null;
+            }
+          }
+        }
+
+        setAssignments(assignmentsWithEmployees);
+        setDriverAssignments(driverAssignmentsWithEmployees);
       } catch (err) {
-        console.error("Error fetching time off requests:", err);
-        setError("Failed to load time off requests data.");
+        console.error("Error fetching shifts:", err);
+        setError("Failed to load shifts data.");
       } finally {
         setIsLoading(false);
       }
@@ -93,34 +208,45 @@ export default function TimeOffRequestsReport(): ReactElement {
     fetchData();
   }, []);
 
-  const filteredRequests = requests.filter((request) => {
+  // Combine all assignments for filtering
+  const allShifts = [
+    ...assignments,
+    ...driverAssignments.map((driver) => ({
+      ...driver,
+      start_date: driver.start_time,
+      end_date: driver.end_time,
+      employee_id: driver.driver_id,
+    })),
+  ];
+
+  const filteredShifts = allShifts.filter((shift) => {
     // Employee filter
-    if (selectedEmployee && request.employee_id !== selectedEmployee) {
+    if (selectedEmployee && shift.employee_id !== selectedEmployee) {
       return false;
     }
 
     // Status filter
-    if (selectedStatus !== "All" && request.status !== selectedStatus) {
+    if (selectedStatus !== "All" && shift.status !== selectedStatus) {
       return false;
     }
 
     // Type filter
-    if (selectedType !== "All" && request.type !== selectedType) {
+    if (selectedType !== "All" && shift.assignment_type !== selectedType) {
       return false;
     }
 
     // Date range filter
     if (dateRange.start || dateRange.end) {
-      const requestStart = new Date(request.start_datetime);
+      const shiftStart = new Date(shift.start_date);
 
       if (dateRange.start) {
         const filterStart = new Date(dateRange.start);
-        if (requestStart < filterStart) return false;
+        if (shiftStart < filterStart) return false;
       }
 
       if (dateRange.end) {
         const filterEnd = new Date(dateRange.end);
-        if (requestStart > filterEnd) return false;
+        if (shiftStart > filterEnd) return false;
       }
     }
 
@@ -147,11 +273,11 @@ export default function TimeOffRequestsReport(): ReactElement {
     const start = new Date(startDateTime);
     const end = new Date(endDateTime);
     const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+    return diffHours;
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case "Accepted":
         return "bg-green-100 text-green-800";
@@ -159,6 +285,8 @@ export default function TimeOffRequestsReport(): ReactElement {
         return "bg-red-100 text-red-800";
       case "Pending":
         return "bg-yellow-100 text-yellow-800";
+      case "Scheduled":
+        return "bg-blue-100 text-blue-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -166,44 +294,40 @@ export default function TimeOffRequestsReport(): ReactElement {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "Vacation":
+      case "server":
         return "bg-blue-100 text-blue-800";
-      case "Sick Leave":
-        return "bg-red-100 text-red-800";
-      case "Personal Leave":
+      case "driver":
+        return "bg-green-100 text-green-800";
+      case "standalone":
         return "bg-purple-100 text-purple-800";
-      case "Emergency":
-        return "bg-orange-100 text-orange-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
   const calculateStats = () => {
-    const total = filteredRequests.length;
-    const pending = filteredRequests.filter(
-      (r) => r.status === "Pending"
+    const total = filteredShifts.length;
+    const serverShifts = filteredShifts.filter(
+      (s) => s.assignment_type === "server"
     ).length;
-    const accepted = filteredRequests.filter(
-      (r) => r.status === "Accepted"
+    const driverShifts = filteredShifts.filter(
+      (s) => s.assignment_type === "driver"
     ).length;
-    const rejected = filteredRequests.filter(
-      (r) => r.status === "Rejected"
+    const standaloneShifts = filteredShifts.filter(
+      (s) => s.assignment_type === "standalone"
     ).length;
-    const totalDays = filteredRequests.reduce(
-      (sum, r) => sum + calculateDuration(r.start_datetime, r.end_datetime),
+    const totalHours = filteredShifts.reduce(
+      (sum, s) => sum + calculateDuration(s.start_date, s.end_date),
       0
     );
 
-    return { total, pending, accepted, rejected, totalDays };
+    return { total, serverShifts, driverShifts, standaloneShifts, totalHours };
   };
 
   if (!isAdmin) {
     return (
-      <div className="time-off-requests-report">
-        <h2 className="text-2xl text-primary-dark mb-4">
-          Time Off Requests Report
-        </h2>
+      <div className="assignment-report">
+        <h2 className="text-2xl text-primary-dark mb-4">Assignment Report</h2>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">
             Access denied. Only administrators can view reports.
@@ -213,10 +337,11 @@ export default function TimeOffRequestsReport(): ReactElement {
     );
   }
 
-  const { total, pending, accepted, rejected, totalDays } = calculateStats();
+  const { total, serverShifts, driverShifts, standaloneShifts, totalHours } =
+    calculateStats();
 
   return (
-    <div className="time-off-requests-report">
+    <div className="assignment-report">
       <div className="mb-6">
         <div className="flex items-center mb-4">
           <Link
@@ -225,13 +350,11 @@ export default function TimeOffRequestsReport(): ReactElement {
           >
             <FiArrowLeft className="w-5 h-5" />
           </Link>
-          <h2 className="text-2xl text-primary-dark">
-            Time Off Requests Report
-          </h2>
+          <h2 className="text-2xl text-primary-dark">Assignment Report</h2>
         </div>
         <p className="text-gray-600">
-          View detailed time off requests for specific employees with filtering
-          and status tracking.
+          View detailed assignment information for all employees including
+          server assignments, driver assignments, and standalone shifts.
         </p>
       </div>
 
@@ -288,6 +411,7 @@ export default function TimeOffRequestsReport(): ReactElement {
                 <option value="Pending">Pending</option>
                 <option value="Accepted">Accepted</option>
                 <option value="Rejected">Rejected</option>
+                <option value="Scheduled">Scheduled</option>
               </select>
             </div>
 
@@ -297,7 +421,7 @@ export default function TimeOffRequestsReport(): ReactElement {
                 htmlFor="type-filter"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Type
+                Shift Type
               </label>
               <select
                 id="type-filter"
@@ -306,11 +430,9 @@ export default function TimeOffRequestsReport(): ReactElement {
                 className="input-field"
               >
                 <option value="All">All Types</option>
-                <option value="Vacation">Vacation</option>
-                <option value="Sick Leave">Sick Leave</option>
-                <option value="Personal Leave">Personal Leave</option>
-                <option value="Emergency">Emergency</option>
-                <option value="Other">Other</option>
+                <option value="server">Server Shifts</option>
+                <option value="driver">Driver Shifts</option>
+                <option value="standalone">Standalone Shifts</option>
               </select>
             </div>
 
@@ -376,24 +498,24 @@ export default function TimeOffRequestsReport(): ReactElement {
           <h3 className="text-sm font-medium text-blue-800 mb-2">Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
             <div>
-              <span className="text-blue-600">Total Requests:</span>
+              <span className="text-blue-600">Total Assignments:</span>
               <span className="ml-2 font-medium">{total}</span>
             </div>
             <div>
-              <span className="text-yellow-600">Pending:</span>
-              <span className="ml-2 font-medium">{pending}</span>
+              <span className="text-blue-600">Server Assignments:</span>
+              <span className="ml-2 font-medium">{serverShifts}</span>
             </div>
             <div>
-              <span className="text-green-600">Accepted:</span>
-              <span className="ml-2 font-medium">{accepted}</span>
+              <span className="text-green-600">Driver Assignments:</span>
+              <span className="ml-2 font-medium">{driverShifts}</span>
             </div>
             <div>
-              <span className="text-red-600">Rejected:</span>
-              <span className="ml-2 font-medium">{rejected}</span>
+              <span className="text-purple-600">Standalone Assignments:</span>
+              <span className="ml-2 font-medium">{standaloneShifts}</span>
             </div>
             <div>
-              <span className="text-blue-600">Total Days:</span>
-              <span className="ml-2 font-medium">{totalDays}</span>
+              <span className="text-blue-600">Total Hours:</span>
+              <span className="ml-2 font-medium">{totalHours}</span>
             </div>
           </div>
         </div>
@@ -402,54 +524,57 @@ export default function TimeOffRequestsReport(): ReactElement {
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-dark"></div>
-          <span className="ml-2 text-gray-600">
-            Loading time off requests...
-          </span>
+          <span className="ml-2 text-gray-600">Loading shifts...</span>
         </div>
       ) : (
         <div className="grid gap-4">
-          {filteredRequests.length > 0 ? (
-            filteredRequests
+          {filteredShifts.length > 0 ? (
+            filteredShifts
               .sort(
                 (a, b) =>
                   new Date(b.created_at).getTime() -
                   new Date(a.created_at).getTime()
               )
-              .map((request) => (
+              .map((shift) => (
                 <div
-                  key={request.id}
+                  key={shift.id}
                   className="employee-card bg-white p-6 rounded shadow"
                 >
-                  {/* Request Header */}
+                  {/* Shift Header */}
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center">
                       <FiUser className="text-gray-400 mr-3 text-lg" />
                       <div>
                         <h3 className="font-semibold text-lg text-gray-800">
-                          {request.employee.first_name}{" "}
-                          {request.employee.last_name}
+                          {shift.employee.first_name} {shift.employee.last_name}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {request.employee.employee_type} •{" "}
-                          {request.employee.user_email}
+                          {shift.employee.employee_type} •{" "}
+                          {shift.employee.user_email}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${getTypeColor(request.type)}`}
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getTypeColor(shift.assignment_type)}`}
                       >
-                        {request.type}
+                        {shift.assignment_type === "server"
+                          ? "Server"
+                          : shift.assignment_type === "driver"
+                            ? "Driver"
+                            : "Standalone"}
                       </span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(request.status)}`}
-                      >
-                        {request.status}
-                      </span>
+                      {shift.status && (
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(shift.status)}`}
+                        >
+                          {shift.status}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Request Details */}
+                  {/* Shift Details */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                     <div className="bg-gray-50 p-3 rounded-lg">
                       <div className="flex items-center mb-2">
@@ -459,8 +584,8 @@ export default function TimeOffRequestsReport(): ReactElement {
                         </span>
                       </div>
                       <span className="text-sm text-gray-600">
-                        {formatDate(request.start_datetime)}{" "}
-                        {formatTime(request.start_datetime)}
+                        {formatDate(shift.start_date)}{" "}
+                        {formatTime(shift.start_date)}
                       </span>
                     </div>
                     <div className="bg-gray-50 p-3 rounded-lg">
@@ -471,17 +596,31 @@ export default function TimeOffRequestsReport(): ReactElement {
                         </span>
                       </div>
                       <span className="text-sm text-gray-600">
-                        {formatDate(request.end_datetime)}{" "}
-                        {formatTime(request.end_datetime)}
+                        {formatDate(shift.end_date)}{" "}
+                        {formatTime(shift.end_date)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Reason */}
-                  {request.reason && (
-                    <div className="mb-4 p-3 bg-yellow-50 rounded border border-yellow-200">
-                      <p className="text-sm text-yellow-800">
-                        <strong>Reason:</strong> {request.reason}
+                  {/* Event Information */}
+                  {shift.events && (
+                    <div className="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
+                      <p className="text-sm text-blue-800">
+                        <strong>Event:</strong>{" "}
+                        {shift.events.title || "Untitled Event"}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Event ID: {shift.events.id}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Standalone Shift Note */}
+                  {shift.assignment_type === "standalone" && (
+                    <div className="mb-4 p-3 bg-purple-50 rounded border border-purple-200">
+                      <p className="text-sm text-purple-800">
+                        <strong>Standalone Shift:</strong> This shift is not
+                        linked to any specific event.
                       </p>
                     </div>
                   )}
@@ -491,22 +630,24 @@ export default function TimeOffRequestsReport(): ReactElement {
                     <div className="flex items-center justify-between text-sm text-gray-600">
                       <span>
                         Duration:{" "}
-                        {calculateDuration(
-                          request.start_datetime,
-                          request.end_datetime
-                        )}{" "}
-                        day(s)
+                        {calculateDuration(shift.start_date, shift.end_date)}{" "}
+                        hour(s)
                       </span>
-                      <span>
-                        Requested on: {formatDate(request.created_at)}
-                      </span>
+                      <span>Created on: {formatDate(shift.created_at)}</span>
                     </div>
+                    {shift.is_completed !== null && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        <span>
+                          Completed: {shift.is_completed ? "Yes" : "No"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
           ) : (
             <div className="text-center py-8 text-gray-500">
-              No time off requests found matching the selected filters.
+              No shifts found matching the selected filters.
             </div>
           )}
         </div>
