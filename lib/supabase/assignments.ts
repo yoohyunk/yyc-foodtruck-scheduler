@@ -279,4 +279,53 @@ export const assignmentsApi = {
       throw error;
     }
   },
+
+  // Get all assignments (for reports)
+  async getAllAssignments(): Promise<
+    Array<{
+      id: string;
+      employee_id: string | null;
+      event_id: string | null;
+      start_date: string;
+      end_date: string;
+      is_completed: boolean | null;
+      status: string | null;
+      created_at: string;
+    }>
+  > {
+    const { data, error } = await supabase
+      .from("assignments")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Error fetching all assignments: ${error.message}`);
+    }
+
+    return data || [];
+  },
+
+  // Get all truck assignments (for reports)
+  async getAllTruckAssignments(): Promise<
+    Array<{
+      id: string;
+      driver_id: string | null;
+      event_id: string | null;
+      start_time: string;
+      end_time: string;
+      created_at: string;
+      truck_id: string | null;
+    }>
+  > {
+    const { data, error } = await supabase
+      .from("truck_assignment")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Error fetching all truck assignments: ${error.message}`);
+    }
+
+    return data || [];
+  },
 };
