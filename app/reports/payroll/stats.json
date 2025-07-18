@@ -1,0 +1,140 @@
+{
+  "provinces": {
+    "AB": [
+      "01-01",
+      "thirdMonday-Feb",
+      "variable-GoodFriday",
+      "lastMonday-preceding-05-25",
+      "07-01",
+      "firstMonday-Aug",
+      "secondMonday-Oct",
+      "11-11",
+      "12-25"
+    ],
+    "BC": [
+      "01-01",
+      "thirdMonday-Feb",
+      "variable-GoodFriday",
+      "lastMonday-preceding-05-25",
+      "07-01",
+      "firstMonday-Aug",
+      "09-30",
+      "secondMonday-Oct",
+      "11-11",
+      "12-25"
+    ],
+    "MB": [
+      "01-01",
+      "thirdMonday-Feb",
+      "variable-GoodFriday",
+      "lastMonday-preceding-05-25",
+      "07-01",
+      "firstMonday-Aug",
+      "secondMonday-Oct",
+      "12-25"
+    ],
+    "NB": [
+      "01-01",
+      "thirdMonday-Feb",
+      "variable-GoodFriday",
+      "07-01",
+      "firstMonday-Aug",
+      "11-11",
+      "12-25"
+    ],
+    "NL": [
+      "01-01",
+      "variable-GoodFriday",
+      "07-01",
+      "firstMonday-Aug",
+      "secondMonday-Oct",
+      "12-25"
+    ],
+    "NS": [
+      "01-01",
+      "thirdMonday-Feb",
+      "variable-GoodFriday",
+      "07-01",
+      "firstMonday-Aug",
+      "11-11",
+      "12-25"
+    ],
+    "ON": [
+      "01-01",
+      "thirdMonday-Feb",
+      "variable-GoodFriday",
+      "lastMonday-preceding-05-25",
+      "07-01",
+      "firstMonday-Aug",
+      "secondMonday-Oct",
+      "12-26",
+      "12-25"
+    ],
+    "QC": [
+      "01-01",
+      "variable-GoodFriday or variable-EasterMonday",
+      "lastMonday-preceding-05-25",
+      "06-24",
+      "07-01",
+      "firstMonday-Sep",
+      "secondMonday-Oct",
+      "12-25"
+    ],
+    "SK": [
+      "01-01",
+      "thirdMonday-Feb",
+      "variable-GoodFriday",
+      "lastMonday-preceding-05-25",
+      "07-01",
+      "firstMonday-Aug",
+      "secondMonday-Oct",
+      "11-11",
+      "12-25"
+    ],
+    "YT": [
+      "01-01",
+      "thirdMonday-Feb",
+      "variable-GoodFriday",
+      "lastMonday-preceding-05-25",
+      "07-01",
+      "firstMonday-Aug (Discovery Day)",
+      "secondMonday-Oct",
+      "11-11",
+      "12-25"
+    ],
+    "NT": [
+      "01-01",
+      "thirdMonday-Feb",
+      "variable-GoodFriday",
+      "lastMonday-preceding-05-25",
+      "07-01",
+      "firstMonday-Aug",
+      "secondMonday-Oct",
+      "11-11",
+      "12-25"
+    ],
+    "NU": [
+      "01-01",
+      "variable-GoodFriday",
+      "lastMonday-preceding-05-25",
+      "07-01",
+      "firstMonday-Aug",
+      "09-30",
+      "secondMonday-Oct",
+      "11-11",
+      "12-25"
+    ],
+    "Federal": [
+      "01-01",
+      "variable-GoodFriday",
+      "lastMonday-preceding-05-25",
+      "07-01",
+      "firstMonday-Sep",
+      "09-30",
+      "secondMonday-Oct",
+      "11-11",
+      "12-25",
+      "12-26"
+    ]
+  }
+}
