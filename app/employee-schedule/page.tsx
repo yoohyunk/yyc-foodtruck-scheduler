@@ -63,7 +63,16 @@ export default function EmplpyeeSchedule(): React.ReactElement {
           await assignmentsApi.getAssignmentsByEmployeeId(employee.employee_id);
 
         // Combine assignments and fetch event details
-        const allAssignments = [...driverScheduleData, ...serverScheduleData];
+        const allAssignments = [
+          // Server assignments (already have start_date/end_date)
+          ...serverScheduleData,
+          // Driver assignments (need to map start_time/end_time to start_date/end_date for consistency)
+          ...driverScheduleData.map(assignment => ({
+            ...assignment,
+            start_date: assignment.start_time,
+            end_date: assignment.end_time,
+          }))
+        ];
 
         // Get unique event IDs
         const eventIds = [...new Set(allAssignments.map((a) => a.event_id))];

@@ -241,8 +241,8 @@ export const assignmentsApi = {
       id: string;
       driver_id: string;
       event_id: string;
-      start_date: string;
-      end_date: string;
+      start_time: string;
+      end_time: string;
     }>
   > {
     const { data, error } = await supabase
