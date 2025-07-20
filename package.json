@@ -23,6 +23,7 @@
     "@types/react-datepicker": "^6.2.0",
     "clsx": "^2.1.1",
     "date-holidays": "^3.24.4",
+    "fullcalendar": "^6.1.18",
     "lodash": "^4.17.21",
     "lucide-react": "^0.511.0",
     "moment": "^2.30.1",

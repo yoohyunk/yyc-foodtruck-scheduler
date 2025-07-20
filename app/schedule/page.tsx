@@ -17,8 +17,28 @@ export default function Schedule(): React.ReactElement {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileNotice, setShowMobileNotice] = useState(false);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      
+      // Show notice if switching from desktop to mobile with monthly view
+      if (mobile && viewMode === "monthly") {
+        setShowMobileNotice(true);
+        setTimeout(() => setShowMobileNotice(false), 3000); // Hide after 3 seconds
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [viewMode]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -160,32 +180,101 @@ export default function Schedule(): React.ReactElement {
     [router]
   );
 
+  const handleViewChange = useCallback((newViewMode: "daily" | "weekly" | "monthly") => {
+    // Don't allow monthly view on mobile
+    if (isMobile && newViewMode === "monthly") {
+      return;
+    }
+    setViewMode(newViewMode);
+  }, [isMobile]);
+
   return (
-    <div className="schedule-container">
+    <div 
+      className="schedule-container"
+      style={{ 
+        padding: isMobile ? "0.5rem" : "1rem",
+        maxWidth: "1400px",
+        margin: "0 auto"
+      }}
+    >
+      {/* Mobile Notice */}
+      {showMobileNotice && (
+        <div
+          style={{
+            background: "var(--primary-light)",
+            color: "var(--primary-dark)",
+            padding: "0.75rem",
+            borderRadius: "0.5rem",
+            marginBottom: "1rem",
+            textAlign: "center",
+            fontSize: "0.875rem",
+            fontWeight: "500",
+            border: "1px solid var(--primary-medium)"
+          }}
+        >
+          📱 Switched to daily view - monthly view not available on mobile
+        </div>
+      )}
+
       <TutorialHighlight
         isHighlighted={shouldHighlight(".schedule-header")}
         className="schedule-header"
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: "1rem",
+          marginBottom: "1.5rem",
+          alignItems: isMobile ? "center" : "space-between"
+        }}
       >
-        <div>
+        <div style={{ textAlign: isMobile ? "center" : "left" }}>
           <h2
             className="schedule-title"
-            style={{ color: "var(--primary-dark)" }}
+            style={{ 
+              color: "var(--primary-dark)",
+              fontSize: isMobile ? "1.5rem" : "1.75rem",
+              fontWeight: "bold",
+              marginBottom: "0.5rem"
+            }}
           >
             Schedule
           </h2>
           <p
             className="schedule-subtitle"
-            style={{ color: "var(--text-muted)" }}
+            style={{ 
+              color: "var(--text-muted)",
+              fontSize: isMobile ? "0.875rem" : "1rem",
+              fontWeight: "500"
+            }}
           >
             {getDateRangeText()}
           </p>
+          {isMobile && (
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "0.75rem",
+                marginTop: "0.5rem",
+                fontStyle: "italic"
+              }}
+            >
+              📱 Mobile view: Events shown in list format
+            </p>
+          )}
         </div>
-        <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
+        <ViewToggle viewMode={viewMode} onViewChange={handleViewChange} />
       </TutorialHighlight>
 
       <TutorialHighlight
         isHighlighted={shouldHighlight(".navigation-container")}
         className="navigation-container"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: "0.5rem",
+          marginBottom: "1.5rem",
+          flexWrap: "wrap"
+        }}
       >
         <Navigation
           viewMode={viewMode}
@@ -196,13 +285,38 @@ export default function Schedule(): React.ReactElement {
       </TutorialHighlight>
 
       {isLoading ? (
-        <div className="loading-container">
-          <p className="text-primary-dark">Loading events...</p>
+        <div 
+          className="loading-container"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "2rem",
+            background: "var(--surface)",
+            borderRadius: "1rem",
+            border: "2px solid var(--border)",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
+          }}
+        >
+          <div className="text-center">
+            <div 
+              className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"
+            ></div>
+            <p style={{ color: "var(--text-primary)" }}>Loading events...</p>
+          </div>
         </div>
       ) : (
         <TutorialHighlight
           isHighlighted={shouldHighlight(".monthly-schedule")}
           className="monthly-schedule"
+          style={{
+            background: "var(--surface)",
+            borderRadius: "1rem",
+            border: "2px solid var(--border)",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            padding: isMobile ? "0.5rem" : "1rem",
+            overflow: "hidden"
+          }}
         >
           <Calendar
             viewMode={viewMode}
@@ -213,17 +327,7 @@ export default function Schedule(): React.ReactElement {
         </TutorialHighlight>
       )}
 
-      <TutorialHighlight
-        isHighlighted={shouldHighlight(".shift-list")}
-        className="shift-list"
-      >
-        <div className="mt-4">
-          {/* This is where shifts would be displayed */}
-          <p className="text-gray-500 text-center">
-            No shift scheduled for this event
-          </p>
-        </div>
-      </TutorialHighlight>
+
     </div>
   );
 }

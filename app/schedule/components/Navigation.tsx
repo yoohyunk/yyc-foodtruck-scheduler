@@ -22,6 +22,12 @@ export const Navigation = ({
     <TutorialHighlight
       isHighlighted={shouldHighlight(".navigation-container")}
       className="navigation-container"
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        gap: "0.5rem",
+        flexWrap: "wrap"
+      }}
     >
       <TutorialHighlight
         isHighlighted={shouldHighlight(
@@ -31,8 +37,19 @@ export const Navigation = ({
         <button
           className="navigation-button bg-secondary-dark text-primary-dark hover:bg-primary-light hover:text-white"
           onClick={onPrevious}
+          style={{
+            padding: "0.75rem 1rem",
+            borderRadius: "0.5rem",
+            fontWeight: "600",
+            transition: "all 0.3s ease",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "0.875rem",
+            minWidth: "80px",
+            minHeight: "44px"
+          }}
         >
-          &larr; Previous
+          &larr; Prev
         </button>
       </TutorialHighlight>
       <TutorialHighlight
@@ -43,6 +60,17 @@ export const Navigation = ({
         <button
           className="navigation-button bg-primary-medium text-white hover:bg-primary-dark"
           onClick={onToday}
+          style={{
+            padding: "0.75rem 1rem",
+            borderRadius: "0.5rem",
+            fontWeight: "600",
+            transition: "all 0.3s ease",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "0.875rem",
+            minWidth: "80px",
+            minHeight: "44px"
+          }}
         >
           {viewMode === "daily"
             ? "Today"
@@ -59,6 +87,17 @@ export const Navigation = ({
         <button
           className="navigation-button bg-secondary-dark text-primary-dark hover:bg-primary-light hover:text-white"
           onClick={onNext}
+          style={{
+            padding: "0.75rem 1rem",
+            borderRadius: "0.5rem",
+            fontWeight: "600",
+            transition: "all 0.3s ease",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "0.875rem",
+            minWidth: "80px",
+            minHeight: "44px"
+          }}
         >
           Next &rarr;
         </button>
