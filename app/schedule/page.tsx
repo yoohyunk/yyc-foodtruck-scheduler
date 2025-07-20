@@ -264,6 +264,18 @@ export default function Schedule(): React.ReactElement {
               📱 Mobile view: Events shown in list format
             </p>
           )}
+          {viewMode === "weekly" && !isMobile && (
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "0.75rem",
+                marginTop: "0.5rem",
+                fontStyle: "italic",
+              }}
+            >
+              📋 Weekly view: Events shown in list format for better readability
+            </p>
+          )}
         </div>
         <ViewToggle viewMode={viewMode} onViewChange={handleViewChange} />
       </TutorialHighlight>
@@ -302,7 +314,13 @@ export default function Schedule(): React.ReactElement {
           }}
         >
           <div className="text-center">
-            <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <div
+              className="inline-block w-8 h-8 border-4 rounded-full animate-spin mb-4"
+              style={{
+                borderColor: "var(--border)",
+                borderTopColor: "var(--primary-medium)",
+              }}
+            ></div>
             <p style={{ color: "var(--text-primary)" }}>Loading events...</p>
           </div>
         </div>
