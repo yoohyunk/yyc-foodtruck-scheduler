@@ -188,12 +188,22 @@ export default function EmplpyeeSchedule(): React.ReactElement {
       .map((assignment) => {
         const startDate = new Date(assignment.start_date);
         const endDate = new Date(assignment.end_date);
-
+        const status: "Scheduled" | "Pending" =
+          assignment.event?.status === "Pending" ? "Pending" : "Scheduled";
         return {
           id: assignment.event_id || assignment.id,
           title: assignment.event?.title || "Assignment",
           start: startDate,
           end: endDate,
+          extendedProps: {
+            location: assignment.event?.description || "",
+            trucks: [],
+            assignedStaff: [],
+            requiredServers: 0,
+            startTime: assignment.start_date || "",
+            endTime: assignment.end_date || "",
+            status,
+          },
         };
       })
       .filter((event) => {
