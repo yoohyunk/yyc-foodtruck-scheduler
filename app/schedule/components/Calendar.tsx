@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { EventContent } from "./EventContent";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -18,7 +18,7 @@ export interface CalendarEvent {
   title: string;
   start: Date;
   end: Date;
-  extendedProps?: {
+  extendedProps: {
     location: string;
     trucks: string[];
     assignedStaff: string[];
@@ -79,6 +79,68 @@ export const Calendar = ({
   };
 
   const viewType = getViewType();
+
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width <= 768);
+      setIsTablet(width > 768 && width <= 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  const viewType =
+    viewMode === "daily"
+      ? "timeGridDay"
+      : viewMode === "weekly"
+        ? "dayGridWeek"
+        : "dayGridMonth";
+
+  // Responsive configurations based on screen size
+  const getResponsiveConfig = () => {
+    if (isMobile) {
+      return {
+        eventMinHeight: 40,
+        dayMaxEvents: 2,
+        slotDuration: "02:00:00",
+        slotLabelInterval: "02:00",
+        dayMaxEventRows: 2,
+        aspectRatio: 0.6,
+        fontSize: "10px",
+        padding: "1px 2px",
+      };
+    } else if (isTablet) {
+      return {
+        eventMinHeight: 55,
+        dayMaxEvents: 3,
+        slotDuration: "01:30:00",
+        slotLabelInterval: "01:30",
+        dayMaxEventRows: 3,
+        aspectRatio: 1.0,
+        fontSize: "12px",
+        padding: "2px 4px",
+      };
+    } else {
+      return {
+        eventMinHeight: 70,
+        dayMaxEvents: 4,
+        slotDuration: "01:00:00",
+        slotLabelInterval: "01:00",
+        dayMaxEventRows: 4,
+        aspectRatio: 1.35,
+        fontSize: "14px",
+        padding: "4px 6px",
+      };
+    }
+  };
+
+  const config = getResponsiveConfig();
 
   return (
     <div
