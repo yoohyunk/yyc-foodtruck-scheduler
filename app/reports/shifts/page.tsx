@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, ReactElement } from "react";
-import {
-  FiCalendar,
-  FiUser,
-  FiArrowLeft,
-  FiFilter,
-  FiClock,
-} from "react-icons/fi";
+import { FiCalendar, FiUser, FiArrowLeft, FiFilter } from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { assignmentsApi } from "@/lib/supabase/assignments";
@@ -52,6 +46,8 @@ interface DriverAssignmentWithEmployee {
     end_date: string;
   } | null;
   assignment_type: "driver";
+  status?: string | null; // Add status property for consistency
+  is_completed?: boolean | null; // Add is_completed property for consistency
 }
 
 export default function AssignmentReport(): ReactElement {
