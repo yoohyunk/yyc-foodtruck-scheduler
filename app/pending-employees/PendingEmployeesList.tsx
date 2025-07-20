@@ -18,12 +18,16 @@ export function PendingEmployeesTable({
   employees: PendingEmployee[];
 }) {
   const [search, setSearch] = useState("");
-  
+
   // Error modal state
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorModalErrors, setErrorModalErrors] = useState<ValidationError[]>([]);
+  const [errorModalErrors, setErrorModalErrors] = useState<ValidationError[]>(
+    []
+  );
   const [errorModalTitle, setErrorModalTitle] = useState<string>("");
-  const [errorModalType, setErrorModalType] = useState<"error" | "success">("error");
+  const [errorModalType, setErrorModalType] = useState<"error" | "success">(
+    "error"
+  );
 
   // Error handling helper functions
   const showError = (title: string, message: string) => {
@@ -59,18 +63,21 @@ export function PendingEmployeesTable({
     <>
       <div className="flex flex-col items-center justify-center gap-4 p-4">
         <SearchInput onSearch={setSearch} />
-        
+
         {/* Mobile view - Cards */}
         <div className="w-full md:hidden">
           {filtered.length === 0 ? (
-            <div className="text-center p-4" style={{ color: "var(--text-muted)" }}>
+            <div
+              className="text-center p-4"
+              style={{ color: "var(--text-muted)" }}
+            >
               No matching employee.
             </div>
           ) : (
             <div className="space-y-4">
               {filtered.map((emp, index) => (
-                <div 
-                  key={emp.user_id} 
+                <div
+                  key={emp.user_id}
                   className="card"
                   style={{
                     background: "var(--surface)",
@@ -80,7 +87,7 @@ export function PendingEmployeesTable({
                     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
                     transition: "var(--hover-transition)",
                     position: "relative",
-                    overflow: "hidden"
+                    overflow: "hidden",
                   }}
                 >
                   {/* Card accent bar based on index */}
@@ -91,41 +98,53 @@ export function PendingEmployeesTable({
                       left: 0,
                       right: 0,
                       height: "6px",
-                      background: index % 4 === 0 ? "var(--primary-light)" :
-                                 index % 4 === 1 ? "var(--secondary-light)" :
-                                 index % 4 === 2 ? "var(--secondary-medium)" :
-                                 "var(--primary-light)"
+                      background:
+                        index % 4 === 0
+                          ? "var(--primary-light)"
+                          : index % 4 === 1
+                            ? "var(--secondary-light)"
+                            : index % 4 === 2
+                              ? "var(--secondary-medium)"
+                              : "var(--primary-light)",
                     }}
                   />
-                  
-                  <div className="space-y-3" style={{ position: "relative", zIndex: 1 }}>
+
+                  <div
+                    className="space-y-3"
+                    style={{ position: "relative", zIndex: 1 }}
+                  >
                     <div>
-                      <h3 
+                      <h3
                         className="font-semibold text-lg"
                         style={{ color: "var(--text-primary)" }}
                       >
                         {emp.first_name} {emp.last_name}
                       </h3>
-                      <p 
+                      <p
                         className="text-sm"
                         style={{ color: "var(--text-secondary)" }}
                       >
                         {emp.email}
                       </p>
                     </div>
-                    <div 
+                    <div
                       className="text-sm"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      <p>Invited: {emp.invited_at
-                        ? new Date(emp.invited_at).toLocaleString()
-                        : "N/A"}</p>
+                      <p>
+                        Invited:{" "}
+                        {emp.invited_at
+                          ? new Date(emp.invited_at).toLocaleString()
+                          : "N/A"}
+                      </p>
                     </div>
                     <div className="pt-2">
                       {emp.email && (
-                        <ResendInviteButton 
-                          email={emp.email} 
-                          onSuccess={(message) => showSuccess("Success", message)}
+                        <ResendInviteButton
+                          email={emp.email}
+                          onSuccess={(message) =>
+                            showSuccess("Success", message)
+                          }
                           onError={(message) => showError("Error", message)}
                         />
                       )}
@@ -142,38 +161,38 @@ export function PendingEmployeesTable({
           <table className="min-w-full" style={{ borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "var(--background-light)" }}>
-                <th 
+                <th
                   className="p-3 text-left font-semibold"
-                  style={{ 
+                  style={{
                     border: "1px solid var(--border)",
-                    color: "var(--text-primary)"
+                    color: "var(--text-primary)",
                   }}
                 >
                   Email
                 </th>
-                <th 
+                <th
                   className="p-3 text-left font-semibold"
-                  style={{ 
+                  style={{
                     border: "1px solid var(--border)",
-                    color: "var(--text-primary)"
+                    color: "var(--text-primary)",
                   }}
                 >
                   Name
                 </th>
-                <th 
+                <th
                   className="p-3 text-left font-semibold"
-                  style={{ 
+                  style={{
                     border: "1px solid var(--border)",
-                    color: "var(--text-primary)"
+                    color: "var(--text-primary)",
                   }}
                 >
                   Invited At
                 </th>
-                <th 
+                <th
                   className="p-3 text-left font-semibold"
-                  style={{ 
+                  style={{
                     border: "1px solid var(--border)",
-                    color: "var(--text-primary)"
+                    color: "var(--text-primary)",
                   }}
                 >
                   Resend Invite
@@ -183,12 +202,12 @@ export function PendingEmployeesTable({
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td 
-                    colSpan={4} 
+                  <td
+                    colSpan={4}
                     className="p-3 text-center"
-                    style={{ 
+                    style={{
                       border: "1px solid var(--border)",
-                      color: "var(--text-muted)"
+                      color: "var(--text-muted)",
                     }}
                   >
                     No matching employee.
@@ -196,53 +215,55 @@ export function PendingEmployeesTable({
                 </tr>
               ) : (
                 filtered.map((emp) => (
-                  <tr 
-                    key={emp.user_id} 
+                  <tr
+                    key={emp.user_id}
                     className="hover:bg-gray-50"
-                    style={{ 
+                    style={{
                       transition: "var(--hover-transition)",
-                      background: "var(--surface)"
+                      background: "var(--surface)",
                     }}
                   >
-                    <td 
+                    <td
                       className="p-3"
-                      style={{ 
+                      style={{
                         border: "1px solid var(--border)",
-                        color: "var(--text-primary)"
+                        color: "var(--text-primary)",
                       }}
                     >
                       {emp.email}
                     </td>
-                    <td 
+                    <td
                       className="p-3"
-                      style={{ 
+                      style={{
                         border: "1px solid var(--border)",
-                        color: "var(--text-primary)"
+                        color: "var(--text-primary)",
                       }}
                     >
                       {emp.first_name} {emp.last_name}
                     </td>
-                    <td 
+                    <td
                       className="p-3"
-                      style={{ 
+                      style={{
                         border: "1px solid var(--border)",
-                        color: "var(--text-primary)"
+                        color: "var(--text-primary)",
                       }}
                     >
                       {emp.invited_at
                         ? new Date(emp.invited_at).toLocaleString()
                         : "N/A"}
                     </td>
-                    <td 
+                    <td
                       className="p-3"
-                      style={{ 
-                        border: "1px solid var(--border)"
+                      style={{
+                        border: "1px solid var(--border)",
                       }}
                     >
                       {emp.email && (
-                        <ResendInviteButton 
+                        <ResendInviteButton
                           email={emp.email}
-                          onSuccess={(message) => showSuccess("Success", message)}
+                          onSuccess={(message) =>
+                            showSuccess("Success", message)
+                          }
                           onError={(message) => showError("Error", message)}
                         />
                       )}

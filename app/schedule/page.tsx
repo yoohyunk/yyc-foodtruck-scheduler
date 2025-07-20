@@ -27,7 +27,7 @@ export default function Schedule(): React.ReactElement {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      
+
       // Show notice if switching from desktop to mobile with monthly view
       if (mobile && viewMode === "monthly") {
         setShowMobileNotice(true);
@@ -36,8 +36,8 @@ export default function Schedule(): React.ReactElement {
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, [viewMode]);
 
   useEffect(() => {
@@ -180,21 +180,24 @@ export default function Schedule(): React.ReactElement {
     [router]
   );
 
-  const handleViewChange = useCallback((newViewMode: "daily" | "weekly" | "monthly") => {
-    // Don't allow monthly view on mobile
-    if (isMobile && newViewMode === "monthly") {
-      return;
-    }
-    setViewMode(newViewMode);
-  }, [isMobile]);
+  const handleViewChange = useCallback(
+    (newViewMode: "daily" | "weekly" | "monthly") => {
+      // Don't allow monthly view on mobile
+      if (isMobile && newViewMode === "monthly") {
+        return;
+      }
+      setViewMode(newViewMode);
+    },
+    [isMobile]
+  );
 
   return (
-    <div 
+    <div
       className="schedule-container"
-      style={{ 
+      style={{
         padding: isMobile ? "0.5rem" : "1rem",
         maxWidth: "1400px",
-        margin: "0 auto"
+        margin: "0 auto",
       }}
     >
       {/* Mobile Notice */}
@@ -209,7 +212,7 @@ export default function Schedule(): React.ReactElement {
             textAlign: "center",
             fontSize: "0.875rem",
             fontWeight: "500",
-            border: "1px solid var(--primary-medium)"
+            border: "1px solid var(--primary-medium)",
           }}
         >
           📱 Switched to daily view - monthly view not available on mobile
@@ -224,27 +227,27 @@ export default function Schedule(): React.ReactElement {
           flexDirection: isMobile ? "column" : "row",
           gap: "1rem",
           marginBottom: "1.5rem",
-          alignItems: isMobile ? "center" : "space-between"
+          alignItems: isMobile ? "center" : "space-between",
         }}
       >
         <div style={{ textAlign: isMobile ? "center" : "left" }}>
           <h2
             className="schedule-title"
-            style={{ 
+            style={{
               color: "var(--primary-dark)",
               fontSize: isMobile ? "1.5rem" : "1.75rem",
               fontWeight: "bold",
-              marginBottom: "0.5rem"
+              marginBottom: "0.5rem",
             }}
           >
             Schedule
           </h2>
           <p
             className="schedule-subtitle"
-            style={{ 
+            style={{
               color: "var(--text-muted)",
               fontSize: isMobile ? "0.875rem" : "1rem",
-              fontWeight: "500"
+              fontWeight: "500",
             }}
           >
             {getDateRangeText()}
@@ -255,7 +258,7 @@ export default function Schedule(): React.ReactElement {
                 color: "var(--text-muted)",
                 fontSize: "0.75rem",
                 marginTop: "0.5rem",
-                fontStyle: "italic"
+                fontStyle: "italic",
               }}
             >
               📱 Mobile view: Events shown in list format
@@ -273,7 +276,7 @@ export default function Schedule(): React.ReactElement {
           justifyContent: "center",
           gap: "0.5rem",
           marginBottom: "1.5rem",
-          flexWrap: "wrap"
+          flexWrap: "wrap",
         }}
       >
         <Navigation
@@ -285,7 +288,7 @@ export default function Schedule(): React.ReactElement {
       </TutorialHighlight>
 
       {isLoading ? (
-        <div 
+        <div
           className="loading-container"
           style={{
             display: "flex",
@@ -295,13 +298,11 @@ export default function Schedule(): React.ReactElement {
             background: "var(--surface)",
             borderRadius: "1rem",
             border: "2px solid var(--border)",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
           }}
         >
           <div className="text-center">
-            <div 
-              className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"
-            ></div>
+            <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
             <p style={{ color: "var(--text-primary)" }}>Loading events...</p>
           </div>
         </div>
@@ -315,7 +316,7 @@ export default function Schedule(): React.ReactElement {
             border: "2px solid var(--border)",
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
             padding: isMobile ? "0.5rem" : "1rem",
-            overflow: "hidden"
+            overflow: "hidden",
           }}
         >
           <Calendar
@@ -326,8 +327,6 @@ export default function Schedule(): React.ReactElement {
           />
         </TutorialHighlight>
       )}
-
-
     </div>
   );
 }

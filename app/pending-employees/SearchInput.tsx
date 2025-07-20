@@ -25,7 +25,7 @@ export function SearchInput({
         color: "var(--text-primary)",
         transition: "var(--hover-transition)",
         fontSize: "1rem",
-        outline: "none"
+        outline: "none",
       }}
       onFocus={(e) => {
         e.target.style.borderColor = "var(--primary-light)";

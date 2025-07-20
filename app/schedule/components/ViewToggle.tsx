@@ -20,8 +20,8 @@ export const ViewToggle = ({ viewMode, onViewChange }: ViewToggleProps) => {
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // If mobile and monthly is selected, switch to daily
@@ -39,7 +39,7 @@ export const ViewToggle = ({ viewMode, onViewChange }: ViewToggleProps) => {
         display: "flex",
         gap: "0.5rem",
         justifyContent: "center",
-        flexWrap: "wrap"
+        flexWrap: "wrap",
       }}
     >
       <TutorialHighlight
@@ -63,7 +63,7 @@ export const ViewToggle = ({ viewMode, onViewChange }: ViewToggleProps) => {
             cursor: "pointer",
             fontSize: "0.875rem",
             minWidth: "80px",
-            minHeight: "44px"
+            minHeight: "44px",
           }}
         >
           Daily
@@ -90,7 +90,7 @@ export const ViewToggle = ({ viewMode, onViewChange }: ViewToggleProps) => {
             cursor: "pointer",
             fontSize: "0.875rem",
             minWidth: "80px",
-            minHeight: "44px"
+            minHeight: "44px",
           }}
         >
           Weekly
@@ -120,18 +120,24 @@ export const ViewToggle = ({ viewMode, onViewChange }: ViewToggleProps) => {
             minWidth: "80px",
             minHeight: "44px",
             opacity: isMobile ? 0.5 : 1,
-            filter: isMobile ? "grayscale(50%)" : "none"
+            filter: isMobile ? "grayscale(50%)" : "none",
           }}
-          title={isMobile ? "Monthly view not available on mobile" : "Switch to monthly view"}
+          title={
+            isMobile
+              ? "Monthly view not available on mobile"
+              : "Switch to monthly view"
+          }
         >
           Monthly
           {isMobile && (
-            <span style={{ 
-              fontSize: "0.75rem", 
-              display: "block", 
-              marginTop: "0.25rem",
-              opacity: 0.7 
-            }}>
+            <span
+              style={{
+                fontSize: "0.75rem",
+                display: "block",
+                marginTop: "0.25rem",
+                opacity: 0.7,
+              }}
+            >
               (Desktop only)
             </span>
           )}

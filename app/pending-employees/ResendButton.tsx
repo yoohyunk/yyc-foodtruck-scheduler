@@ -8,7 +8,11 @@ interface ResendInviteButtonProps {
   onError?: (message: string) => void;
 }
 
-export function ResendInviteButton({ email, onSuccess, onError }: ResendInviteButtonProps) {
+export function ResendInviteButton({
+  email,
+  onSuccess,
+  onError,
+}: ResendInviteButtonProps) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -42,7 +46,7 @@ export function ResendInviteButton({ email, onSuccess, onError }: ResendInviteBu
   return (
     <div className="flex flex-col items-center justify-center gap-2">
       {msg ? (
-        <span 
+        <span
           className="text-sm text-center"
           style={{ color: "var(--success-medium)" }}
         >
@@ -72,19 +76,21 @@ export function ResendInviteButton({ email, onSuccess, onError }: ResendInviteBu
             overflow: "hidden",
             background: "var(--primary-light)",
             color: "var(--text-primary)",
-            boxShadow: "0 6px 20px rgba(255, 213, 134, 0.3)"
+            boxShadow: "0 6px 20px rgba(255, 213, 134, 0.3)",
           }}
           onMouseEnter={(e) => {
             if (!loading) {
               e.currentTarget.style.transform = "translateY(-3px) scale(1.02)";
-              e.currentTarget.style.boxShadow = "0 12px 32px rgba(255, 213, 134, 0.4)";
+              e.currentTarget.style.boxShadow =
+                "0 12px 32px rgba(255, 213, 134, 0.4)";
               e.currentTarget.style.borderColor = "var(--secondary-light)";
             }
           }}
           onMouseLeave={(e) => {
             if (!loading) {
               e.currentTarget.style.transform = "translateY(0) scale(1)";
-              e.currentTarget.style.boxShadow = "0 6px 20px rgba(255, 213, 134, 0.3)";
+              e.currentTarget.style.boxShadow =
+                "0 6px 20px rgba(255, 213, 134, 0.3)";
               e.currentTarget.style.borderColor = "transparent";
             }
           }}

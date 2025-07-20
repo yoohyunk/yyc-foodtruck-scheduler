@@ -17,18 +17,18 @@ export default async function PendingEmployeesPage() {
 
   if (error) {
     return (
-      <div 
+      <div
         className="min-h-screen p-4"
         style={{ background: "var(--background)" }}
       >
         <div className="max-w-4xl mx-auto">
-          <h1 
+          <h1
             className="text-2xl font-bold mb-6 p-4"
             style={{ color: "var(--text-primary)" }}
           >
             Pending Employees
           </h1>
-          <div 
+          <div
             className="card text-center"
             style={{
               background: "var(--surface)",
@@ -36,7 +36,7 @@ export default async function PendingEmployeesPage() {
               borderRadius: "1.5rem",
               padding: "2rem",
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
-              color: "var(--text-muted)"
+              color: "var(--text-muted)",
             }}
           >
             <p>Error loading pending employees: {error.message}</p>
@@ -50,18 +50,18 @@ export default async function PendingEmployeesPage() {
 
   if (pendingUsers.length === 0) {
     return (
-      <div 
+      <div
         className="min-h-screen p-4"
         style={{ background: "var(--background)" }}
       >
         <div className="max-w-4xl mx-auto">
-          <h1 
+          <h1
             className="text-2xl font-bold mb-6 p-4"
             style={{ color: "var(--text-primary)" }}
           >
             Pending Employees
           </h1>
-          <div 
+          <div
             className="card text-center"
             style={{
               background: "var(--surface)",
@@ -69,7 +69,7 @@ export default async function PendingEmployeesPage() {
               borderRadius: "1.5rem",
               padding: "2rem",
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
-              color: "var(--text-muted)"
+              color: "var(--text-muted)",
             }}
           >
             No pending employees.
@@ -88,18 +88,18 @@ export default async function PendingEmployeesPage() {
 
   if (empError) {
     return (
-      <div 
+      <div
         className="min-h-screen p-4"
         style={{ background: "var(--background)" }}
       >
         <div className="max-w-4xl mx-auto">
-          <h1 
+          <h1
             className="text-2xl font-bold mb-6 p-4"
             style={{ color: "var(--text-primary)" }}
           >
             Pending Employees
           </h1>
-          <div 
+          <div
             className="card text-center"
             style={{
               background: "var(--surface)",
@@ -107,7 +107,7 @@ export default async function PendingEmployeesPage() {
               borderRadius: "1.5rem",
               padding: "2rem",
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
-              color: "var(--text-muted)"
+              color: "var(--text-muted)",
             }}
           >
             <p>Error loading employee data: {empError.message}</p>
@@ -129,12 +129,9 @@ export default async function PendingEmployeesPage() {
   );
 
   return (
-    <div 
-      className="min-h-screen"
-      style={{ background: "var(--background)" }}
-    >
+    <div className="min-h-screen" style={{ background: "var(--background)" }}>
       <div className="max-w-4xl mx-auto">
-        <h1 
+        <h1
           className="text-2xl font-bold mb-6 p-4"
           style={{ color: "var(--text-primary)" }}
         >

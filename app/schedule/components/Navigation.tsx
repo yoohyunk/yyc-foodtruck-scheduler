@@ -26,7 +26,7 @@ export const Navigation = ({
         display: "flex",
         justifyContent: "center",
         gap: "0.5rem",
-        flexWrap: "wrap"
+        flexWrap: "wrap",
       }}
     >
       <TutorialHighlight
@@ -46,7 +46,7 @@ export const Navigation = ({
             cursor: "pointer",
             fontSize: "0.875rem",
             minWidth: "80px",
-            minHeight: "44px"
+            minHeight: "44px",
           }}
         >
           &larr; Prev
@@ -69,7 +69,7 @@ export const Navigation = ({
             cursor: "pointer",
             fontSize: "0.875rem",
             minWidth: "80px",
-            minHeight: "44px"
+            minHeight: "44px",
           }}
         >
           {viewMode === "daily"
@@ -96,7 +96,7 @@ export const Navigation = ({
             cursor: "pointer",
             fontSize: "0.875rem",
             minWidth: "80px",
-            minHeight: "44px"
+            minHeight: "44px",
           }}
         >
           Next &rarr;

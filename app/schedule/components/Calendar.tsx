@@ -54,8 +54,8 @@ export const Calendar = ({
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Determine the best view for mobile vs desktop
@@ -64,7 +64,7 @@ export const Calendar = ({
       // On mobile, use list view for better readability
       return "listWeek";
     }
-    
+
     // Desktop views
     switch (viewMode) {
       case "daily":
@@ -81,7 +81,7 @@ export const Calendar = ({
   const viewType = getViewType();
 
   return (
-    <div 
+    <div
       className={`${viewMode}-schedule`}
       style={{
         background: "var(--surface)",
@@ -90,15 +90,17 @@ export const Calendar = ({
         padding: isMobile ? "0.25rem" : "0.5rem",
         overflow: "hidden",
         width: "100%",
-        maxWidth: "100%"
+        maxWidth: "100%",
       }}
     >
-      <div style={{ 
-        width: "100%", 
-        maxWidth: "100%", 
-        overflow: "hidden",
-        minWidth: 0 // Prevents flex items from overflowing
-      }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "100%",
+          overflow: "hidden",
+          minWidth: 0, // Prevents flex items from overflowing
+        }}
+      >
         <FullCalendar
           key={`${viewType}-${selectedDate.toISOString()}-${isMobile}`}
           plugins={plugins}
@@ -114,15 +116,19 @@ export const Calendar = ({
           eventContent={EventContent}
           height={calendarHeight}
           eventMinHeight={isMobile ? 40 : 60}
-          dayMaxEvents={isMobile ? 1 : (viewMode === "monthly" ? 2 : 3)}
+          dayMaxEvents={isMobile ? 1 : viewMode === "monthly" ? 2 : 3}
           headerToolbar={{
             left: "",
             center: "",
             right: "",
           }}
-          dayHeaderFormat={{ 
-            weekday: isMobile ? "short" : (viewMode === "monthly" ? "short" : "long"), 
-            day: "numeric" 
+          dayHeaderFormat={{
+            weekday: isMobile
+              ? "short"
+              : viewMode === "monthly"
+                ? "short"
+                : "long",
+            day: "numeric",
           }}
           dayCellClassNames="custom-day-cell"
           eventClassNames="custom-event-wrapper"
@@ -140,7 +146,7 @@ export const Calendar = ({
           allDaySlot={false}
           showNonCurrentDates={viewMode === "monthly" && !isMobile}
           fixedWeekCount={viewMode === "monthly" && !isMobile}
-          dayMaxEventRows={isMobile ? 1 : (viewMode === "monthly" ? false : 3)}
+          dayMaxEventRows={isMobile ? 1 : viewMode === "monthly" ? false : 3}
           eventDisplay={isMobile ? "list-item" : "block"}
           eventOverlap={false}
           eventConstraint={{
@@ -149,7 +155,7 @@ export const Calendar = ({
             dows: [0, 1, 2, 3, 4, 5, 6],
           }}
           // Mobile-specific settings
-          aspectRatio={isMobile ? 1.2 : (viewMode === "monthly" ? 1.35 : 1.1)}
+          aspectRatio={isMobile ? 1.2 : viewMode === "monthly" ? 1.35 : 1.1}
           expandRows={!isMobile}
           handleWindowResize={true}
           // Responsive settings
@@ -161,19 +167,29 @@ export const Calendar = ({
             hour12: true,
           }}
           // List view specific settings for mobile
-          listDayFormat={isMobile ? { month: 'long', day: 'numeric', weekday: 'long' } : undefined}
-          listDaySideFormat={isMobile ? { month: 'long', day: 'numeric', year: 'numeric' } : undefined}
+          listDayFormat={
+            isMobile
+              ? { month: "long", day: "numeric", weekday: "long" }
+              : undefined
+          }
+          listDaySideFormat={
+            isMobile
+              ? { month: "long", day: "numeric", year: "numeric" }
+              : undefined
+          }
           // Custom day header rendering
           dayHeaderDidMount={(arg) => {
             const headerEl = arg.el;
             const dayNumber = arg.date.getDate();
-            const dayName = arg.date.toLocaleDateString('en-US', { weekday: 'long' });
-            
+            const dayName = arg.date.toLocaleDateString("en-US", {
+              weekday: "long",
+            });
+
             // Clear existing content
-            headerEl.innerHTML = '';
-            
+            headerEl.innerHTML = "";
+
             // Create day number element
-            const dayNumberEl = document.createElement('div');
+            const dayNumberEl = document.createElement("div");
             dayNumberEl.textContent = dayNumber.toString();
             dayNumberEl.style.cssText = `
               font-size: 1.25rem;
@@ -182,9 +198,9 @@ export const Calendar = ({
               margin-bottom: 0.25rem;
               line-height: 1.2;
             `;
-            
+
             // Create day name element
-            const dayNameEl = document.createElement('div');
+            const dayNameEl = document.createElement("div");
             dayNameEl.textContent = dayName;
             dayNameEl.style.cssText = `
               font-size: 0.875rem;
@@ -194,25 +210,25 @@ export const Calendar = ({
               letter-spacing: 0.5px;
               line-height: 1.2;
             `;
-            
+
             // Add elements to header
             headerEl.appendChild(dayNumberEl);
             headerEl.appendChild(dayNameEl);
-            
+
             // Add today styling
             if (arg.isToday) {
-              headerEl.style.backgroundColor = 'var(--primary-medium)';
-              headerEl.style.color = 'var(--white)';
-              dayNumberEl.style.color = 'var(--white)';
-              dayNameEl.style.color = 'var(--white)';
-              dayNameEl.style.opacity = '0.9';
+              headerEl.style.backgroundColor = "var(--primary-medium)";
+              headerEl.style.color = "var(--white)";
+              dayNumberEl.style.color = "var(--white)";
+              dayNameEl.style.color = "var(--white)";
+              dayNameEl.style.opacity = "0.9";
             }
-            
+
             // Add weekend styling
             if (arg.date.getDay() === 0 || arg.date.getDay() === 6) {
-              headerEl.style.backgroundColor = 'var(--background-light)';
-              dayNumberEl.style.color = 'var(--text-muted)';
-              dayNameEl.style.color = 'var(--text-muted)';
+              headerEl.style.backgroundColor = "var(--background-light)";
+              dayNumberEl.style.color = "var(--text-muted)";
+              dayNameEl.style.color = "var(--text-muted)";
             }
           }}
           // Mobile-friendly event display
