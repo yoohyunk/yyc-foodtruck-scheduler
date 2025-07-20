@@ -266,12 +266,58 @@ export default function AddEventPage(): ReactElement {
     coords?: { latitude: number; longitude: number }
   ) => {
     console.log("handleLocationChange called with:", address, coords);
+    
+    // Parse the address components from the full address string
+    const parseAddress = (fullAddress: string) => {
+      const parts = fullAddress.split(",").map(part => part.trim());
+      
+      if (parts.length >= 2) {
+        const streetPart = parts[0];
+        const city = parts[1];
+        const postalCode = parts[2] || "";
+        
+        // Extract street number and name from street part
+        const streetParts = streetPart.split(" ");
+        const streetNumber = streetParts[0] || "";
+        const direction = ["NW", "NE", "SW", "SE"].includes(streetParts[streetParts.length - 1]) 
+          ? streetParts[streetParts.length - 1] 
+          : "";
+        const streetName = direction 
+          ? streetParts.slice(1, -1).join(" ") 
+          : streetParts.slice(1).join(" ");
+        
+        return {
+          street: `${streetNumber} ${streetName}${direction ? " " + direction : ""}`.trim(),
+          city: city,
+          province: "Alberta", // Default for Calgary area
+          postalCode: postalCode,
+          country: "Canada", // Default
+        };
+      }
+      
+      // Fallback if parsing fails
+      return {
+        street: fullAddress,
+        city: "Calgary",
+        province: "Alberta",
+        postalCode: "",
+        country: "Canada",
+      };
+    };
+    
+    const addressComponents = parseAddress(address);
+    
     setFormData((prev) => {
       const updated = {
         ...prev,
         location: address,
+        street: addressComponents.street,
+        city: addressComponents.city,
+        province: addressComponents.province,
+        postalCode: addressComponents.postalCode,
+        country: addressComponents.country,
       };
-      console.log("Updated formData:", updated);
+      console.log("Updated formData with address components:");
       return updated;
     });
     setCoordinates(coords);
