@@ -114,8 +114,6 @@ export default function EventDetailsPage(): ReactElement {
 
   // Server warning state
   const [showServerWarning, setShowServerWarning] = useState<boolean>(false);
-  // Truck warning state
-  const [showTruckWarning, setShowTruckWarning] = useState<boolean>(false);
 
   // Memoize modal open/close handlers to prevent re-renders
   const openEmployeeModal = useCallback(() => setEmployeeModalOpen(true), []);
@@ -199,18 +197,6 @@ export default function EventDetailsPage(): ReactElement {
         const assignments =
           await truckAssignmentsApi.getTruckAssignmentsByEventId(event.id);
         setTruckAssignments(assignments);
-
-        // Check if we need to show truck warning
-        const assignedTrucks = assignments.length;
-        const trucksWithoutDrivers = assignments.filter(
-          (assignment) => !assignment.driver_id
-        );
-
-        if (assignedTrucks === 0 || trucksWithoutDrivers.length > 0) {
-          setShowTruckWarning(true);
-        } else {
-          setShowTruckWarning(false);
-        }
       } catch (error) {
         console.error("Error fetching truck assignments:", error);
       }

@@ -1387,7 +1387,7 @@ export default function AddEventPage(): ReactElement {
             <p className="text-sm text-gray-600 mb-3">
               Check the boxes for trucks you want to include in this event
               (optional), then assign a driver to each selected truck. Events
-              without trucks will be set to "Pending" status.
+              without trucks will be set to &quot;Pending&quot; status.
               {hasCheckedTruckAvailability && (
                 <span className="block mt-1 text-xs text-blue-600">
                   💡 Unavailable trucks have been automatically removed from

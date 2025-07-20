@@ -882,7 +882,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "auto-assignment-explanation",
       title: "How Auto-Assignment Works 🤖",
       content:
-        "When you create the event, the system will automatically: 1) Use the validated address coordinates to find all available servers within 5km, 2) Sort them by distance (closest first), then by wage (lowest first), 3) Assign the required number of servers, 4) Create the event with all details and redirect you to the event page.",
+        "When you create the event, the system will automatically: 1) Use the validated address coordinates to find all available servers, 2) Sort them by distance (closest first), then by wage (lowest first), 3) Assign the required number of servers from algorithm, 4) Set event status to 'Pending' if no trucks are assigned or if trucks don't have drivers, 5) Create the event with all details and redirect you to the event page.",
       target: ".create-event-page",
       position: "bottom",
     },
