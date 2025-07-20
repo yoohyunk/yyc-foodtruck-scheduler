@@ -1313,7 +1313,8 @@ export default function AddEventPage(): ReactElement {
 
           <div className="input-group">
             <label className="input-label">
-              Assign Trucks & Drivers <span className="text-gray-500">(Optional)</span>
+              Assign Trucks & Drivers{" "}
+              <span className="text-gray-500">(Optional)</span>
             </label>
 
             {/* Check Availability Button - positioned under the header */}
@@ -1384,8 +1385,9 @@ export default function AddEventPage(): ReactElement {
             )}
 
             <p className="text-sm text-gray-600 mb-3">
-              Check the boxes for trucks you want to include in this event (optional), then
-              assign a driver to each selected truck. Events without trucks will be set to "Pending" status.
+              Check the boxes for trucks you want to include in this event
+              (optional), then assign a driver to each selected truck. Events
+              without trucks will be set to "Pending" status.
               {hasCheckedTruckAvailability && (
                 <span className="block mt-1 text-xs text-blue-600">
                   💡 Unavailable trucks have been automatically removed from

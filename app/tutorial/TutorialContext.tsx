@@ -257,7 +257,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "event-filters",
       title: "Filter Events 🔍",
       content:
-        "Use these buttons to filter events by their status: All (shows all events), Pending (events that need staff or trucks assigned), or Scheduled (events that are fully prepared). Click a status to see only those events.",
+        "Use these buttons to filter events by their status: All (shows all events), Pending (events that need staff assigned, have no trucks, or have trucks without drivers), or Scheduled (events that are fully prepared). Click a status to see only those events.",
       target: ".filter-buttons",
       position: "bottom",
     },
@@ -604,7 +604,15 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "assigned-trucks-section",
       title: "Assigned Trucks Section 🚚",
       content:
-        "This section shows all the trucks currently assigned to this event. Each card displays the truck name, type, and capacity. You can manage truck assignments using the Select Trucks button above.",
+        "This section shows all the trucks currently assigned to this event. Each card displays the truck name, type, and capacity. You can manage truck assignments using the Select Trucks button above. If no trucks are assigned, you'll see a message indicating trucks are optional.",
+      target: ".assigned-trucks-section",
+      position: "bottom",
+    },
+    {
+      id: "truck-warning-system",
+      title: "Truck Warning System ⚠️",
+      content:
+        "The system will show yellow warning messages when: 1) No trucks are assigned to the event, or 2) Some trucks don't have drivers assigned. These warnings indicate the event status is 'Pending' until resolved. Events can be created without trucks, but they'll remain in 'Pending' status.",
       target: ".assigned-trucks-section",
       position: "bottom",
     },
@@ -864,9 +872,9 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
     },
     {
       id: "truck-selection-field",
-      title: "Select Trucks (Required) 🚚",
+      title: "Select Trucks (Optional) 🚚",
       content:
-        "Choose which food trucks will be at the event. You must select at least one truck. You can select multiple trucks. Each truck card shows the truck name, type, and availability status.",
+        "Choose which food trucks will be at the event (optional). You can select multiple trucks or create events without trucks. Events without trucks will be set to 'Pending' status. Each truck card shows the truck name, type, and availability status.",
       target: ".truck-list",
       position: "bottom",
     },
@@ -882,7 +890,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "form-validation-explanation",
       title: "Form Validation ✅",
       content:
-        "Before creating the event, the system will check: All required fields are filled, email format is valid, phone number is valid, address is validated, at least one truck is selected, and end time is after start time. Any errors will be shown in a popup.",
+        "Before creating the event, the system will check: All required fields are filled, email format is valid, phone number is valid, address is validated, and end time is after start time. Trucks are optional. Any errors will be shown in a popup.",
       target: ".create-event-page",
       position: "bottom",
     },
