@@ -177,14 +177,15 @@ export default function PayrollReport(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  // Helper to get last day of month
-  const getLastDayOfMonth = (year: number, month: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-
   // Calculate pay period based on selected date
   const calculatePayPeriod = useCallback((dateStr: string) => {
     if (!dateStr) return { start: "", end: "", label: "" };
+
+    // Helper to get last day of month (defined inside useCallback to avoid dependency issues)
+    const getLastDayOfMonth = (year: number, month: number) => {
+      return new Date(year, month + 1, 0).getDate();
+    };
+
     const date = new Date(dateStr);
     const year = date.getFullYear();
     const month = date.getMonth();
