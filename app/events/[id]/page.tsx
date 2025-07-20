@@ -577,8 +577,8 @@ export default function EventDetailsPage(): ReactElement {
       name: event.title || "",
       date: startDate ? startDate.toISOString().split("T")[0] : "",
       endDate: endDate ? endDate.toISOString().split("T")[0] : "",
-      time: startDate ? startDate.toTimeString().slice(0, 5) : "",
-      endTime: endDate ? endDate.toTimeString().slice(0, 5) : "",
+      time: event.start_date ? extractTime(event.start_date) : "",
+      endTime: event.end_date ? extractTime(event.end_date) : "",
       location: event.description || "",
       requiredServers: event.number_of_servers_needed?.toString() || "",
       contactName: event.contact_name || "",
@@ -598,8 +598,38 @@ export default function EventDetailsPage(): ReactElement {
 
     setSelectedDate(startDate);
     setSelectedEndDate(endDate);
-    setSelectedTime(startDate);
-    setSelectedEndTime(endDate);
+
+    // Create proper Date objects for time pickers (local time, not UTC)
+    if (event.start_date) {
+      const timeMatch = event.start_date.match(/T(\d{2}):(\d{2}):(\d{2})/);
+      if (timeMatch && startDate) {
+        const hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const localTime = new Date(startDate);
+        localTime.setHours(hours, minutes, 0, 0);
+        setSelectedTime(localTime);
+      } else {
+        setSelectedTime(startDate);
+      }
+    } else {
+      setSelectedTime(startDate);
+    }
+
+    if (event.end_date) {
+      const timeMatch = event.end_date.match(/T(\d{2}):(\d{2}):(\d{2})/);
+      if (timeMatch && endDate) {
+        const hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const localTime = new Date(endDate);
+        localTime.setHours(hours, minutes, 0, 0);
+        setSelectedEndTime(localTime);
+      } else {
+        setSelectedEndTime(endDate);
+      }
+    } else {
+      setSelectedEndTime(endDate);
+    }
+
     openEditModal();
   };
 
@@ -775,6 +805,40 @@ export default function EventDetailsPage(): ReactElement {
         contact_phone: sanitizedData.contactPhone,
         is_prepaid: sanitizedData.isPrepaid,
       });
+
+      // Update server assignments with new event times if times changed
+      if (startDateTime && endDateTime) {
+        try {
+          await assignmentsApi.updateServerAssignmentsForEvent(
+            event.id,
+            startDateTime,
+            endDateTime
+          );
+
+          // Refresh server assignments to show updated times
+          await refreshServerAssignments();
+        } catch (error) {
+          console.error("Error updating server assignments:", error);
+          // Don't fail the entire update, just log the error
+        }
+      }
+
+      // Update truck assignments with new event times if times changed
+      if (startDateTime && endDateTime) {
+        try {
+          await truckAssignmentsApi.updateTruckAssignmentsForEvent(
+            event.id,
+            startDateTime,
+            endDateTime
+          );
+
+          // Refresh truck assignments to show updated times
+          await refreshTruckAssignments();
+        } catch (error) {
+          console.error("Error updating truck assignments:", error);
+          // Don't fail the entire update, just log the error
+        }
+      }
 
       // Update local state
       setEvent(updatedEvent);

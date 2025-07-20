@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { useState } from "react";
 import ErrorModal from "../../../components/ErrorModal";
+import { extractTime, extractDate } from "../../utils";
 
 interface ServerAssignment {
   id: string;
@@ -183,15 +184,16 @@ export default function ServerAssignmentsSection({
               <div className="mt-3 pt-3 border-t border-gray-200">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Start:</span>
+                    <span className="text-gray-500">Date:</span>
                     <span className="ml-2 text-gray-900">
-                      {new Date(assignment.start_date).toLocaleString()}
+                      {extractDate(assignment.start_date, assignment.end_date)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-500">End:</span>
+                    <span className="text-gray-500">Time:</span>
                     <span className="ml-2 text-gray-900">
-                      {new Date(assignment.end_date).toLocaleString()}
+                      {extractTime(assignment.start_date)} -{" "}
+                      {extractTime(assignment.end_date)}
                     </span>
                   </div>
                 </div>
