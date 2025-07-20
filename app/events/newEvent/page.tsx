@@ -915,14 +915,8 @@ export default function AddEventPage(): ReactElement {
       }
     }
 
-    // Check truck assignments - only require at least one truck, drivers are optional
-    if (truckAssignments.length === 0) {
-      errors.push({
-        field: "trucks",
-        message: "Please select at least one truck for this event.",
-        element: null,
-      });
-    }
+    // Check truck assignments - trucks are optional, drivers are optional
+    // No validation needed for trucks - they can be null
 
     // Check if address was validated (coordinates exist)
     if (!coordinates) {
@@ -997,12 +991,16 @@ export default function AddEventPage(): ReactElement {
         eventStatus = "Pending";
       }
 
-      // Set to Pending if any trucks don't have drivers assigned
-      const trucksWithoutDrivers = truckAssignments.filter(
-        (assignment) => !assignment.driver_id
-      );
-      if (trucksWithoutDrivers.length > 0) {
+      // Set to Pending if no trucks are assigned or if any trucks don't have drivers assigned
+      if (truckAssignments.length === 0) {
         eventStatus = "Pending";
+      } else {
+        const trucksWithoutDrivers = truckAssignments.filter(
+          (assignment) => !assignment.driver_id
+        );
+        if (trucksWithoutDrivers.length > 0) {
+          eventStatus = "Pending";
+        }
       }
 
       // Capitalize the event title
@@ -1315,7 +1313,7 @@ export default function AddEventPage(): ReactElement {
 
           <div className="input-group">
             <label className="input-label">
-              Assign Trucks & Drivers <span className="text-red-500">*</span>
+              Assign Trucks & Drivers <span className="text-gray-500">(Optional)</span>
             </label>
 
             {/* Check Availability Button - positioned under the header */}
@@ -1386,8 +1384,8 @@ export default function AddEventPage(): ReactElement {
             )}
 
             <p className="text-sm text-gray-600 mb-3">
-              Check the boxes for trucks you want to include in this event, then
-              assign a driver to each selected truck.
+              Check the boxes for trucks you want to include in this event (optional), then
+              assign a driver to each selected truck. Events without trucks will be set to "Pending" status.
               {hasCheckedTruckAvailability && (
                 <span className="block mt-1 text-xs text-blue-600">
                   💡 Unavailable trucks have been automatically removed from
