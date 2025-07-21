@@ -14,7 +14,7 @@ export type CheckinRecord =
   | Tables<"truck_assignment_checkin">
   | Tables<"server_assignment_clockin">;
 
-// 오늘 날짜에 해당하는 내 assignments(서버/트럭)를 모두 가져오기
+// Get all assignments (server/truck) for today
 export async function getTodayAssignmentsForEmployee(employeeId: string) {
   const supabase = createClient();
   const now = new Date();
@@ -33,7 +33,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
     )
   );
 
-  // 서버 어싸인먼트
+  // Get server assignments
   const { data: serverAssignments, error: serverError } = await supabase
     .from("assignments")
     .select(`*, employees(*)`)
@@ -41,7 +41,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
     .gte("start_date", startOfDayUTC.toISOString())
     .lte("start_date", endOfDayUTC.toISOString());
 
-  // 서버 어싸인먼트의 이벤트 정보를 별도로 가져오기
+  // Get event info for server assignments
   if (serverAssignments && serverAssignments.length > 0) {
     const eventIds = serverAssignments
       .map((assignment) => assignment.event_id)
@@ -53,7 +53,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
         .in("id", eventIds);
 
       if (!eventsError && events) {
-        // 주소 정보를 가져오기 위한 address_id 목록
+        // Get address_id list for address info
         const addressIds = events
           .map((event) => event.address_id)
           .filter(Boolean);
@@ -79,7 +79,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
 
         const eventsMap = events.reduce(
           (acc, event) => {
-            // 이벤트에 주소 정보 추가
+            // Add address info to event
             acc[event.id] = {
               ...event,
               address: event.address_id ? addressesMap[event.address_id] : null,
@@ -89,7 +89,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
           {} as Record<string, Address>
         );
 
-        // 서버 어싸인먼트에 이벤트 정보 추가
+        // Add event info to server assignments
         serverAssignments.forEach((assignment) => {
           if (assignment.event_id && eventsMap[assignment.event_id]) {
             assignment.events = eventsMap[assignment.event_id];
@@ -99,7 +99,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
     }
   }
 
-  // 트럭 어싸인먼트(드라이버)
+  // Get truck assignments (drivers)
   const { data: truckAssignments, error: truckError } = await supabase
     .from("truck_assignment")
     .select(`*, trucks(*), employees(*)`)
@@ -107,14 +107,14 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
     .gte("start_time", startOfDayUTC.toISOString())
     .lte("start_time", endOfDayUTC.toISOString());
 
-  // 이벤트 정보를 별도로 가져오기
+  // Get event info for truck assignments
   if (truckAssignments && truckAssignments.length > 0) {
     const eventIds = truckAssignments
       .map((assignment) => assignment.event_id)
       .filter(Boolean);
 
     if (eventIds.length > 0) {
-      // 먼저 events 테이블이 존재하는지 확인
+      // Check if events table exists
 
       const { data: events, error: eventsError } = await supabase
         .from("event_basic_info_view")
@@ -122,7 +122,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
         .in("id", eventIds);
 
       if (!eventsError && events) {
-        // 주소 정보를 가져오기 위한 address_id 목록
+        // Get address_id list for address info
         const addressIds = events
           .map((event) => event.address_id)
           .filter(Boolean);
@@ -148,7 +148,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
 
         const eventsMap = events.reduce(
           (acc, event) => {
-            // 이벤트에 주소 정보 추가
+            // Add address info to event
             acc[event.id] = {
               ...event,
               address: event.address_id ? addressesMap[event.address_id] : null,
@@ -158,7 +158,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
           {} as Record<string, Address>
         );
 
-        // 트럭 어싸인먼트에 이벤트 정보 추가
+        // Add event info to truck assignments
         truckAssignments.forEach((assignment) => {
           if (assignment.event_id && eventsMap[assignment.event_id]) {
             assignment.events = eventsMap[assignment.event_id];
@@ -179,7 +179,7 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
   };
 }
 
-// 체크인/아웃 기록 가져오기 (타입별)
+// Get checkin/checkout records (type-specific)
 export async function getCheckinRecord(
   assignmentId: string,
   type: "server" | "truck"
@@ -204,12 +204,12 @@ export async function getCheckinRecord(
   }
 }
 
-// 체크인
+// Checkin
 export async function checkin(assignmentId: string, type: "server" | "truck") {
   const supabase = createClient();
   const now = new Date().toISOString();
 
-  // 이미 체크인된 row가 있는지 확인
+  // Check if there is an existing checkin row
   let existing;
   if (type === "truck") {
     const { data } = await supabase
@@ -228,11 +228,11 @@ export async function checkin(assignmentId: string, type: "server" | "truck") {
   }
 
   if (existing && existing.clock_in_at) {
-    // 이미 체크인된 경우, 기존 데이터 반환
+    // If already checked in, return existing data
     return existing;
   }
 
-  // 없으면 insert
+  // If not checked in, insert new record
   if (type === "truck") {
     const { data, error } = await supabase
       .from("truck_assignment_checkin")
@@ -252,7 +252,7 @@ export async function checkin(assignmentId: string, type: "server" | "truck") {
   }
 }
 
-// 체크아웃
+// Checkout
 export async function checkout(assignmentId: string, type: "server" | "truck") {
   const supabase = createClient();
   const now = new Date().toISOString();

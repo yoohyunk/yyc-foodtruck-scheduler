@@ -15,11 +15,12 @@ import { Assignment, CheckinData } from "@/app/types";
 function formatTime(dateStr?: string | null) {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
-  // UTC 시/분 추출 후 -6시간
+  // Extract UTC hours/minutes and subtract 6 hours
+
   let hours = d.getUTCHours() - 6;
   if (hours < 0) hours += 24;
   const minutes = d.getUTCMinutes();
-  // 12시간제 변환
+  // Convert to 12-hour format
   const ampm = hours >= 12 ? "PM" : "AM";
   const displayHour = ((hours + 11) % 12) + 1; // 0→12, 13→1
   return (
@@ -93,7 +94,7 @@ export default function CheckInPage() {
     getEmployeeId();
   }, [user?.id]);
 
-  // 오늘 내 assignments 불러오기
+  // Get today's assignments
   useEffect(() => {
     if (!employeeId) return;
     setLoading(true);
@@ -101,7 +102,7 @@ export default function CheckInPage() {
       .then(({ serverAssignments, truckAssignments }) => {
         setServerAssignments(serverAssignments);
         setTruckAssignments(truckAssignments);
-        // 체크인 기록도 미리 불러오기
+        // Get checkin records for all assignments
         const all = [
           ...serverAssignments.map((a) => ({
             id: a.id,
@@ -136,16 +137,16 @@ export default function CheckInPage() {
       });
   }, [employeeId]);
 
-  // 실시간 시간 업데이트 (1분마다)
+  // Update current time (every minute)
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // 1분마다 업데이트
+    }, 60000); // Update every minute
 
     return () => clearInterval(timer);
   }, []);
 
-  // 가장 최근/진행 중/다음 assignment 찾기
+  // Find the most recent/current/next assignment
   const allAssignments: Assignment[] = [
     ...serverAssignments.map((a) => ({ ...a, type: "server" as const })),
     ...truckAssignments.map((a) => ({ ...a, type: "truck" as const })),
@@ -172,12 +173,12 @@ export default function CheckInPage() {
       ) || allAssignments[allAssignments.length - 1];
   }
 
-  // 체크인/아웃 핸들러
+  // Checkin/checkout handlers
   const handleCheckin = useCallback(async (assignment: Assignment) => {
     setLoading(true);
     try {
       await checkin(assignment.id, assignment.type);
-      // 새로고침
+      // Refresh checkin records
       const data = await getCheckinRecord(assignment.id, assignment.type);
       setCheckinMap((prev) => ({
         ...prev,
@@ -209,7 +210,7 @@ export default function CheckInPage() {
   if (allAssignments.length === 0)
     return <div className="p-8">오늘 할당된 일정이 없습니다.</div>;
 
-  // 남은 시간 계산 함수
+  // Calculate remaining time
   function getTimeRemaining(targetDate: Date): string {
     const diff = targetDate.getTime() - currentTime.getTime();
 
@@ -221,7 +222,7 @@ export default function CheckInPage() {
     return `${hours.toString().padStart(2, "0")}hr ${minutes.toString().padStart(2, "0")}min`;
   }
 
-  // 메시지 생성
+  // Generate status message
   function getStatusMessage(status: string, assignment: Assignment) {
     const start = new Date(assignment.start_date || assignment.start_time || 0);
     const end = new Date(assignment.end_date || assignment.end_time || 0);
@@ -256,7 +257,7 @@ export default function CheckInPage() {
     return "";
   }
 
-  // 메인 어싸인먼트 강조
+  // Highlight main assignment
   const mainCheckin = checkinMap[`${mainAssignment.type}_${mainAssignment.id}`];
   const mainStatus = getAssignmentStatus(mainAssignment, mainCheckin);
 
