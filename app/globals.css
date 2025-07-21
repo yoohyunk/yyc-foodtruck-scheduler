@@ -5899,8 +5899,6 @@ input:not(:-webkit-autofill) {
   margin-bottom: 1rem;
 }
 
-
-
 .log-list-section {
   background: #ffffff;
   border: 2px solid #e2e8f0;
@@ -5917,7 +5915,7 @@ input:not(:-webkit-autofill) {
 .event-log-card {
   background: #fff;
   border-radius: 1rem;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -5928,11 +5926,11 @@ input:not(:-webkit-autofill) {
   padding: 0.5rem 1rem;
   margin-bottom: 0.5rem;
   background: #e0e7ff; /* blue-50 */
-  color: #1e40af;      /* blue-900 */
+  color: #1e40af; /* blue-900 */
 }
 .event-log-section-header.driver {
   background: #fef9c3; /* yellow-50 */
-  color: #a16207;      /* yellow-900 */
+  color: #a16207; /* yellow-900 */
 }
 
 .event-log-list {
@@ -5944,7 +5942,7 @@ input:not(:-webkit-autofill) {
 .event-log-item {
   background: #fff;
   border-radius: 0.75rem;
-  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.04);
   padding: 1rem;
   margin-bottom: 0;
   display: flex;
@@ -5966,11 +5964,11 @@ input:not(:-webkit-autofill) {
   padding: 0.1rem 0.5rem;
   margin-left: 0.5rem;
   background: #dbeafe; /* blue-100 */
-  color: #1e40af;      /* blue-800 */
+  color: #1e40af; /* blue-800 */
 }
 .event-log-item.driver .role {
   background: #fef08a; /* yellow-100 */
-  color: #a16207;      /* yellow-800 */
+  color: #a16207; /* yellow-800 */
 }
 .event-log-item .truck {
   margin-left: 0.5rem;
@@ -5978,7 +5976,7 @@ input:not(:-webkit-autofill) {
   border-radius: 0.5rem;
   padding: 0.1rem 0.5rem;
   background: #f3f4f6; /* gray-100 */
-  color: #374151;      /* gray-700 */
+  color: #374151; /* gray-700 */
 }
 .event-log-item .times {
   display: flex;
