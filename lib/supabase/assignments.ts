@@ -399,6 +399,5 @@ export const assignmentsApi = {
       console.error("Error updating assignment times:", error);
       throw error;
     }
-
   },
 };
