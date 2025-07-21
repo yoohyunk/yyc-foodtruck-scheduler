@@ -21,6 +21,7 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
 
   const noLayoutPaths = ["/login", "/set-password"];
   const isPublicPage = noLayoutPaths.includes(pathname);
+  const isEmployeeSide = pathname.startsWith("/employee-side");
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -31,6 +32,19 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
       router.replace(`/set-password${window.location.search}`);
     }
   }, [router, pathname]);
+
+  useEffect(() => {
+    // Add data attribute to body for employee-side pages
+    if (isEmployeeSide) {
+      document.body.setAttribute("data-employee-side", "true");
+    } else {
+      document.body.removeAttribute("data-employee-side");
+    }
+  }, [isEmployeeSide]);
+
+  if (isEmployeeSide) {
+    return <>{children}</>;
+  }
 
   if (isPublicPage) {
     return (
