@@ -781,9 +781,21 @@ export default function PayrollReport(): ReactElement {
                         key={data.employee.employee_id}
                         className="hover:bg-gray-50"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td
+                          className="px-6 py-4 whitespace-nowrap max-w-xs"
+                          style={{ maxWidth: 180 }}
+                        >
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div
+                              className="text-sm font-medium text-gray-900 truncate"
+                              style={{
+                                maxWidth: 160,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={`${data.employee.first_name} ${data.employee.last_name}`}
+                            >
                               {data.employee.first_name}{" "}
                               {data.employee.last_name}
                             </div>
