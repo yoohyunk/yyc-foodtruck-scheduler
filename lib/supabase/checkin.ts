@@ -8,7 +8,6 @@ type Address = {
   province?: string;
   postal_code?: string;
   country?: string;
-  // add other fields as needed
 };
 
 export type CheckinRecord =
@@ -18,19 +17,20 @@ export type CheckinRecord =
 // 오늘 날짜에 해당하는 내 assignments(서버/트럭)를 모두 가져오기
 export async function getTodayAssignmentsForEmployee(employeeId: string) {
   const supabase = createClient();
-  const today = new Date();
-  const startOfDay = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
+  const now = new Date();
+  // Use UTC for today range
+  const startOfDayUTC = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)
   );
-  const endOfDay = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-    23,
-    59,
-    59
+  const endOfDayUTC = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      23,
+      59,
+      59
+    )
   );
 
   // 서버 어싸인먼트
@@ -38,8 +38,8 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
     .from("assignments")
     .select(`*, employees(*)`)
     .eq("employee_id", employeeId)
-    .gte("start_date", startOfDay.toISOString())
-    .lte("start_date", endOfDay.toISOString());
+    .gte("start_date", startOfDayUTC.toISOString())
+    .lte("start_date", endOfDayUTC.toISOString());
 
   // 서버 어싸인먼트의 이벤트 정보를 별도로 가져오기
   if (serverAssignments && serverAssignments.length > 0) {
@@ -104,8 +104,8 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
     .from("truck_assignment")
     .select(`*, trucks(*), employees(*)`)
     .eq("driver_id", employeeId)
-    .gte("start_time", startOfDay.toISOString())
-    .lte("start_time", endOfDay.toISOString());
+    .gte("start_time", startOfDayUTC.toISOString())
+    .lte("start_time", endOfDayUTC.toISOString());
 
   // 이벤트 정보를 별도로 가져오기
   if (truckAssignments && truckAssignments.length > 0) {
@@ -113,18 +113,13 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
       .map((assignment) => assignment.event_id)
       .filter(Boolean);
 
-    console.log("Truck assignment event IDs:", eventIds);
-
     if (eventIds.length > 0) {
       // 먼저 events 테이블이 존재하는지 확인
-      console.log("Querying events table with IDs:", eventIds);
 
       const { data: events, error: eventsError } = await supabase
         .from("event_basic_info_view")
         .select("*")
         .in("id", eventIds);
-
-      console.log("Events query result:", { events, eventsError });
 
       if (!eventsError && events) {
         // 주소 정보를 가져오기 위한 address_id 목록
@@ -163,16 +158,10 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
           {} as Record<string, Address>
         );
 
-        console.log("Events map with addresses:", eventsMap);
-
         // 트럭 어싸인먼트에 이벤트 정보 추가
         truckAssignments.forEach((assignment) => {
           if (assignment.event_id && eventsMap[assignment.event_id]) {
             assignment.events = eventsMap[assignment.event_id];
-            console.log(
-              `Added events to assignment ${assignment.id}:`,
-              assignment.events
-            );
           }
         });
       }
@@ -219,6 +208,31 @@ export async function getCheckinRecord(
 export async function checkin(assignmentId: string, type: "server" | "truck") {
   const supabase = createClient();
   const now = new Date().toISOString();
+
+  // 이미 체크인된 row가 있는지 확인
+  let existing;
+  if (type === "truck") {
+    const { data } = await supabase
+      .from("truck_assignment_checkin")
+      .select("*")
+      .eq("assignment_id", assignmentId)
+      .single();
+    existing = data;
+  } else {
+    const { data } = await supabase
+      .from("server_assignment_clockin")
+      .select("*")
+      .eq("assignment_id", assignmentId)
+      .single();
+    existing = data;
+  }
+
+  if (existing && existing.clock_in_at) {
+    // 이미 체크인된 경우, 기존 데이터 반환
+    return existing;
+  }
+
+  // 없으면 insert
   if (type === "truck") {
     const { data, error } = await supabase
       .from("truck_assignment_checkin")

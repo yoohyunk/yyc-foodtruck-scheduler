@@ -14,53 +14,52 @@ import { Assignment, CheckinData } from "@/app/types";
 
 function formatTime(dateStr?: string | null) {
   if (!dateStr) return "-";
-  const d = new Date(dateStr || 0);
-
-  // 임시 해결: 6시간 추가 (데이터베이스 시간이 잘못 저장된 경우)
-  const adjustedDate = new Date(d.getTime() + 6 * 60 * 60 * 1000);
-
-  // 브라우저의 자동 시간대 변환 사용
-  return adjustedDate.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+  const d = new Date(dateStr);
+  // UTC 시/분 추출 후 -6시간
+  let hours = d.getUTCHours() - 6;
+  if (hours < 0) hours += 24;
+  const minutes = d.getUTCMinutes();
+  // 12시간제 변환
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const displayHour = ((hours + 11) % 12) + 1; // 0→12, 13→1
+  return (
+    displayHour.toString().padStart(2, "0") +
+    ":" +
+    minutes.toString().padStart(2, "0") +
+    " " +
+    ampm
+  );
 }
 
 function getAssignmentStatus(assignment: Assignment, checkinData: CheckinData) {
+  // Always use UTC for all comparisons
   const now = new Date();
-
-  // 임시 해결: 6시간 추가 (데이터베이스 시간이 잘못 저장된 경우)
-  const start = new Date(
-    new Date(assignment.start_date || assignment.start_time || 0).getTime() +
-      6 * 60 * 60 * 1000
+  const nowUTC = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      now.getUTCHours(),
+      now.getUTCMinutes(),
+      now.getUTCSeconds()
+    )
   );
-  const end = new Date(
-    new Date(assignment.end_date || assignment.end_time || 0).getTime() +
-      6 * 60 * 60 * 1000
-  );
-  const checkinStart = new Date(start.getTime() - 4 * 60 * 60 * 1000); // 4시간 전
-
-  // 디버깅용 콘솔 출력
-  console.log("=== Assignment Status Debug ===");
-  console.log("Assignment:", assignment);
-  console.log("Events:", assignment.events);
-  console.log("Events address:", assignment.events?.address);
-  console.log("Trucks:", assignment.trucks);
-  console.log("Now:", now.toLocaleString());
-  console.log("Start (adjusted):", start.toLocaleString());
-  console.log("End (adjusted):", end.toLocaleString());
-  console.log("CheckinStart (adjusted):", checkinStart.toLocaleString());
-  console.log("Now < CheckinStart:", now < checkinStart);
-  console.log("CheckinData:", checkinData);
+  const start = new Date(assignment.start_date || assignment.start_time || 0);
+  const end = new Date(assignment.end_date || assignment.end_time || 0);
+  const checkinStart = new Date(start.getTime() - 4 * 60 * 60 * 1000);
+  const checkinEnd = new Date(start.getTime() + 1 * 60 * 60 * 1000);
+  const overtimeEnd = new Date(end.getTime() + 4 * 60 * 60 * 1000);
 
   if (checkinData?.clock_out_at) return "checked_out";
-  if (checkinData?.clock_in_at) {
-    if (now > end) return "overtime";
+  if (checkinData?.clock_in_at && !checkinData?.clock_out_at) {
+    if (nowUTC > end && nowUTC <= overtimeEnd) return "overtime";
+    if (nowUTC > overtimeEnd) return "overtime_expired";
+    if (nowUTC > end) return "overtime";
     return "checked_in";
   }
-  if (now < checkinStart) return "before";
-  if (now > end) return "missed";
+  if (nowUTC < checkinStart) return "before";
+  if (nowUTC >= checkinStart && nowUTC <= checkinEnd) return "ready";
+  if (nowUTC > checkinEnd) return "missed";
   return "ready";
 }
 
@@ -148,8 +147,8 @@ export default function CheckInPage() {
 
   // 가장 최근/진행 중/다음 assignment 찾기
   const allAssignments: Assignment[] = [
-    ...serverAssignments,
-    ...truckAssignments,
+    ...serverAssignments.map((a) => ({ ...a, type: "server" as const })),
+    ...truckAssignments.map((a) => ({ ...a, type: "truck" as const })),
   ];
   allAssignments.sort((a, b) => {
     const aStart = new Date(a.start_date || a.start_time || 0).getTime();
@@ -224,15 +223,8 @@ export default function CheckInPage() {
 
   // 메시지 생성
   function getStatusMessage(status: string, assignment: Assignment) {
-    // 임시 해결: 6시간 추가 (데이터베이스 시간이 잘못 저장된 경우)
-    const start = new Date(
-      new Date(assignment.start_date || assignment.start_time || 0).getTime() +
-        6 * 60 * 60 * 1000
-    );
-    const end = new Date(
-      new Date(assignment.end_date || assignment.end_time || 0).getTime() +
-        6 * 60 * 60 * 1000
-    );
+    const start = new Date(assignment.start_date || assignment.start_time || 0);
+    const end = new Date(assignment.end_date || assignment.end_time || 0);
 
     if (status === "before") {
       const timeToStart = getTimeRemaining(start);
@@ -252,7 +244,10 @@ export default function CheckInPage() {
       return `Check-out completed (${formatTime(assignment.clock_in_at)} - ${formatTime(assignment.clock_out_at)})`;
     if (status === "overtime") {
       const timeToEnd = getTimeRemaining(end);
-      return `Shift ended ${timeToEnd} ago - Check-out required`;
+      return `Overtime - Check-out required (${timeToEnd} ago)`;
+    }
+    if (status === "overtime_expired") {
+      return `Overtime window expired (contact admin)`;
     }
     if (status === "ready") {
       const timeToEnd = getTimeRemaining(end);
@@ -266,12 +261,20 @@ export default function CheckInPage() {
   const mainStatus = getAssignmentStatus(mainAssignment, mainCheckin);
 
   return (
-    <div className="w-full h-full flex flex-col gap-10 ">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Today&apos;s Check-in
-        </h1>
-
+    <div
+      className="max-w-5xl mx-auto px-4"
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        gap: "2.5rem",
+      }}
+    >
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">
+        Today&apos;s Check-in
+      </h1>
+      <div className="event-log-card">
         <MainAssignmentCard
           assignment={mainAssignment}
           status={mainStatus}
@@ -280,7 +283,8 @@ export default function CheckInPage() {
           onCheckout={handleCheckout}
           loading={loading}
         />
-
+      </div>
+      <div className="event-log-list" style={{ marginTop: "2rem" }}>
         <ScheduleList
           assignments={allAssignments}
           getStatusMessage={getStatusMessage}

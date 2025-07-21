@@ -3,36 +3,16 @@ import React, { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 // If you get a date-fns import error, run: npm install date-fns
 import { format } from "date-fns";
+import EventLogCard from "./components/EventLogCard";
+import { CheckinLog, CheckinEmployee } from "../types";
 
 // Types
-interface Employee {
-  employee_id: string;
-  first_name?: string;
-  last_name?: string;
-  employee_type?: string;
-}
-
-interface AssignmentInfo {
-  id: string;
-  type: "server" | "truck";
-  event_title?: string;
-  truck_name?: string;
-  start_time: string;
-  end_time: string;
-  event_id?: string;
-}
-
-interface CheckinLog {
-  id: string;
-  employee: Employee;
-  assignment: AssignmentInfo;
-  clock_in_at: string | null;
-  clock_out_at: string | null;
-}
 
 interface EventInfo {
   id: string;
   title?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 function getTodayString() {
@@ -42,13 +22,25 @@ function getTodayString() {
 // Add formatTime helper from check-in/page.tsx
 function formatTime(dateStr?: string | null) {
   if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "UTC",
-  });
+  // If timezone is missing, add Z (UTC)
+  let safeStr = dateStr;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+$/.test(dateStr)) {
+    safeStr = dateStr + "Z";
+  }
+  const d = new Date(safeStr);
+  let hours = d.getUTCHours() - 6;
+  if (hours < 0) hours += 24;
+  const minutes = d.getUTCMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const displayHour = ((hours + 11) % 12) + 1;
+  const result =
+    displayHour.toString().padStart(2, "0") +
+    ":" +
+    minutes.toString().padStart(2, "0") +
+    " " +
+    ampm;
+
+  return result;
 }
 
 export default function AdminCheckinLogsPage() {
@@ -127,7 +119,7 @@ export default function AdminCheckinLogsPage() {
               id: string;
               event_id?: string;
               events?: { title?: string };
-              employees?: Employee;
+              employees?: CheckinEmployee;
               start_date?: string;
               end_date?: string;
             };
@@ -163,7 +155,7 @@ export default function AdminCheckinLogsPage() {
               event_id?: string;
               events?: { title?: string };
               trucks?: { name?: string };
-              employees?: Employee;
+              employees?: CheckinEmployee;
               start_time?: string;
               end_time?: string;
             };
@@ -197,7 +189,7 @@ export default function AdminCheckinLogsPage() {
     fetchLogs();
   }, [date]);
 
-  // 이벤트별로 그룹화
+  // Group by event
   const logsByEvent: Record<
     string,
     { event: EventInfo; server: CheckinLog[]; truck: CheckinLog[] }
@@ -215,17 +207,29 @@ export default function AdminCheckinLogsPage() {
     else logsByEvent[eventId].truck.push(log);
   });
 
-  // 이벤트 필터 적용
+  // Apply event filter
   const filteredEventIds = selectedEventId
     ? [selectedEventId]
     : Object.keys(logsByEvent);
 
+  // Debug logs for diagnosis
+
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">
+      <h1 className="text-2xl font-bold" style={{ marginBottom: "2rem" }}>
         Employee Check-in/Check-out Logs
       </h1>
-      <div className="mb-6 flex items-center gap-4 flex-wrap">
+      <div
+        className="mb-6 filter-row"
+        style={{
+          marginBottom: "2rem",
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: "1.5rem",
+          flexWrap: "nowrap",
+        }}
+      >
         <label htmlFor="date" className="font-medium">
           Date:
         </label>
@@ -268,165 +272,17 @@ export default function AdminCheckinLogsPage() {
           ) : (
             filteredEventIds.map((eventId) => {
               const group = logsByEvent[eventId];
+              const eventInfo =
+                events.find((e) => e.id === eventId) || group.event;
+
               return (
-                <div
+                <EventLogCard
                   key={eventId}
-                  className="bg-white rounded-xl shadow-sm p-6 mb-4"
-                >
-                  <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                    <div>
-                      <h2 className="text-xl font-bold mb-1 text-blue-800 flex items-center gap-2">
-                        <span>📅</span>{" "}
-                        {group.event.title || "(No Event Title)"}
-                      </h2>
-                      <div className="text-gray-500 text-sm">
-                        {(() => {
-                          const start = group.server.concat(group.truck)[0]
-                            ?.assignment.start_time;
-                          const end = group.server.concat(group.truck)[0]
-                            ?.assignment.end_time;
-                          console.log(
-                            "EventCard start_time:",
-                            start,
-                            "end_time:",
-                            end
-                          );
-                          return start ? (
-                            <span>
-                              {formatTime(start)} ~ {formatTime(end)}
-                            </span>
-                          ) : null;
-                        })()}
-                      </div>
-                    </div>
-                    <div className="flex gap-4 text-sm mt-2 md:mt-0">
-                      <span className="bg-blue-100 text-blue-800 rounded px-2 py-1">
-                        Server: {group.server.length}
-                      </span>
-                      <span className="bg-yellow-100 text-yellow-800 rounded px-2 py-1">
-                        Driver: {group.truck.length}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Server Section */}
-                    <div>
-                      <div className="bg-blue-50 rounded px-3 py-2 mb-2 font-semibold text-blue-900">
-                        Server Logs
-                      </div>
-                      {group.server.length === 0 ? (
-                        <div className="text-gray-400 italic py-4">
-                          No server logs.
-                        </div>
-                      ) : (
-                        <ul className="flex flex-col gap-3">
-                          {group.server.map((log) => (
-                            <li
-                              key={log.id}
-                              className="bg-white rounded shadow-sm px-4 py-3 flex flex-col gap-1"
-                            >
-                              <div className="flex items-center gap-2 font-medium">
-                                <span className="text-blue-700">
-                                  {log.employee.first_name}{" "}
-                                  {log.employee.last_name}
-                                </span>
-                                <span className="text-xs bg-blue-100 text-blue-800 rounded px-2 py-0.5 ml-2">
-                                  {log.employee.employee_type}
-                                </span>
-                              </div>
-                              <div className="flex gap-4 text-sm mt-1">
-                                <span>
-                                  Check-in:{" "}
-                                  {(() => {
-                                    console.log(
-                                      "Log clock_in_at:",
-                                      log.clock_in_at,
-                                      "clock_out_at:",
-                                      log.clock_out_at
-                                    );
-                                    return null;
-                                  })()}
-                                  {log.clock_in_at ? (
-                                    <span className="text-green-700">
-                                      {formatTime(log.clock_in_at)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-400">-</span>
-                                  )}
-                                </span>
-                                <span>
-                                  Check-out:{" "}
-                                  {log.clock_out_at ? (
-                                    <span className="text-red-700">
-                                      {formatTime(log.clock_out_at)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-400">-</span>
-                                  )}
-                                </span>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                    {/* Driver Section */}
-                    <div>
-                      <div className="bg-yellow-50 rounded px-3 py-2 mb-2 font-semibold text-yellow-900">
-                        Driver Logs
-                      </div>
-                      {group.truck.length === 0 ? (
-                        <div className="text-gray-400 italic py-4">
-                          No driver logs.
-                        </div>
-                      ) : (
-                        <ul className="flex flex-col gap-3">
-                          {group.truck.map((log) => (
-                            <li
-                              key={log.id}
-                              className="bg-white rounded shadow-sm px-4 py-3 flex flex-col gap-1"
-                            >
-                              <div className="flex items-center gap-2 font-medium">
-                                <span className="text-yellow-700">
-                                  {log.employee.first_name}{" "}
-                                  {log.employee.last_name}
-                                </span>
-                                <span className="text-xs bg-yellow-100 text-yellow-800 rounded px-2 py-0.5 ml-2">
-                                  {log.employee.employee_type}
-                                </span>
-                                <span className="ml-2 text-xs bg-gray-100 text-gray-700 rounded px-2 py-0.5">
-                                  {log.assignment.truck_name || "-"}
-                                </span>
-                              </div>
-                              <div className="flex gap-4 text-sm mt-1">
-                                <span>
-                                  Check-in:{" "}
-                                  {log.clock_in_at ? (
-                                    <span className="text-green-700">
-                                      {formatTime(log.clock_in_at)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-400">-</span>
-                                  )}
-                                </span>
-                                <span>
-                                  Check-out:{" "}
-                                  {log.clock_out_at ? (
-                                    <span className="text-red-700">
-                                      {formatTime(log.clock_out_at)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-400">-</span>
-                                  )}
-                                </span>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  event={eventInfo}
+                  serverLogs={group.server}
+                  driverLogs={group.truck}
+                  formatTime={formatTime}
+                />
               );
             })
           )}

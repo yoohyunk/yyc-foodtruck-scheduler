@@ -14,16 +14,18 @@ interface ScheduleListProps {
 function formatTime(dateStr?: string | null) {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
-
-  // 임시 해결: 6시간 추가 (데이터베이스 시간이 잘못 저장된 경우)
-  const adjustedDate = new Date(d.getTime() + 6 * 60 * 60 * 1000);
-
-  // 브라우저의 자동 시간대 변환 사용
-  return adjustedDate.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+  let hours = d.getUTCHours() - 6;
+  if (hours < 0) hours += 24;
+  const minutes = d.getUTCMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const displayHour = ((hours + 11) % 12) + 1;
+  return (
+    displayHour.toString().padStart(2, "0") +
+    ":" +
+    minutes.toString().padStart(2, "0") +
+    " " +
+    ampm
+  );
 }
 
 export default function ScheduleList({
@@ -33,35 +35,60 @@ export default function ScheduleList({
   checkinMap,
 }: ScheduleListProps) {
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200 pt-7">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Today&apos;s Schedule
-        </h2>
+    <div className="event-log-list">
+      <div
+        className="event-log-section-header"
+        style={{ marginBottom: "1rem" }}
+      >
+        Today&apos;s Schedule
       </div>
-      <div className="divide-y divide-gray-200">
+      <div>
         {assignments.map((assignment) => {
           const checkinData = checkinMap[`${assignment.type}_${assignment.id}`];
           const status = getAssignmentStatus(assignment, checkinData);
           return (
-            <div key={assignment.type + assignment.id} className="px-6 py-4">
-              <div className="flex items-center justify-between mb-3">
+            <div
+              key={assignment.type + assignment.id}
+              className="event-log-item"
+              style={{ marginBottom: "1.25rem" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "0.5rem",
+                }}
+              >
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <div
+                    className="name"
+                    style={{ fontWeight: 600, fontSize: "1.1rem" }}
+                  >
                     {assignment.type === "server" ? "Server" : "Driver"} -{" "}
                     {assignment.events?.title || "-"}
-                  </h3>
-                  <p className="text-sm text-gray-600">
+                  </div>
+                  <div style={{ fontSize: "0.95rem", color: "#6b7280" }}>
                     {formatTime(assignment.start_date || assignment.start_time)}{" "}
                     - {formatTime(assignment.end_date || assignment.end_time)}
-                  </p>
+                  </div>
                   {assignment.type === "truck" && assignment.trucks?.name && (
-                    <p className="text-sm text-gray-600">
+                    <div
+                      className="truck"
+                      style={{ fontSize: "0.95rem", color: "#374151" }}
+                    >
                       🚛 {assignment.trucks.name}
-                    </p>
+                    </div>
                   )}
                   {assignment.events?.address && (
-                    <p className="text-sm text-gray-500 mt-1">
+                    <div
+                      className="address"
+                      style={{
+                        fontSize: "0.95rem",
+                        color: "#6b7280",
+                        marginTop: "0.25rem",
+                      }}
+                    >
                       📍{" "}
                       {assignment.events.address.street &&
                         `${assignment.events.address.street}, `}
@@ -73,21 +100,36 @@ export default function ScheduleList({
                         `${assignment.events.address.postal_code}`}
                       {assignment.events.address.country &&
                         `, ${assignment.events.address.country}`}
-                    </p>
+                    </div>
                   )}
                 </div>
                 <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    status === "checked_in"
-                      ? "bg-green-100 text-green-800"
-                      : status === "checked_out"
-                        ? "bg-gray-100 text-gray-800"
-                        : status === "ready"
-                          ? "bg-blue-100 text-blue-800"
-                          : status === "overtime"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                  }`}
+                  style={{
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    borderRadius: "0.5rem",
+                    padding: "0.25rem 0.75rem",
+                    background:
+                      status === "checked_in"
+                        ? "#bbf7d0"
+                        : status === "checked_out"
+                          ? "#e5e7eb"
+                          : status === "ready"
+                            ? "#dbeafe"
+                            : status === "overtime"
+                              ? "#fef9c3"
+                              : "#fee2e2",
+                    color:
+                      status === "checked_in"
+                        ? "#15803d"
+                        : status === "checked_out"
+                          ? "#374151"
+                          : status === "ready"
+                            ? "#1e40af"
+                            : status === "overtime"
+                              ? "#a16207"
+                              : "#b91c1c",
+                  }}
                 >
                   {status === "checked_in"
                     ? "Checked In"
@@ -100,10 +142,12 @@ export default function ScheduleList({
                           : "Pending"}
                 </span>
               </div>
-
-              <p className="text-sm text-gray-600">
+              <div
+                className="times"
+                style={{ fontSize: "0.95rem", color: "#6b7280" }}
+              >
                 {getStatusMessage(status, assignment)}
-              </p>
+              </div>
             </div>
           );
         })}
