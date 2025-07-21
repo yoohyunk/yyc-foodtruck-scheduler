@@ -5,8 +5,6 @@ import { FiArrowLeft } from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { employeesApi } from "@/lib/supabase/employees";
-import { assignmentsApi } from "@/lib/supabase/assignments";
-import { wagesApi } from "@/lib/supabase/wages";
 import { createClient } from "@/lib/supabase/client";
 import { Employee } from "../../types";
 import { useTutorial } from "../../tutorial/TutorialContext";
@@ -37,6 +35,13 @@ interface PayrollData {
       title: string | null;
     };
     isHoliday: boolean;
+  }>;
+  shiftDetails: Array<{
+    type: string;
+    title: string;
+    start: Date;
+    end: Date;
+    hours: number;
   }>;
 }
 
@@ -172,14 +177,15 @@ export default function PayrollReport(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  // Helper to get last day of month
-  const getLastDayOfMonth = (year: number, month: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-
   // Calculate pay period based on selected date
   const calculatePayPeriod = useCallback((dateStr: string) => {
     if (!dateStr) return { start: "", end: "", label: "" };
+
+    // Helper to get last day of month (defined inside useCallback to avoid dependency issues)
+    const getLastDayOfMonth = (year: number, month: number) => {
+      return new Date(year, month + 1, 0).getDate();
+    };
+
     const date = new Date(dateStr);
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -218,6 +224,13 @@ export default function PayrollReport(): ReactElement {
     if (!payPeriod.start || !payPeriod.end) return;
     setIsLoading(true);
     setError(null);
+
+    // Add timeout to prevent hanging requests
+    const timeout = setTimeout(() => {
+      setError("Request timed out. Please try again.");
+      setIsLoading(false);
+    }, 30000); // 30 second timeout
+
     try {
       let employeesToProcess: Employee[] = [];
       if (isAdmin) {
@@ -239,6 +252,7 @@ export default function PayrollReport(): ReactElement {
         }
         employeesToProcess = [employee];
       }
+
       // Sort employees alphabetically
       const sortedEmployees = employeesToProcess.sort((a, b) => {
         const nameA =
@@ -247,17 +261,99 @@ export default function PayrollReport(): ReactElement {
           `${b.first_name || ""} ${b.last_name || ""}`.toLowerCase();
         return nameA.localeCompare(nameB);
       });
+
+      // Bulk fetch all wages for all employees
+      const employeeIds = sortedEmployees.map((emp) => emp.employee_id);
+      const { data: allWages, error: wagesError } = await supabase
+        .from("wage")
+        .select("*")
+        .in("employee_id", employeeIds)
+        .order("start_date", { ascending: false });
+
+      if (wagesError) {
+        console.error("Error fetching wages:", wagesError);
+        throw new Error("Failed to fetch wages");
+      }
+
+      // Create a map of current wages (most recent per employee)
+      const wageMap = new Map<string, number>();
+      if (allWages) {
+        allWages.forEach((wage) => {
+          if (!wageMap.has(wage.employee_id)) {
+            wageMap.set(wage.employee_id, wage.hourly_wage);
+          }
+        });
+      }
+
+      // Bulk fetch all assignments for all employees
+      const { data: allAssignments, error: assignmentsError } = await supabase
+        .from("assignments")
+        .select(
+          `
+          *,
+          events (
+            id,
+            title,
+            start_date,
+            end_date
+          )
+        `
+        )
+        .in("employee_id", employeeIds);
+
+      if (assignmentsError) {
+        console.error("Error fetching assignments:", assignmentsError);
+        throw new Error("Failed to fetch assignments");
+      }
+
+      // Bulk fetch all truck assignments for all employees
+      const { data: allTruckAssignments, error: truckAssignmentsError } =
+        await supabase
+          .from("truck_assignment")
+          .select("*")
+          .in("driver_id", employeeIds);
+
+      if (truckAssignmentsError) {
+        console.error(
+          "Error fetching truck assignments:",
+          truckAssignmentsError
+        );
+        throw new Error("Failed to fetch truck assignments");
+      }
+
+      // Bulk fetch all events that might have employees working on them
+      const { data: allEvents, error: eventsError } = await supabase
+        .from("events")
+        .select(
+          `
+          id,
+          title,
+          start_date,
+          end_date,
+          number_of_servers_needed,
+          number_of_driver_needed
+        `
+        )
+        .gte("start_date", payPeriod.start)
+        .lte("end_date", payPeriod.end);
+
+      if (eventsError) {
+        console.error("Error fetching events:", eventsError);
+        throw new Error("Failed to fetch events");
+      }
+
       const payrollDataArray: PayrollData[] = [];
+
       for (const employee of sortedEmployees) {
-        const currentWageData = await wagesApi.getCurrentWage(
-          employee.employee_id
-        );
-        const currentWage = currentWageData?.hourly_wage || 0;
-        // Get assignments for this pay period
-        const assignments = await assignmentsApi.getAssignmentsByEmployeeId(
-          employee.employee_id
-        );
-        const periodAssignments = assignments.filter((assignment) => {
+        const currentWage = wageMap.get(employee.employee_id) || 0;
+
+        // Filter assignments for this employee and pay period
+        const employeeAssignments =
+          allAssignments?.filter(
+            (assignment) => assignment.employee_id === employee.employee_id
+          ) || [];
+
+        const periodAssignments = employeeAssignments.filter((assignment) => {
           const assignmentStart = new Date(assignment.start_date);
           const assignmentEnd = new Date(assignment.end_date);
           const periodStart = new Date(payPeriod.start);
@@ -265,18 +361,21 @@ export default function PayrollReport(): ReactElement {
           return assignmentStart <= periodEnd && assignmentEnd >= periodStart;
         });
 
-        // Get truck assignments for this pay period (for drivers)
-        const truckAssignments =
-          await assignmentsApi.getTruckAssignmentsByEmployeeId(
-            employee.employee_id
-          );
-        const periodTruckAssignments = truckAssignments.filter((assignment) => {
-          const assignmentStart = new Date(assignment.start_date);
-          const assignmentEnd = new Date(assignment.end_date);
-          const periodStart = new Date(payPeriod.start);
-          const periodEnd = new Date(payPeriod.end);
-          return assignmentStart <= periodEnd && assignmentEnd >= periodStart;
-        });
+        // Filter truck assignments for this employee and pay period
+        const employeeTruckAssignments =
+          allTruckAssignments?.filter(
+            (assignment) => assignment.driver_id === employee.employee_id
+          ) || [];
+
+        const periodTruckAssignments = employeeTruckAssignments.filter(
+          (assignment) => {
+            const assignmentStart = new Date(assignment.start_time); // Fixed: use start_time instead of start_date
+            const assignmentEnd = new Date(assignment.end_time); // Fixed: use end_time instead of end_date
+            const periodStart = new Date(payPeriod.start);
+            const periodEnd = new Date(payPeriod.end);
+            return assignmentStart <= periodEnd && assignmentEnd >= periodStart;
+          }
+        );
 
         // Map assignments to include required fields (events)
         const periodAssignmentsEnriched = periodAssignments.map((a) => ({
@@ -284,9 +383,9 @@ export default function PayrollReport(): ReactElement {
           start_date: a.start_date,
           end_date: a.end_date,
           events: {
-            title:
-              (a as { events?: { title?: string } }).events?.title ??
-              "Untitled Event",
+            title: Array.isArray(a.events)
+              ? a.events[0]?.title || "Untitled Event"
+              : a.events?.title || "Untitled Event",
           },
           isHoliday: isStatHoliday(new Date(a.start_date)),
         }));
@@ -295,17 +394,17 @@ export default function PayrollReport(): ReactElement {
         const periodTruckAssignmentsEnriched = periodTruckAssignments.map(
           (a) => ({
             id: a.id,
-            start_date: a.start_date,
-            end_date: a.end_date,
+            start_date: a.start_time, // Map start_time to start_date for consistency
+            end_date: a.end_time, // Map end_time to end_date for consistency
             events: {
               title: "Truck Assignment",
             },
-            isHoliday: isStatHoliday(new Date(a.start_date)),
+            isHoliday: isStatHoliday(new Date(a.start_time)),
           })
         );
 
         // Combine all assignments for hours calculation
-        const allAssignments = [
+        const combinedAssignments = [
           ...periodAssignments,
           ...periodTruckAssignments,
         ];
@@ -315,13 +414,107 @@ export default function PayrollReport(): ReactElement {
         ];
 
         let totalHours = 0;
-        for (const assignment of allAssignments) {
-          const start = new Date(assignment.start_date);
-          const end = new Date(assignment.end_date);
-          const diffTime = end.getTime() - start.getTime();
-          const diffHours = diffTime / (1000 * 60 * 60);
-          totalHours += diffHours;
+        const shiftDetails: Array<{
+          type: string;
+          title: string;
+          start: Date;
+          end: Date;
+          hours: number;
+        }> = [];
+
+        // Calculate hours from assignments
+        for (const assignment of combinedAssignments) {
+          try {
+            const start = new Date(
+              assignment.start_date || assignment.start_time
+            );
+            const end = new Date(assignment.end_date || assignment.end_time);
+
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+              console.warn(
+                `Invalid date for assignment ${assignment.id}:`,
+                assignment
+              );
+              continue;
+            }
+
+            const diffTime = end.getTime() - start.getTime();
+            const diffHours = diffTime / (1000 * 60 * 60);
+
+            if (diffHours > 0) {
+              totalHours += diffHours;
+              shiftDetails.push({
+                type: assignment.start_time
+                  ? "Truck Assignment"
+                  : "Event Assignment",
+                title: Array.isArray(assignment.events)
+                  ? assignment.events[0]?.title || "Untitled Event"
+                  : assignment.events?.title || "Untitled Event",
+                start,
+                end,
+                hours: diffHours,
+              });
+            }
+          } catch (error) {
+            console.error(
+              `Error calculating hours for assignment ${assignment.id}:`,
+              error
+            );
+          }
         }
+
+        // Calculate hours from events where employee might have worked but no explicit assignment
+        // This is a fallback for events that might not have assignments recorded
+        if (allEvents) {
+          for (const event of allEvents) {
+            try {
+              const eventStart = new Date(event.start_date);
+              const eventEnd = new Date(event.end_date);
+
+              if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+                console.warn(`Invalid date for event ${event.id}:`, event);
+                continue;
+              }
+
+              // Check if this employee type could have worked this event
+              const couldHaveWorked =
+                (employee.employee_type === "Server" &&
+                  event.number_of_servers_needed &&
+                  event.number_of_servers_needed > 0) ||
+                (employee.employee_type === "Driver" &&
+                  event.number_of_driver_needed &&
+                  event.number_of_driver_needed > 0) ||
+                employee.employee_type === "Manager";
+
+              if (couldHaveWorked) {
+                const diffTime = eventEnd.getTime() - eventStart.getTime();
+                const diffHours = diffTime / (1000 * 60 * 60);
+
+                // Only add if no explicit assignment exists for this event
+                const hasExplicitAssignment = allAssignments.some(
+                  (assignment) => assignment.event_id === event.id
+                );
+
+                if (!hasExplicitAssignment && diffHours > 0) {
+                  totalHours += diffHours;
+                  shiftDetails.push({
+                    type: "Event (No Assignment)",
+                    title: event.title || "Untitled Event",
+                    start: eventStart,
+                    end: eventEnd,
+                    hours: diffHours,
+                  });
+                }
+              }
+            } catch (error) {
+              console.error(
+                `Error calculating hours for event ${event.id}:`,
+                error
+              );
+            }
+          }
+        }
+
         const wage =
           typeof currentWage === "number" && !isNaN(currentWage)
             ? currentWage
@@ -329,6 +522,7 @@ export default function PayrollReport(): ReactElement {
         const grossPay = totalHours * wage;
         const taxDeductions = calculateTaxDeductions(grossPay);
         const netPay = calculateNetPay(grossPay);
+
         payrollDataArray.push({
           employee,
           currentWage: wage,
@@ -338,16 +532,19 @@ export default function PayrollReport(): ReactElement {
           netPay,
           taxDeductions,
           assignments: allAssignmentsEnriched,
+          shiftDetails,
         });
       }
+
       const filteredData = isAdmin
         ? payrollDataArray.filter((data) => data.totalHours > 0)
         : payrollDataArray;
       setPayrollData(filteredData);
     } catch (err) {
       console.error("Error fetching payroll data:", err);
-      setError("Failed to load payroll data.");
+      setError("Failed to load payroll data. Please try again.");
     } finally {
+      clearTimeout(timeout);
       setIsLoading(false);
     }
   }, [payPeriod, isAdmin, user?.id, supabase]);
@@ -385,6 +582,17 @@ export default function PayrollReport(): ReactElement {
     );
     const totalEmployees = payrollData.length;
 
+    // Calculate hours by shift type
+    const hoursByShiftType = payrollData.reduce(
+      (acc, data) => {
+        data.shiftDetails.forEach((shift) => {
+          acc[shift.type] = (acc[shift.type] || 0) + shift.hours;
+        });
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
     return {
       totalHours,
       totalGrossPay,
@@ -392,6 +600,7 @@ export default function PayrollReport(): ReactElement {
       totalDeductions,
       totalEvents,
       totalEmployees,
+      hoursByShiftType,
     };
   };
 
@@ -415,6 +624,7 @@ export default function PayrollReport(): ReactElement {
     totalDeductions,
     totalEvents,
     totalEmployees,
+    hoursByShiftType,
   } = calculateTotals();
 
   return (
@@ -506,6 +716,25 @@ export default function PayrollReport(): ReactElement {
               </span>
             </div>
           </div>
+
+          {/* Hours Breakdown by Shift Type */}
+          {Object.keys(hoursByShiftType).length > 0 && (
+            <div className="mt-4 pt-4 border-t border-green-200">
+              <h4 className="text-sm font-medium text-green-800 mb-2">
+                Hours by Shift Type
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
+                {Object.entries(hoursByShiftType).map(([shiftType, hours]) => (
+                  <div key={shiftType}>
+                    <span className="text-green-600">{shiftType}:</span>
+                    <span className="ml-2 font-medium">
+                      {hours.toFixed(1)}h
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
