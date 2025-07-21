@@ -326,6 +326,7 @@ export const assignmentsApi = {
     }
 
     return data || [];
+  },
 
   // Update server assignments when event times change
   async updateServerAssignmentsForEvent(
