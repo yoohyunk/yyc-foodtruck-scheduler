@@ -212,4 +212,31 @@ export const employeesApi = {
 
     return data !== null;
   },
+
+  async getEmployeeByUserId(userId: string): Promise<Employee | null> {
+    const { data, error } = await supabase
+      .from("employees")
+      .select(
+        `
+        *,
+        addresses (*)
+      `
+      )
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching employee by user_id:", error);
+      return null;
+    }
+
+    // Auto-capitalize names
+    return data
+      ? {
+          ...data,
+          first_name: capitalizeWords(data.first_name),
+          last_name: capitalizeWords(data.last_name),
+        }
+      : null;
+  },
 };

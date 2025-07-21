@@ -7,6 +7,7 @@ import { Event } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Events(): ReactElement {
   const [events, setEvents] = useState<Event[]>([]);
@@ -17,26 +18,62 @@ export default function Events(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
+  const { user, isAdmin } = useAuth();
+  const { loading: authLoading } = useAuth();
 
   // Fetch events from Supabase
   useEffect(() => {
+    // Don't fetch events until auth is ready
+    if (authLoading) {
+      return;
+    }
+
     const fetchEvents = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await eventsApi.getAllEvents();
-        // Sort events by start_date ascending (soonest first)
-        const sorted = [...data].sort((a, b) => {
-          const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
-          const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
-          return dateA - dateB;
-        });
-        setEvents(sorted);
-        setFilteredEvents(sorted); // Initially show all events
-        // Set global variable for tutorial navigation
-        if (typeof window !== "undefined" && sorted.length > 0) {
-          (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
-            sorted[0].id;
+        if (isAdmin) {
+          // Admin: show all events
+          const data = await eventsApi.getAllEvents();
+          const sorted = [...data].sort((a, b) => {
+            const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+            const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+            return dateA - dateB;
+          });
+          setEvents(sorted);
+          setFilteredEvents(sorted);
+          if (typeof window !== "undefined" && sorted.length > 0) {
+            (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
+              sorted[0].id;
+          }
+        } else if (user) {
+          // Employee: show only assigned events
+
+          const response = await fetch(
+            `/api/events/assigned?userId=${user.id}`
+          );
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch assigned events: ${response.statusText}`
+            );
+          }
+
+          const data = await response.json();
+
+          if (data.events && data.events.length > 0) {
+            setEvents(data.events);
+            setFilteredEvents(data.events);
+            if (typeof window !== "undefined") {
+              (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
+                data.events[0].id;
+            }
+          } else {
+            setEvents([]);
+            setFilteredEvents([]);
+          }
+        } else {
+          setEvents([]);
+          setFilteredEvents([]);
         }
       } catch (err) {
         console.error("Error fetching events:", err);
@@ -60,7 +97,7 @@ export default function Events(): ReactElement {
     return () => {
       window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [isAdmin, user, authLoading]);
 
   // Filter events based on the active filter and date
   useEffect(() => {

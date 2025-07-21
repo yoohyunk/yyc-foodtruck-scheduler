@@ -204,6 +204,7 @@ export default function Sidebar() {
                   shouldHighlight={shouldHighlight}
                   shouldDisable={shouldDisable}
                   isMobile={isMobile}
+                  disableAnimations={!isAdmin}
                 />
               ))}
 
