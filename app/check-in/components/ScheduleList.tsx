@@ -1,5 +1,6 @@
 import React from "react";
 import { Assignment, CheckinData } from "@/app/types";
+import { extractTime } from "@/app/events/utils";
 
 interface ScheduleListProps {
   assignments: Assignment[];
@@ -9,23 +10,6 @@ interface ScheduleListProps {
     checkinData: CheckinData
   ) => string;
   checkinMap: Record<string, CheckinData>;
-}
-
-function formatTime(dateStr?: string | null) {
-  if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  let hours = d.getUTCHours() - 6;
-  if (hours < 0) hours += 24;
-  const minutes = d.getUTCMinutes();
-  const ampm = hours >= 12 ? "PM" : "AM";
-  const displayHour = ((hours + 11) % 12) + 1;
-  return (
-    displayHour.toString().padStart(2, "0") +
-    ":" +
-    minutes.toString().padStart(2, "0") +
-    " " +
-    ampm
-  );
 }
 
 export default function ScheduleList({
@@ -69,8 +53,13 @@ export default function ScheduleList({
                     {assignment.events?.title || "-"}
                   </div>
                   <div style={{ fontSize: "0.95rem", color: "#6b7280" }}>
-                    {formatTime(assignment.start_date || assignment.start_time)}{" "}
-                    - {formatTime(assignment.end_date || assignment.end_time)}
+                    {extractTime(
+                      assignment.start_date || assignment.start_time || ""
+                    )}{" "}
+                    -{" "}
+                    {extractTime(
+                      assignment.end_date || assignment.end_time || ""
+                    )}
                   </div>
                   {assignment.type === "truck" && assignment.trucks?.name && (
                     <div

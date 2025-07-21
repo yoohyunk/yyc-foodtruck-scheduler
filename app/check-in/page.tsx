@@ -11,56 +11,44 @@ import { createClient } from "@/lib/supabase/client";
 import MainAssignmentCard from "./components/MainAssignmentCard";
 import ScheduleList from "./components/ScheduleList";
 import { Assignment, CheckinData } from "@/app/types";
-
-function formatTime(dateStr?: string | null) {
-  if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  // Extract UTC hours/minutes and subtract 6 hours
-
-  let hours = d.getUTCHours() - 6;
-  if (hours < 0) hours += 24;
-  const minutes = d.getUTCMinutes();
-  // Convert to 12-hour format
-  const ampm = hours >= 12 ? "PM" : "AM";
-  const displayHour = ((hours + 11) % 12) + 1; // 0→12, 13→1
-  return (
-    displayHour.toString().padStart(2, "0") +
-    ":" +
-    minutes.toString().padStart(2, "0") +
-    " " +
-    ampm
-  );
-}
+import { extractTime } from "@/app/events/utils";
 
 function getAssignmentStatus(assignment: Assignment, checkinData: CheckinData) {
-  // Always use UTC for all comparisons
+  // Parse assignment start/end as local time (no timezone conversion)
+  function parseTime(dateStr: string | undefined): {
+    hours: number;
+    minutes: number;
+  } {
+    if (!dateStr) return { hours: 0, minutes: 0 };
+    const match = dateStr.match(/T(\d{2}):(\d{2})/);
+    if (match) {
+      return { hours: parseInt(match[1]), minutes: parseInt(match[2]) };
+    }
+    return { hours: 0, minutes: 0 };
+  }
   const now = new Date();
-  const nowUTC = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      now.getUTCHours(),
-      now.getUTCMinutes(),
-      now.getUTCSeconds()
-    )
-  );
-  const start = new Date(assignment.start_date || assignment.start_time || 0);
-  const end = new Date(assignment.end_date || assignment.end_time || 0);
-  const checkinStart = new Date(start.getTime() - 4 * 60 * 60 * 1000);
-  const checkinEnd = new Date(start.getTime() + 1 * 60 * 60 * 1000);
-  const overtimeEnd = new Date(end.getTime() + 4 * 60 * 60 * 1000);
+  const start = parseTime(assignment.start_date || assignment.start_time);
+  const end = parseTime(assignment.end_date || assignment.end_time);
+  // Use today's date for all comparisons
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setHours(start.hours, start.minutes, 0, 0);
+  const endDate = new Date(today);
+  endDate.setHours(end.hours, end.minutes, 0, 0);
+  const checkinStart = new Date(startDate.getTime() - 4 * 60 * 60 * 1000);
+  const checkinEnd = new Date(startDate.getTime() + 1 * 60 * 60 * 1000);
+  const overtimeEnd = new Date(endDate.getTime() + 4 * 60 * 60 * 1000);
 
   if (checkinData?.clock_out_at) return "checked_out";
   if (checkinData?.clock_in_at && !checkinData?.clock_out_at) {
-    if (nowUTC > end && nowUTC <= overtimeEnd) return "overtime";
-    if (nowUTC > overtimeEnd) return "overtime_expired";
-    if (nowUTC > end) return "overtime";
+    if (now > endDate && now <= overtimeEnd) return "overtime";
+    if (now > overtimeEnd) return "overtime_expired";
+    if (now > endDate) return "overtime";
     return "checked_in";
   }
-  if (nowUTC < checkinStart) return "before";
-  if (nowUTC >= checkinStart && nowUTC <= checkinEnd) return "ready";
-  if (nowUTC > checkinEnd) return "missed";
+  if (now < checkinStart) return "before";
+  if (now >= checkinStart && now <= checkinEnd) return "ready";
+  if (now > checkinEnd) return "missed";
   return "ready";
 }
 
@@ -224,34 +212,54 @@ export default function CheckInPage() {
 
   // Generate status message
   function getStatusMessage(status: string, assignment: Assignment) {
-    const start = new Date(assignment.start_date || assignment.start_time || 0);
-    const end = new Date(assignment.end_date || assignment.end_time || 0);
+    function parseTime(dateStr: string | undefined): {
+      hours: number;
+      minutes: number;
+    } {
+      if (!dateStr) return { hours: 0, minutes: 0 };
+      const match = dateStr.match(/T(\d{2}):(\d{2})/);
+      if (match) {
+        return { hours: parseInt(match[1]), minutes: parseInt(match[2]) };
+      }
+      return { hours: 0, minutes: 0 };
+    }
+    const end = parseTime(assignment.end_date || assignment.end_time);
+    const today = new Date();
+    const endDate = new Date(today);
+    endDate.setHours(end.hours, end.minutes, 0, 0);
 
     if (status === "before") {
-      const timeToStart = getTimeRemaining(start);
+      const timeToStart = getTimeRemaining(
+        new Date(assignment.start_date || assignment.start_time || 0)
+      );
       return `Shift starts in ${timeToStart}`;
     }
     if (status === "missed")
-      return `Check-in time expired (${formatTime(assignment.start_date || assignment.start_time)} - ${formatTime(assignment.end_date || assignment.end_time)})`;
+      return `Check-in time expired (${extractTime(assignment.start_date || assignment.start_time || "")} - ${extractTime(assignment.end_date || assignment.end_time || "")})`;
     if (status === "checked_in") {
-      const timeToEnd = getTimeRemaining(end);
-      const diff = end.getTime() - currentTime.getTime();
+      const timeToEnd = getTimeRemaining(endDate);
+      const diff = endDate.getTime() - currentTime.getTime();
+      console.log("[getStatusMessage]", {
+        now: currentTime.toISOString(),
+        end: endDate.toISOString(),
+        diff,
+      });
       if (diff <= 0) {
         return `Shift ended - Check-out required`;
       }
       return `Shift ends in ${timeToEnd}`;
     }
     if (status === "checked_out")
-      return `Check-out completed (${formatTime(assignment.clock_in_at)} - ${formatTime(assignment.clock_out_at)})`;
+      return `Check-out completed (${extractTime(checkinMap[`${assignment.type}_${assignment.id}`]?.clock_in_at || "")} - ${extractTime(checkinMap[`${assignment.type}_${assignment.id}`]?.clock_out_at || "")})`;
     if (status === "overtime") {
-      const timeToEnd = getTimeRemaining(end);
+      const timeToEnd = getTimeRemaining(endDate);
       return `Overtime - Check-out required (${timeToEnd} ago)`;
     }
     if (status === "overtime_expired") {
       return `Overtime window expired (contact admin)`;
     }
     if (status === "ready") {
-      const timeToEnd = getTimeRemaining(end);
+      const timeToEnd = getTimeRemaining(endDate);
       return `Shift ends in ${timeToEnd}`;
     }
     return "";

@@ -17,7 +17,6 @@ interface LogListSectionProps {
 export default function LogListSection({
   type,
   logs,
-  formatTime,
   getExpectedTimes,
 }: LogListSectionProps) {
   return (
@@ -38,7 +37,6 @@ export default function LogListSection({
                 key={log.id}
                 log={log}
                 type={type}
-                formatTime={formatTime}
                 expectedStart={expected.expectedStart}
                 expectedEnd={expected.expectedEnd}
               />

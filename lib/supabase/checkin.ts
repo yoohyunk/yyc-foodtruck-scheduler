@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { Tables } from "@/database.types";
+import { format, toZonedTime } from "date-fns-tz";
 
 type Address = {
   id: string;
@@ -207,9 +208,13 @@ export async function getCheckinRecord(
 // Checkin
 export async function checkin(assignmentId: string, type: "server" | "truck") {
   const supabase = createClient();
-  const now = new Date().toISOString();
 
-  // Check if there is an existing checkin row
+  const now = new Date();
+  const calgaryTime = toZonedTime(now, "America/Edmonton");
+  const formatted = format(calgaryTime, "yyyy-MM-dd'T'HH:mm:ss", {
+    timeZone: "America/Edmonton",
+  });
+
   let existing;
   if (type === "truck") {
     const { data } = await supabase
@@ -228,15 +233,15 @@ export async function checkin(assignmentId: string, type: "server" | "truck") {
   }
 
   if (existing && existing.clock_in_at) {
-    // If already checked in, return existing data
+    // 이미 체크인된 경우, 기존 데이터 반환
     return existing;
   }
 
-  // If not checked in, insert new record
+  // 없으면 insert
   if (type === "truck") {
     const { data, error } = await supabase
       .from("truck_assignment_checkin")
-      .insert({ assignment_id: assignmentId, clock_in_at: now })
+      .insert({ assignment_id: assignmentId, clock_in_at: formatted })
       .select()
       .single();
     if (error) throw error;
@@ -244,7 +249,7 @@ export async function checkin(assignmentId: string, type: "server" | "truck") {
   } else {
     const { data, error } = await supabase
       .from("server_assignment_clockin")
-      .insert({ assignment_id: assignmentId, clock_in_at: now })
+      .insert({ assignment_id: assignmentId, clock_in_at: formatted })
       .select()
       .single();
     if (error) throw error;
@@ -255,11 +260,16 @@ export async function checkin(assignmentId: string, type: "server" | "truck") {
 // Checkout
 export async function checkout(assignmentId: string, type: "server" | "truck") {
   const supabase = createClient();
-  const now = new Date().toISOString();
+
+  const now = new Date();
+  const calgaryTime = toZonedTime(now, "America/Edmonton");
+  const formatted = format(calgaryTime, "yyyy-MM-dd'T'HH:mm:ss", {
+    timeZone: "America/Edmonton",
+  });
   if (type === "truck") {
     const { data, error } = await supabase
       .from("truck_assignment_checkin")
-      .update({ clock_out_at: now })
+      .update({ clock_out_at: formatted })
       .eq("assignment_id", assignmentId)
       .select()
       .single();
@@ -268,7 +278,7 @@ export async function checkout(assignmentId: string, type: "server" | "truck") {
   } else {
     const { data, error } = await supabase
       .from("server_assignment_clockin")
-      .update({ clock_out_at: now })
+      .update({ clock_out_at: formatted })
       .eq("assignment_id", assignmentId)
       .select()
       .single();

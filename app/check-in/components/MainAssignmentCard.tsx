@@ -1,5 +1,6 @@
 import React from "react";
 import { Assignment } from "@/app/types";
+import { extractTime } from "@/app/events/utils";
 
 interface MainAssignmentCardProps {
   assignment: Assignment;
@@ -8,23 +9,6 @@ interface MainAssignmentCardProps {
   onCheckin: (assignment: Assignment) => void;
   onCheckout: (assignment: Assignment) => void;
   loading: boolean;
-}
-
-function formatTime(dateStr?: string | null) {
-  if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  let hours = d.getUTCHours() - 6;
-  if (hours < 0) hours += 24;
-  const minutes = d.getUTCMinutes();
-  const ampm = hours >= 12 ? "PM" : "AM";
-  const displayHour = ((hours + 11) % 12) + 1;
-  return (
-    displayHour.toString().padStart(2, "0") +
-    ":" +
-    minutes.toString().padStart(2, "0") +
-    " " +
-    ampm
-  );
 }
 
 export default function MainAssignmentCard({
@@ -64,8 +48,10 @@ export default function MainAssignmentCard({
           :
           <span>
             {" "}
-            {formatTime(assignment.start_date || assignment.start_time)} -{" "}
-            {formatTime(assignment.end_date || assignment.end_time)}
+            {extractTime(
+              assignment.start_date || assignment.start_time || ""
+            )}{" "}
+            - {extractTime(assignment.end_date || assignment.end_time || "")}
           </span>
         </div>
         {assignment.events?.address && (

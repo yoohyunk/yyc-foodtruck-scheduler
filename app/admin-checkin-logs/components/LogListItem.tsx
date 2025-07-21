@@ -1,12 +1,12 @@
 import React from "react";
 import { CheckinLog } from "@/app/types";
+import { extractTime } from "@/app/events/utils";
 
 type LogType = "server" | "driver";
 
 interface LogListItemProps {
   log: CheckinLog;
   type: LogType;
-  formatTime: (dateStr?: string | null) => string;
   expectedStart?: string;
   expectedEnd?: string;
 }
@@ -14,7 +14,6 @@ interface LogListItemProps {
 export default function LogListItem({
   log,
   type,
-  formatTime,
   expectedStart,
   expectedEnd,
 }: LogListItemProps) {
@@ -35,7 +34,7 @@ export default function LogListItem({
         <span>
           Check-in:{" "}
           {log.clock_in_at ? (
-            <span className="checkin">{formatTime(log.clock_in_at)}</span>
+            <span className="checkin">{extractTime(log.clock_in_at)}</span>
           ) : (
             <span className="text-gray-400">-</span>
           )}
@@ -43,7 +42,7 @@ export default function LogListItem({
         <span>
           Check-out:{" "}
           {log.clock_out_at ? (
-            <span className="checkout">{formatTime(log.clock_out_at)}</span>
+            <span className="checkout">{extractTime(log.clock_out_at)}</span>
           ) : (
             <span className="text-gray-400">-</span>
           )}
@@ -58,21 +57,53 @@ export default function LogListItem({
             marginTop: "0.25rem",
           }}
         >
-          Expected: {formatTime(expectedStart)} ~ {formatTime(expectedEnd)}
+          Expected: {extractTime(expectedStart)} ~ {extractTime(expectedEnd)}
         </div>
       )}
+      {/* Total hours worked */}
+      {log.clock_in_at &&
+        log.clock_out_at &&
+        (() => {
+          const inDate = new Date(log.clock_in_at);
+          const outDate = new Date(log.clock_out_at);
+          if (
+            !isNaN(inDate.getTime()) &&
+            !isNaN(outDate.getTime()) &&
+            outDate > inDate
+          ) {
+            const diffMs = outDate.getTime() - inDate.getTime();
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const minutes = Math.floor(
+              (diffMs % (1000 * 60 * 60)) / (1000 * 60)
+            );
+            return (
+              <div
+                style={{
+                  color: "#2563eb",
+                  fontWeight: 500,
+                  fontSize: "0.95rem",
+                  marginTop: "0.25rem",
+                }}
+              >
+                Total: {hours.toString().padStart(2, "0")}hr{" "}
+                {minutes.toString().padStart(2, "0")}min
+              </div>
+            );
+          }
+          return null;
+        })()}
       {/* Overtime display at the very bottom */}
       {(() => {
         if (log.clock_out_at && log.assignment.end_time) {
-          let endStr = log.assignment.end_time;
-          if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+$/.test(endStr))
-            endStr += "Z";
-          let outStr = log.clock_out_at;
-          if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+$/.test(outStr))
-            outStr += "Z";
-          const end = new Date(endStr);
-          const out = new Date(outStr);
-          if (out > end) {
+          const end = new Date(log.assignment.end_time);
+          const out = new Date(log.clock_out_at);
+          // Only show overtime if dates are the same and out > end
+          if (
+            !isNaN(end.getTime()) &&
+            !isNaN(out.getTime()) &&
+            out > end &&
+            end.toDateString() === out.toDateString()
+          ) {
             const diffMs = out.getTime() - end.getTime();
             const hours = Math.floor(diffMs / (1000 * 60 * 60));
             const minutes = Math.floor(

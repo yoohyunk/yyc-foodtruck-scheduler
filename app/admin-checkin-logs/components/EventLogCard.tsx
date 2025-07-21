@@ -1,6 +1,7 @@
 import React from "react";
 import LogListSection from "./LogListSection";
 import { CheckinLog } from "@/app/types";
+import { extractTime } from "@/app/events/utils";
 
 interface EventInfo {
   id: string;
@@ -62,7 +63,7 @@ export default function EventLogCard({
                   marginLeft: "1rem",
                 }}
               >
-                {formatTime(eventStart)} ~ {formatTime(eventEnd)}
+                {extractTime(eventStart)} ~ {extractTime(eventEnd)}
               </span>
             )}
           </h2>
