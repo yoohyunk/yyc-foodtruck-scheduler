@@ -12,6 +12,7 @@ import {
 } from "@/app/types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
+import { useAuth } from "@/contexts/AuthContext";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
@@ -37,6 +38,7 @@ import ServerAssignmentsSection from "./components/ServerAssignmentsSection";
 export default function EventDetailsPage(): ReactElement {
   const { id } = useParams();
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -1131,6 +1133,7 @@ export default function EventDetailsPage(): ReactElement {
               <ServerAssignmentsSection
                 serverAssignments={serverAssignments}
                 onAssignmentRemoved={refreshServerAssignments}
+                isAdmin={isAdmin}
               />
             </div>
           </TutorialHighlight>

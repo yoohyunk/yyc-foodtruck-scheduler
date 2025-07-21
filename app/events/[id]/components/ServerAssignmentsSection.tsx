@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { useState } from "react";
 import ErrorModal from "../../../components/ErrorModal";
+import EditAssignmentModal from "./EditAssignmentModal";
 import { extractTime, extractDate } from "../../utils";
 
 interface ServerAssignment {
@@ -20,11 +21,13 @@ interface ServerAssignment {
 interface ServerAssignmentsSectionProps {
   serverAssignments: ServerAssignment[];
   onAssignmentRemoved?: () => void;
+  isAdmin?: boolean;
 }
 
 export default function ServerAssignmentsSection({
   serverAssignments,
   onAssignmentRemoved,
+  isAdmin = false,
 }: ServerAssignmentsSectionProps) {
   const router = useRouter();
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -34,6 +37,9 @@ export default function ServerAssignmentsSection({
     eventId: string;
     employeeName: string;
   } | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [assignmentToEdit, setAssignmentToEdit] =
+    useState<ServerAssignment | null>(null);
 
   const handleServerClick = (employeeId: string) => {
     router.push(`/employees/${employeeId}`);
@@ -83,6 +89,22 @@ export default function ServerAssignmentsSection({
   const handleCancelUnassign = () => {
     setShowConfirmModal(false);
     setAssignmentToRemove(null);
+  };
+
+  const handleEditClick = (assignment: ServerAssignment) => {
+    setAssignmentToEdit(assignment);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setIsEditModalOpen(false);
+    setAssignmentToEdit(null);
+  };
+
+  const handleAssignmentUpdated = () => {
+    if (onAssignmentRemoved) {
+      onAssignmentRemoved();
+    }
   };
 
   if (serverAssignments.length === 0) {
@@ -156,29 +178,43 @@ export default function ServerAssignmentsSection({
                       </svg>
                     </span>
                   )}
-                  <button
-                    className="ml-2 p-1 rounded hover:bg-red-100 text-red-600 flex items-center justify-center"
-                    title="Unassign"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnassignClick(assignment);
-                    }}
-                    disabled={removingId === assignment.id}
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
+                  <div className="flex flex-col space-y-1">
+                    <button
+                      className="p-1 rounded hover:bg-red-100 text-red-600 flex items-center justify-center transition-all duration-200 hover:scale-110"
+                      title="Unassign"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUnassignClick(assignment);
+                      }}
+                      disabled={removingId === assignment.id}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                    {isAdmin && (
+                      <button
+                        className="p-1 rounded hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-all duration-200 hover:scale-110"
+                        title="Edit Times"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClick(assignment);
+                        }}
+                      >
+                        ✏️
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-gray-200">
@@ -217,6 +253,14 @@ export default function ServerAssignmentsSection({
         title="Confirm Unassign"
         type="confirmation"
         onConfirm={handleConfirmUnassign}
+      />
+
+      {/* Edit Assignment Modal */}
+      <EditAssignmentModal
+        isOpen={isEditModalOpen}
+        onClose={handleEditClose}
+        assignment={assignmentToEdit}
+        onAssignmentUpdated={handleAssignmentUpdated}
       />
     </>
   );

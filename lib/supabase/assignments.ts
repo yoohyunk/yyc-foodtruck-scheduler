@@ -326,4 +326,30 @@ export const assignmentsApi = {
       throw error;
     }
   },
+
+  // Update individual assignment times
+  async updateAssignmentTimes(
+    assignmentId: string,
+    newStartDate: string,
+    newEndDate: string
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({
+          start_date: newStartDate,
+          end_date: newEndDate,
+        })
+        .eq("id", assignmentId);
+
+      if (error) {
+        throw new Error(`Error updating assignment times: ${error.message}`);
+      }
+
+      console.log(`Updated assignment ${assignmentId} times`);
+    } catch (error) {
+      console.error("Error updating assignment times:", error);
+      throw error;
+    }
+  },
 };

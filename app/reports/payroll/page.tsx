@@ -204,7 +204,7 @@ export default function PayrollReport(): ReactElement {
     const iso = today.toISOString().split("T")[0];
     setSelectedDate(iso);
     setPayPeriod(calculatePayPeriod(iso));
-  }, []);
+  }, [calculatePayPeriod]);
 
   // Update pay period when date changes
   useEffect(() => {
