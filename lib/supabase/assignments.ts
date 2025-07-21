@@ -279,7 +279,6 @@ export const assignmentsApi = {
       throw error;
     }
   },
-
   // Get all assignments (for reports)
   async getAllAssignments(): Promise<
     Array<{
@@ -327,5 +326,78 @@ export const assignmentsApi = {
     }
 
     return data || [];
+
+  // Update server assignments when event times change
+  async updateServerAssignmentsForEvent(
+    eventId: string,
+    newStartDate: string,
+    newEndDate: string
+  ): Promise<void> {
+    try {
+      // Get all server assignments for this event
+      const { data: assignments, error: fetchError } = await supabase
+        .from("assignments")
+        .select("id")
+        .eq("event_id", eventId);
+
+      if (fetchError) {
+        throw new Error(
+          `Error fetching server assignments: ${fetchError.message}`
+        );
+      }
+
+      if (!assignments || assignments.length === 0) {
+        return; // No assignments to update
+      }
+
+      // Update all assignments with new start and end dates
+      const { error: updateError } = await supabase
+        .from("assignments")
+        .update({
+          start_date: newStartDate,
+          end_date: newEndDate,
+        })
+        .eq("event_id", eventId);
+
+      if (updateError) {
+        throw new Error(
+          `Error updating server assignments: ${updateError.message}`
+        );
+      }
+
+      console.log(
+        `Updated ${assignments.length} server assignments for event ${eventId}`
+      );
+    } catch (error) {
+      console.error("Error updating server assignments for event:", error);
+      throw error;
+    }
+  },
+
+  // Update individual assignment times
+  async updateAssignmentTimes(
+    assignmentId: string,
+    newStartDate: string,
+    newEndDate: string
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({
+          start_date: newStartDate,
+          end_date: newEndDate,
+        })
+        .eq("id", assignmentId);
+
+      if (error) {
+        throw new Error(`Error updating assignment times: ${error.message}`);
+      }
+
+      console.log(`Updated assignment ${assignmentId} times`);
+    } catch (error) {
+      console.error("Error updating assignment times:", error);
+      throw error;
+    }
+
   },
 };

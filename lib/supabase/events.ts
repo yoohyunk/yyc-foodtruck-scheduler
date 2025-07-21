@@ -260,6 +260,53 @@ export const truckAssignmentsApi = {
     }
   },
 
+  // Update truck assignments when event times change
+  async updateTruckAssignmentsForEvent(
+    eventId: string,
+    newStartTime: string,
+    newEndTime: string
+  ): Promise<void> {
+    try {
+      // Get all truck assignments for this event
+      const { data: assignments, error: fetchError } = await supabase
+        .from("truck_assignment")
+        .select("id")
+        .eq("event_id", eventId);
+
+      if (fetchError) {
+        throw new Error(
+          `Error fetching truck assignments: ${fetchError.message}`
+        );
+      }
+
+      if (!assignments || assignments.length === 0) {
+        return; // No assignments to update
+      }
+
+      // Update all assignments with new start and end times
+      const { error: updateError } = await supabase
+        .from("truck_assignment")
+        .update({
+          start_time: newStartTime,
+          end_time: newEndTime,
+        })
+        .eq("event_id", eventId);
+
+      if (updateError) {
+        throw new Error(
+          `Error updating truck assignments: ${updateError.message}`
+        );
+      }
+
+      console.log(
+        `Updated ${assignments.length} truck assignments for event ${eventId}`
+      );
+    } catch (error) {
+      console.error("Error updating truck assignments for event:", error);
+      throw error;
+    }
+  },
+
   async getTruckAssignmentsByTruckId(truckId: string): Promise<
     Array<{
       id: string;
