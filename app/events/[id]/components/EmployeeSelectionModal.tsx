@@ -561,7 +561,7 @@ export default function EmployeeSelectionModal({
                   <option value="all">All Employees</option>
                   <option value="Server">Server Only</option>
                   <option value="Driver">Driver Only</option>
-                  <option value="Manager">Manager Only</option>
+                  <option value="Admin">Admin Only</option>
                 </select>
               </TutorialHighlight>
             </div>

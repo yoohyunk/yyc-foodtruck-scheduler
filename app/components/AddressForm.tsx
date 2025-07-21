@@ -130,8 +130,8 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     });
 
     const [validation, setValidation] = useState<AddressValidation>({
-      streetNumber: true,
-      streetName: true,
+      streetNumber: false,
+      streetName: false,
       postalCode: true,
       direction: true,
     });
@@ -181,6 +181,12 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         setValidation(newValidation);
         setErrorMessages(newErrorMessages);
         setShowErrors(true);
+
+        // Only clear success/error status if validation fails
+        if (!Object.values(newValidation).every(Boolean)) {
+          setCheckStatus(null);
+          setCheckMessage("");
+        }
 
         // Find first error and scroll to it
         if (!newValidation.streetNumber) {
@@ -329,6 +335,8 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         }));
         setCheckStatus("error");
         setCheckMessage("Please enter a valid street number and street name.");
+        // Clear any previous success status
+        setCheckStatus("error");
         if (typeof onCheckAddress === "function") onCheckAddress();
         if (typeof onAddressError === "function") {
           const errors: ValidationError[] = [];
@@ -353,6 +361,8 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       setIsChecking(true);
       setCheckStatus(null);
       setCheckMessage("");
+      // Clear any previous success/error status
+      setCheckStatus(null);
       // Expand abbreviations ONLY when checking address
       const expandedStreetName = expandAbbreviations(formData.streetName);
       const geocodeData = { ...formData, streetName: expandedStreetName };
@@ -383,12 +393,26 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             longitude: data.coordinates.longitude,
           };
           setCheckStatus("success");
-          setCheckMessage(
-            data.fallback
-              ? "Address validated using approximate coordinates (geocoding service unavailable)."
-              : "Address found and validated!"
-          );
+
+          // Determine the appropriate message based on whether it's a fallback or actual coordinates
+          let message;
+          if (data.fallback) {
+            if (data.fallbackType === "city_center") {
+              // Extract city name from the address for the fallback message
+              const cityMatch = fullAddress.match(/, ([^,]+)(?:,|$)/);
+              const city = cityMatch ? cityMatch[1].trim() : "the city";
+              message = `Address not found using fallback coordinates for ${city}`;
+            } else {
+              message =
+                "Address not found using fallback coordinates for the city center";
+            }
+          } else {
+            message = "Address found and validated!";
+          }
+
+          setCheckMessage(message);
           onChange(fullAddress, coords); // Pass up to parent
+          // console.log("Geocoding successful:", { address: fullAddress, coords, fallback: data.fallback });
         } else {
           setCheckStatus("error");
           setCheckMessage(

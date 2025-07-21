@@ -257,7 +257,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "event-filters",
       title: "Filter Events 🔍",
       content:
-        "Use these buttons to filter events by their status: All (shows all events), Pending (events that need staff or trucks assigned), or Scheduled (events that are fully prepared). Click a status to see only those events.",
+        "Use these buttons to filter events by their status: All (shows all events), Pending (events that need staff assigned, have no trucks, or have trucks without drivers), or Scheduled (events that are fully prepared). Click a status to see only those events.",
       target: ".filter-buttons",
       position: "bottom",
     },
@@ -604,7 +604,15 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "assigned-trucks-section",
       title: "Assigned Trucks Section 🚚",
       content:
-        "This section shows all the trucks currently assigned to this event. Each card displays the truck name, type, and capacity. You can manage truck assignments using the Select Trucks button above.",
+        "This section shows all the trucks currently assigned to this event. Each card displays the truck name, type, and capacity. You can manage truck assignments using the Select Trucks button above. If no trucks are assigned, you'll see a message indicating trucks are optional.",
+      target: ".assigned-trucks-section",
+      position: "bottom",
+    },
+    {
+      id: "truck-warning-system",
+      title: "Truck Warning System ⚠️",
+      content:
+        "The system will show yellow warning messages when: 1) No trucks are assigned to the event, or 2) Some trucks don't have drivers assigned. These warnings indicate the event status is 'Pending' until resolved. Events can be created without trucks, but they'll remain in 'Pending' status.",
       target: ".assigned-trucks-section",
       position: "bottom",
     },
@@ -864,9 +872,9 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
     },
     {
       id: "truck-selection-field",
-      title: "Select Trucks (Required) 🚚",
+      title: "Select Trucks (Optional) 🚚",
       content:
-        "Choose which food trucks will be at the event. You must select at least one truck. You can select multiple trucks. Each truck card shows the truck name, type, and availability status.",
+        "Choose which food trucks will be at the event (optional). You can select multiple trucks or create events without trucks. Events without trucks will be set to 'Pending' status. Each truck card shows the truck name, type, and availability status.",
       target: ".truck-list",
       position: "bottom",
     },
@@ -874,7 +882,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "auto-assignment-explanation",
       title: "How Auto-Assignment Works 🤖",
       content:
-        "When you create the event, the system will automatically: 1) Use the validated address coordinates to find all available servers within 5km, 2) Sort them by distance (closest first), then by wage (lowest first), 3) Assign the required number of servers, 4) Create the event with all details and redirect you to the event page.",
+        "When you create the event, the system will automatically: 1) Use the validated address coordinates to find all available servers, 2) Sort them by distance (closest first), then by wage (lowest first), 3) Assign the required number of servers from algorithm, 4) Set event status to 'Pending' if no trucks are assigned or if trucks don't have drivers, 5) Create the event with all details and redirect you to the event page.",
       target: ".create-event-page",
       position: "bottom",
     },
@@ -882,7 +890,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       id: "form-validation-explanation",
       title: "Form Validation ✅",
       content:
-        "Before creating the event, the system will check: All required fields are filled, email format is valid, phone number is valid, address is validated, at least one truck is selected, and end time is after start time. Any errors will be shown in a popup.",
+        "Before creating the event, the system will check: All required fields are filled, email format is valid, phone number is valid, address is validated, and end time is after start time. Trucks are optional. Any errors will be shown in a popup.",
       target: ".create-event-page",
       position: "bottom",
     },
@@ -1119,6 +1127,56 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       content:
         "Click this button to save your profile information. Once completed, you'll be marked as an active employee and can be scheduled for shifts.",
       target: "button[type='submit']",
+      position: "bottom",
+    },
+  ],
+  "/reports": [
+    {
+      id: "reports-welcome",
+      title: "Reports Dashboard 📊",
+      content:
+        "Welcome to the reports section! Here you can access various reports to analyze your business operations, employee data, and financial information.",
+      target: ".reports-page",
+      position: "bottom",
+    },
+    {
+      id: "employee-availability-report",
+      title: "Employee Availability Report 👥",
+      content:
+        "View all current assignments, time off requests, and availability for each employee for the selected week. This helps you understand your team's schedule and availability.",
+      target: ".employee-availability-report",
+      position: "bottom",
+    },
+    {
+      id: "truck-availability-report",
+      title: "Truck Availability Report 🚚",
+      content:
+        "See events booked for each truck and their availability status for the selected week. This helps you manage your fleet and ensure trucks are properly scheduled.",
+      target: ".truck-availability-report",
+      position: "bottom",
+    },
+    {
+      id: "payroll-report",
+      title: "Payroll Report 💰",
+      content:
+        "Calculate total employee hours and wages for the selected pay period (1st-15th or 16th-end of month). This report helps with payroll processing and financial planning.",
+      target: ".payroll-report",
+      position: "bottom",
+    },
+    {
+      id: "time-off-requests-report",
+      title: "Time Off Requests Report 🌴",
+      content:
+        "View detailed time off requests for specific employees with filtering and status tracking. You can approve or deny requests and manage employee time off effectively.",
+      target: ".time-off-requests-report",
+      position: "bottom",
+    },
+    {
+      id: "assignment-report",
+      title: "Assignment Report 📋",
+      content:
+        "View detailed assignment information for all employees including server assignments, driver assignments, and standalone shifts. This provides a comprehensive view of all work assignments.",
+      target: ".assignment-report",
       position: "bottom",
     },
   ],

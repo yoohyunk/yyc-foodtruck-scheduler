@@ -1,7 +1,13 @@
 "use client";
 
 import React, { ReactElement } from "react";
-import { FiUsers, FiTruck, FiDollarSign, FiCalendar } from "react-icons/fi";
+import {
+  FiUsers,
+  FiTruck,
+  FiDollarSign,
+  FiCalendar,
+  FiClock,
+} from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTutorial } from "../tutorial/TutorialContext";
@@ -95,10 +101,19 @@ export default function ReportsPage(): ReactElement {
       title: "Time Off Requests Report",
       description:
         "View detailed time off requests for specific employees with filtering and status tracking.",
-      icon: <FiCalendar />,
+      icon: <FiClock />,
       href: "/reports/time-off-requests",
-      color: "hover:border-purple-300",
+      color: "hover:border-indigo-300",
       highlightClass: ".time-off-requests-report",
+    },
+    {
+      title: "Assignment Report",
+      description:
+        "View detailed assignment information for all employees including server assignments, driver assignments, and standalone shifts.",
+      icon: <FiCalendar />,
+      href: "/reports/shifts",
+      color: "hover:border-purple-300",
+      highlightClass: ".assignment-report",
     },
   ];
 
