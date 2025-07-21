@@ -187,7 +187,6 @@ export default function EmplpyeeSchedule(): React.ReactElement {
           start: startDate,
           end: endDate,
           extendedProps: {
-
             location: assignment.event?.description || "",
 
             trucks: [],
@@ -197,7 +196,6 @@ export default function EmplpyeeSchedule(): React.ReactElement {
             endTime: assignment.end_date || "",
 
             status,
-
           },
         };
       })
