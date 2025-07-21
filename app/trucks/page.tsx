@@ -16,6 +16,9 @@ export default function Trucks(): ReactElement {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filteredTrucks, setFilteredTrucks] = useState<Truck[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("All");
+  const [activeStatus, setActiveStatus] = useState<"active" | "inactive">(
+    "active"
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
@@ -73,14 +76,19 @@ export default function Trucks(): ReactElement {
     };
   }, [fetchTrucks]);
 
-  // Filter trucks based on the active filter
+  // Filter trucks based on the active filter and activeStatus
   useEffect(() => {
-    if (activeFilter === "All") {
-      setFilteredTrucks(trucks);
-    } else {
-      setFilteredTrucks(trucks.filter((truck) => truck.type === activeFilter));
+    let filtered = trucks;
+    if (activeFilter !== "All") {
+      filtered = filtered.filter((truck) => truck.type === activeFilter);
     }
-  }, [activeFilter, trucks]);
+    filtered = filtered.filter((truck) =>
+      activeStatus === "active" ? truck.is_available : !truck.is_available
+    );
+    // Sort alphabetically by name
+    filtered = filtered.sort((a, b) => a.name.localeCompare(b.name));
+    setFilteredTrucks(filtered);
+  }, [activeFilter, trucks, activeStatus]);
 
   if (loading) {
     return (
@@ -206,6 +214,39 @@ export default function Trucks(): ReactElement {
           Dessert Trucks
         </button>
       </TutorialHighlight>
+
+      {/* Active/Inactive Toggle */}
+      <div className="mb-4 flex justify-end">
+        <div className="flex items-center gap-2 md:gap-4">
+          <span className="font-medium text-primary-dark">Show:</span>
+          <button
+            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "active" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+            style={{
+              backgroundColor:
+                activeStatus === "active" ? "var(--primary-dark)" : undefined,
+              borderColor:
+                activeStatus === "active" ? "var(--primary-dark)" : undefined,
+              minWidth: 90,
+            }}
+            onClick={() => setActiveStatus("active")}
+          >
+            Active
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "inactive" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+            style={{
+              backgroundColor:
+                activeStatus === "inactive" ? "var(--primary-dark)" : undefined,
+              borderColor:
+                activeStatus === "inactive" ? "var(--primary-dark)" : undefined,
+              minWidth: 90,
+            }}
+            onClick={() => setActiveStatus("inactive")}
+          >
+            Inactive
+          </button>
+        </div>
+      </div>
 
       {/* Truck List */}
       <TutorialHighlight
