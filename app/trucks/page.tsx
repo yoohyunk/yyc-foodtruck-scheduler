@@ -247,6 +247,7 @@ export default function Trucks(): ReactElement {
           </button>
         </div>
       </div>
+      <div className="h-5"></div>
 
       {/* Truck List */}
       <TutorialHighlight
