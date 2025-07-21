@@ -1,0 +1,306 @@
+"use client";
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  getTodayAssignmentsForEmployee,
+  getCheckinRecord,
+  checkin,
+  checkout,
+} from "@/lib/supabase/checkin";
+import { useAuth } from "@/contexts/AuthContext";
+import { createClient } from "@/lib/supabase/client";
+import MainAssignmentCard from "./components/MainAssignmentCard";
+import ScheduleList from "./components/ScheduleList";
+import { Assignment, CheckinData } from "@/app/types";
+import { extractTime } from "@/app/events/utils";
+
+function getAssignmentStatus(assignment: Assignment, checkinData: CheckinData) {
+  // Parse assignment start/end as local time (no timezone conversion)
+  function parseTime(dateStr: string | undefined): {
+    hours: number;
+    minutes: number;
+  } {
+    if (!dateStr) return { hours: 0, minutes: 0 };
+    const match = dateStr.match(/T(\d{2}):(\d{2})/);
+    if (match) {
+      return { hours: parseInt(match[1]), minutes: parseInt(match[2]) };
+    }
+    return { hours: 0, minutes: 0 };
+  }
+  const now = new Date();
+  const start = parseTime(assignment.start_date || assignment.start_time);
+  const end = parseTime(assignment.end_date || assignment.end_time);
+  // Use today's date for all comparisons
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setHours(start.hours, start.minutes, 0, 0);
+  const endDate = new Date(today);
+  endDate.setHours(end.hours, end.minutes, 0, 0);
+  const checkinStart = new Date(startDate.getTime() - 4 * 60 * 60 * 1000);
+  const checkinEnd = new Date(startDate.getTime() + 1 * 60 * 60 * 1000);
+  const overtimeEnd = new Date(endDate.getTime() + 4 * 60 * 60 * 1000);
+
+  if (checkinData?.clock_out_at) return "checked_out";
+  if (checkinData?.clock_in_at && !checkinData?.clock_out_at) {
+    if (now > endDate && now <= overtimeEnd) return "overtime";
+    if (now > overtimeEnd) return "overtime_expired";
+    if (now > endDate) return "overtime";
+    return "checked_in";
+  }
+  if (now < checkinStart) return "before";
+  if (now >= checkinStart && now <= checkinEnd) return "ready";
+  if (now > checkinEnd) return "missed";
+  return "ready";
+}
+
+export default function CheckInPage() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [serverAssignments, setServerAssignments] = useState<Assignment[]>([]);
+  const [truckAssignments, setTruckAssignments] = useState<Assignment[]>([]);
+  const [checkinMap, setCheckinMap] = useState<Record<string, CheckinData>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Get employee_id from user
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const getEmployeeId = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("employees")
+        .select("employee_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!error && data) {
+        setEmployeeId(data.employee_id);
+      }
+    };
+
+    getEmployeeId();
+  }, [user?.id]);
+
+  // Get today's assignments
+  useEffect(() => {
+    if (!employeeId) return;
+    setLoading(true);
+    getTodayAssignmentsForEmployee(employeeId)
+      .then(({ serverAssignments, truckAssignments }) => {
+        setServerAssignments(serverAssignments);
+        setTruckAssignments(truckAssignments);
+        // Get checkin records for all assignments
+        const all = [
+          ...serverAssignments.map((a) => ({
+            id: a.id,
+            type: "server" as const,
+          })),
+          ...truckAssignments.map((a) => ({
+            id: a.id,
+            type: "truck" as const,
+          })),
+        ];
+        return Promise.all(
+          all.map((a) =>
+            getCheckinRecord(a.id, a.type).then((data) => ({
+              id: a.id,
+              type: a.type,
+              data,
+            }))
+          )
+        );
+      })
+      .then((results) => {
+        const map: Record<string, CheckinData> = {};
+        results.forEach((r) => {
+          map[`${r.type}_${r.id}`] = r.data;
+        });
+        setCheckinMap(map);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load assignments");
+        setLoading(false);
+      });
+  }, [employeeId]);
+
+  // Update current time (every minute)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Find the most recent/current/next assignment
+  const allAssignments: Assignment[] = [
+    ...serverAssignments.map((a) => ({ ...a, type: "server" as const })),
+    ...truckAssignments.map((a) => ({ ...a, type: "truck" as const })),
+  ];
+  allAssignments.sort((a, b) => {
+    const aStart = new Date(a.start_date || a.start_time || 0).getTime();
+    const bStart = new Date(b.start_date || b.start_time || 0).getTime();
+    return aStart - bStart;
+  });
+  const now = new Date();
+  let mainAssignment: Assignment | null = null;
+  for (const a of allAssignments) {
+    const start = new Date(a.start_date || a.start_time || 0);
+    const end = new Date(a.end_date || a.end_time || 0);
+    if (now >= start && now <= end) {
+      mainAssignment = a;
+      break;
+    }
+  }
+  if (!mainAssignment) {
+    mainAssignment =
+      allAssignments.find(
+        (a) => new Date(a.start_date || a.start_time || 0) > now
+      ) || allAssignments[allAssignments.length - 1];
+  }
+
+  // Checkin/checkout handlers
+  const handleCheckin = useCallback(async (assignment: Assignment) => {
+    setLoading(true);
+    try {
+      await checkin(assignment.id, assignment.type);
+      // Refresh checkin records
+      const data = await getCheckinRecord(assignment.id, assignment.type);
+      setCheckinMap((prev) => ({
+        ...prev,
+        [`${assignment.type}_${assignment.id}`]: data,
+      }));
+    } catch {
+      setError("Check-in failed");
+    }
+    setLoading(false);
+  }, []);
+  const handleCheckout = useCallback(async (assignment: Assignment) => {
+    setLoading(true);
+    try {
+      await checkout(assignment.id, assignment.type);
+      const data = await getCheckinRecord(assignment.id, assignment.type);
+      setCheckinMap((prev) => ({
+        ...prev,
+        [`${assignment.type}_${assignment.id}`]: data,
+      }));
+    } catch {
+      setError("Check-out failed");
+    }
+    setLoading(false);
+  }, []);
+
+  if (!employeeId) return <div className="p-8">login required</div>;
+  if (loading) return <div className="p-8">Loading...</div>;
+  if (error) return <div className="p-8 text-red-500">{error}</div>;
+  if (allAssignments.length === 0)
+    return <div className="p-8">no assignments today </div>;
+
+  // Calculate remaining time
+  function getTimeRemaining(targetDate: Date): string {
+    const diff = targetDate.getTime() - currentTime.getTime();
+
+    const hours = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
+    const minutes = Math.floor(
+      (Math.abs(diff) % (1000 * 60 * 60)) / (1000 * 60)
+    );
+
+    return `${hours.toString().padStart(2, "0")}hr ${minutes.toString().padStart(2, "0")}min`;
+  }
+
+  // Generate status message
+  function getStatusMessage(status: string, assignment: Assignment) {
+    function parseTime(dateStr: string | undefined): {
+      hours: number;
+      minutes: number;
+    } {
+      if (!dateStr) return { hours: 0, minutes: 0 };
+      const match = dateStr.match(/T(\d{2}):(\d{2})/);
+      if (match) {
+        return { hours: parseInt(match[1]), minutes: parseInt(match[2]) };
+      }
+      return { hours: 0, minutes: 0 };
+    }
+    const end = parseTime(assignment.end_date || assignment.end_time);
+    const today = new Date();
+    const endDate = new Date(today);
+    endDate.setHours(end.hours, end.minutes, 0, 0);
+
+    if (status === "before") {
+      const timeToStart = getTimeRemaining(
+        new Date(assignment.start_date || assignment.start_time || 0)
+      );
+      return `Shift starts in ${timeToStart}`;
+    }
+    if (status === "missed")
+      return `Check-in time expired (${extractTime(assignment.start_date || assignment.start_time || "")} - ${extractTime(assignment.end_date || assignment.end_time || "")})`;
+    if (status === "checked_in") {
+      const timeToEnd = getTimeRemaining(endDate);
+      const diff = endDate.getTime() - currentTime.getTime();
+      console.log("[getStatusMessage]", {
+        now: currentTime.toISOString(),
+        end: endDate.toISOString(),
+        diff,
+      });
+      if (diff <= 0) {
+        return `Shift ended - Check-out required`;
+      }
+      return `Shift ends in ${timeToEnd}`;
+    }
+    if (status === "checked_out")
+      return `Check-out completed (${extractTime(checkinMap[`${assignment.type}_${assignment.id}`]?.clock_in_at || "")} - ${extractTime(checkinMap[`${assignment.type}_${assignment.id}`]?.clock_out_at || "")})`;
+    if (status === "overtime") {
+      const timeToEnd = getTimeRemaining(endDate);
+      return `Overtime - Check-out required (${timeToEnd} ago)`;
+    }
+    if (status === "overtime_expired") {
+      return `Overtime window expired (contact admin)`;
+    }
+    if (status === "ready") {
+      const timeToEnd = getTimeRemaining(endDate);
+      return `Shift ends in ${timeToEnd}`;
+    }
+    return "";
+  }
+
+  // Highlight main assignment
+  const mainCheckin = checkinMap[`${mainAssignment.type}_${mainAssignment.id}`];
+  const mainStatus = getAssignmentStatus(mainAssignment, mainCheckin);
+
+  return (
+    <div
+      className="max-w-5xl mx-auto px-4"
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        gap: "2.5rem",
+      }}
+    >
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">
+        Today&apos;s Check-in
+      </h1>
+      <div className="event-log-card">
+        <MainAssignmentCard
+          assignment={mainAssignment}
+          status={mainStatus}
+          statusMessage={getStatusMessage(mainStatus, mainAssignment)}
+          onCheckin={handleCheckin}
+          onCheckout={handleCheckout}
+          loading={loading}
+        />
+      </div>
+      <div className="event-log-list" style={{ marginTop: "2rem" }}>
+        <ScheduleList
+          assignments={allAssignments}
+          getStatusMessage={getStatusMessage}
+          getAssignmentStatus={getAssignmentStatus}
+          checkinMap={checkinMap}
+        />
+      </div>
+    </div>
+  );
+}
