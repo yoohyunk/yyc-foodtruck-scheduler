@@ -409,11 +409,13 @@ export default function Trucks(): ReactElement {
                 cursor: isAdmin ? "pointer" : "not-allowed",
               }}
               disabled={!isAdmin}
-              onMouseEnter={e => {
-                if (isAdmin) e.currentTarget.style.background = "var(--success-dark)";
+              onMouseEnter={(e) => {
+                if (isAdmin)
+                  e.currentTarget.style.background = "var(--success-dark)";
               }}
-              onMouseLeave={e => {
-                if (isAdmin) e.currentTarget.style.background = "var(--success-medium)";
+              onMouseLeave={(e) => {
+                if (isAdmin)
+                  e.currentTarget.style.background = "var(--success-medium)";
               }}
             >
               Add Your First Truck

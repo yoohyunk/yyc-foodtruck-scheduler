@@ -51,7 +51,9 @@ export default function Schedule(): React.ReactElement {
         if (isAdmin) {
           data = await eventsApi.getAllEvents();
         } else if (user) {
-          const response = await fetch(`/api/events/assigned?userId=${user.id}`);
+          const response = await fetch(
+            `/api/events/assigned?userId=${user.id}`
+          );
           if (!response.ok) throw new Error("Failed to fetch assigned events");
           const json = await response.json();
           data = json.events || [];

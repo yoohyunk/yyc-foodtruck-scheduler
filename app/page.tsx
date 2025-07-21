@@ -7,22 +7,48 @@ import { useTutorial } from "./tutorial/TutorialContext";
 import { TutorialHighlight } from "./components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home(): ReactElement {
   const [events, setEvents] = useState<HomePageEvent[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user, isAdmin, loading: authLoading } = useAuth();
 
   const { shouldHighlight } = useTutorial();
 
   // Fetch data from Supabase
   useEffect(() => {
+    // Don't fetch events until auth is ready
+    if (authLoading) {
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setIsLoading(true);
 
-        // Fetch upcoming events
-        const eventsData = await eventsApi.getAllEvents();
+        // Fetch upcoming events based on user role
+        let eventsData;
+        if (isAdmin) {
+          // Admin: show all events
+          eventsData = await eventsApi.getAllEvents();
+        } else if (user) {
+          // Employee: show only assigned events
+          const response = await fetch(
+            `/api/events/assigned?userId=${user.id}`
+          );
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch assigned events: ${response.statusText}`
+            );
+          }
+          const data = await response.json();
+          eventsData = data.events || [];
+        } else {
+          eventsData = [];
+        }
+
         const upcomingEvents = eventsData
           .filter((event) => new Date(event.start_date) >= new Date())
           .slice(0, 6)
@@ -61,7 +87,7 @@ export default function Home(): ReactElement {
     };
 
     fetchData();
-  }, []);
+  }, [isAdmin, user, authLoading]);
 
   return (
     <div className="landing-container">

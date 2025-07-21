@@ -62,22 +62,22 @@ export default function Header(): React.ReactElement {
           {/* Desktop Auth Section */}
           <div className="auth-section">
             {user && employeeId && (
-              <Link 
-                href={`/employees/${employeeId}`} 
-                className="auth-button" 
-                title="Profile" 
+              <Link
+                href={`/employees/${employeeId}`}
+                className="auth-button"
+                title="Profile"
                 style={{
-                  marginRight: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  textDecoration: 'none',
-                  color: '#008080'
+                  marginRight: "0.5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  textDecoration: "none",
+                  color: "#008080",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#006666';
+                  e.currentTarget.style.color = "#006666";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#008080';
+                  e.currentTarget.style.color = "#008080";
                 }}
               >
                 <FiUser size={24} />

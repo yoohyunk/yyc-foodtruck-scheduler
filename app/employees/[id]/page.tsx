@@ -1085,8 +1085,15 @@ export default function EditEmployeePage(): ReactElement {
                   <option value="Admin">Admin</option>
                 </select>
               ) : (
-                <div className="input-field bg-gray-100 text-gray-700 cursor-not-allowed" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb'}}>
-                  {formData.role || 'N/A'}
+                <div
+                  className="input-field bg-gray-100 text-gray-700 cursor-not-allowed"
+                  style={{
+                    padding: "0.75rem 1rem",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  {formData.role || "N/A"}
                 </div>
               )}
             </div>
@@ -1145,8 +1152,15 @@ export default function EditEmployeePage(): ReactElement {
                 step="0.01"
               />
             ) : (
-              <div className="input-field bg-gray-100 text-gray-700 cursor-not-allowed" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb'}}>
-                {formData.wage || 'N/A'}
+              <div
+                className="input-field bg-gray-100 text-gray-700 cursor-not-allowed"
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: "1px solid #e5e7eb",
+                }}
+              >
+                {formData.wage || "N/A"}
               </div>
             )}
           </div>
@@ -1157,7 +1171,9 @@ export default function EditEmployeePage(): ReactElement {
               <div className="mt-8 mb-8">
                 <h3 className="font-bold text-base mb-1">Active Employee</h3>
                 <TutorialHighlight
-                  isHighlighted={shouldHighlight(".active-employee-explanation")}
+                  isHighlighted={shouldHighlight(
+                    ".active-employee-explanation"
+                  )}
                   className="active-employee-explanation"
                 >
                   <div className="text-sm text-gray-700">
@@ -1177,7 +1193,7 @@ export default function EditEmployeePage(): ReactElement {
                       checked={formData.isAvailable}
                       onChange={handleChange}
                       disabled={!isAdmin}
-                      className={!isAdmin ? 'cursor-not-allowed' : ''}
+                      className={!isAdmin ? "cursor-not-allowed" : ""}
                     />
                   </span>
                   <span>Is Available</span>

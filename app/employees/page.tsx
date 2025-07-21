@@ -5,6 +5,7 @@ import { Employee } from "@/app/types";
 import { createClient } from "@/lib/supabase/client";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Employees(): ReactElement {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -22,6 +23,7 @@ export default function Employees(): ReactElement {
   const [activeStatus, setActiveStatus] = useState<"active" | "inactive">(
     "active"
   );
+  const { isAdmin } = useAuth();
 
   // Fetch employees from employee.json
   useEffect(() => {
@@ -479,42 +481,48 @@ export default function Employees(): ReactElement {
             </button>
           </div>
         </div>
-        {/* Active/Inactive Toggle */}
-        <div className="flex justify-end my-4 mb-8">
-          <div className="flex items-center gap-2 md:gap-4">
-            <span className="font-medium text-primary-dark">Show:</span>
-            <button
-              className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "active" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
-              style={{
-                backgroundColor:
-                  activeStatus === "active" ? "var(--primary-dark)" : undefined,
-                borderColor:
-                  activeStatus === "active" ? "var(--primary-dark)" : undefined,
-                minWidth: 90,
-              }}
-              onClick={() => setActiveStatus("active")}
-            >
-              Active
-            </button>
-            <button
-              className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "inactive" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
-              style={{
-                backgroundColor:
-                  activeStatus === "inactive"
-                    ? "var(--primary-dark)"
-                    : undefined,
-                borderColor:
-                  activeStatus === "inactive"
-                    ? "var(--primary-dark)"
-                    : undefined,
-                minWidth: 90,
-              }}
-              onClick={() => setActiveStatus("inactive")}
-            >
-              Inactive
-            </button>
+        {/* Active/Inactive Toggle - Admin Only */}
+        {isAdmin && (
+          <div className="flex justify-end my-4 mb-8">
+            <div className="flex items-center gap-2 md:gap-4">
+              <span className="font-medium text-primary-dark">Show:</span>
+              <button
+                className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "active" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+                style={{
+                  backgroundColor:
+                    activeStatus === "active"
+                      ? "var(--primary-dark)"
+                      : undefined,
+                  borderColor:
+                    activeStatus === "active"
+                      ? "var(--primary-dark)"
+                      : undefined,
+                  minWidth: 90,
+                }}
+                onClick={() => setActiveStatus("active")}
+              >
+                Active
+              </button>
+              <button
+                className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "inactive" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+                style={{
+                  backgroundColor:
+                    activeStatus === "inactive"
+                      ? "var(--primary-dark)"
+                      : undefined,
+                  borderColor:
+                    activeStatus === "inactive"
+                      ? "var(--primary-dark)"
+                      : undefined,
+                  minWidth: 90,
+                }}
+                onClick={() => setActiveStatus("inactive")}
+              >
+                Inactive
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         <div className="h-.5"></div>
       </div>
 
@@ -602,41 +610,47 @@ export default function Employees(): ReactElement {
                 className="employee-card bg-white p-4 rounded shadow relative"
               >
                 {/* Action Buttons */}
-                <div className="absolute top-2 right-2 flex gap-4">
-                  <TutorialHighlight isHighlighted={highlightEditButton}>
-                    <button
-                      className="edit-button"
-                      onClick={() =>
-                        router.push(`/employees/${employee.employee_id}`)
-                      }
-                      title="Edit Employee"
-                    >
-                      ✏️
-                    </button>
-                  </TutorialHighlight>
-                  {employee.is_available === false && (
-                    <TutorialHighlight isHighlighted={highlightDeleteButton}>
+                {isAdmin && (
+                  <div className="absolute top-2 right-2 flex gap-4">
+                    <TutorialHighlight isHighlighted={highlightEditButton}>
                       <button
-                        className="delete-button"
-                        onClick={() => handleDeleteClick(employee)}
-                        title="Delete Employee"
+                        className="edit-button"
+                        onClick={() =>
+                          router.push(`/employees/${employee.employee_id}`)
+                        }
+                        title="Edit Employee"
                       >
-                        🗑️
+                        ✏️
                       </button>
                     </TutorialHighlight>
-                  )}
-                </div>
+                    {employee.is_available === false && (
+                      <TutorialHighlight isHighlighted={highlightDeleteButton}>
+                        <button
+                          className="delete-button"
+                          onClick={() => handleDeleteClick(employee)}
+                          title="Delete Employee"
+                        >
+                          🗑️
+                        </button>
+                      </TutorialHighlight>
+                    )}
+                  </div>
+                )}
 
                 <h3 className="text-lg font-semibold">
                   {employee.first_name} {employee.last_name}
                 </h3>
-                <p>
-                  <strong>Role:</strong> {employee.employee_type}
-                </p>
-                <p>
-                  <strong>Address:</strong> {employee.addresses?.street},{" "}
-                  {employee.addresses?.city}, {employee.addresses?.province}
-                </p>
+                {isAdmin && (
+                  <p>
+                    <strong>Role:</strong> {employee.employee_type}
+                  </p>
+                )}
+                {isAdmin && (
+                  <p>
+                    <strong>Address:</strong> {employee.addresses?.street},{" "}
+                    {employee.addresses?.city}, {employee.addresses?.province}
+                  </p>
+                )}
                 <p>
                   <strong>Email:</strong>{" "}
                   <a
@@ -649,30 +663,38 @@ export default function Employees(): ReactElement {
                 <p>
                   <strong>Phone:</strong> {employee.user_phone}
                 </p>
-                <p>
-                  <strong>Wage:</strong> ${employee.currentWage || 0}/hr
-                </p>
-                <p>
-                  <strong>Status:</strong>{" "}
-                  <span
-                    className={
-                      employee.is_available ? "text-green-500" : "text-red-500"
-                    }
-                  >
-                    {employee.is_available ? "Available" : "Unavailable"}
-                  </span>
-                </p>
-                <p>
-                  <strong>Availability:</strong>{" "}
-                  {Array.isArray(employee.availability) &&
-                  employee.availability.length > 0 ? (
-                    <span className="text-primary-medium">
-                      {employee.availability.join(", ")}
+                {isAdmin && (
+                  <p>
+                    <strong>Wage:</strong> ${employee.currentWage || 0}/hr
+                  </p>
+                )}
+                {isAdmin && (
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    <span
+                      className={
+                        employee.is_available
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }
+                    >
+                      {employee.is_available ? "Available" : "Unavailable"}
                     </span>
-                  ) : (
-                    <span className="text-gray-500">Not available</span>
-                  )}
-                </p>
+                  </p>
+                )}
+                {isAdmin && (
+                  <p>
+                    <strong>Availability:</strong>{" "}
+                    {Array.isArray(employee.availability) &&
+                    employee.availability.length > 0 ? (
+                      <span className="text-primary-medium">
+                        {employee.availability.join(", ")}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">Not available</span>
+                    )}
+                  </p>
+                )}
               </TutorialHighlight>
             );
           })
