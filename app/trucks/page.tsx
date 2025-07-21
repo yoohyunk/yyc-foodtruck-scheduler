@@ -112,34 +112,21 @@ export default function Trucks(): ReactElement {
     if (!truckToDelete) return;
     setIsDeleting(true);
     setDeleteError(null);
+    // Optimistically remove the truck from the UI before deleting from the database
+    const updatedTrucks = trucks.filter((t) => t.id !== truckToDelete.id);
+    setTrucks(updatedTrucks);
+    setFilteredTrucks(updatedTrucks);
+    const restoreTruck = truckToDelete; // Save for possible rollback
+    setShowDeleteModal(false);
+    setTruckToDelete(null);
     try {
-      // Double-check truck still exists before deleting
-      const check = await trucksApi.getTruckById(truckToDelete.id);
-      if (!check) {
-        setDeleteError(
-          "Truck not found in database. It may have already been deleted."
-        );
-        setIsDeleting(false);
-        return;
-      }
-      await trucksApi.deleteTruck(truckToDelete.id);
-      // Verify truck is deleted
-      const verify = await trucksApi.getTruckById(truckToDelete.id);
-      if (verify) {
-        setDeleteError(
-          "Truck deletion failed - truck still exists in database."
-        );
-        setIsDeleting(false);
-        return;
-      }
-      // Remove from UI state
-      const updatedTrucks = trucks.filter((t) => t.id !== truckToDelete.id);
-      setTrucks(updatedTrucks);
-      setFilteredTrucks(updatedTrucks);
+      // Delete from the database
+      await trucksApi.deleteTruck(restoreTruck.id);
       setDeleteSuccess(true);
-      setShowDeleteModal(false);
-      setTruckToDelete(null);
     } catch (error: unknown) {
+      // If deletion fails, restore the truck to the UI
+      setTrucks((prev) => [...prev, restoreTruck]);
+      setFilteredTrucks((prev) => [...prev, restoreTruck]);
       if (error && typeof error === "object" && "message" in error) {
         setDeleteError(
           (error as { message?: string }).message ||
