@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import EmployeeSelectionModalForAssignment from "./EmployeeSelectionModalForAssignment";
@@ -85,17 +85,8 @@ const AddAssignmentPage: React.FC = () => {
         end.toTimeString().slice(0, 5)
       );
       handleCancel();
-    } catch (err: unknown) {
-      if (
-        typeof err === "object" &&
-        err &&
-        "message" in err &&
-        typeof (err as { message?: unknown }).message === "string"
-      ) {
-        setError((err as { message: string }).message);
-      } else {
-        setError("Failed to save assignment.");
-      }
+    } catch {
+      setError("Failed to save assignment.");
       setShowErrorModal(true);
     } finally {
       setIsSaving(false);
@@ -125,9 +116,17 @@ const AddAssignmentPage: React.FC = () => {
   }> = ({ isOpen, onClose, events, onSelect }) =>
     !isOpen ? null : (
       <div className="modal-overlay">
-        <div className="modal-container" style={{ maxWidth: 500, width: '90%', position: 'relative' }}>
+        <div
+          className="modal-container"
+          style={{ maxWidth: 500, width: "90%", position: "relative" }}
+        >
           <div className="modal-header">
-            <h3 className="modal-title" style={{ width: '100%', textAlign: 'center' }}>Select Event</h3>
+            <h3
+              className="modal-title"
+              style={{ width: "100%", textAlign: "center" }}
+            >
+              Select Event
+            </h3>
             <button
               className="modal-close"
               onClick={onClose}
@@ -137,7 +136,10 @@ const AddAssignmentPage: React.FC = () => {
               ×
             </button>
           </div>
-          <div className="modal-body" style={{ maxHeight: 320, overflowY: 'auto', marginBottom: 0 }}>
+          <div
+            className="modal-body"
+            style={{ maxHeight: 320, overflowY: "auto", marginBottom: 0 }}
+          >
             {events.length === 0 && (
               <div className="text-gray-500 text-center py-8">
                 No events found in this date range.
@@ -157,23 +159,26 @@ const AddAssignmentPage: React.FC = () => {
                 <p>
                   <strong>Date:</strong>{" "}
                   {event.start_date && event.end_date
-                    ? `${event.start_date.split('T')[0]} - ${event.end_date.split('T')[0]}`
+                    ? `${event.start_date.split("T")[0]} - ${event.end_date.split("T")[0]}`
                     : "Date not set"}
                 </p>
                 <p>
                   <strong>Time:</strong>{" "}
                   {event.start_date && event.end_date
-                    ? `${new Date(event.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(event.end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    ? `${new Date(event.start_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${new Date(event.end_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
                     : "Time not set"}
                 </p>
                 <p>
-                  <strong>Location:</strong> {event.description || "Location not set"}
+                  <strong>Location:</strong>{" "}
+                  {event.description || "Location not set"}
                 </p>
                 <p>
-                  <strong>Required Servers:</strong> {event.number_of_servers_needed || 0}
+                  <strong>Required Servers:</strong>{" "}
+                  {event.number_of_servers_needed || 0}
                 </p>
                 <p>
-                  <strong>Required Drivers:</strong> {event.number_of_driver_needed || 0}
+                  <strong>Required Drivers:</strong>{" "}
+                  {event.number_of_driver_needed || 0}
                 </p>
                 {event.contact_name && (
                   <p>
@@ -199,8 +204,8 @@ const AddAssignmentPage: React.FC = () => {
                       event.status === "Pending"
                         ? "text-yellow-500"
                         : event.status === "Cancelled"
-                        ? "text-red-500"
-                        : "text-green-500"
+                          ? "text-red-500"
+                          : "text-green-500"
                     }
                   >
                     {event.status || "Pending"}
@@ -224,9 +229,13 @@ const AddAssignmentPage: React.FC = () => {
       const allEvents: Event[] = await eventsApi.getAllEvents();
       function toUTCDateString(date: Date | string) {
         const d = new Date(date);
-        return d.getUTCFullYear() + '-' +
-          String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
-          String(d.getUTCDate()).padStart(2, '0');
+        return (
+          d.getUTCFullYear() +
+          "-" +
+          String(d.getUTCMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getUTCDate()).padStart(2, "0")
+        );
       }
       const startDay = new Date(startDate);
       const prevDay = new Date(startDay);
@@ -244,13 +253,13 @@ const AddAssignmentPage: React.FC = () => {
         return validDays.includes(eventStart);
       });
       filtered.sort((a, b) => {
-        const dateA = new Date(a.start_date || '').getTime();
-        const dateB = new Date(b.start_date || '').getTime();
+        const dateA = new Date(a.start_date || "").getTime();
+        const dateB = new Date(b.start_date || "").getTime();
         if (dateA !== dateB) return dateA - dateB;
-        return (a.title || '').localeCompare(b.title || '');
+        return (a.title || "").localeCompare(b.title || "");
       });
       setEventsInRange(filtered);
-    } catch (err: unknown) {
+    } catch {
       setError("Failed to load events.");
       setShowErrorModal(true);
     }
