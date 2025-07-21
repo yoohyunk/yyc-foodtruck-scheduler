@@ -1,12 +1,13 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { FiCalendar, FiClock, FiUser } from "react-icons/fi";
-import { TimeOffRequest } from "../types";
+import { TimeOffRequest } from "../../types";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
-export default function MyTimeOffRequestsPage(): React.JSX.Element {
+export default function TimeOffPage(): React.JSX.Element {
   const { user, loading: authLoading } = useAuth();
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -211,6 +212,14 @@ export default function MyTimeOffRequestsPage(): React.JSX.Element {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-2xl text-primary-dark mb-4">My Time-Off Requests</h2>
+
+      <Link
+        href="/employee-side/time-off-request"
+        className="button bg-primary-medium text-white hover:bg-primary-dark px-6 py-2 rounded font-semibold flex items-center gap-2 shadow"
+      >
+        <FiCalendar className="text-white" />
+        Request Time Off
+      </Link>
 
       {/* Filter Buttons */}
       <div className="grid grid-cols-4 gap-4 mb-6">
