@@ -6,6 +6,7 @@ import { employeesApi } from "@/lib/supabase/employees";
 import { addressesApi } from "@/lib/supabase/addresses";
 import { Employee } from "@/app/types";
 import { Address } from "@/app/types";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -17,8 +18,27 @@ export default function ProfilePage() {
     async function fetchProfile() {
       if (!user) return;
 
+      const supabase = createClient();
+
+      // Get employee data
       const data = await employeesApi.getEmployeeByUserId(user.id);
-      setProfile(data);
+
+      if (data) {
+        // Get the current wage for this employee
+        const { data: wageData } = await supabase
+          .from("wage")
+          .select("*")
+          .eq("employee_id", data.employee_id)
+          .order("start_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // Combine the data
+        setProfile({
+          ...data,
+          currentWage: wageData?.hourly_wage || 0,
+        });
+      }
     }
     fetchProfile();
   }, [user]);
@@ -27,13 +47,12 @@ export default function ProfilePage() {
     if (!profile) return;
     setSaving(true);
     setMessage("");
+
     try {
-      // Only update phone number
       await employeesApi.updateEmployee(profile.employee_id, {
         user_phone: profile.user_phone,
       });
 
-      // If address is a nested object and needs a separate update:
       if (profile.addresses && profile.addresses.id) {
         await addressesApi.updateAddress(
           profile.addresses.id,
@@ -48,149 +67,90 @@ export default function ProfilePage() {
     setSaving(false);
   }
 
+  const updateAddressField = (field: keyof Address, value: string) => {
+    if (!profile) return;
+
+    setProfile({
+      ...profile,
+      addresses: {
+        ...profile.addresses,
+        [field]: value,
+      } as Address,
+    });
+  };
+
   if (!profile) return <div>Loading...</div>;
 
-  // Address fields (if present)
   const address: Partial<Address> = profile.addresses || {};
 
   return (
-    <div>
-      <h1>Profile</h1>
-      <form>
-        <div>
-          <label>First Name:</label>
-          <input value={profile.first_name || ""} disabled />
-        </div>
-        <div>
-          <label>Last Name:</label>
-          <input value={profile.last_name || ""} disabled />
-        </div>
-        <div>
-          <label>Email:</label>
-          <input value={profile.user_email || ""} disabled />
-        </div>
-        <div>
-          <label>Wage:</label>
-          <input value={profile.currentWage || ""} disabled />
-        </div>
-        <div>
-          <label>Phone:</label>
-          <input
-            value={profile.user_phone || ""}
-            onChange={(e) =>
-              setProfile({ ...profile, user_phone: e.target.value })
-            }
-          />
-        </div>
-        <div>
-          <label>Address:</label>
-          <input
-            value={address.street || ""}
-            onChange={(e) =>
-              setProfile({
-                ...profile,
-                addresses: {
-                  street: e.target.value,
-                  city: address.city ?? null,
-                  country: address.country ?? null,
-                  created_at: address.created_at ?? "",
-                  id: address.id ?? "",
-                  latitude: address.latitude ?? null,
-                  longitude: address.longitude ?? null,
-                  postal_code: address.postal_code ?? null,
-                  province: address.province ?? null,
-                },
-              })
-            }
-            placeholder="Street"
-          />
-          <input
-            value={address.city || ""}
-            onChange={(e) =>
-              setProfile({
-                ...profile,
-                addresses: {
-                  street: address.street ?? null,
-                  city: e.target.value,
-                  country: address.country ?? null,
-                  created_at: address.created_at ?? "",
-                  id: address.id ?? "",
-                  latitude: address.latitude ?? null,
-                  longitude: address.longitude ?? null,
-                  postal_code: address.postal_code ?? null,
-                  province: address.province ?? null,
-                },
-              })
-            }
-            placeholder="City"
-          />
-          <input
-            value={address.province || ""}
-            onChange={(e) =>
-              setProfile({
-                ...profile,
-                addresses: {
-                  street: address.street ?? null,
-                  city: address.city ?? null,
-                  country: address.country ?? null,
-                  created_at: address.created_at ?? "",
-                  id: address.id ?? "",
-                  latitude: address.latitude ?? null,
-                  longitude: address.longitude ?? null,
-                  postal_code: address.postal_code ?? null,
-                  province: e.target.value,
-                },
-              })
-            }
-            placeholder="Province"
-          />
-          <input
-            value={address.postal_code || ""}
-            onChange={(e) =>
-              setProfile({
-                ...profile,
-                addresses: {
-                  street: address.street ?? null,
-                  city: address.city ?? null,
-                  country: address.country ?? null,
-                  created_at: address.created_at ?? "",
-                  id: address.id ?? "",
-                  latitude: address.latitude ?? null,
-                  longitude: address.longitude ?? null,
-                  postal_code: e.target.value,
-                  province: address.province ?? null,
-                },
-              })
-            }
-            placeholder="Postal Code"
-          />
-          <input
-            value={address.country || ""}
-            onChange={(e) =>
-              setProfile({
-                ...profile,
-                addresses: {
-                  street: address.street ?? null,
-                  city: address.city ?? null,
-                  country: e.target.value,
-                  created_at: address.created_at ?? "",
-                  id: address.id ?? "",
-                  latitude: address.latitude ?? null,
-                  longitude: address.longitude ?? null,
-                  postal_code: address.postal_code ?? null,
-                  province: address.province ?? null,
-                },
-              })
-            }
-            placeholder="Country"
-          />
-        </div>
+    <div className="min-h-screen">
+      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-sm ">
+        <h1 className="text-2xl font-bold mb-6">Profile</h1>
 
-        <button type="button" onClick={handleSave} disabled={saving}>
-          {saving ? "Saving..." : "Save"}
-        </button>
-      </form>
-      {message && <div>{message}</div>}
+        <form>
+          <div>
+            <label>First Name:</label>
+            <input value={profile.first_name || ""} disabled />
+          </div>
+          <div>
+            <label>Last Name:</label>
+            <input value={profile.last_name || ""} disabled />
+          </div>
+          <div>
+            <label>Email:</label>
+            <input value={profile.user_email || ""} disabled />
+          </div>
+          <div>
+            <label>Wage:</label>
+            <input value={profile.currentWage || ""} disabled />
+          </div>
+          <div>
+            <label>Phone:</label>
+            <input
+              value={profile.user_phone || ""}
+              onChange={(e) =>
+                setProfile({ ...profile, user_phone: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label>Address:</label>
+            <input
+              value={address.street || ""}
+              onChange={(e) => updateAddressField("street", e.target.value)}
+              placeholder="Street"
+            />
+            <input
+              value={address.city || ""}
+              onChange={(e) => updateAddressField("city", e.target.value)}
+              placeholder="City"
+            />
+            <input
+              value={address.province || ""}
+              onChange={(e) => updateAddressField("province", e.target.value)}
+              placeholder="Province"
+            />
+            <input
+              value={address.postal_code || ""}
+              onChange={(e) =>
+                updateAddressField("postal_code", e.target.value)
+              }
+              placeholder="Postal Code"
+            />
+            <input
+              value={address.country || ""}
+              onChange={(e) => updateAddressField("country", e.target.value)}
+              placeholder="Country"
+            />
+          </div>
+
+          <button type="button" onClick={handleSave} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </form>
+        {message && <div>{message}</div>}
+      </div>
     </div>
   );
 }
