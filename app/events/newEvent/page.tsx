@@ -266,12 +266,61 @@ export default function AddEventPage(): ReactElement {
     coords?: { latitude: number; longitude: number }
   ) => {
     console.log("handleLocationChange called with:", address, coords);
+
+    // Parse the address components from the full address string
+    const parseAddress = (fullAddress: string) => {
+      const parts = fullAddress.split(",").map((part) => part.trim());
+
+      if (parts.length >= 2) {
+        const streetPart = parts[0];
+        const city = parts[1];
+        const postalCode = parts[2] || "";
+
+        // Extract street number and name from street part
+        const streetParts = streetPart.split(" ");
+        const streetNumber = streetParts[0] || "";
+        const direction = ["NW", "NE", "SW", "SE"].includes(
+          streetParts[streetParts.length - 1]
+        )
+          ? streetParts[streetParts.length - 1]
+          : "";
+        const streetName = direction
+          ? streetParts.slice(1, -1).join(" ")
+          : streetParts.slice(1).join(" ");
+
+        return {
+          street:
+            `${streetNumber} ${streetName}${direction ? " " + direction : ""}`.trim(),
+          city: city,
+          province: "Alberta", // Default for Calgary area
+          postalCode: postalCode,
+          country: "Canada", // Default
+        };
+      }
+
+      // Fallback if parsing fails
+      return {
+        street: fullAddress,
+        city: "Calgary",
+        province: "Alberta",
+        postalCode: "",
+        country: "Canada",
+      };
+    };
+
+    const addressComponents = parseAddress(address);
+
     setFormData((prev) => {
       const updated = {
         ...prev,
         location: address,
+        street: addressComponents.street,
+        city: addressComponents.city,
+        province: addressComponents.province,
+        postalCode: addressComponents.postalCode,
+        country: addressComponents.country,
       };
-      console.log("Updated formData:", updated);
+      console.log("Updated formData with address components:");
       return updated;
     });
     setCoordinates(coords);
@@ -866,14 +915,8 @@ export default function AddEventPage(): ReactElement {
       }
     }
 
-    // Check truck assignments - only require at least one truck, drivers are optional
-    if (truckAssignments.length === 0) {
-      errors.push({
-        field: "trucks",
-        message: "Please select at least one truck for this event.",
-        element: null,
-      });
-    }
+    // Check truck assignments - trucks are optional, drivers are optional
+    // No validation needed for trucks - they can be null
 
     // Check if address was validated (coordinates exist)
     if (!coordinates) {
@@ -948,12 +991,16 @@ export default function AddEventPage(): ReactElement {
         eventStatus = "Pending";
       }
 
-      // Set to Pending if any trucks don't have drivers assigned
-      const trucksWithoutDrivers = truckAssignments.filter(
-        (assignment) => !assignment.driver_id
-      );
-      if (trucksWithoutDrivers.length > 0) {
+      // Set to Pending if no trucks are assigned or if any trucks don't have drivers assigned
+      if (truckAssignments.length === 0) {
         eventStatus = "Pending";
+      } else {
+        const trucksWithoutDrivers = truckAssignments.filter(
+          (assignment) => !assignment.driver_id
+        );
+        if (trucksWithoutDrivers.length > 0) {
+          eventStatus = "Pending";
+        }
       }
 
       // Capitalize the event title
@@ -1266,7 +1313,8 @@ export default function AddEventPage(): ReactElement {
 
           <div className="input-group">
             <label className="input-label">
-              Assign Trucks & Drivers <span className="text-red-500">*</span>
+              Assign Trucks & Drivers{" "}
+              <span className="text-gray-500">(Optional)</span>
             </label>
 
             {/* Check Availability Button - positioned under the header */}
@@ -1337,8 +1385,9 @@ export default function AddEventPage(): ReactElement {
             )}
 
             <p className="text-sm text-gray-600 mb-3">
-              Check the boxes for trucks you want to include in this event, then
-              assign a driver to each selected truck.
+              Check the boxes for trucks you want to include in this event
+              (optional), then assign a driver to each selected truck. Events
+              without trucks will be set to &quot;Pending&quot; status.
               {hasCheckedTruckAvailability && (
                 <span className="block mt-1 text-xs text-blue-600">
                   💡 Unavailable trucks have been automatically removed from
