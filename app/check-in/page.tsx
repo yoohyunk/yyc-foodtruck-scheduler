@@ -204,11 +204,11 @@ export default function CheckInPage() {
     setLoading(false);
   }, []);
 
-  if (!employeeId) return <div className="p-8">로그인이 필요합니다.</div>;
+  if (!employeeId) return <div className="p-8">login required</div>;
   if (loading) return <div className="p-8">Loading...</div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
   if (allAssignments.length === 0)
-    return <div className="p-8">오늘 할당된 일정이 없습니다.</div>;
+    return <div className="p-8">no assignments today </div>;
 
   // Calculate remaining time
   function getTimeRemaining(targetDate: Date): string {
