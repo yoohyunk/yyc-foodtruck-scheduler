@@ -19,6 +19,7 @@ export default function Employees(): ReactElement {
   const { shouldHighlight } = useTutorial();
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<"last" | "first">("last");
+  const [activeStatus, setActiveStatus] = useState<'active' | 'inactive'>('active');
 
   // Fetch employees from employee.json
   useEffect(() => {
@@ -112,8 +113,12 @@ export default function Employees(): ReactElement {
           };
         });
 
+        // Filter employees by activeStatus
+        const statusEmployees = formattedEmployees.filter(emp =>
+          activeStatus === 'active' ? emp.is_available : !emp.is_available
+        );
         // Sort employees alphabetically by last name, then first name
-        const sortedEmployees = formattedEmployees.sort((a, b) => {
+        const sortedEmployees = statusEmployees.sort((a, b) => {
           if (sortMode === "last") {
             const lastA = (a.last_name || "").toLowerCase();
             const lastB = (b.last_name || "").toLowerCase();
@@ -153,17 +158,15 @@ export default function Employees(): ReactElement {
     };
 
     fetchEmployees();
-  }, [supabase, sortMode]);
+  }, [supabase, sortMode, activeStatus]);
 
-  // Filter employees based on the active filter
+  // Filter employees based on the active filter and activeStatus
   useEffect(() => {
-    if (activeFilter === "All") {
-      setFilteredEmployees(employees);
-    } else {
-      setFilteredEmployees(
-        employees.filter((employee) => employee.employee_type === activeFilter)
-      );
+    let filtered = employees;
+    if (activeFilter !== "All") {
+      filtered = filtered.filter((employee) => employee.employee_type === activeFilter);
     }
+    setFilteredEmployees(filtered);
   }, [activeFilter, employees]);
 
   // Add a useEffect to re-sort when sortMode changes
@@ -440,7 +443,7 @@ export default function Employees(): ReactElement {
       </TutorialHighlight>
 
       {/* Sort Toggle - now below filters */}
-      <div className="mb-4 flex justify-end">
+      <div className="mb-2 flex justify-end">
         <div className="flex items-center gap-2 md:gap-4">
           <span className="font-medium text-primary-dark">Sort by:</span>
           <button
@@ -468,6 +471,38 @@ export default function Employees(): ReactElement {
             onClick={() => setSortMode("last")}
           >
             Last Name
+          </button>
+        </div>
+      </div>
+      {/* Active/Inactive Toggle */}
+      <div className="mb-4 flex justify-end">
+        <div className="flex items-center gap-2 md:gap-4">
+          <span className="font-medium text-primary-dark">Show:</span>
+          <button
+            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "active" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+            style={{
+              backgroundColor:
+                activeStatus === "active" ? "var(--primary-dark)" : undefined,
+              borderColor:
+                activeStatus === "active" ? "var(--primary-dark)" : undefined,
+              minWidth: 90,
+            }}
+            onClick={() => setActiveStatus("active")}
+          >
+            Active
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "inactive" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+            style={{
+              backgroundColor:
+                activeStatus === "inactive" ? "var(--primary-dark)" : undefined,
+              borderColor:
+                activeStatus === "inactive" ? "var(--primary-dark)" : undefined,
+              minWidth: 90,
+            }}
+            onClick={() => setActiveStatus("inactive")}
+          >
+            Inactive
           </button>
         </div>
       </div>

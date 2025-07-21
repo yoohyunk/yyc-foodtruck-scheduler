@@ -79,6 +79,13 @@ export const employeeAvailabilityApi = {
     excludeEventId?: string
   ): Promise<{ isAvailable: boolean; reason: string }> {
     try {
+      // If employee is not active, return unavailable with reason
+      if (employee.is_available === false) {
+        return {
+          isAvailable: false,
+          reason: 'No longer actively employed',
+        };
+      }
       // Parse event times
       const eventStart = new Date(eventStartDate);
       const eventEnd = new Date(eventEndDate);

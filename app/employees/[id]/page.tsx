@@ -806,6 +806,14 @@ export default function EditEmployeePage(): ReactElement {
           </div>
 
           {/* Is Available */}
+          <div className="mt-8 mb-8">
+            <h3 className="font-bold text-base mb-1">Active Employee</h3>
+            <TutorialHighlight isHighlighted={shouldHighlight('.active-employee-explanation')} className="active-employee-explanation">
+              <div className="text-sm text-gray-700">
+                Set employees as inactive if they are no longer working actively. This allows you to retain employee records without deleting them.
+              </div>
+            </TutorialHighlight>
+          </div>
           <div>
             <label htmlFor="isAvailable" className="flex gap-2 font-bold">
               <span className="w-4 h-4">
