@@ -5,7 +5,11 @@ export const extractTime = (dateTime: string): string => {
   if (timeMatch) {
     const hours = parseInt(timeMatch[1]);
     const minutes = parseInt(timeMatch[2]);
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+
+    // Convert to 12-hour format with AM/PM
+    const period = hours >= 12 ? "PM" : "AM";
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
   }
 
   // Fallback to the original method if the format is unexpected
@@ -13,6 +17,7 @@ export const extractTime = (dateTime: string): string => {
   return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: true, // Use 12-hour format with AM/PM
   });
 };
 

@@ -116,9 +116,6 @@ export function calculateEmployeeDistances(
         distance = Infinity;
       }
     } else {
-      console.warn(
-        `No coordinates found for employee ${employee.first_name} ${employee.last_name}, skipping distance calculation`
-      );
     }
 
     return {

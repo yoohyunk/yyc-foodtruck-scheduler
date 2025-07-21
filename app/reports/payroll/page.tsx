@@ -178,7 +178,7 @@ export default function PayrollReport(): ReactElement {
   };
 
   // Calculate pay period based on selected date
-  const calculatePayPeriod = (dateStr: string) => {
+  const calculatePayPeriod = useCallback((dateStr: string) => {
     if (!dateStr) return { start: "", end: "", label: "" };
     const date = new Date(dateStr);
     const year = date.getFullYear();
@@ -196,7 +196,7 @@ export default function PayrollReport(): ReactElement {
       label = `${date.toLocaleString("en-US", { month: "short" })} 16–${lastDay}, ${year}`;
     }
     return { start, end, label };
-  };
+  }, []);
 
   // Set default date to today on mount
   useEffect(() => {
@@ -204,7 +204,7 @@ export default function PayrollReport(): ReactElement {
     const iso = today.toISOString().split("T")[0];
     setSelectedDate(iso);
     setPayPeriod(calculatePayPeriod(iso));
-  }, []);
+  }, [calculatePayPeriod]);
 
   // Update pay period when date changes
   useEffect(() => {
