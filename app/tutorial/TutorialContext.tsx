@@ -1130,6 +1130,56 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
       position: "bottom",
     },
   ],
+  "/reports": [
+    {
+      id: "reports-welcome",
+      title: "Reports Dashboard 📊",
+      content:
+        "Welcome to the reports section! Here you can access various reports to analyze your business operations, employee data, and financial information.",
+      target: ".reports-page",
+      position: "bottom",
+    },
+    {
+      id: "employee-availability-report",
+      title: "Employee Availability Report 👥",
+      content:
+        "View all current assignments, time off requests, and availability for each employee for the selected week. This helps you understand your team's schedule and availability.",
+      target: ".employee-availability-report",
+      position: "bottom",
+    },
+    {
+      id: "truck-availability-report",
+      title: "Truck Availability Report 🚚",
+      content:
+        "See events booked for each truck and their availability status for the selected week. This helps you manage your fleet and ensure trucks are properly scheduled.",
+      target: ".truck-availability-report",
+      position: "bottom",
+    },
+    {
+      id: "payroll-report",
+      title: "Payroll Report 💰",
+      content:
+        "Calculate total employee hours and wages for the selected pay period (1st-15th or 16th-end of month). This report helps with payroll processing and financial planning.",
+      target: ".payroll-report",
+      position: "bottom",
+    },
+    {
+      id: "time-off-requests-report",
+      title: "Time Off Requests Report 🌴",
+      content:
+        "View detailed time off requests for specific employees with filtering and status tracking. You can approve or deny requests and manage employee time off effectively.",
+      target: ".time-off-requests-report",
+      position: "bottom",
+    },
+    {
+      id: "assignment-report",
+      title: "Assignment Report 📋",
+      content:
+        "View detailed assignment information for all employees including server assignments, driver assignments, and standalone shifts. This provides a comprehensive view of all work assignments.",
+      target: ".assignment-report",
+      position: "bottom",
+    },
+  ],
 };
 
 // Add a function to normalize dynamic paths
