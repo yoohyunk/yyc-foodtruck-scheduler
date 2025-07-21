@@ -4,17 +4,29 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
-import { FiLogOut, FiHome, FiMenu } from "react-icons/fi";
+import { FiLogOut, FiHome, FiMenu, FiUser } from "react-icons/fi";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "./TutorialHighlight";
+import { employeesApi } from "@/lib/supabase/employees";
 
 export default function Header(): React.ReactElement {
   const { user, signOut } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
 
   // Tutorial highlight logic
   const { shouldHighlight } = useTutorial();
   const highlightLogo = shouldHighlight(".logo.TutorialHighlight");
+
+  useEffect(() => {
+    const fetchEmployeeId = async () => {
+      if (user) {
+        const employee = await employeesApi.getEmployeeByUserId(user.id);
+        setEmployeeId(employee?.employee_id || null);
+      }
+    };
+    fetchEmployeeId();
+  }, [user]);
 
   // Check if we're on mobile
   useEffect(() => {
@@ -49,6 +61,28 @@ export default function Header(): React.ReactElement {
         <div className="nav-right">
           {/* Desktop Auth Section */}
           <div className="auth-section">
+            {user && employeeId && (
+              <Link 
+                href={`/employees/${employeeId}`} 
+                className="auth-button" 
+                title="Profile" 
+                style={{
+                  marginRight: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  textDecoration: 'none',
+                  color: '#008080'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#006666';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#008080';
+                }}
+              >
+                <FiUser size={24} />
+              </Link>
+            )}
             {user ? (
               <button onClick={signOut} className="auth-button">
                 <FiLogOut />

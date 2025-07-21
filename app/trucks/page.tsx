@@ -9,6 +9,7 @@ import { TutorialHighlight } from "../components/TutorialHighlight";
 import { getTruckBorderColor } from "../types";
 import ErrorModal from "../components/ErrorModal";
 import { trucksApi } from "@/lib/supabase/trucks";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Truck = Tables<"trucks"> & {
   addresses?: Tables<"addresses">;
@@ -25,6 +26,7 @@ export default function Trucks(): ReactElement {
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
   const supabase = createClient();
+  const { isAdmin } = useAuth();
 
   // State for delete modal and error handling
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -398,17 +400,20 @@ export default function Trucks(): ReactElement {
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg mb-4">No trucks found.</p>
             <button
-              onClick={() => router.push("/trucks/add-trucks")}
+              onClick={() => isAdmin && router.push("/trucks/add-trucks")}
               className="button"
               style={{
                 backgroundColor: "var(--success-medium)",
                 color: "var(--white)",
+                opacity: isAdmin ? 1 : 0.5,
+                cursor: isAdmin ? "pointer" : "not-allowed",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--success-dark)";
+              disabled={!isAdmin}
+              onMouseEnter={e => {
+                if (isAdmin) e.currentTarget.style.background = "var(--success-dark)";
               }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "var(--success-medium)";
+              onMouseLeave={e => {
+                if (isAdmin) e.currentTarget.style.background = "var(--success-medium)";
               }}
             >
               Add Your First Truck

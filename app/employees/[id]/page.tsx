@@ -1062,28 +1062,35 @@ export default function EditEmployeePage(): ReactElement {
           </div>
 
           {/* Role */}
-          <div>
-            <label htmlFor="role" className="block font-medium">
-              Role <span className="text-red-500">*</span>
-              {!isAdmin && (
-                <span className="text-yellow-600 ml-2">(Admin Only)</span>
+          {isAdmin && (
+            <div>
+              <label htmlFor="role" className="block font-medium">
+                Role <span className="text-red-500">*</span>
+                {!isAdmin && (
+                  <span className="text-yellow-600 ml-2">(Admin Only)</span>
+                )}
+              </label>
+              {isAdmin ? (
+                <select
+                  ref={roleRef}
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  <option value="">Select Role</option>
+                  <option value="Driver">Driver</option>
+                  <option value="Server">Server</option>
+                  <option value="Admin">Admin</option>
+                </select>
+              ) : (
+                <div className="input-field bg-gray-100 text-gray-700 cursor-not-allowed" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb'}}>
+                  {formData.role || 'N/A'}
+                </div>
               )}
-            </label>
-            <select
-              ref={roleRef}
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="input-field"
-              disabled={!isAdmin}
-            >
-              <option value="">Select Role</option>
-              <option value="Driver">Driver</option>
-              <option value="Server">Server</option>
-              <option value="Admin">Admin</option>
-            </select>
-          </div>
+            </div>
+          )}
 
           {/* Email */}
           <div>
@@ -1125,48 +1132,59 @@ export default function EditEmployeePage(): ReactElement {
                 <span className="text-yellow-600 ml-2">(Admin Only)</span>
               )}
             </label>
-            <input
-              ref={wageRef}
-              type="number"
-              id="wage"
-              name="wage"
-              value={formData.wage}
-              onChange={handleChange}
-              className="input-field"
-              min="0"
-              step="0.01"
-              disabled={!isAdmin}
-            />
+            {isAdmin ? (
+              <input
+                ref={wageRef}
+                type="number"
+                id="wage"
+                name="wage"
+                value={formData.wage}
+                onChange={handleChange}
+                className="input-field"
+                min="0"
+                step="0.01"
+              />
+            ) : (
+              <div className="input-field bg-gray-100 text-gray-700 cursor-not-allowed" style={{padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb'}}>
+                {formData.wage || 'N/A'}
+              </div>
+            )}
           </div>
 
           {/* Is Available */}
-          <div className="mt-8 mb-8">
-            <h3 className="font-bold text-base mb-1">Active Employee</h3>
-            <TutorialHighlight
-              isHighlighted={shouldHighlight(".active-employee-explanation")}
-              className="active-employee-explanation"
-            >
-              <div className="text-sm text-gray-700">
-                Set employees as inactive if they are no longer working
-                actively. This allows you to retain employee records without
-                deleting them.
+          {isAdmin && (
+            <>
+              <div className="mt-8 mb-8">
+                <h3 className="font-bold text-base mb-1">Active Employee</h3>
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".active-employee-explanation")}
+                  className="active-employee-explanation"
+                >
+                  <div className="text-sm text-gray-700">
+                    Set employees as inactive if they are no longer working
+                    actively. This allows you to retain employee records without
+                    deleting them.
+                  </div>
+                </TutorialHighlight>
               </div>
-            </TutorialHighlight>
-          </div>
-          <div>
-            <label htmlFor="isAvailable" className="flex gap-2 font-bold">
-              <span className="w-4 h-4">
-                <input
-                  type="checkbox"
-                  id="isAvailable"
-                  name="isAvailable"
-                  checked={formData.isAvailable}
-                  onChange={handleChange}
-                />
-              </span>
-              <span>Is Available</span>
-            </label>
-          </div>
+              <div>
+                <label htmlFor="isAvailable" className="flex gap-2 font-bold">
+                  <span className="w-4 h-4">
+                    <input
+                      type="checkbox"
+                      id="isAvailable"
+                      name="isAvailable"
+                      checked={formData.isAvailable}
+                      onChange={handleChange}
+                      disabled={!isAdmin}
+                      className={!isAdmin ? 'cursor-not-allowed' : ''}
+                    />
+                  </span>
+                  <span>Is Available</span>
+                </label>
+              </div>
+            </>
+          )}
 
           {/* Availability */}
           <div>
