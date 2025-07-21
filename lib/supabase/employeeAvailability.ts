@@ -83,7 +83,7 @@ export const employeeAvailabilityApi = {
       if (employee.is_available === false) {
         return {
           isAvailable: false,
-          reason: 'No longer actively employed',
+          reason: "No longer actively employed",
         };
       }
       // Parse event times

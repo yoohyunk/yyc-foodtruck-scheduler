@@ -19,7 +19,9 @@ export default function Employees(): ReactElement {
   const { shouldHighlight } = useTutorial();
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<"last" | "first">("last");
-  const [activeStatus, setActiveStatus] = useState<'active' | 'inactive'>('active');
+  const [activeStatus, setActiveStatus] = useState<"active" | "inactive">(
+    "active"
+  );
 
   // Fetch employees from employee.json
   useEffect(() => {
@@ -114,8 +116,8 @@ export default function Employees(): ReactElement {
         });
 
         // Filter employees by activeStatus
-        const statusEmployees = formattedEmployees.filter(emp =>
-          activeStatus === 'active' ? emp.is_available : !emp.is_available
+        const statusEmployees = formattedEmployees.filter((emp) =>
+          activeStatus === "active" ? emp.is_available : !emp.is_available
         );
         // Sort employees alphabetically by last name, then first name
         const sortedEmployees = statusEmployees.sort((a, b) => {
@@ -164,7 +166,9 @@ export default function Employees(): ReactElement {
   useEffect(() => {
     let filtered = employees;
     if (activeFilter !== "All") {
-      filtered = filtered.filter((employee) => employee.employee_type === activeFilter);
+      filtered = filtered.filter(
+        (employee) => employee.employee_type === activeFilter
+      );
     }
     setFilteredEmployees(filtered);
   }, [activeFilter, employees]);

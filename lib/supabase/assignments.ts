@@ -279,6 +279,23 @@ export const assignmentsApi = {
       throw error;
     }
   },
+  // Remove a truck assignment (for manual unassignment)
+  async removeTruckAssignment(assignmentId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("truck_assignment")
+        .delete()
+        .eq("id", assignmentId);
+
+      if (error) {
+        throw new Error(`Error removing truck assignment: ${error.message}`);
+      }
+      // Optionally, update event status if needed (not implemented here)
+    } catch (error) {
+      console.error("Error removing truck assignment:", error);
+      throw error;
+    }
+  },
   // Get all assignments (for reports)
   async getAllAssignments(): Promise<
     Array<{
