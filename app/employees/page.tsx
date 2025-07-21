@@ -500,9 +500,13 @@ export default function Employees(): ReactElement {
               className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "inactive" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
               style={{
                 backgroundColor:
-                  activeStatus === "inactive" ? "var(--primary-dark)" : undefined,
+                  activeStatus === "inactive"
+                    ? "var(--primary-dark)"
+                    : undefined,
                 borderColor:
-                  activeStatus === "inactive" ? "var(--primary-dark)" : undefined,
+                  activeStatus === "inactive"
+                    ? "var(--primary-dark)"
+                    : undefined,
                 minWidth: 90,
               }}
               onClick={() => setActiveStatus("inactive")}
@@ -511,7 +515,7 @@ export default function Employees(): ReactElement {
             </button>
           </div>
         </div>
-        <div className="h-.5"></div> 
+        <div className="h-.5"></div>
       </div>
 
       {/* Error Display */}

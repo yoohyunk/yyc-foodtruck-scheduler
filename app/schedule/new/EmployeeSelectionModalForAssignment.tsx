@@ -42,9 +42,11 @@ const EmployeeSelectionModalForAssignment: React.FC<Props> = ({
           const empsWithWage = await Promise.all(
             emps.map(async (emp) => {
               try {
-                const wageRecord = await wagesApi.getCurrentWage(emp.employee_id);
+                const wageRecord = await wagesApi.getCurrentWage(
+                  emp.employee_id
+                );
                 return { ...emp, currentWage: wageRecord?.hourly_wage || 0 };
-              } catch (e) {
+              } catch {
                 return { ...emp, currentWage: 0 };
               }
             })
@@ -86,7 +88,10 @@ const EmployeeSelectionModalForAssignment: React.FC<Props> = ({
 
   // Filter and sort employees before rendering
   const filteredAndSortedEmployees = employees
-    .filter(emp => employeeTypeFilter === "all" || emp.employee_type === employeeTypeFilter)
+    .filter(
+      (emp) =>
+        employeeTypeFilter === "all" || emp.employee_type === employeeTypeFilter
+    )
     .sort((a, b) => {
       // Sort by availability first (available first)
       const availA = availability[a.employee_id]?.isAvailable ? 0 : 1;
@@ -130,7 +135,7 @@ const EmployeeSelectionModalForAssignment: React.FC<Props> = ({
         <div className="flex items-center gap-2 mb-2 px-2">
           <select
             value={employeeTypeFilter}
-            onChange={e => setEmployeeTypeFilter(e.target.value)}
+            onChange={(e) => setEmployeeTypeFilter(e.target.value)}
             className="input-field text-sm px-3 py-1"
           >
             <option value="all">All Types</option>
@@ -140,7 +145,7 @@ const EmployeeSelectionModalForAssignment: React.FC<Props> = ({
           </select>
           <select
             value={sortMode}
-            onChange={e => setSortMode(e.target.value)}
+            onChange={(e) => setSortMode(e.target.value)}
             className="input-field text-sm px-3 py-1"
           >
             <option value="alphabetical">Alphabetical</option>
@@ -203,7 +208,11 @@ const EmployeeSelectionModalForAssignment: React.FC<Props> = ({
                   {typeof emp.currentWage === "number" && (
                     <span
                       className="text-xs"
-                      style={{ color: "var(--text-muted)", minWidth: 60, textAlign: "right" }}
+                      style={{
+                        color: "var(--text-muted)",
+                        minWidth: 60,
+                        textAlign: "right",
+                      }}
                     >
                       ${emp.currentWage.toFixed(2)}/hr
                     </span>

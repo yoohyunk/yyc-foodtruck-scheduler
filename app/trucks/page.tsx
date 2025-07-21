@@ -7,6 +7,8 @@ import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { getTruckBorderColor } from "../types";
+import ErrorModal from "../components/ErrorModal";
+import { trucksApi } from "@/lib/supabase/trucks";
 
 type Truck = Tables<"trucks"> & {
   addresses?: Tables<"addresses">;
@@ -23,6 +25,13 @@ export default function Trucks(): ReactElement {
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
   const supabase = createClient();
+
+  // State for delete modal and error handling
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [truckToDelete, setTruckToDelete] = useState<Truck | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   // Function to fetch trucks - memoized with useCallback
   const fetchTrucks = useCallback(async () => {
@@ -89,6 +98,60 @@ export default function Trucks(): ReactElement {
     filtered = filtered.sort((a, b) => a.name.localeCompare(b.name));
     setFilteredTrucks(filtered);
   }, [activeFilter, trucks, activeStatus]);
+
+  // Handler to open the delete confirmation modal
+  const handleDeleteClick = (truck: Truck) => {
+    setTruckToDelete(truck);
+    setShowDeleteModal(true);
+    setDeleteError(null);
+    setDeleteSuccess(false);
+  };
+
+  // Handler to actually delete the truck
+  const handleDeleteConfirm = async () => {
+    if (!truckToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      // Double-check truck still exists before deleting
+      const check = await trucksApi.getTruckById(truckToDelete.id);
+      if (!check) {
+        setDeleteError(
+          "Truck not found in database. It may have already been deleted."
+        );
+        setIsDeleting(false);
+        return;
+      }
+      await trucksApi.deleteTruck(truckToDelete.id);
+      // Verify truck is deleted
+      const verify = await trucksApi.getTruckById(truckToDelete.id);
+      if (verify) {
+        setDeleteError(
+          "Truck deletion failed - truck still exists in database."
+        );
+        setIsDeleting(false);
+        return;
+      }
+      // Remove from UI state
+      const updatedTrucks = trucks.filter((t) => t.id !== truckToDelete.id);
+      setTrucks(updatedTrucks);
+      setFilteredTrucks(updatedTrucks);
+      setDeleteSuccess(true);
+      setShowDeleteModal(false);
+      setTruckToDelete(null);
+    } catch (error: unknown) {
+      if (error && typeof error === "object" && "message" in error) {
+        setDeleteError(
+          (error as { message?: string }).message ||
+            "Failed to delete truck. Please try again."
+        );
+      } else {
+        setDeleteError("Failed to delete truck. Please try again.");
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -288,6 +351,17 @@ export default function Trucks(): ReactElement {
                       ✏️
                     </button>
                   </TutorialHighlight>
+                  {/* Delete Button - only for unavailable trucks */}
+                  {truck.is_available === false && (
+                    <button
+                      className="absolute top-4 right-16 text-red-500 hover:text-red-700 delete-button"
+                      onClick={() => handleDeleteClick(truck)}
+                      title="Delete Truck"
+                      style={{ fontSize: "1.25rem" }}
+                    >
+                      🗑️
+                    </button>
+                  )}
 
                   <h3 className="text-xl font-semibold mb-3">{truck.name}</h3>
 
@@ -355,6 +429,42 @@ export default function Trucks(): ReactElement {
           </div>
         )}
       </TutorialHighlight>
+      {/* Delete Confirmation Modal */}
+      <ErrorModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        errors={
+          truckToDelete
+            ? [
+                {
+                  field: "delete",
+                  message: `Are you sure you want to delete ${truckToDelete.name}? This action cannot be undone.`,
+                },
+              ]
+            : []
+        }
+        title="Confirm Delete"
+        type="confirmation"
+        onConfirm={handleDeleteConfirm}
+        confirmText={isDeleting ? "Deleting..." : "Delete"}
+        cancelText="Cancel"
+      />
+      {/* Error Modal for delete errors */}
+      <ErrorModal
+        isOpen={!!deleteError}
+        onClose={() => setDeleteError(null)}
+        errors={deleteError ? [{ field: "delete", message: deleteError }] : []}
+        title="Delete Error"
+        type="error"
+      />
+      {/* Success Modal for delete success */}
+      <ErrorModal
+        isOpen={deleteSuccess}
+        onClose={() => setDeleteSuccess(false)}
+        errors={[{ field: "success", message: "Truck deleted successfully!" }]}
+        title="Success!"
+        type="success"
+      />
     </div>
   );
 }
