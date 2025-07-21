@@ -233,10 +233,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Check common addresses cache
+    // Check common addresses cache (only for city names, not specific addresses)
     const addressLower = cleanedAddress.toLowerCase();
     for (const [commonAddr, coords] of Object.entries(COMMON_ADDRESSES)) {
-      if (addressLower.includes(commonAddr)) {
+      // Only match if it's exactly the city name (not a specific address containing the city)
+      if (addressLower === commonAddr) {
         // Cache this result
         geocodingCache.set(cleanedAddress, coords);
         return NextResponse.json({
@@ -248,6 +249,7 @@ export async function GET(request: NextRequest) {
           address: cleanedAddress,
           display_name: coords.display_name,
           cached: true,
+          fallback: true, // Mark as fallback since it's just a city center
         });
       }
     }
@@ -293,6 +295,13 @@ export async function GET(request: NextRequest) {
           longitude: parseFloat(data[0].lon),
         };
 
+        // console.log("Nominatim API found address:", {
+        //   address: cleanedAddress,
+        //   coords,
+        //   display_name: data[0].display_name,
+        //   results_count: data.length
+        // });
+
         // Cache the successful result
         geocodingCache.set(cleanedAddress, {
           latitude: coords.latitude,
@@ -306,6 +315,8 @@ export async function GET(request: NextRequest) {
           address: cleanedAddress,
           display_name: data[0].display_name,
         });
+      } else {
+        // console.log("Nominatim API returned no results for:", cleanedAddress);
       }
     } catch (error) {
       console.error("Nominatim API failed:", error);
@@ -314,12 +325,19 @@ export async function GET(request: NextRequest) {
     // Use fallback coordinates based on the address
     const fallbackCoords = getFallbackCoordinates(cleanedAddress);
 
+    // console.log("Using fallback coordinates:", {
+    //   address: cleanedAddress,
+    //   fallbackCoords,
+    //   reason: "Nominatim API failed or returned no results"
+    // });
+
     return NextResponse.json({
       success: true,
       coordinates: fallbackCoords,
       address: cleanedAddress,
       display_name: cleanedAddress,
       fallback: true, // Indicate this is a fallback result
+      fallbackType: "city_center", // Indicate we're using city center coordinates
     });
   } catch (error) {
     console.error("Error in geocoding route:", error);
