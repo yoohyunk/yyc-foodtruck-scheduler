@@ -397,10 +397,15 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
           // Determine the appropriate message based on whether it's a fallback or actual coordinates
           let message;
           if (data.fallback) {
-            // Extract city name from the address for the fallback message
-            const cityMatch = fullAddress.match(/, ([^,]+)(?:,|$)/);
-            const city = cityMatch ? cityMatch[1].trim() : "the city";
-            message = `Address not found using fallback coordinates for ${city}`;
+            if (data.fallbackType === "city_center") {
+              // Extract city name from the address for the fallback message
+              const cityMatch = fullAddress.match(/, ([^,]+)(?:,|$)/);
+              const city = cityMatch ? cityMatch[1].trim() : "the city";
+              message = `Address not found using fallback coordinates for ${city}`;
+            } else {
+              message =
+                "Address not found using fallback coordinates for the city center";
+            }
           } else {
             message = "Address found and validated!";
           }
