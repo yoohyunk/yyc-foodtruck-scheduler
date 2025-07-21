@@ -280,19 +280,6 @@ export default function Events(): ReactElement {
           <p className="text-gray-500">No events found.</p>
         )}
       </TutorialHighlight>
-
-      {/* Create Event Button */}
-      <TutorialHighlight
-        isHighlighted={shouldHighlight(".sidebar")}
-        className="mt-6"
-      >
-        <button
-          className="button bg-primary-medium text-white w-full py-2 rounded-lg hover:bg-primary-dark"
-          onClick={() => router.push("/events/newEvent")}
-        >
-          + Create Event
-        </button>
-      </TutorialHighlight>
     </div>
   );
 }
