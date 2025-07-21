@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Employee } from "@/app/types";
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { extractDate, extractTime } from "../../utils";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface ServerAssignment {
   id: string;
@@ -27,25 +29,69 @@ export default function EditAssignmentModal({
   assignment,
   onAssignmentUpdated,
 }: EditAssignmentModalProps) {
-  const [startDate, setStartDate] = useState<string>("");
-  const [startTime, setStartTime] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-  const [endTime, setEndTime] = useState<string>("");
+  const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
+  const [selectedStartTime, setSelectedStartTime] = useState<Date | null>(null);
+  const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+
+  // Refs for DatePicker components
+  const startDateRef = useRef<DatePicker>(null);
+  const endDateRef = useRef<DatePicker>(null);
+  const startTimeRef = useRef<DatePicker>(null);
+  const endTimeRef = useRef<DatePicker>(null);
 
   // Initialize form when assignment changes
   useEffect(() => {
     if (assignment) {
-      const start = new Date(assignment.start_date);
-      const end = new Date(assignment.end_date);
+      // Parse the ISO string to extract date and time components
+      const startMatch = assignment.start_date.match(
+        /T(\d{2}):(\d{2}):(\d{2})/
+      );
+      const endMatch = assignment.end_date.match(/T(\d{2}):(\d{2}):(\d{2})/);
 
-      setStartDate(start.toISOString().split("T")[0]);
-      setStartTime(start.toTimeString().slice(0, 5));
-      setEndDate(end.toISOString().split("T")[0]);
-      setEndTime(end.toTimeString().slice(0, 5));
+      if (startMatch && endMatch) {
+        const startHours = parseInt(startMatch[1]);
+        const startMinutes = parseInt(startMatch[2]);
+        const endHours = parseInt(endMatch[1]);
+        const endMinutes = parseInt(endMatch[2]);
+
+        // Create date objects for the date pickers
+        const startDate = new Date(assignment.start_date.split("T")[0]);
+        const endDate = new Date(assignment.end_date.split("T")[0]);
+
+        // Create time objects for the time pickers
+        const startTime = new Date();
+        startTime.setHours(startHours, startMinutes, 0, 0);
+
+        const endTime = new Date();
+        endTime.setHours(endHours, endMinutes, 0, 0);
+
+        setSelectedStartDate(startDate);
+        setSelectedEndDate(endDate);
+        setSelectedStartTime(startTime);
+        setSelectedEndTime(endTime);
+      }
     }
   }, [assignment]);
+
+  // Date and time change handlers
+  const handleStartDateChange = (date: Date | null) => {
+    setSelectedStartDate(date);
+  };
+
+  const handleEndDateChange = (date: Date | null) => {
+    setSelectedEndDate(date);
+  };
+
+  const handleStartTimeChange = (time: Date | null) => {
+    setSelectedStartTime(time);
+  };
+
+  const handleEndTimeChange = (time: Date | null) => {
+    setSelectedEndTime(time);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,9 +101,34 @@ export default function EditAssignmentModal({
     setIsSubmitting(true);
 
     try {
-      // Validate times
-      const startDateTime = new Date(`${startDate}T${startTime}`);
-      const endDateTime = new Date(`${endDate}T${endTime}`);
+      // Validate that all required fields are selected
+      if (
+        !selectedStartDate ||
+        !selectedEndDate ||
+        !selectedStartTime ||
+        !selectedEndTime
+      ) {
+        setErrors(["Please select all date and time fields"]);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create start and end datetime objects
+      const startDateTime = new Date(selectedStartDate);
+      startDateTime.setHours(
+        selectedStartTime.getHours(),
+        selectedStartTime.getMinutes(),
+        0,
+        0
+      );
+
+      const endDateTime = new Date(selectedEndDate);
+      endDateTime.setHours(
+        selectedEndTime.getHours(),
+        selectedEndTime.getMinutes(),
+        0,
+        0
+      );
 
       if (startDateTime >= endDateTime) {
         setErrors(["End time must be after start time"]);
@@ -65,11 +136,15 @@ export default function EditAssignmentModal({
         return;
       }
 
+      // Create ISO strings that preserve local time without timezone conversion
+      const startISO = `${selectedStartDate.toISOString().split("T")[0]}T${selectedStartTime.getHours().toString().padStart(2, "0")}:${selectedStartTime.getMinutes().toString().padStart(2, "0")}:00`;
+      const endISO = `${selectedEndDate.toISOString().split("T")[0]}T${selectedEndTime.getHours().toString().padStart(2, "0")}:${selectedEndTime.getMinutes().toString().padStart(2, "0")}:00`;
+
       // Update the assignment
       await assignmentsApi.updateAssignmentTimes(
         assignment.id,
-        startDateTime.toISOString(),
-        endDateTime.toISOString()
+        startISO,
+        endISO
       );
 
       onAssignmentUpdated();
@@ -129,26 +204,33 @@ export default function EditAssignmentModal({
                 <label htmlFor="startDate" className="form-label required">
                   Start Date
                 </label>
-                <input
-                  type="date"
-                  id="startDate"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                <DatePicker
+                  ref={startDateRef}
+                  selected={selectedStartDate}
+                  onChange={handleStartDateChange}
+                  dateFormat="MMMM d, yyyy"
                   className="form-input"
-                  required
+                  placeholderText="Select start date"
                 />
               </div>
               <div className="form-group">
                 <label htmlFor="startTime" className="form-label required">
                   Start Time
                 </label>
-                <input
-                  type="time"
-                  id="startTime"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                <DatePicker
+                  ref={startTimeRef}
+                  selected={selectedStartTime}
+                  onChange={handleStartTimeChange}
+                  showTimeSelect
+                  showTimeSelectOnly
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="h:mm aa"
                   className="form-input"
-                  required
+                  placeholderText="Select time"
+                  openToDate={new Date()}
+                  minTime={new Date(0, 0, 0, 0, 0, 0)}
+                  maxTime={new Date(0, 0, 0, 23, 59, 59)}
                 />
               </div>
             </div>
@@ -159,26 +241,34 @@ export default function EditAssignmentModal({
                 <label htmlFor="endDate" className="form-label required">
                   End Date
                 </label>
-                <input
-                  type="date"
-                  id="endDate"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                <DatePicker
+                  ref={endDateRef}
+                  selected={selectedEndDate}
+                  onChange={handleEndDateChange}
+                  dateFormat="MMMM d, yyyy"
+                  minDate={selectedStartDate || new Date()}
                   className="form-input"
-                  required
+                  placeholderText="Select end date"
                 />
               </div>
               <div className="form-group">
                 <label htmlFor="endTime" className="form-label required">
                   End Time
                 </label>
-                <input
-                  type="time"
-                  id="endTime"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                <DatePicker
+                  ref={endTimeRef}
+                  selected={selectedEndTime}
+                  onChange={handleEndTimeChange}
+                  showTimeSelect
+                  showTimeSelectOnly
+                  timeIntervals={15}
+                  timeCaption="End Time"
+                  dateFormat="h:mm aa"
                   className="form-input"
-                  required
+                  placeholderText="Select end time"
+                  openToDate={new Date()}
+                  minTime={new Date(0, 0, 0, 0, 0, 0)}
+                  maxTime={new Date(0, 0, 0, 23, 59, 59)}
                 />
               </div>
             </div>
