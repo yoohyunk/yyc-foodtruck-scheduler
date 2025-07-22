@@ -709,7 +709,7 @@ body {
   left: 0;
   right: 0;
   height: 4px;
-  background: var(--secondary-medium);
+
 }
 
 /* Override ::before for add new item sections */
