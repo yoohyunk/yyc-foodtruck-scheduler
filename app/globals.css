@@ -117,7 +117,7 @@ body {
 ========================= */
 /* Header Styling */
 .header {
-  background: var(--primary-dark);
+  /* background: var(--primary-dark); */
   padding: 1rem 2rem;
   box-shadow: 0 8px 32px rgba(255, 245, 205, 0.4);
   position: sticky;
@@ -940,7 +940,6 @@ body {
    Footer
 ========================= */
 footer {
-  background-color: var(--primary-dark);
   color: var(--primary-light);
   padding: 1.5rem 0;
   text-align: center;

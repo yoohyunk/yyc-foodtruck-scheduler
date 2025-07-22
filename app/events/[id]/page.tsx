@@ -985,7 +985,7 @@ export default function EventDetailsPage(): ReactElement {
                 <h1 className="text-3xl font-bold">
                   {isAdmin ? event?.title : eventBasicInfo?.title}
                 </h1>
-                {isAdmin && event && (
+                {isAdmin && (
                   <div className="flex gap-4">
                     <button
                       onClick={handleEditEvent}
@@ -1173,56 +1173,58 @@ export default function EventDetailsPage(): ReactElement {
               </div>
             )}
 
-            {/* Assign Staff and Trucks Buttons */}
-            <div className="mt-6 flex gap-4">
-              <TutorialHighlight
-                isHighlighted={shouldHighlight(".select-employees-button")}
-              >
-                <button
-                  className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
-                  onClick={openEmployeeModal}
+            {/* Assign Staff and Trucks Buttons (Admin only) */}
+            {isAdmin && (
+              <div className="mt-6 flex gap-4">
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".select-employees-button")}
                 >
-                  Select Employees
-                </button>
-              </TutorialHighlight>
-              <TutorialHighlight
-                isHighlighted={shouldHighlight(".select-trucks-button")}
-              >
-                <button
-                  className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
-                  onClick={openTruckModal}
-                >
-                  Assign Trucks & Drivers
-                </button>
-              </TutorialHighlight>
-              <TutorialHighlight
-                isHighlighted={shouldHighlight(".update-payment-button")}
-              >
-                <button
-                  className="button bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 update-payment-button"
-                  onClick={() => handleUpdatePaymentStatus()}
-                >
-                  {event.is_prepaid
-                    ? "Mark as Pending Payment"
-                    : "Mark as Prepaid"}
-                </button>
-              </TutorialHighlight>
-              <TutorialHighlight
-                isHighlighted={shouldHighlight(".update-status-buttons")}
-              >
-                <div className="flex gap-2 update-status-buttons">
-                  <select
-                    value={event.status || "Pending"}
-                    onChange={(e) => handleUpdateStatus(e.target.value)}
-                    className="button bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 border-none"
+                  <button
+                    className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
+                    onClick={openEmployeeModal}
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Scheduled">Scheduled</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </TutorialHighlight>
-            </div>
+                    Select Employees
+                  </button>
+                </TutorialHighlight>
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".select-trucks-button")}
+                >
+                  <button
+                    className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
+                    onClick={openTruckModal}
+                  >
+                    Assign Trucks & Drivers
+                  </button>
+                </TutorialHighlight>
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".update-payment-button")}
+                >
+                  <button
+                    className="button bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 update-payment-button"
+                    onClick={() => handleUpdatePaymentStatus()}
+                  >
+                    {event.is_prepaid
+                      ? "Mark as Pending Payment"
+                      : "Mark as Prepaid"}
+                  </button>
+                </TutorialHighlight>
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".update-status-buttons")}
+                >
+                  <div className="flex gap-2 update-status-buttons">
+                    <select
+                      value={event.status || "Pending"}
+                      onChange={(e) => handleUpdateStatus(e.target.value)}
+                      className="button bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 border-none"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </TutorialHighlight>
+              </div>
+            )}
           </>
         )}
 
@@ -1321,29 +1323,31 @@ export default function EventDetailsPage(): ReactElement {
               />
             )}
 
-            {/* Action Buttons */}
-            <div className="mt-6 flex gap-4">
-              <TutorialHighlight
-                isHighlighted={shouldHighlight(".edit-event-button")}
-              >
-                <button
-                  className="button bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 edit-event-button"
-                  onClick={handleEditEvent}
+            {/* Action Buttons (Admin only) */}
+            {isAdmin && (
+              <div className="mt-6 flex gap-4">
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".edit-event-button")}
                 >
-                  Edit Event
-                </button>
-              </TutorialHighlight>
-              <TutorialHighlight
-                isHighlighted={shouldHighlight(".delete-event-button")}
-              >
-                <button
-                  className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
-                  onClick={openDeleteModal}
+                  <button
+                    className="button bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 edit-event-button"
+                    onClick={handleEditEvent}
+                  >
+                    Edit Event
+                  </button>
+                </TutorialHighlight>
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".delete-event-button")}
                 >
-                  Delete Event
-                </button>
-              </TutorialHighlight>
-            </div>
+                  <button
+                    className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
+                    onClick={openDeleteModal}
+                  >
+                    Delete Event
+                  </button>
+                </TutorialHighlight>
+              </div>
+            )}
           </>
         )}
 
