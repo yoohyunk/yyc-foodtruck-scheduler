@@ -45,14 +45,26 @@ export default function MainAssignmentCard({
           <span style={{ fontWeight: 700 }}>
             {assignment.events?.title || "-"}
           </span>
-          :
-          <span>
-            {" "}
-            {extractTime(
+          <div
+            style={{
+              fontSize: "0.9rem",
+              color: "#6b7280",
+              marginTop: "0.25rem",
+            }}
+          >
+            {new Date(
               assignment.start_date || assignment.start_time || ""
-            )}{" "}
+            ).toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </div>
+          <div style={{ fontSize: "1rem", marginTop: "0.25rem" }}>
+            {extractTime(assignment.start_date || assignment.start_time || "")}{" "}
             - {extractTime(assignment.end_date || assignment.end_time || "")}
-          </span>
+          </div>
         </div>
         {assignment.events?.address && (
           <div style={{ marginBottom: "1rem", color: "#374151" }}>

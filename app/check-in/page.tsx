@@ -134,7 +134,7 @@ export default function CheckInPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Find the most recent/current/next assignment
+  // Prepare all assignments
   const allAssignments: Assignment[] = [
     ...serverAssignments.map((a) => ({ ...a, type: "server" as const })),
     ...truckAssignments.map((a) => ({ ...a, type: "truck" as const })),
@@ -144,9 +144,33 @@ export default function CheckInPage() {
     const bStart = new Date(b.start_date || b.start_time || 0).getTime();
     return aStart - bStart;
   });
+
+  // Filter for today's assignments only
+  const today = new Date();
+  const todayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+  const todayEnd = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() + 1
+  );
+
+  const todaysAssignments = allAssignments.filter((assignment) => {
+    const assignmentDate = new Date(
+      assignment.start_date || assignment.start_time || 0
+    );
+    return assignmentDate >= todayStart && assignmentDate < todayEnd;
+  });
+
+  // Find the most recent/current/next assignment from today's assignments
   const now = new Date();
   let mainAssignment: Assignment | null = null;
-  for (const a of allAssignments) {
+
+  // First, try to find a currently active assignment
+  for (const a of todaysAssignments) {
     const start = new Date(a.start_date || a.start_time || 0);
     const end = new Date(a.end_date || a.end_time || 0);
     if (now >= start && now <= end) {
@@ -154,11 +178,13 @@ export default function CheckInPage() {
       break;
     }
   }
+
+  // If no active assignment, find the next upcoming one
   if (!mainAssignment) {
     mainAssignment =
-      allAssignments.find(
+      todaysAssignments.find(
         (a) => new Date(a.start_date || a.start_time || 0) > now
-      ) || allAssignments[allAssignments.length - 1];
+      ) || todaysAssignments[todaysAssignments.length - 1];
   }
 
   // Checkin/checkout handlers
@@ -195,8 +221,43 @@ export default function CheckInPage() {
   if (!employeeId) return <div className="p-8">login required</div>;
   if (loading) return <div className="p-8">Loading...</div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
-  if (allAssignments.length === 0)
-    return <div className="p-8">no assignments today </div>;
+
+  if (todaysAssignments.length === 0) {
+    return (
+      <div className="max-w-5xl mx-auto px-4">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">
+          Today&apos;s Check-in
+        </h1>
+        <div className="event-log-card">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "3rem",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🍋</div>
+            <h2
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: "600",
+                marginBottom: "0.5rem",
+                color: "#374151",
+              }}
+            >
+              No events today
+            </h2>
+            <p style={{ fontSize: "1.1rem", color: "#6b7280" }}>
+              Have a great day off!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Calculate remaining time
   function getTimeRemaining(targetDate: Date): string {
@@ -235,7 +296,7 @@ export default function CheckInPage() {
       return `Shift starts in ${timeToStart}`;
     }
     if (status === "missed")
-      return `Check-in time expired (${extractTime(assignment.start_date || assignment.start_time || "")} - ${extractTime(assignment.end_date || assignment.end_time || "")})`;
+      return `Check-in not active (${extractTime(assignment.start_date || assignment.start_time || "")} - ${extractTime(assignment.end_date || assignment.end_time || "")})`;
     if (status === "checked_in") {
       const timeToEnd = getTimeRemaining(endDate);
       const diff = endDate.getTime() - currentTime.getTime();
@@ -295,7 +356,7 @@ export default function CheckInPage() {
       </div>
       <div className="event-log-list" style={{ marginTop: "2rem" }}>
         <ScheduleList
-          assignments={allAssignments}
+          assignments={todaysAssignments}
           getStatusMessage={getStatusMessage}
           getAssignmentStatus={getAssignmentStatus}
           checkinMap={checkinMap}

@@ -1,6 +1,7 @@
 "use client";
 import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
+import { useRouter } from "next/navigation";
 import { HomePageEvent, TimeOffRequest } from "./types";
 import { TutorialOverlay } from "./tutorial";
 import { useTutorial } from "./tutorial/TutorialContext";
@@ -14,8 +15,41 @@ export default function Home(): ReactElement {
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user, isAdmin, loading: authLoading } = useAuth();
+  const router = useRouter();
 
   const { shouldHighlight } = useTutorial();
+
+  // Clock animation effect
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      const hours = now.getHours() % 12;
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+
+      const hourHand = document.getElementById("hour-hand");
+      const minuteHand = document.getElementById("minute-hand");
+      const secondHand = document.getElementById("second-hand");
+
+      if (hourHand && minuteHand && secondHand) {
+        const hourDegrees = hours * 30 + minutes * 0.5; // 30 degrees per hour + 0.5 degrees per minute
+        const minuteDegrees = minutes * 6; // 6 degrees per minute
+        const secondDegrees = seconds * 6; // 6 degrees per second
+
+        hourHand.style.transform = `translate(-50%, -100%) rotate(${hourDegrees}deg)`;
+        minuteHand.style.transform = `translate(-50%, -100%) rotate(${minuteDegrees}deg)`;
+        secondHand.style.transform = `translate(-50%, -100%) rotate(${secondDegrees}deg)`;
+      }
+    };
+
+    // Update immediately
+    updateClock();
+
+    // Update every second
+    const interval = setInterval(updateClock, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch data from Supabase
   useEffect(() => {
@@ -29,10 +63,19 @@ export default function Home(): ReactElement {
         setIsLoading(true);
 
         // Fetch upcoming events based on user role
-        let eventsData;
+        let eventsData: Array<{
+          start_date: string;
+          title?: string | null;
+          description?: string | null;
+        }>;
         if (isAdmin) {
           // Admin: show all events
-          eventsData = await eventsApi.getAllEvents();
+          const adminEvents = await eventsApi.getAllEvents();
+          eventsData = adminEvents.map((event) => ({
+            start_date: event.start_date || "",
+            title: event.title,
+            description: event.description,
+          }));
         } else if (user) {
           // Employee: show only assigned events
           const response = await fetch(
@@ -97,6 +140,160 @@ export default function Home(): ReactElement {
         <p className="landing-subtitle">
           Employee scheduling and management system
         </p>
+
+        {/* Check-In Section - Non-Admin Only */}
+        {!isAdmin && user && (
+          <TutorialHighlight
+            isHighlighted={shouldHighlight(".check-in-highlight")}
+            className="check-in-highlight"
+          >
+            <section data-section="check-in">
+              <h2 className="section-title">Check-In</h2>
+              <div
+                onClick={() => router.push("/check-in")}
+                style={{
+                  cursor: "pointer",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  padding: "clamp(0.5rem, 2vw, 1rem)",
+                  transition: "all 0.3s ease",
+                  transform: "translateY(0)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                {/* Big Animated Clock */}
+                <div
+                  style={{
+                    width: "clamp(120px, 25vw, 180px)",
+                    height: "clamp(120px, 25vw, 180px)",
+                    borderRadius: "50%",
+                    border: "clamp(4px, 1vw, 8px) solid var(--primary-dark)",
+                    position: "relative",
+                    background: "linear-gradient(145deg, #f8f9fa, #e9ecef)",
+                    boxShadow:
+                      "inset 0 0 30px rgba(0, 0, 0, 0.1), 0 8px 25px rgba(0, 0, 0, 0.15)",
+                  }}
+                >
+                  {/* Clock Center */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      width: "clamp(10px, 2vw, 16px)",
+                      height: "clamp(10px, 2vw, 16px)",
+                      borderRadius: "50%",
+                      backgroundColor: "var(--primary-dark)",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 10,
+                      boxShadow: "0 0 4px rgba(0, 0, 0, 0.2)",
+                    }}
+                  />
+
+                  {/* Hour Hand */}
+                  <div
+                    id="hour-hand"
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      width: "clamp(5px, 1.5vw, 8px)",
+                      height: "clamp(30px, 8vw, 45px)",
+                      background:
+                        "linear-gradient(to top, var(--primary-dark), #006666)",
+                      transformOrigin: "bottom center",
+                      transform: "translate(-50%, -100%) rotate(0deg)",
+                      borderRadius: "clamp(2px, 0.5vw, 4px)",
+                      zIndex: 8,
+                      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.3)",
+                    }}
+                  />
+
+                  {/* Minute Hand */}
+                  <div
+                    id="minute-hand"
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      width: "clamp(3px, 1vw, 5px)",
+                      height: "clamp(40px, 12vw, 65px)",
+                      background:
+                        "linear-gradient(to top, var(--primary-dark), #006666)",
+                      transformOrigin: "bottom center",
+                      transform: "translate(-50%, -100%) rotate(0deg)",
+                      borderRadius: "clamp(1.5px, 0.4vw, 2.5px)",
+                      zIndex: 9,
+                      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.3)",
+                    }}
+                  />
+
+                  {/* Second Hand */}
+                  <div
+                    id="second-hand"
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      width: "clamp(1px, 0.5vw, 2px)",
+                      height: "clamp(50px, 15vw, 75px)",
+                      background: "linear-gradient(to top, #e74c3c, #c0392b)",
+                      transformOrigin: "bottom center",
+                      transform: "translate(-50%, -100%) rotate(0deg)",
+                      zIndex: 7,
+                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
+                    }}
+                  />
+
+                  {/* Clock Tick Marks */}
+                  {Array.from({ length: 60 }, (_, i) => (
+                    <div
+                      key={`tick-${i}`}
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        width:
+                          i % 5 === 0
+                            ? "clamp(2px, 0.5vw, 3px)"
+                            : "clamp(0.5px, 0.2vw, 1px)",
+                        height:
+                          i % 5 === 0
+                            ? "clamp(8px, 2vw, 12px)"
+                            : "clamp(4px, 1vw, 6px)",
+                        backgroundColor: "var(--primary-dark)",
+                        transform: `translate(-50%, -50%) rotate(${i * 6}deg) translateY(-${i % 5 === 0 ? "clamp(50px, 12vw, 75px)" : "clamp(40px, 10vw, 60px)"})`,
+                        transformOrigin: "center",
+                        opacity: i % 5 === 0 ? 1 : 0.7,
+                      }}
+                    />
+                  ))}
+
+                  {/* Inner Ring */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      width: "clamp(100px, 20vw, 160px)",
+                      height: "clamp(100px, 20vw, 160px)",
+                      borderRadius: "50%",
+                      border: "1px solid rgba(0, 128, 128, 0.2)",
+                      transform: "translate(-50%, -50%)",
+                      zIndex: 1,
+                    }}
+                  />
+                </div>
+              </div>
+            </section>
+          </TutorialHighlight>
+        )}
 
         {/* Upcoming Events Section */}
         <TutorialHighlight
