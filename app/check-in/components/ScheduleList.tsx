@@ -52,7 +52,29 @@ export default function ScheduleList({
                     {assignment.type === "server" ? "Server" : "Driver"} -{" "}
                     {assignment.events?.title || "-"}
                   </div>
-                  <div style={{ fontSize: "0.95rem", color: "#6b7280" }}>
+                  <div
+                    style={{
+                      fontSize: "0.9rem",
+                      color: "#6b7280",
+                      marginTop: "0.25rem",
+                    }}
+                  >
+                    {new Date(
+                      assignment.start_date || assignment.start_time || ""
+                    ).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.95rem",
+                      color: "#6b7280",
+                      marginTop: "0.25rem",
+                    }}
+                  >
                     {extractTime(
                       assignment.start_date || assignment.start_time || ""
                     )}{" "}

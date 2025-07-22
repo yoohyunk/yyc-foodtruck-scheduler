@@ -9,6 +9,7 @@ import { Event } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Schedule(): React.ReactElement {
   const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">(
@@ -21,6 +22,7 @@ export default function Schedule(): React.ReactElement {
   const [showMobileNotice, setShowMobileNotice] = useState(false);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
+  const { user, isAdmin, loading: authLoading } = useAuth();
 
   // Detect mobile screen size
   useEffect(() => {
@@ -41,10 +43,23 @@ export default function Schedule(): React.ReactElement {
   }, [viewMode]);
 
   useEffect(() => {
+    if (authLoading) return;
     const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        const data = await eventsApi.getAllEvents();
+        let data;
+        if (isAdmin) {
+          data = await eventsApi.getAllEvents();
+        } else if (user) {
+          const response = await fetch(
+            `/api/events/assigned?userId=${user.id}`
+          );
+          if (!response.ok) throw new Error("Failed to fetch assigned events");
+          const json = await response.json();
+          data = json.events || [];
+        } else {
+          data = [];
+        }
         setEvents(data);
       } catch (err) {
         console.error("Failed to fetch events:", err);
@@ -53,9 +68,8 @@ export default function Schedule(): React.ReactElement {
         setIsLoading(false);
       }
     };
-
     fetchEvents();
-  }, []);
+  }, [isAdmin, user, authLoading]);
 
   const formatDate = (date: Date, options: Intl.DateTimeFormatOptions = {}) =>
     new Intl.DateTimeFormat("en-US", {
@@ -262,18 +276,6 @@ export default function Schedule(): React.ReactElement {
               }}
             >
               📱 Mobile view: Events shown in list format
-            </p>
-          )}
-          {viewMode === "weekly" && !isMobile && (
-            <p
-              style={{
-                color: "var(--text-muted)",
-                fontSize: "0.75rem",
-                marginTop: "0.5rem",
-                fontStyle: "italic",
-              }}
-            >
-              📋 Weekly view: Events shown in list format for better readability
             </p>
           )}
         </div>

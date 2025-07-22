@@ -20,7 +20,7 @@ import { SidebarSection } from "./SidebarSection";
 import { SidebarLink } from "./SidebarLink";
 
 // Sidebar sections with nested navigation links
-const sidebarSections = [
+const getSidebarSections = (isAdmin: boolean) => [
   {
     name: "Employees",
     icon: <FiUsers />,
@@ -50,14 +50,29 @@ const sidebarSections = [
     mainHref: "/schedule/",
     links: [{ name: "Add Shift", href: "/schedule/new", icon: <FiPlus /> }],
   },
-  {
-    name: "Trucks",
-    icon: <FiTruck />,
-    mainHref: "/trucks/",
-    links: [
-      { name: "Add Trucks", href: "/trucks/add-trucks", icon: <FiPlus /> },
-    ],
-  },
+  ...(isAdmin
+    ? [
+        {
+          name: "Trucks",
+          icon: <FiTruck />,
+          mainHref: "/trucks/",
+          links: [
+            {
+              name: "Add Trucks",
+              href: "/trucks/add-trucks",
+              icon: <FiPlus />,
+            },
+          ],
+        },
+      ]
+    : [
+        {
+          name: "Contact",
+          icon: <FiInfo />,
+          mainHref: "/contact/",
+          links: [],
+        },
+      ]),
 ];
 
 // Simple navigation links (non-dropdown)
@@ -137,6 +152,7 @@ export default function Sidebar() {
 
   useEffect(() => {
     const newExpandedSections: string[] = [];
+    const sidebarSections = getSidebarSections(isAdmin);
 
     sidebarSections.forEach((section) => {
       if (
@@ -155,7 +171,7 @@ export default function Sidebar() {
         ? prev
         : newExpandedSections;
     });
-  }, [pathname, isActive]);
+  }, [pathname, isActive, isAdmin]);
 
   return (
     <>
@@ -192,7 +208,7 @@ export default function Sidebar() {
                 isMobile={isMobile}
               />
               {/* Dropdown Sections */}
-              {sidebarSections.map((section) => (
+              {getSidebarSections(isAdmin).map((section) => (
                 <SidebarSection
                   key={section.name}
                   section={section}
@@ -204,6 +220,7 @@ export default function Sidebar() {
                   shouldHighlight={shouldHighlight}
                   shouldDisable={shouldDisable}
                   isMobile={isMobile}
+                  disableAnimations={!isAdmin}
                 />
               ))}
 

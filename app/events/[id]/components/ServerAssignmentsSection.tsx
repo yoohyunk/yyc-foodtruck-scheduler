@@ -128,8 +128,13 @@ export default function ServerAssignmentsSection({
           {serverAssignments.map((assignment) => (
             <div
               key={assignment.id}
-              className="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
-              onClick={() => handleServerClick(assignment.employee_id)}
+              className={`border border-gray-200 rounded-lg p-4 bg-gray-50 transition-colors${isAdmin ? " hover:bg-gray-100 cursor-pointer" : ""}`}
+              onClick={
+                isAdmin
+                  ? () => handleServerClick(assignment.employee_id)
+                  : undefined
+              }
+              style={!isAdmin ? { pointerEvents: "none", opacity: 0.8 } : {}}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -179,40 +184,42 @@ export default function ServerAssignmentsSection({
                     </span>
                   )}
                   <div className="flex flex-col space-y-1">
-                    <button
-                      className="p-1 rounded hover:bg-red-100 text-red-600 flex items-center justify-center transition-all duration-200 hover:scale-110"
-                      title="Unassign"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUnassignClick(assignment);
-                      }}
-                      disabled={removingId === assignment.id}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
                     {isAdmin && (
-                      <button
-                        className="p-1 rounded hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-all duration-200 hover:scale-110"
-                        title="Edit Times"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditClick(assignment);
-                        }}
-                      >
-                        ✏️
-                      </button>
+                      <>
+                        <button
+                          className="p-1 rounded hover:bg-red-100 text-red-600 flex items-center justify-center transition-all duration-200 hover:scale-110"
+                          title="Unassign"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnassignClick(assignment);
+                          }}
+                          disabled={removingId === assignment.id}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          className="p-1 rounded hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-all duration-200 hover:scale-110"
+                          title="Edit Times"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditClick(assignment);
+                          }}
+                        >
+                          ✏️
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

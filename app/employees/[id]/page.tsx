@@ -41,7 +41,6 @@ export default function EditEmployeePage(): ReactElement {
   const supabase = createClient();
   const { isAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const { shouldHighlight } = useTutorial();
   const addressFormRef = useRef<AddressFormRef>(null);
@@ -950,49 +949,6 @@ export default function EditEmployeePage(): ReactElement {
     }
   };
 
-  const handleDelete = async () => {
-    try {
-      // Delete employee
-      const { error: employeeError } = await supabase
-        .from("employees")
-        .delete()
-        .eq("employee_id", id);
-
-      if (employeeError) {
-        setValidationErrors([
-          { field: "delete", message: employeeError.message, element: null },
-        ]);
-        setShowErrorModal(true);
-        return;
-      }
-
-      // Show success modal and redirect
-      setValidationErrors([
-        {
-          field: "success",
-          message: "Employee deleted successfully!",
-          element: null,
-        },
-      ]);
-      setShowErrorModal(true);
-      setTimeout(() => {
-        router.push("/employees");
-      }, 1500);
-    } catch (error) {
-      setValidationErrors([
-        {
-          field: "delete",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to delete employee. Please try again.",
-          element: null,
-        },
-      ]);
-      setShowErrorModal(true);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -1062,28 +1018,42 @@ export default function EditEmployeePage(): ReactElement {
           </div>
 
           {/* Role */}
-          <div>
-            <label htmlFor="role" className="block font-medium">
-              Role <span className="text-red-500">*</span>
-              {!isAdmin && (
-                <span className="text-yellow-600 ml-2">(Admin Only)</span>
+          {isAdmin && (
+            <div>
+              <label htmlFor="role" className="block font-medium">
+                Role <span className="text-red-500">*</span>
+                {!isAdmin && (
+                  <span className="text-yellow-600 ml-2">(Admin Only)</span>
+                )}
+              </label>
+              {isAdmin ? (
+                <select
+                  ref={roleRef}
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  <option value="">Select Role</option>
+                  <option value="Driver">Driver</option>
+                  <option value="Server">Server</option>
+                  <option value="Admin">Admin</option>
+                </select>
+              ) : (
+                <div
+                  className="input-field bg-gray-100 text-gray-700 cursor-not-allowed"
+                  style={{
+                    padding: "0.75rem 1rem",
+                    borderRadius: "0.5rem",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  {formData.role || "N/A"}
+                </div>
               )}
-            </label>
-            <select
-              ref={roleRef}
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="input-field"
-              disabled={!isAdmin}
-            >
-              <option value="">Select Role</option>
-              <option value="Driver">Driver</option>
-              <option value="Server">Server</option>
-              <option value="Admin">Admin</option>
-            </select>
-          </div>
+            </div>
+          )}
 
           {/* Email */}
           <div>
@@ -1125,48 +1095,68 @@ export default function EditEmployeePage(): ReactElement {
                 <span className="text-yellow-600 ml-2">(Admin Only)</span>
               )}
             </label>
-            <input
-              ref={wageRef}
-              type="number"
-              id="wage"
-              name="wage"
-              value={formData.wage}
-              onChange={handleChange}
-              className="input-field"
-              min="0"
-              step="0.01"
-              disabled={!isAdmin}
-            />
+            {isAdmin ? (
+              <input
+                ref={wageRef}
+                type="number"
+                id="wage"
+                name="wage"
+                value={formData.wage}
+                onChange={handleChange}
+                className="input-field"
+                min="0"
+                step="0.01"
+              />
+            ) : (
+              <div
+                className="input-field bg-gray-100 text-gray-700 cursor-not-allowed"
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: "1px solid #e5e7eb",
+                }}
+              >
+                {formData.wage || "N/A"}
+              </div>
+            )}
           </div>
 
           {/* Is Available */}
-          <div className="mt-8 mb-8">
-            <h3 className="font-bold text-base mb-1">Active Employee</h3>
-            <TutorialHighlight
-              isHighlighted={shouldHighlight(".active-employee-explanation")}
-              className="active-employee-explanation"
-            >
-              <div className="text-sm text-gray-700">
-                Set employees as inactive if they are no longer working
-                actively. This allows you to retain employee records without
-                deleting them.
+          {isAdmin && (
+            <>
+              <div className="mt-8 mb-8">
+                <h3 className="font-bold text-base mb-1">Active Employee</h3>
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(
+                    ".active-employee-explanation"
+                  )}
+                  className="active-employee-explanation"
+                >
+                  <div className="text-sm text-gray-700">
+                    Set employees as inactive if they are no longer working
+                    actively. This allows you to retain employee records without
+                    deleting them.
+                  </div>
+                </TutorialHighlight>
               </div>
-            </TutorialHighlight>
-          </div>
-          <div>
-            <label htmlFor="isAvailable" className="flex gap-2 font-bold">
-              <span className="w-4 h-4">
-                <input
-                  type="checkbox"
-                  id="isAvailable"
-                  name="isAvailable"
-                  checked={formData.isAvailable}
-                  onChange={handleChange}
-                />
-              </span>
-              <span>Is Available</span>
-            </label>
-          </div>
+              <div>
+                <label htmlFor="isAvailable" className="flex gap-2 font-bold">
+                  <span className="w-4 h-4">
+                    <input
+                      type="checkbox"
+                      id="isAvailable"
+                      name="isAvailable"
+                      checked={formData.isAvailable}
+                      onChange={handleChange}
+                      disabled={!isAdmin}
+                      className={!isAdmin ? "cursor-not-allowed" : ""}
+                    />
+                  </span>
+                  <span>Is Available</span>
+                </label>
+              </div>
+            </>
+          )}
 
           {/* Availability */}
           <div>
@@ -1239,19 +1229,6 @@ export default function EditEmployeePage(): ReactElement {
                   Save Changes
                 </button>
               </TutorialHighlight>
-              <TutorialHighlight
-                isHighlighted={shouldHighlight(
-                  "button[onClick*='setShowDeleteModal']"
-                )}
-              >
-                <button
-                  type="button"
-                  className="button bg-red-500 hover:bg-red-600 text-white"
-                  onClick={() => setShowDeleteModal(true)}
-                >
-                  Delete Employee
-                </button>
-              </TutorialHighlight>
             </div>
           </div>
         </form>
@@ -1275,114 +1252,6 @@ export default function EditEmployeePage(): ReactElement {
             : undefined
         }
       />
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.4)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              background: "white",
-              borderRadius: "1.5rem",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-              padding: "2.5rem",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              maxWidth: 400,
-              border: "4px solid var(--error-medium)",
-              fontFamily: "sans-serif",
-            }}
-          >
-            <span style={{ fontSize: "3rem", marginBottom: "0.75rem" }}>
-              ⚠️
-            </span>
-            <p
-              style={{
-                color: "var(--error-dark)",
-                fontWeight: 800,
-                fontSize: "1.25rem",
-                marginBottom: "1rem",
-                textAlign: "center",
-                letterSpacing: "0.03em",
-              }}
-            >
-              Confirm Delete
-            </p>
-            <p
-              style={{
-                textAlign: "center",
-                marginBottom: "1.5rem",
-                color: "var(--text-secondary)",
-                fontSize: "1rem",
-              }}
-            >
-              Are you sure you want to delete {formData.first_name}{" "}
-              {formData.last_name}? This action cannot be undone.
-            </p>
-            <div style={{ display: "flex", gap: "1rem" }}>
-              <button
-                style={{
-                  padding: "0.5rem 1.5rem",
-                  background: "var(--border)",
-                  color: "var(--text-secondary)",
-                  fontWeight: 700,
-                  borderRadius: "0.5rem",
-                  border: "none",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  transition: "background 0.2s",
-                }}
-                onClick={() => setShowDeleteModal(false)}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = "var(--text-muted)")
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = "var(--border)")
-                }
-              >
-                Cancel
-              </button>
-              <button
-                style={{
-                  padding: "0.5rem 1.5rem",
-                  background: "var(--error-medium)",
-                  color: "var(--white)",
-                  fontWeight: 700,
-                  borderRadius: "0.5rem",
-                  border: "none",
-                  boxShadow: "0 2px 8px rgba(239,68,68,0.15)",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  transition: "background 0.2s",
-                }}
-                onClick={handleDelete}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = "var(--error-dark)")
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = "var(--error-medium)")
-                }
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Assignment warning modal */}
       {showAssignmentWarning && (

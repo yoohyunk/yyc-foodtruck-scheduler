@@ -44,6 +44,21 @@ export const Calendar = ({
 }: CalendarProps) => {
   const [isMobile, setIsMobile] = useState(false);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("Calendar props:", {
+      viewMode,
+      selectedDate: selectedDate.toISOString(),
+      eventsCount: events.length,
+      events: events.map((e) => ({
+        id: e.id,
+        title: e.title,
+        start: e.start,
+        end: e.end,
+      })),
+    });
+  }, [viewMode, selectedDate, events]);
+
   // Single useEffect for responsive detection
   useEffect(() => {
     const checkScreenSize = () => {
@@ -109,6 +124,62 @@ export const Calendar = ({
     return {};
   }, [isMobile, viewMode]);
 
+  // Calculate earliest event time for daily view
+  const scrollTime = useMemo(() => {
+    if (viewMode !== "daily") return "03:00:00";
+
+    const dayEvents = events.filter((event) => {
+      const eventDate = new Date(event.start);
+      const selectedDateStr = selectedDate.toDateString();
+      return eventDate.toDateString() === selectedDateStr;
+    });
+
+    console.log("Day events for scroll time calculation:", dayEvents);
+
+    if (dayEvents.length === 0) return "03:00:00";
+
+    const earliestEvent = dayEvents.reduce((earliest, event) => {
+      const eventTime = new Date(event.start);
+      const earliestTime = new Date(earliest.start);
+      return eventTime < earliestTime ? event : earliest;
+    });
+
+    const earliestTime = new Date(earliestEvent.start);
+    console.log("Earliest event time:", earliestTime);
+
+    // Start 1 hour before the earliest event, but not before 6am
+    const startHour = Math.max(6, earliestTime.getHours() - 1);
+    const scrollTimeStr = `${startHour.toString().padStart(2, "0")}:00:00`;
+    console.log("Calculated scroll time:", scrollTimeStr);
+
+    return scrollTimeStr;
+  }, [events, selectedDate, viewMode]);
+
+  // Calculate slot min time for daily view
+  const slotMinTime = useMemo(() => {
+    if (viewMode !== "daily") return "00:00:00";
+
+    const dayEvents = events.filter((event) => {
+      const eventDate = new Date(event.start);
+      const selectedDateStr = selectedDate.toDateString();
+      return eventDate.toDateString() === selectedDateStr;
+    });
+
+    if (dayEvents.length === 0) return "06:00:00";
+
+    const earliestEvent = dayEvents.reduce((earliest, event) => {
+      const eventTime = new Date(event.start);
+      const earliestTime = new Date(earliest.start);
+      return eventTime < earliestTime ? event : earliest;
+    });
+
+    const earliestTime = new Date(earliestEvent.start);
+
+    // Start 1 hour before the earliest event, but not before 6am
+    const startHour = Math.max(6, earliestTime.getHours() - 1);
+    return `${startHour.toString().padStart(2, "0")}:00:00`;
+  }, [events, selectedDate, viewMode]);
+
   // Memoized aspect ratio
   const aspectRatio = useMemo(() => {
     if (isMobile || viewMode === "weekly") return 1.2;
@@ -139,6 +210,57 @@ export const Calendar = ({
     }),
     []
   );
+
+  // Check if there are no events for the selected date in daily view
+  const hasEventsForSelectedDate = useMemo(() => {
+    if (viewMode !== "daily") return true;
+
+    const dayEvents = events.filter((event) => {
+      const eventDate = new Date(event.start);
+      const selectedDateStr = selectedDate.toDateString();
+      return eventDate.toDateString() === selectedDateStr;
+    });
+
+    return dayEvents.length > 0;
+  }, [events, selectedDate, viewMode]);
+
+  // Show "Great day off" message when no events in daily view
+  if (viewMode === "daily" && !hasEventsForSelectedDate) {
+    return (
+      <div className={`${viewMode}-schedule`} style={containerStyles}>
+        <div style={innerContainerStyles}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "400px",
+              padding: "2rem",
+              textAlign: "center",
+              background: "var(--white)",
+              borderRadius: "0.5rem",
+            }}
+          >
+            <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🍋</div>
+            <h2
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: "600",
+                marginBottom: "0.5rem",
+                color: "#374151",
+              }}
+            >
+              No events today
+            </h2>
+            <p style={{ fontSize: "1.1rem", color: "#6b7280" }}>
+              Have a great day off!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${viewMode}-schedule`} style={containerStyles}>
@@ -178,6 +300,9 @@ export const Calendar = ({
           expandRows={!(isMobile || viewMode === "weekly")}
           handleWindowResize={true}
           windowResizeDelay={100}
+          scrollTime={scrollTime}
+          slotMinTime={slotMinTime}
+          slotMaxTime="23:00:00"
           {...listFormats}
           eventContent={EventContent}
           // Disable event time display to prevent time/graphic columns

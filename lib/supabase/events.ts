@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { Event, TruckAssignment } from "@/app/types";
-import { TablesInsert, TablesUpdate } from "@/database.types";
+import { TablesInsert, TablesUpdate, Tables } from "@/database.types";
 import { addressesApi } from "./addresses";
 
 const supabase = createClient();
@@ -39,6 +39,23 @@ export const eventsApi = {
 
     if (error) {
       console.error("Error fetching event:", error);
+      return null;
+    }
+
+    return data;
+  },
+
+  async getEventBasicInfoById(
+    id: string
+  ): Promise<Tables<"event_basic_info_view"> | null> {
+    const { data, error } = await supabase
+      .from("event_basic_info_view")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching event basic info:", error);
       return null;
     }
 
@@ -176,28 +193,58 @@ export const eventsApi = {
 
     return data;
   },
+
+  async getAllEventsBasicInfo(): Promise<Tables<"event_basic_info_view">[]> {
+    const { data, error } = await supabase
+      .from("event_basic_info_view")
+      .select("*")
+      .order("start_date", { ascending: true });
+    if (error) {
+      console.error("Error fetching basic event info:", error);
+      throw new Error("Failed to fetch basic event info");
+    }
+    return data || [];
+  },
 };
 
 export const truckAssignmentsApi = {
   async getTruckAssignmentsByEventId(
     eventId: string
   ): Promise<TruckAssignment[]> {
+    console.log("getTruckAssignmentsByEventId called with eventId:", eventId);
+
     const { data, error } = await supabase
       .from("truck_assignment")
-      .select("*")
+      .select(
+        `
+        *,
+        trucks:trucks(*),
+        employees:employees(*)
+      `
+      )
       .eq("event_id", eventId);
+
+    console.log(
+      "Truck assignments query result - data:",
+      data,
+      "error:",
+      error
+    );
 
     if (error) {
       console.error("Error fetching truck assignments:", error);
       throw new Error("Failed to fetch truck assignments");
     }
 
-    return (data || []).map((item) => ({
+    const result = (data || []).map((item) => ({
       ...item,
       events: Array.isArray(item.events)
         ? item.events[0] || { title: null }
         : item.events,
     }));
+
+    console.log("Truck assignments processed result:", result);
+    return result;
   },
 
   async createTruckAssignment(

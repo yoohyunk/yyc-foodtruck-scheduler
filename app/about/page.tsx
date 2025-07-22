@@ -7,6 +7,8 @@ import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { getTruckBorderColor } from "../types";
+import { useAuth } from "@/contexts/AuthContext";
+import { employeesApi } from "@/lib/supabase/employees";
 
 type Truck = Tables<"trucks"> & {
   addresses?: Tables<"addresses">;
@@ -29,55 +31,84 @@ export default function TruckManagementPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const { shouldHighlight } = useTutorial();
+  const { user, loading: authLoading, isAdmin } = useAuth();
   const supabase = createClient();
 
   useEffect(() => {
-    const fetchTrucks = async () => {
+    const fetchAssignedTrucks = async () => {
+      setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("trucks")
-          .select(
-            `
-            *,
-            addresses (*)
-          `
-          )
-          .order("name", { ascending: true });
-
-        if (error) {
-          console.error("Error fetching trucks:", error);
+        if (authLoading || !user) {
+          setTrucks([]);
+          setLoading(false);
           return;
         }
-
-        // Transform data to include packingList from packing_list
-        const transformedTrucks = (data || []).map((truck) => ({
-          ...truck,
-          packingList: Array.isArray(truck.packing_list)
-            ? truck.packing_list
-            : [
-                "Food preparation equipment",
-                "Cooking utensils and tools",
-                "Food storage containers",
-                "Cleaning supplies",
-                "Safety equipment",
-                "Cash register and payment system",
-                "Menu boards and signage",
-                "First aid kit",
-                "Fire extinguisher",
-                "Generator and fuel",
-              ],
-        }));
-
-        setTrucks(transformedTrucks);
+        // Get employee_id from user_id
+        const employee = await employeesApi.getEmployeeByUserId(user.id);
+        if (!employee) {
+          setTrucks([]);
+          setLoading(false);
+          return;
+        }
+        const employeeId = employee.employee_id;
+        // Get date range: today to 2 weeks from now
+        const now = new Date();
+        const startDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        const endDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() + 14
+        );
+        // Get all truck assignments for this employee
+        const { data: truckAssignments, error } = await supabase
+          .from("truck_assignment")
+          .select(`*, trucks(*), events:event_id(*)`)
+          .eq("driver_id", employeeId)
+          .gte("start_time", startDate.toISOString())
+          .lte("start_time", endDate.toISOString());
+        if (error) {
+          console.error("Error fetching truck assignments:", error);
+          setTrucks([]);
+          setLoading(false);
+          return;
+        }
+        // Get unique trucks from assignments
+        const uniqueTrucks: { [id: string]: Truck } = {};
+        (truckAssignments || []).forEach((assignment: { trucks?: Truck }) => {
+          if (assignment.trucks && assignment.trucks.id) {
+            uniqueTrucks[assignment.trucks.id] = {
+              ...assignment.trucks,
+              packingList: Array.isArray(assignment.trucks.packing_list)
+                ? assignment.trucks.packing_list
+                : [
+                    "Food preparation equipment",
+                    "Cooking utensils and tools",
+                    "Food storage containers",
+                    "Cleaning supplies",
+                    "Safety equipment",
+                    "Cash register and payment system",
+                    "Menu boards and signage",
+                    "First aid kit",
+                    "Fire extinguisher",
+                    "Generator and fuel",
+                  ],
+            };
+          }
+        });
+        setTrucks(Object.values(uniqueTrucks));
       } catch (error) {
-        console.error("Error loading trucks:", error);
+        console.error("Error loading assigned trucks:", error);
+        setTrucks([]);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchTrucks();
-  }, [supabase]);
+    fetchAssignedTrucks();
+  }, [user, authLoading, supabase]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -159,6 +190,34 @@ export default function TruckManagementPage() {
             <div className="text-center">
               <p className="text-lg" style={{ color: "var(--text-muted)" }}>
                 Loading trucks...
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!trucks.length) {
+    return (
+      <div
+        className="min-h-screen py-8"
+        style={{ background: "var(--background)" }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div
+            className="rounded-lg shadow-md p-8"
+            style={{ background: "var(--white)" }}
+          >
+            <div className="text-center">
+              <h1
+                className="text-3xl font-bold mb-4"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Truck Management
+              </h1>
+              <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                No events scheduled to load truck in the next 2 weeks.
               </p>
             </div>
           </div>
@@ -350,22 +409,27 @@ export default function TruckManagementPage() {
                               >
                                 {item}
                               </label>
-                              <TutorialHighlight
-                                isHighlighted={shouldHighlight(
-                                  `.truck-card:nth-child(${index + 1}) button[title='Delete item']`
-                                )}
-                              >
-                                <button
-                                  className="ml-2 text-red-600 hover:text-red-800 text-lg font-bold focus:outline-none"
-                                  title="Delete item"
-                                  onClick={() =>
-                                    setDeleteConfirm({ truckId: truck.id, idx })
-                                  }
-                                  type="button"
+                              {isAdmin && (
+                                <TutorialHighlight
+                                  isHighlighted={shouldHighlight(
+                                    `.truck-card:nth-child(${index + 1}) button[title='Delete item']`
+                                  )}
                                 >
-                                  ×
-                                </button>
-                              </TutorialHighlight>
+                                  <button
+                                    className="ml-2 text-red-600 hover:text-red-800 text-lg font-bold focus:outline-none"
+                                    title="Delete item"
+                                    onClick={() =>
+                                      setDeleteConfirm({
+                                        truckId: truck.id,
+                                        idx,
+                                      })
+                                    }
+                                    type="button"
+                                  >
+                                    ×
+                                  </button>
+                                </TutorialHighlight>
+                              )}
                             </div>
                           ))}
                         </TutorialHighlight>
@@ -407,85 +471,86 @@ export default function TruckManagementPage() {
                               Mark All Packed
                             </button>
                           </TutorialHighlight>
-                          {showAddInput[truck.id] ? (
-                            <>
-                              <input
-                                type="text"
-                                value={newItem[truck.id] || ""}
-                                onChange={(e) =>
-                                  setNewItem((prev) => ({
-                                    ...prev,
-                                    [truck.id]: e.target.value,
-                                  }))
-                                }
-                                placeholder="Add item..."
-                                className="px-2 py-1 border rounded text-sm focus:outline-none"
-                                style={{
-                                  borderColor: "var(--border)",
-                                  minWidth: 0,
-                                  flex: 1,
-                                }}
-                                onFocus={(e) => {
-                                  e.currentTarget.style.borderColor =
-                                    "var(--success-medium)";
-                                  e.currentTarget.style.boxShadow =
-                                    "0 0 0 2px var(--success-light)";
-                                }}
-                                onBlur={(e) => {
-                                  e.currentTarget.style.borderColor =
-                                    "var(--border)";
-                                  e.currentTarget.style.boxShadow = "";
-                                }}
-                              />
-                              <button
-                                className="px-3 py-1 text-sm rounded transition-colors"
-                                style={{
-                                  background: "var(--text-muted)",
-                                  color: "var(--white)",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background =
-                                    "var(--text-secondary)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background =
-                                    "var(--text-muted)";
-                                }}
-                                onClick={async () => {
-                                  await handleAddItem(truck.id);
-                                  setShowAddInput((prev) => ({
-                                    ...prev,
-                                    [truck.id]: false,
-                                  }));
-                                }}
-                                type="button"
+                          {isAdmin &&
+                            (showAddInput[truck.id] ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={newItem[truck.id] || ""}
+                                  onChange={(e) =>
+                                    setNewItem((prev) => ({
+                                      ...prev,
+                                      [truck.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Add item..."
+                                  className="px-2 py-1 border rounded text-sm focus:outline-none"
+                                  style={{
+                                    borderColor: "var(--border)",
+                                    minWidth: 0,
+                                    flex: 1,
+                                  }}
+                                  onFocus={(e) => {
+                                    e.currentTarget.style.borderColor =
+                                      "var(--success-medium)";
+                                    e.currentTarget.style.boxShadow =
+                                      "0 0 0 2px var(--success-light)";
+                                  }}
+                                  onBlur={(e) => {
+                                    e.currentTarget.style.borderColor =
+                                      "var(--border)";
+                                    e.currentTarget.style.boxShadow = "";
+                                  }}
+                                />
+                                <button
+                                  className="px-3 py-1 text-sm rounded transition-colors"
+                                  style={{
+                                    background: "var(--text-muted)",
+                                    color: "var(--white)",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background =
+                                      "var(--text-secondary)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background =
+                                      "var(--text-muted)";
+                                  }}
+                                  onClick={async () => {
+                                    await handleAddItem(truck.id);
+                                    setShowAddInput((prev) => ({
+                                      ...prev,
+                                      [truck.id]: false,
+                                    }));
+                                  }}
+                                  type="button"
+                                >
+                                  Save
+                                </button>
+                              </>
+                            ) : (
+                              <TutorialHighlight
+                                isHighlighted={shouldHighlight(
+                                  `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:last-child`
+                                )}
                               >
-                                Save
-                              </button>
-                            </>
-                          ) : (
-                            <TutorialHighlight
-                              isHighlighted={shouldHighlight(
-                                `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:last-child`
-                              )}
-                            >
-                              <button
-                                style={{
-                                  backgroundColor: "var(--primary-dark)",
-                                }}
-                                className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
-                                onClick={() =>
-                                  setShowAddInput((prev) => ({
-                                    ...prev,
-                                    [truck.id]: true,
-                                  }))
-                                }
-                                type="button"
-                              >
-                                Add Item
-                              </button>
-                            </TutorialHighlight>
-                          )}
+                                <button
+                                  style={{
+                                    backgroundColor: "var(--primary-dark)",
+                                  }}
+                                  className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
+                                  onClick={() =>
+                                    setShowAddInput((prev) => ({
+                                      ...prev,
+                                      [truck.id]: true,
+                                    }))
+                                  }
+                                  type="button"
+                                >
+                                  Add Item
+                                </button>
+                              </TutorialHighlight>
+                            ))}
                         </div>
                       </div>
                     )}

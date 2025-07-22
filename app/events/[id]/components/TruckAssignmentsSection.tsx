@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   Employee,
   Truck,
-  TruckAssignment,
+  TruckAssignment as BaseTruckAssignment,
   getTruckBorderColor,
 } from "@/app/types";
 import { useRouter } from "next/navigation";
@@ -11,12 +11,19 @@ import { extractTime } from "../../utils";
 import { truckAssignmentsApi } from "@/lib/supabase/events";
 import ErrorModal from "../../../components/ErrorModal";
 
+// Extend TruckAssignment to support joined data
+interface TruckAssignment extends BaseTruckAssignment {
+  trucks?: Truck;
+  employees?: Employee;
+}
+
 interface TruckAssignmentsSectionProps {
   truckAssignments: TruckAssignment[];
   trucks: Truck[];
   employees: Employee[];
   shouldHighlight?: (selector: string) => boolean;
   onAssignmentRemoved?: () => void;
+  isAdmin?: boolean;
 }
 
 export default function TruckAssignmentsSection({
@@ -25,6 +32,7 @@ export default function TruckAssignmentsSection({
   employees,
   shouldHighlight = () => false,
   onAssignmentRemoved,
+  isAdmin = false,
 }: TruckAssignmentsSectionProps) {
   const router = useRouter();
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -34,6 +42,14 @@ export default function TruckAssignmentsSection({
     truckName: string;
     driverName: string;
   } | null>(null);
+
+  // Debug: log truckAssignments for non-admins
+  if (!isAdmin) {
+    console.log(
+      "[TruckAssignmentsSection] Non-admin truckAssignments:",
+      truckAssignments
+    );
+  }
 
   const handleTruckClick = (truckId: string) => {
     router.push(`/trucks/${truckId}`);
@@ -106,10 +122,22 @@ export default function TruckAssignmentsSection({
         </h3>
         <div className="space-y-3">
           {truckAssignments.map((assignment, index) => {
-            const truck = trucks.find((t) => t.id === assignment.truck_id);
-            const driver = employees.find(
-              (e) => e.employee_id === assignment.driver_id
-            );
+            // Prefer joined data for non-admins
+            const truck =
+              assignment.trucks ||
+              trucks.find((t) => t.id === assignment.truck_id);
+            const driver =
+              assignment.employees ||
+              employees.find((e) => e.employee_id === assignment.driver_id);
+            // Debug: log each assignment's truck and driver for non-admins
+            if (!isAdmin) {
+              console.log(
+                `[TruckAssignmentsSection] Assignment ${assignment.id} truck:`,
+                truck,
+                "driver:",
+                driver
+              );
+            }
 
             return (
               <TutorialHighlight
@@ -135,7 +163,7 @@ export default function TruckAssignmentsSection({
                         <span className="text-xs font-bold text-gray-700 text-center leading-tight">
                           {truck?.name
                             ?.split(" ")
-                            .map((word) => word.charAt(0))
+                            .map((word: string) => word.charAt(0))
                             .join("")
                             .toUpperCase() || "T"}
                         </span>
@@ -150,44 +178,55 @@ export default function TruckAssignmentsSection({
                           }
                         >
                           <h4
-                            className="font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors truck-name"
-                            onClick={() => truck && handleTruckClick(truck.id)}
+                            className={`font-medium text-gray-900 truck-name${isAdmin ? " cursor-pointer hover:text-blue-600 transition-colors" : ""}`}
+                            onClick={
+                              isAdmin && truck
+                                ? () => handleTruckClick(truck.id)
+                                : undefined
+                            }
+                            style={
+                              !isAdmin
+                                ? { pointerEvents: "none", opacity: 0.8 }
+                                : {}
+                            }
                           >
                             {truck?.name || "Unknown Truck"}
                           </h4>
                         </TutorialHighlight>
-                        <p className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-500">
                           Type: {truck?.type || "Unknown"}
-                        </p>
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         Assigned
                       </span>
-                      <button
-                        className="ml-2 p-1 rounded hover:bg-red-100 text-red-600 flex items-center justify-center"
-                        title="Unassign"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUnassignClick(assignment);
-                        }}
-                        disabled={removingId === assignment.id}
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          viewBox="0 0 24 24"
+                      {isAdmin && (
+                        <button
+                          className="p-1 rounded hover:bg-red-100 text-red-600 flex items-center justify-center transition-all duration-200 hover:scale-110"
+                          title="Unassign"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnassignClick(assignment);
+                          }}
+                          disabled={removingId === assignment.id}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-200">
@@ -205,9 +244,17 @@ export default function TruckAssignmentsSection({
                               }
                             >
                               <span
-                                className="cursor-pointer hover:text-blue-600 transition-colors underline driver-name"
-                                onClick={() =>
-                                  handleDriverClick(driver.employee_id)
+                                className={`driver-name${isAdmin ? " cursor-pointer hover:text-blue-600 transition-colors underline" : ""}`}
+                                onClick={
+                                  isAdmin && driver && driver.employee_id
+                                    ? () =>
+                                        handleDriverClick(driver.employee_id)
+                                    : undefined
+                                }
+                                style={
+                                  !isAdmin
+                                    ? { pointerEvents: "none", opacity: 0.8 }
+                                    : {}
                                 }
                               >
                                 {driver.first_name} {driver.last_name}

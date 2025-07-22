@@ -4,39 +4,87 @@ import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { extractDate, extractTime } from "./utils";
 import { Event } from "../types";
+import type { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Events(): ReactElement {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+  const [adminEvents, setAdminEvents] = useState<Event[]>([]);
+  const [limitedEvents, setLimitedEvents] = useState<
+    Tables<"event_basic_info_view">[]
+  >([]);
+  const [filteredAdminEvents, setFilteredAdminEvents] = useState<Event[]>([]);
+  const [filteredLimitedEvents, setFilteredLimitedEvents] = useState<
+    Tables<"event_basic_info_view">[]
+  >([]);
   const [activeFilter, setActiveFilter] = useState<string>("All"); // Default filter is "All"
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
+  const { user, isAdmin } = useAuth();
+  const { loading: authLoading } = useAuth();
 
   // Fetch events from Supabase
   useEffect(() => {
+    if (authLoading || typeof isAdmin === "undefined") {
+      return;
+    }
+
+    setAdminEvents([]);
+    setLimitedEvents([]);
+
     const fetchEvents = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await eventsApi.getAllEvents();
-        // Sort events by start_date ascending (soonest first)
-        const sorted = [...data].sort((a, b) => {
-          const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
-          const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
-          return dateA - dateB;
-        });
-        setEvents(sorted);
-        setFilteredEvents(sorted); // Initially show all events
-        // Set global variable for tutorial navigation
-        if (typeof window !== "undefined" && sorted.length > 0) {
-          (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
-            sorted[0].id;
+        if (isAdmin) {
+          const data = await eventsApi.getAllEvents();
+          const sorted = [...data].sort((a, b) => {
+            const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+            const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+            return dateA - dateB;
+          });
+          setAdminEvents(sorted);
+          setFilteredAdminEvents(sorted);
+          if (typeof window !== "undefined" && sorted.length > 0) {
+            (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
+              sorted[0].id;
+          }
+        } else {
+          // Fetch only events assigned to the current user
+          if (!user?.id) {
+            setLimitedEvents([]);
+            setFilteredLimitedEvents([]);
+            setIsLoading(false);
+            return;
+          }
+          const response = await fetch(
+            `/api/events/assigned?userId=${user.id}`
+          );
+          if (!response.ok) {
+            setError("Failed to load assigned events. Please try again.");
+            setLimitedEvents([]);
+            setFilteredLimitedEvents([]);
+            setIsLoading(false);
+            return;
+          }
+          const result = await response.json();
+          const data = result.events || [];
+          const sorted = [...data].sort((a, b) => {
+            const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+            const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+            return dateA - dateB;
+          });
+          setLimitedEvents(sorted);
+          setFilteredLimitedEvents(sorted);
+          if (typeof window !== "undefined" && sorted.length > 0) {
+            (window as { __TUTORIAL_EVENT_ID?: string }).__TUTORIAL_EVENT_ID =
+              sorted[0].id as string;
+          }
         }
       } catch (err) {
         console.error("Error fetching events:", err);
@@ -48,7 +96,6 @@ export default function Events(): ReactElement {
 
     fetchEvents();
 
-    // Add focus event listener to refresh data when user navigates back
     const handleFocus = () => {
       console.log("Events page: Refreshing data on focus");
       fetchEvents();
@@ -56,54 +103,71 @@ export default function Events(): ReactElement {
 
     window.addEventListener("focus", handleFocus);
 
-    // Cleanup event listener
     return () => {
       window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [isAdmin, user, authLoading]);
 
   // Filter events based on the active filter and date
   useEffect(() => {
-    let filtered = [...events];
-
-    // Apply status filter
-    if (activeFilter !== "All") {
-      filtered = filtered.filter((event) => {
-        const eventStatus = event.status || "Pending";
-        return activeFilter === eventStatus;
+    if (isAdmin) {
+      let filtered = [...adminEvents];
+      if (activeFilter !== "All") {
+        filtered = filtered.filter((event) => {
+          const eventStatus = event.status || "Pending";
+          return activeFilter === eventStatus;
+        });
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate) {
+        filtered = filtered.filter((event) => {
+          const eventDate = event.start_date
+            ? new Date(event.start_date).toISOString().split("T")[0]
+            : "";
+          return eventDate === selectedDate;
+        });
+      } else {
+        filtered = filtered.filter((event) => {
+          if (!event.end_date) return true;
+          const eventEnd = new Date(event.end_date);
+          eventEnd.setHours(0, 0, 0, 0);
+          return eventEnd >= today;
+        });
+      }
+      filtered.sort((a, b) => {
+        const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+        const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+        return dateA - dateB;
       });
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (selectedDate) {
-      // If a date is selected, show events for that date (even if in the past)
-      filtered = filtered.filter((event) => {
-        const eventDate = event.start_date
-          ? new Date(event.start_date).toISOString().split("T")[0]
-          : "";
-        return eventDate === selectedDate;
-      });
+      setFilteredAdminEvents(filtered);
     } else {
-      // No date selected: show only events whose end_date is today or in the future
-      filtered = filtered.filter((event) => {
-        if (!event.end_date) return true;
-        const eventEnd = new Date(event.end_date);
-        eventEnd.setHours(0, 0, 0, 0);
-        return eventEnd >= today;
+      let filtered = [...limitedEvents];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate) {
+        filtered = filtered.filter((event) => {
+          const eventDate = event.start_date
+            ? new Date(event.start_date).toISOString().split("T")[0]
+            : "";
+          return eventDate === selectedDate;
+        });
+      } else {
+        filtered = filtered.filter((event) => {
+          if (!event.end_date) return true;
+          const eventEnd = new Date(event.end_date);
+          eventEnd.setHours(0, 0, 0, 0);
+          return eventEnd >= today;
+        });
+      }
+      filtered.sort((a, b) => {
+        const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+        const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+        return dateA - dateB;
       });
+      setFilteredLimitedEvents(filtered);
     }
-
-    // Sort filtered events by start_date ascending
-    filtered.sort((a, b) => {
-      const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
-      const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
-      return dateA - dateB;
-    });
-
-    setFilteredEvents(filtered);
-  }, [activeFilter, selectedDate, events]);
+  }, [activeFilter, selectedDate, adminEvents, limitedEvents, isAdmin]);
 
   if (isLoading) {
     return (
@@ -189,23 +253,13 @@ export default function Events(): ReactElement {
         isHighlighted={shouldHighlight(".event-list")}
         className="event-list grid gap-4"
       >
-        {filteredEvents.length > 0 ? (
-          filteredEvents.map((event, index) => {
-            // Highlight for "View Event Details" step (first card)
-            const highlightViewDetailsButton =
-              (index === 0 &&
-                (shouldHighlight(".event-card:first-child .button") ||
-                  shouldHighlight(`.event-card:nth-child(1) .button`))) ||
-              false;
-
-            // Use actual status from database, default to "Pending" if null
-            const eventStatus = event.status || "Pending";
-
-            return (
+        {isAdmin ? (
+          filteredAdminEvents.length > 0 ? (
+            filteredAdminEvents.map((event) => (
               <TutorialHighlight
-                key={event.id}
+                key={String(event.id)}
                 isHighlighted={shouldHighlight(
-                  `.event-card:nth-child(${index + 1})`
+                  `.event-card:nth-child(${filteredAdminEvents.indexOf(event) + 1})`
                 )}
                 className="event-card bg-white p-4 rounded shadow relative"
               >
@@ -223,49 +277,53 @@ export default function Events(): ReactElement {
                     : "Time not set"}
                 </p>
                 <p>
-                  <strong>Location:</strong>{" "}
-                  {event.description || "Location not set"}
+                  <strong>Description:</strong>{" "}
+                  {event.description || "No description"}
                 </p>
-                <p>
-                  <strong>Required Servers:</strong>{" "}
-                  {event.number_of_servers_needed || 0}
-                </p>
-                <p>
-                  <strong>Required Drivers:</strong>{" "}
-                  {event.number_of_driver_needed || 0}
-                </p>
-                {event.contact_name && (
+                {"status" in event && event.status && (
                   <p>
-                    <strong>Contact:</strong> {event.contact_name}
+                    <strong>Status:</strong>{" "}
+                    <span
+                      className={`inline-block px-2 py-1 rounded text-xs font-semibold
+                          ${
+                            event.status === "Pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : event.status === "Cancelled"
+                                ? "bg-red-100 text-red-800"
+                                : event.status === "Completed"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-blue-100 text-blue-800"
+                          }
+                        `}
+                      style={{ marginLeft: 8 }}
+                    >
+                      {event.status}
+                    </span>
                   </p>
                 )}
-                <p>
-                  <strong>Payment:</strong>{" "}
-                  <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      event.is_prepaid
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {event.is_prepaid ? "Prepaid" : "Pending"}
-                  </span>
-                </p>
-                <p>
-                  <strong>Status:</strong>{" "}
-                  <span
-                    className={
-                      eventStatus === "Pending"
-                        ? "text-yellow-500"
-                        : eventStatus === "Cancelled"
-                          ? "text-red-500"
-                          : "text-green-500"
-                    }
-                  >
-                    {eventStatus}
-                  </span>
-                </p>
-                <TutorialHighlight isHighlighted={highlightViewDetailsButton}>
+                {"contact_name" in event && (
+                  <p>
+                    <strong>Contact:</strong> {event.contact_name || "N/A"}
+                  </p>
+                )}
+                {"is_prepaid" in event && (
+                  <p>
+                    <strong>Prepaid:</strong> {event.is_prepaid ? "Yes" : "No"}
+                  </p>
+                )}
+                {"number_of_servers_needed" in event && (
+                  <p>
+                    <strong>Servers Needed:</strong>{" "}
+                    {event.number_of_servers_needed}
+                  </p>
+                )}
+                {"number_of_driver_needed" in event && (
+                  <p>
+                    <strong>Drivers Needed:</strong>{" "}
+                    {event.number_of_driver_needed}
+                  </p>
+                )}
+                <TutorialHighlight isHighlighted={false}>
                   <button
                     className="button mt-2"
                     onClick={() => router.push(`/events/${event.id}`)}
@@ -274,24 +332,70 @@ export default function Events(): ReactElement {
                   </button>
                 </TutorialHighlight>
               </TutorialHighlight>
-            );
-          })
+            ))
+          ) : (
+            <p className="text-gray-500">No events found.</p>
+          )
+        ) : filteredLimitedEvents.length > 0 ? (
+          filteredLimitedEvents.map((event) => (
+            <TutorialHighlight
+              key={String(event.id)}
+              isHighlighted={shouldHighlight(
+                `.event-card:nth-child(${filteredLimitedEvents.indexOf(event) + 1})`
+              )}
+              className="event-card bg-white p-4 rounded shadow relative"
+            >
+              <h3 className="text-lg font-semibold">{event.title}</h3>
+              <p>
+                <strong>Date:</strong>{" "}
+                {event.start_date && event.end_date
+                  ? extractDate(event.start_date, event.end_date)
+                  : "Date not set"}
+              </p>
+              <p>
+                <strong>Time:</strong>{" "}
+                {event.start_date && event.end_date
+                  ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
+                  : "Time not set"}
+              </p>
+              <p>
+                <strong>Description:</strong>{" "}
+                {event.description || "No description"}
+              </p>
+              {event.status && (
+                <p>
+                  <strong>Status:</strong>{" "}
+                  <span
+                    className={`inline-block px-2 py-1 rounded text-xs font-semibold
+                        ${
+                          event.status === "Pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : event.status === "Cancelled"
+                              ? "bg-red-100 text-red-800"
+                              : event.status === "Completed"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-blue-100 text-blue-800"
+                        }
+                      `}
+                    style={{ marginLeft: 8 }}
+                  >
+                    {event.status}
+                  </span>
+                </p>
+              )}
+              <TutorialHighlight isHighlighted={false}>
+                <button
+                  className="button mt-2"
+                  onClick={() => router.push(`/events/${event.id}`)}
+                >
+                  View Details
+                </button>
+              </TutorialHighlight>
+            </TutorialHighlight>
+          ))
         ) : (
           <p className="text-gray-500">No events found.</p>
         )}
-      </TutorialHighlight>
-
-      {/* Create Event Button */}
-      <TutorialHighlight
-        isHighlighted={shouldHighlight(".sidebar")}
-        className="mt-6"
-      >
-        <button
-          className="button bg-primary-medium text-white w-full py-2 rounded-lg hover:bg-primary-dark"
-          onClick={() => router.push("/events/newEvent")}
-        >
-          + Create Event
-        </button>
       </TutorialHighlight>
     </div>
   );

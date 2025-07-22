@@ -17,6 +17,8 @@ import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
 import { assignmentsApi } from "@/lib/supabase/assignments";
+import type { EventBasicInfo } from "@/app/types";
+
 import {
   validateForm,
   ValidationRule,
@@ -40,6 +42,9 @@ export default function EventDetailsPage(): ReactElement {
   const router = useRouter();
   const { isAdmin } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
+  const [eventBasicInfo, setEventBasicInfo] = useState<EventBasicInfo | null>(
+    null
+  );
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
@@ -136,13 +141,30 @@ export default function EventDetailsPage(): ReactElement {
   // Fetch event details from Supabase
   useEffect(() => {
     const fetchEvent = async () => {
+      console.log("fetchEvent called with id:", id, "isAdmin:", isAdmin);
       if (!id) return;
 
       try {
         setIsLoadingEvent(true);
         setError(null);
-        const eventData = await eventsApi.getEventById(id as string);
-        setEvent(eventData);
+
+        if (isAdmin) {
+          // Admin gets full event details
+          console.log("Fetching full event data for admin");
+          const eventData = await eventsApi.getEventById(id as string);
+          console.log("Full event data fetched:", eventData);
+          setEvent(eventData);
+          setEventBasicInfo(null);
+        } else {
+          // Non-admin gets basic event info only
+          console.log("Fetching basic event data for non-admin");
+          const basicEventData = await eventsApi.getEventBasicInfoById(
+            id as string
+          );
+          console.log("Basic event data fetched:", basicEventData);
+          setEventBasicInfo(basicEventData);
+          setEvent(null);
+        }
       } catch (error) {
         console.error("Error fetching event:", error);
         setError("Failed to load event details.");
@@ -152,21 +174,29 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchEvent();
-  }, [id]);
+  }, [id, isAdmin]);
 
-  // Fetch employees and trucks from Supabase
+  // Fetch employees and trucks from Supabase (both admin and non-admin for display)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch all employees (not just available ones) so the modal can show unavailable employees
-        const employeesData = await employeesApi.getAllEmployees();
-        setEmployees(employeesData);
-        setIsLoadingEmployees(false);
+        if (isAdmin) {
+          // Admin gets full employee and truck data
+          const employeesData = await employeesApi.getAllEmployees();
+          setEmployees(employeesData);
+          setIsLoadingEmployees(false);
 
-        // Fetch trucks
-        const trucksData = await trucksApi.getAllTrucks();
-        setTrucks(trucksData);
-        setIsLoadingTrucks(false);
+          const trucksData = await trucksApi.getAllTrucks();
+          setTrucks(trucksData);
+          setIsLoadingTrucks(false);
+        } else {
+          // Non-admin gets limited employee and truck data for display only
+          // We'll fetch this data when we have assignments to display
+          setEmployees([]);
+          setTrucks([]);
+          setIsLoadingEmployees(false);
+          setIsLoadingTrucks(false);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
         setIsLoadingEmployees(false);
@@ -188,16 +218,41 @@ export default function EventDetailsPage(): ReactElement {
     return () => {
       window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [isAdmin]);
 
-  // Fetch truck assignments when event is loaded
+  // Fetch truck assignments when event is loaded (both admin and non-admin)
   useEffect(() => {
-    const fetchTruckAssignments = async () => {
-      if (!event?.id) return;
+    const eventId = isAdmin ? event?.id : eventBasicInfo?.id;
+    console.log(
+      "Truck assignments useEffect - eventId:",
+      eventId,
+      "isAdmin:",
+      isAdmin
+    );
+    console.log(
+      "event?.id:",
+      event?.id,
+      "eventBasicInfo?.id:",
+      eventBasicInfo?.id
+    );
 
+    if (!eventId) {
+      console.log("No eventId available, skipping truck assignments fetch");
+      return;
+    }
+
+    const fetchTruckAssignments = async () => {
       try {
+        console.log("Fetching truck assignments for event ID:", eventId);
         const assignments =
-          await truckAssignmentsApi.getTruckAssignmentsByEventId(event.id);
+          await truckAssignmentsApi.getTruckAssignmentsByEventId(eventId);
+        console.log("Truck assignments fetched:", assignments);
+        if (!isAdmin) {
+          console.log(
+            "[EventDetailsPage] Non-admin truckAssignments after fetch:",
+            assignments
+          );
+        }
         setTruckAssignments(assignments);
       } catch (error) {
         console.error("Error fetching truck assignments:", error);
@@ -205,27 +260,57 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchTruckAssignments();
-  }, [event?.id]);
+  }, [event?.id, eventBasicInfo?.id, isAdmin]);
 
-  // Fetch server assignments when event is loaded
+  // For non-admin users, we don't need to fetch separate employee/truck data
+  // since the assignments now include the related data
   useEffect(() => {
-    const fetchServerAssignments = async () => {
-      if (!event?.id) return;
+    if (isAdmin) return; // Admin already has this data
 
+    console.log("Non-admin user - assignments should include related data");
+    console.log("Server assignments:", serverAssignments);
+    console.log("Truck assignments:", truckAssignments);
+  }, [serverAssignments, truckAssignments, isAdmin]);
+
+  // Fetch server assignments when event is loaded (both admin and non-admin)
+  useEffect(() => {
+    const eventId = isAdmin ? event?.id : eventBasicInfo?.id;
+    console.log(
+      "Server assignments useEffect - eventId:",
+      eventId,
+      "isAdmin:",
+      isAdmin
+    );
+    console.log(
+      "event?.id:",
+      event?.id,
+      "eventBasicInfo?.id:",
+      eventBasicInfo?.id
+    );
+
+    if (!eventId) {
+      console.log("No eventId available, skipping server assignments fetch");
+      return;
+    }
+
+    const fetchServerAssignments = async () => {
       try {
-        const assignments = await assignmentsApi.getServerAssignmentsByEventId(
-          event.id
-        );
+        console.log("Fetching server assignments for event ID:", eventId);
+        const assignments =
+          await assignmentsApi.getServerAssignmentsByEventId(eventId);
+        console.log("Server assignments fetched:", assignments);
         setServerAssignments(assignments);
 
-        // Check if we need to show server warning
-        const requiredServers = event.number_of_servers_needed || 0;
-        const assignedServers = assignments.length;
+        // Check if we need to show server warning (admin only)
+        if (isAdmin && event) {
+          const requiredServers = event.number_of_servers_needed || 0;
+          const assignedServers = assignments.length;
 
-        if (assignedServers < requiredServers) {
-          setShowServerWarning(true);
-        } else {
-          setShowServerWarning(false);
+          if (assignedServers < requiredServers) {
+            setShowServerWarning(true);
+          } else {
+            setShowServerWarning(false);
+          }
         }
       } catch (error) {
         console.error("Error fetching server assignments:", error);
@@ -233,7 +318,7 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchServerAssignments();
-  }, [event?.id, event?.number_of_servers_needed]);
+  }, [event?.id, eventBasicInfo?.id, isAdmin, event?.number_of_servers_needed]);
 
   // Update assigned employees when server assignments change
   useEffect(() => {
@@ -873,7 +958,7 @@ export default function EventDetailsPage(): ReactElement {
     );
   }
 
-  if (!event) {
+  if (!event && !eventBasicInfo) {
     return (
       <div className="text-center mt-10">
         <p className="text-lg text-gray-500">Event not found.</p>
@@ -897,232 +982,251 @@ export default function EventDetailsPage(): ReactElement {
               className="event-detail-card"
             >
               <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold">{event.title}</h1>
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleEditEvent}
-                    className="edit-button"
-                    title="Edit Event"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={openDeleteModal}
-                    className="delete-button"
-                    title="Delete Event"
-                  >
-                    🗑️
-                  </button>
-                </div>
+                <h1 className="text-3xl font-bold">
+                  {isAdmin ? event?.title : eventBasicInfo?.title}
+                </h1>
+                {isAdmin && event && (
+                  <div className="flex gap-4">
+                    <button
+                      onClick={handleEditEvent}
+                      className="edit-button"
+                      title="Edit Event"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={openDeleteModal}
+                      className="delete-button"
+                      title="Delete Event"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="event-detail-info-container">
-                <p className="event-detail-info">
-                  <strong className="info-label">Date:</strong>
-                  <span className="info-text">
-                    {extractDate(event.start_date, event.end_date)}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Time:</strong>
-                  <span className="info-text">
-                    {event.start_date && event.end_date
-                      ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
-                      : "Time not set"}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Location:</strong>
-                  <span className="info-text">
-                    {event.description || "Location not set"}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Required Servers:</strong>
-                  <span className="info-text">
-                    {event.number_of_servers_needed || 0}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Required Drivers:</strong>
-                  <span className="info-text">
-                    {event.number_of_driver_needed || 0}
-                  </span>
-                </p>
-                {event.contact_name && (
-                  <p className="event-detail-info">
-                    <strong className="info-label">Contact Name:</strong>
-                    <span className="info-text">{event.contact_name}</span>
-                  </p>
+                {isAdmin && event ? (
+                  // Admin view - full event details
+                  <>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Date:</strong>
+                      <span className="info-text">
+                        {extractDate(event.start_date, event.end_date)}
+                      </span>
+                    </p>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Time:</strong>
+                      <span className="info-text">
+                        {event.start_date && event.end_date
+                          ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
+                          : "Time not set"}
+                      </span>
+                    </p>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Location:</strong>
+                      <span className="info-text">
+                        {event.description || "Location not set"}
+                      </span>
+                    </p>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Required Servers:</strong>
+                      <span className="info-text">
+                        {event.number_of_servers_needed || 0}
+                      </span>
+                    </p>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Required Drivers:</strong>
+                      <span className="info-text">
+                        {event.number_of_driver_needed || 0}
+                      </span>
+                    </p>
+                    {event.contact_name && (
+                      <p className="event-detail-info">
+                        <strong className="info-label">Contact Name:</strong>
+                        <span className="info-text">{event.contact_name}</span>
+                      </p>
+                    )}
+                    {event.contact_email && (
+                      <p className="event-detail-info">
+                        <strong className="info-label">Contact Email:</strong>
+                        <span className="info-text">{event.contact_email}</span>
+                      </p>
+                    )}
+                    {event.contact_phone && (
+                      <p className="event-detail-info">
+                        <strong className="info-label">Contact Phone:</strong>
+                        <span className="info-text">{event.contact_phone}</span>
+                      </p>
+                    )}
+                    <p className="event-detail-info">
+                      <strong className="info-label">Payment Status:</strong>
+                      <span
+                        className={`px-2 py-1 rounded text-sm ${event.is_prepaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
+                      >
+                        {event.is_prepaid ? "Prepaid" : "Pending Payment"}
+                      </span>
+                    </p>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Status:</strong>
+                      <span
+                        className={`px-2 py-1 rounded text-sm ${
+                          event.status === "Pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : event.status === "Cancelled"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {event.status || "Pending"}
+                      </span>
+                    </p>
+                  </>
+                ) : (
+                  // Non-admin view - basic event info only
+                  <>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Date:</strong>
+                      <span className="info-text">
+                        {eventBasicInfo?.start_date && eventBasicInfo?.end_date
+                          ? extractDate(
+                              eventBasicInfo.start_date,
+                              eventBasicInfo.end_date
+                            )
+                          : "Date not set"}
+                      </span>
+                    </p>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Time:</strong>
+                      <span className="info-text">
+                        {eventBasicInfo?.start_date && eventBasicInfo?.end_date
+                          ? `${extractTime(eventBasicInfo.start_date)} - ${extractTime(eventBasicInfo.end_date)}`
+                          : "Time not set"}
+                      </span>
+                    </p>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Description:</strong>
+                      <span className="info-text">
+                        {eventBasicInfo?.description ||
+                          "No description available"}
+                      </span>
+                    </p>
+                    <p className="event-detail-info">
+                      <strong className="info-label">Status:</strong>
+                      <span
+                        className={`px-2 py-1 rounded text-sm ${
+                          (eventBasicInfo?.status ?? "Unknown") === "Pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : (eventBasicInfo?.status ?? "Unknown") ===
+                                "Cancelled"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {eventBasicInfo?.status ?? "Unknown"}
+                      </span>
+                    </p>
+                  </>
                 )}
-                {event.contact_email && (
-                  <p className="event-detail-info">
-                    <strong className="info-label">Contact Email:</strong>
-                    <span className="info-text">{event.contact_email}</span>
-                  </p>
-                )}
-                {event.contact_phone && (
-                  <p className="event-detail-info">
-                    <strong className="info-label">Contact Phone:</strong>
-                    <span className="info-text">{event.contact_phone}</span>
-                  </p>
-                )}
-                <p className="event-detail-info">
-                  <strong className="info-label">Payment Status:</strong>
-                  <span
-                    className={`px-2 py-1 rounded text-sm ${event.is_prepaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
-                  >
-                    {event.is_prepaid ? "Prepaid" : "Pending Payment"}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Event Status:</strong>
-                  <span
-                    className={`px-2 py-1 rounded text-sm ${
-                      event.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : event.status === "Cancelled"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {event.status || "Pending"}
-                  </span>
-                </p>
               </div>
             </TutorialHighlight>
           </div>
         </div>
 
-        {/* Server Warning */}
-        {showServerWarning && (
-          <div className="w-full">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-yellow-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-800">
-                    Not Enough Servers Assigned
-                  </h3>
-                  <div className="mt-2 text-sm text-yellow-700">
-                    <p>
-                      This event requires {event?.number_of_servers_needed || 0}{" "}
-                      servers, but only {serverAssignments.length} are currently
-                      assigned. The event status has been set to
-                      &quot;Pending&quot; until all required servers are
-                      assigned.
-                    </p>
+        {/* Admin-only sections */}
+        {isAdmin && event && (
+          <>
+            {/* Server Warning */}
+            {showServerWarning && (
+              <div className="w-full">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="h-5 w-5 text-yellow-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-yellow-800">
+                        Not Enough Servers Assigned
+                      </h3>
+                      <div className="mt-2 text-sm text-yellow-700">
+                        <p>
+                          This event requires{" "}
+                          {event.number_of_servers_needed || 0} servers, but
+                          only {serverAssignments.length} are currently
+                          assigned. The event status has been set to
+                          &quot;Pending&quot; until all required servers are
+                          assigned.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Assign Staff and Trucks Buttons */}
-        <div className="mt-6 flex gap-4">
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".select-employees-button")}
-          >
-            <button
-              className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
-              onClick={openEmployeeModal}
-            >
-              Select Employees
-            </button>
-          </TutorialHighlight>
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".select-trucks-button")}
-          >
-            <button
-              className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
-              onClick={openTruckModal}
-            >
-              Assign Trucks & Drivers
-            </button>
-          </TutorialHighlight>
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".update-payment-button")}
-          >
-            <button
-              className="button bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 update-payment-button"
-              onClick={() => handleUpdatePaymentStatus()}
-            >
-              {event.is_prepaid ? "Mark as Pending Payment" : "Mark as Prepaid"}
-            </button>
-          </TutorialHighlight>
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".update-status-buttons")}
-          >
-            <div className="flex gap-2 update-status-buttons">
-              <select
-                value={event.status || "Pending"}
-                onChange={(e) => handleUpdateStatus(e.target.value)}
-                className="button bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 border-none"
+            {/* Assign Staff and Trucks Buttons */}
+            <div className="mt-6 flex gap-4">
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".select-employees-button")}
               >
-                <option value="Pending">Pending</option>
-                <option value="Scheduled">Scheduled</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
+                <button
+                  className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
+                  onClick={openEmployeeModal}
+                >
+                  Select Employees
+                </button>
+              </TutorialHighlight>
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".select-trucks-button")}
+              >
+                <button
+                  className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
+                  onClick={openTruckModal}
+                >
+                  Assign Trucks & Drivers
+                </button>
+              </TutorialHighlight>
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".update-payment-button")}
+              >
+                <button
+                  className="button bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 update-payment-button"
+                  onClick={() => handleUpdatePaymentStatus()}
+                >
+                  {event.is_prepaid
+                    ? "Mark as Pending Payment"
+                    : "Mark as Prepaid"}
+                </button>
+              </TutorialHighlight>
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".update-status-buttons")}
+              >
+                <div className="flex gap-2 update-status-buttons">
+                  <select
+                    value={event.status || "Pending"}
+                    onChange={(e) => handleUpdateStatus(e.target.value)}
+                    className="button bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 border-none"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </TutorialHighlight>
             </div>
-          </TutorialHighlight>
-        </div>
-
-        {/* Employee Selection Modal */}
-        {isEmployeeModalOpen && (
-          <EmployeeSelectionModal
-            key="employee-selection-modal"
-            isOpen={isEmployeeModalOpen}
-            onClose={closeEmployeeModal}
-            employees={employees}
-            assignedEmployees={assignedEmployees}
-            onSaveAssignments={handleSaveEmployeeAssignments}
-            employeeFilter={employeeFilter}
-            onFilterChange={(filter) => setEmployeeFilter(filter)}
-            isLoadingEmployees={isLoadingEmployees}
-            event={{
-              id: event.id,
-              addresses: event.addresses,
-              number_of_servers_needed: event.number_of_servers_needed || 0,
-              start_date: event.start_date,
-              end_date: event.end_date,
-            }}
-            shouldHighlight={shouldHighlight}
-          />
+          </>
         )}
 
-        {/* Truck Assignment Modal */}
-        {isTruckAssignmentModalOpen && (
-          <TruckAssignmentModal
-            key="truck-assignment-modal"
-            isOpen={isTruckAssignmentModalOpen}
-            onClose={closeTruckModal}
-            trucks={trucks}
-            onTruckAssignment={(truckId, driverId) =>
-              handleTruckAssignment(truckId, driverId)
-            }
-            getAssignedDriverForTruck={getAssignedDriverForTruck}
-            getAvailableDrivers={getAvailableDrivers}
-            isLoadingTrucks={isLoadingTrucks}
-            shouldHighlight={shouldHighlight}
-            eventStartTime={event?.start_date}
-            eventEndTime={event?.end_date}
-            eventId={event?.id}
-          />
-        )}
-
-        {/* Assignments Grid - Side by Side */}
+        {/* Assignments Grid - Side by Side (both admin and non-admin) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
           {/* Server Assignments Section */}
           <TutorialHighlight
@@ -1132,7 +1236,9 @@ export default function EventDetailsPage(): ReactElement {
             <div className="server-assignments-section">
               <ServerAssignmentsSection
                 serverAssignments={serverAssignments}
-                onAssignmentRemoved={refreshServerAssignments}
+                onAssignmentRemoved={
+                  isAdmin ? refreshServerAssignments : undefined
+                }
                 isAdmin={isAdmin}
               />
             </div>
@@ -1150,7 +1256,10 @@ export default function EventDetailsPage(): ReactElement {
                   truckAssignments={truckAssignments}
                   employees={employees}
                   shouldHighlight={shouldHighlight}
-                  onAssignmentRemoved={refreshTruckAssignments}
+                  onAssignmentRemoved={
+                    isAdmin ? refreshTruckAssignments : undefined
+                  }
+                  isAdmin={isAdmin}
                 />
               ) : (
                 <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -1166,61 +1275,114 @@ export default function EventDetailsPage(): ReactElement {
           </TutorialHighlight>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-6 flex gap-4">
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".edit-event-button")}
-          >
-            <button
-              className="button bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 edit-event-button"
-              onClick={handleEditEvent}
-            >
-              Edit Event
-            </button>
-          </TutorialHighlight>
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".delete-event-button")}
-          >
-            <button
-              className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
-              onClick={openDeleteModal}
-            >
-              Delete Event
-            </button>
-          </TutorialHighlight>
-        </div>
+        {/* Admin-only modals and action buttons */}
+        {isAdmin && event && (
+          <>
+            {/* Employee Selection Modal */}
+            {isEmployeeModalOpen && (
+              <EmployeeSelectionModal
+                key="employee-selection-modal"
+                isOpen={isEmployeeModalOpen}
+                onClose={closeEmployeeModal}
+                employees={employees}
+                assignedEmployees={assignedEmployees}
+                onSaveAssignments={handleSaveEmployeeAssignments}
+                employeeFilter={employeeFilter}
+                onFilterChange={(filter) => setEmployeeFilter(filter)}
+                isLoadingEmployees={isLoadingEmployees}
+                event={{
+                  id: event.id,
+                  addresses: event.addresses,
+                  number_of_servers_needed: event.number_of_servers_needed || 0,
+                  start_date: event.start_date,
+                  end_date: event.end_date,
+                }}
+                shouldHighlight={shouldHighlight}
+              />
+            )}
 
-        {/* Edit Event Modal */}
-        {isEditModalOpen && (
-          <EditEventModal
-            key="edit-event-modal"
-            isOpen={isEditModalOpen}
-            onClose={closeEditModal}
-            onSubmit={handleEditSubmit}
-            formData={editFormData}
-            onFormChange={handleEditFormChange}
-            onDateChange={handleEditDateChange}
-            onEndDateChange={handleEditEndDateChange}
-            onTimeChange={handleEditTimeChange}
-            onEndTimeChange={handleEditEndTimeChange}
-            selectedDate={selectedDate}
-            selectedEndDate={selectedEndDate}
-            selectedTime={selectedTime}
-            selectedEndTime={selectedEndTime}
-            isSubmitting={isSubmitting}
-            setEditFormData={setEditFormData}
-          />
+            {/* Truck Assignment Modal */}
+            {isTruckAssignmentModalOpen && (
+              <TruckAssignmentModal
+                key="truck-assignment-modal"
+                isOpen={isTruckAssignmentModalOpen}
+                onClose={closeTruckModal}
+                trucks={trucks}
+                onTruckAssignment={(truckId, driverId) =>
+                  handleTruckAssignment(truckId, driverId)
+                }
+                getAssignedDriverForTruck={getAssignedDriverForTruck}
+                getAvailableDrivers={getAvailableDrivers}
+                isLoadingTrucks={isLoadingTrucks}
+                shouldHighlight={shouldHighlight}
+                eventStartTime={event.start_date}
+                eventEndTime={event.end_date}
+                eventId={event.id}
+              />
+            )}
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex gap-4">
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".edit-event-button")}
+              >
+                <button
+                  className="button bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 edit-event-button"
+                  onClick={handleEditEvent}
+                >
+                  Edit Event
+                </button>
+              </TutorialHighlight>
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".delete-event-button")}
+              >
+                <button
+                  className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
+                  onClick={openDeleteModal}
+                >
+                  Delete Event
+                </button>
+              </TutorialHighlight>
+            </div>
+          </>
         )}
 
-        {/* Delete Event Confirmation Modal */}
-        {isDeleteModalOpen && (
-          <DeleteEventModal
-            key="delete-event-modal"
-            isOpen={isDeleteModalOpen}
-            onClose={closeDeleteModal}
-            onDelete={handleDeleteEvent}
-            shouldHighlight={shouldHighlight}
-          />
+        {/* Admin-only modals */}
+        {isAdmin && event && (
+          <>
+            {/* Edit Event Modal */}
+            {isEditModalOpen && (
+              <EditEventModal
+                key="edit-event-modal"
+                isOpen={isEditModalOpen}
+                onClose={closeEditModal}
+                onSubmit={handleEditSubmit}
+                formData={editFormData}
+                onFormChange={handleEditFormChange}
+                onDateChange={handleEditDateChange}
+                onEndDateChange={handleEditEndDateChange}
+                onTimeChange={handleEditTimeChange}
+                onEndTimeChange={handleEditEndTimeChange}
+                selectedDate={selectedDate}
+                selectedEndDate={selectedEndDate}
+                selectedTime={selectedTime}
+                selectedEndTime={selectedEndTime}
+                isSubmitting={isSubmitting}
+                setEditFormData={setEditFormData}
+              />
+            )}
+
+            {/* Delete Event Confirmation Modal */}
+            {isDeleteModalOpen && (
+              <DeleteEventModal
+                key="delete-event-modal"
+                isOpen={isDeleteModalOpen}
+                onClose={closeDeleteModal}
+                onDelete={handleDeleteEvent}
+                shouldHighlight={shouldHighlight}
+              />
+            )}
+          </>
         )}
 
         {/* Error Modal */}
