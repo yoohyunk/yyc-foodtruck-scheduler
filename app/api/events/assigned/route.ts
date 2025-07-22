@@ -71,13 +71,8 @@ export async function GET(request: NextRequest) {
 
     // 5. Fetch events with addresses
     const { data: events, error: eventsError } = await supabase
-      .from("events")
-      .select(
-        `
-        *,
-        addresses (*)
-      `
-      )
+      .from("event_basic_info_view")
+      .select("*")
       .in("id", Array.from(eventIds));
 
     if (eventsError) {

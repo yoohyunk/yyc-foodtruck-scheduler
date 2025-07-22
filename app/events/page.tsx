@@ -362,6 +362,27 @@ export default function Events(): ReactElement {
                 <strong>Description:</strong>{" "}
                 {event.description || "No description"}
               </p>
+              {event.status && (
+                <p>
+                  <strong>Status:</strong>{" "}
+                  <span
+                    className={`inline-block px-2 py-1 rounded text-xs font-semibold
+                        ${
+                          event.status === "Pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : event.status === "Cancelled"
+                              ? "bg-red-100 text-red-800"
+                              : event.status === "Completed"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-blue-100 text-blue-800"
+                        }
+                      `}
+                    style={{ marginLeft: 8 }}
+                  >
+                    {event.status}
+                  </span>
+                </p>
+              )}
               <TutorialHighlight isHighlighted={false}>
                 <button
                   className="button mt-2"
