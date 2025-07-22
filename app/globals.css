@@ -378,8 +378,6 @@ body {
   font-weight: 600;
 }
 
-
-
 .mobile-section-title {
   color: var(--text-primary);
   font-size: 0.875rem;
@@ -451,8 +449,6 @@ body {
   position: relative;
   overflow: hidden;
 }
-
-
 
 .landing-title {
   font-size: 3rem;
@@ -709,7 +705,6 @@ body {
   left: 0;
   right: 0;
   height: 4px;
-
 }
 
 /* Override ::before for add new item sections */
@@ -922,7 +917,6 @@ body {
   border-radius: 0.5rem;
   cursor: pointer;
 }
-
 
 /* =========================
    Grid Layout
@@ -4246,7 +4240,6 @@ input:not(:-webkit-autofill) {
 }
 
 .table th {
- 
   color: #1a202c;
   font-weight: 700;
   padding: 1rem;
