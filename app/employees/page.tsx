@@ -640,11 +640,9 @@ export default function Employees(): ReactElement {
                 <h3 className="text-lg font-semibold">
                   {employee.first_name} {employee.last_name}
                 </h3>
-                {isAdmin && (
-                  <p>
-                    <strong>Role:</strong> {employee.employee_type}
-                  </p>
-                )}
+                <p>
+                  <strong>Role:</strong> {employee.employee_type}
+                </p>
                 {isAdmin && (
                   <p>
                     <strong>Address:</strong> {employee.addresses?.street},{" "}
