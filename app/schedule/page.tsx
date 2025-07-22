@@ -278,18 +278,6 @@ export default function Schedule(): React.ReactElement {
               📱 Mobile view: Events shown in list format
             </p>
           )}
-          {viewMode === "weekly" && !isMobile && (
-            <p
-              style={{
-                color: "var(--text-muted)",
-                fontSize: "0.75rem",
-                marginTop: "0.5rem",
-                fontStyle: "italic",
-              }}
-            >
-              📋 Weekly view: Events shown in list format for better readability
-            </p>
-          )}
         </div>
         <ViewToggle viewMode={viewMode} onViewChange={handleViewChange} />
       </TutorialHighlight>
