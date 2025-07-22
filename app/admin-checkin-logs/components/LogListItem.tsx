@@ -1,6 +1,7 @@
 import React from "react";
 import { CheckinLog } from "@/app/types";
 import { extractTime } from "@/app/events/utils";
+import { calculateTimeDifference } from "../../check-in/utils";
 
 type LogType = "server" | "driver";
 
@@ -64,18 +65,11 @@ export default function LogListItem({
       {log.clock_in_at &&
         log.clock_out_at &&
         (() => {
-          const inDate = new Date(log.clock_in_at);
-          const outDate = new Date(log.clock_out_at);
-          if (
-            !isNaN(inDate.getTime()) &&
-            !isNaN(outDate.getTime()) &&
-            outDate > inDate
-          ) {
-            const diffMs = outDate.getTime() - inDate.getTime();
-            const hours = Math.floor(diffMs / (1000 * 60 * 60));
-            const minutes = Math.floor(
-              (diffMs % (1000 * 60 * 60)) / (1000 * 60)
-            );
+          const totalTime = calculateTimeDifference(
+            log.clock_in_at,
+            log.clock_out_at
+          );
+          if (totalTime) {
             return (
               <div
                 style={{
@@ -85,8 +79,8 @@ export default function LogListItem({
                   marginTop: "0.25rem",
                 }}
               >
-                Total: {hours.toString().padStart(2, "0")}hr{" "}
-                {minutes.toString().padStart(2, "0")}min
+                Total: {totalTime.hours.toString().padStart(2, "0")}hr{" "}
+                {totalTime.minutes.toString().padStart(2, "0")}min
               </div>
             );
           }
@@ -95,20 +89,15 @@ export default function LogListItem({
       {/* Overtime display at the very bottom */}
       {(() => {
         if (log.clock_out_at && log.assignment.end_time) {
-          const end = new Date(log.assignment.end_time);
-          const out = new Date(log.clock_out_at);
-          // Only show overtime if dates are the same and out > end
+          const overtimeTime = calculateTimeDifference(
+            log.assignment.end_time,
+            log.clock_out_at
+          );
           if (
-            !isNaN(end.getTime()) &&
-            !isNaN(out.getTime()) &&
-            out > end &&
-            end.toDateString() === out.toDateString()
+            overtimeTime &&
+            overtimeTime.hours >= 0 &&
+            overtimeTime.minutes >= 0
           ) {
-            const diffMs = out.getTime() - end.getTime();
-            const hours = Math.floor(diffMs / (1000 * 60 * 60));
-            const minutes = Math.floor(
-              (diffMs % (1000 * 60 * 60)) / (1000 * 60)
-            );
             return (
               <div
                 style={{
@@ -118,8 +107,8 @@ export default function LogListItem({
                   marginTop: "0.5rem",
                 }}
               >
-                Overtime: {hours.toString().padStart(2, "0")}hr{" "}
-                {minutes.toString().padStart(2, "0")}min
+                Overtime: {overtimeTime.hours.toString().padStart(2, "0")}hr{" "}
+                {overtimeTime.minutes.toString().padStart(2, "0")}min
               </div>
             );
           }

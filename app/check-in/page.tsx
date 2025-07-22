@@ -12,45 +12,7 @@ import MainAssignmentCard from "./components/MainAssignmentCard";
 import ScheduleList from "./components/ScheduleList";
 import { Assignment, CheckinData } from "@/app/types";
 import { extractTime } from "@/app/events/utils";
-
-function getAssignmentStatus(assignment: Assignment, checkinData: CheckinData) {
-  // Parse assignment start/end as local time (no timezone conversion)
-  function parseTime(dateStr: string | undefined): {
-    hours: number;
-    minutes: number;
-  } {
-    if (!dateStr) return { hours: 0, minutes: 0 };
-    const match = dateStr.match(/T(\d{2}):(\d{2})/);
-    if (match) {
-      return { hours: parseInt(match[1]), minutes: parseInt(match[2]) };
-    }
-    return { hours: 0, minutes: 0 };
-  }
-  const now = new Date();
-  const start = parseTime(assignment.start_date || assignment.start_time);
-  const end = parseTime(assignment.end_date || assignment.end_time);
-  // Use today's date for all comparisons
-  const today = new Date();
-  const startDate = new Date(today);
-  startDate.setHours(start.hours, start.minutes, 0, 0);
-  const endDate = new Date(today);
-  endDate.setHours(end.hours, end.minutes, 0, 0);
-  const checkinStart = new Date(startDate.getTime() - 4 * 60 * 60 * 1000);
-  const checkinEnd = new Date(startDate.getTime() + 1 * 60 * 60 * 1000);
-  const overtimeEnd = new Date(endDate.getTime() + 4 * 60 * 60 * 1000);
-
-  if (checkinData?.clock_out_at) return "checked_out";
-  if (checkinData?.clock_in_at && !checkinData?.clock_out_at) {
-    if (now > endDate && now <= overtimeEnd) return "overtime";
-    if (now > overtimeEnd) return "overtime_expired";
-    if (now > endDate) return "overtime";
-    return "checked_in";
-  }
-  if (now < checkinStart) return "before";
-  if (now >= checkinStart && now <= checkinEnd) return "ready";
-  if (now > checkinEnd) return "missed";
-  return "ready";
-}
+import { parseTime, getAssignmentStatus } from "./utils";
 
 export default function CheckInPage() {
   const { user } = useAuth();
@@ -273,17 +235,6 @@ export default function CheckInPage() {
 
   // Generate status message
   function getStatusMessage(status: string, assignment: Assignment) {
-    function parseTime(dateStr: string | undefined): {
-      hours: number;
-      minutes: number;
-    } {
-      if (!dateStr) return { hours: 0, minutes: 0 };
-      const match = dateStr.match(/T(\d{2}):(\d{2})/);
-      if (match) {
-        return { hours: parseInt(match[1]), minutes: parseInt(match[2]) };
-      }
-      return { hours: 0, minutes: 0 };
-    }
     const end = parseTime(assignment.end_date || assignment.end_time);
     const today = new Date();
     const endDate = new Date(today);
