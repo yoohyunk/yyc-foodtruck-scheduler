@@ -49,9 +49,22 @@ export function PendingEmployeesTable({
   };
 
   const filtered = useMemo(() => {
+    // Sort employees alphabetically by first name, then last name
+    const sortedEmployees = [...employees].sort((a, b) => {
+      const nameA = `${a.first_name ?? ""}`.toLowerCase();
+      const nameB = `${b.first_name ?? ""}`.toLowerCase();
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+      // If first names are equal, sort by last name
+      const lastA = `${a.last_name ?? ""}`.toLowerCase();
+      const lastB = `${b.last_name ?? ""}`.toLowerCase();
+      if (lastA < lastB) return -1;
+      if (lastA > lastB) return 1;
+      return 0;
+    });
     const term = search.trim().toLowerCase();
-    if (!term) return employees;
-    return employees.filter(
+    if (!term) return sortedEmployees;
+    return sortedEmployees.filter(
       (emp) =>
         `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(term) ||
         (emp.first_name && emp.first_name.toLowerCase().includes(term)) ||
@@ -168,7 +181,7 @@ export function PendingEmployeesTable({
                     color: "var(--text-primary)",
                   }}
                 >
-                  Email
+                  Name
                 </th>
                 <th
                   className="p-3 text-left font-semibold"
@@ -177,7 +190,7 @@ export function PendingEmployeesTable({
                     color: "var(--text-primary)",
                   }}
                 >
-                  Name
+                  Email
                 </th>
                 <th
                   className="p-3 text-left font-semibold"
@@ -230,7 +243,7 @@ export function PendingEmployeesTable({
                         color: "var(--text-primary)",
                       }}
                     >
-                      {emp.email}
+                      {emp.first_name} {emp.last_name}
                     </td>
                     <td
                       className="p-3"
@@ -239,7 +252,7 @@ export function PendingEmployeesTable({
                         color: "var(--text-primary)",
                       }}
                     >
-                      {emp.first_name} {emp.last_name}
+                      {emp.email}
                     </td>
                     <td
                       className="p-3"

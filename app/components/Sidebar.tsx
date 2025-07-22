@@ -95,7 +95,6 @@ export default function Sidebar() {
   // Listen for toggle event from header hamburger button
   useEffect(() => {
     const handleToggleSidebar = () => {
-      console.log("Toggle sidebar event received");
       setIsOpen((prev) => !prev);
     };
 

@@ -32,6 +32,8 @@ import { wagesApi } from "@/lib/supabase/wages";
 import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "../../components/ClientLayoutContent";
+import { assignmentsApi } from "@/lib/supabase/assignments";
+import { format } from "date-fns";
 
 export default function EditEmployeePage(): ReactElement {
   const { id } = useParams() as { id: string };
@@ -51,6 +53,36 @@ export default function EditEmployeePage(): ReactElement {
     clearAvailability,
     selectAllAvailability,
   } = useAvailability(id);
+  const [showAssignmentWarning, setShowAssignmentWarning] = useState(false);
+  type AssignmentWithEvent = {
+    id: string;
+    employee_id: string;
+    event_id: string;
+    start_date: string;
+    end_date: string;
+    events: {
+      id: string;
+      title: string;
+      start_date: string;
+      end_date: string;
+    };
+  };
+  type TruckAssignment = {
+    id: string;
+    driver_id: string;
+    event_id: string;
+    start_time: string;
+    end_time: string;
+  };
+  const [futureAssignments, setFutureAssignments] = useState<
+    AssignmentWithEvent[]
+  >([]);
+  const [futureTruckAssignments, setFutureTruckAssignments] = useState<
+    TruckAssignment[]
+  >([]);
+  const [pendingInactiveUpdate, setPendingInactiveUpdate] = useState<
+    null | (() => Promise<void>)
+  >(null);
 
   const [formData, setFormData] = useState<EmployeeFormData>({
     first_name: "",
@@ -352,6 +384,308 @@ export default function EditEmployeePage(): ReactElement {
       return;
     }
 
+    // If setting inactive, check for future assignments and warn
+    if (formData.isAvailable === false) {
+      // Get all assignments and truck assignments for this employee
+      const allAssignments = await assignmentsApi.getAssignmentsByEmployeeId(
+        id as string
+      );
+      const allTruckAssignments =
+        await assignmentsApi.getTruckAssignmentsByEmployeeId(id as string);
+      const now = new Date();
+      // Filter for assignments/events in the future (end_date >= today)
+      const future = allAssignments.filter(
+        (a) => new Date(a.start_date) >= now
+      );
+      const futureTrucks = allTruckAssignments.filter(
+        (a) => new Date(a.start_time) >= now
+      );
+      if (future.length > 0 || futureTrucks.length > 0) {
+        setFutureAssignments(future);
+        setFutureTruckAssignments(futureTrucks);
+        setShowAssignmentWarning(true);
+        setPendingInactiveUpdate(() => async () => {
+          // Remove all assignments
+          for (const a of future) {
+            await assignmentsApi.removeServerAssignment(a.id, a.event_id);
+          }
+          // Remove all truck assignments
+          for (const t of futureTrucks) {
+            await assignmentsApi.removeTruckAssignment(t.id);
+          }
+          // Continue with the rest of the save
+          await doSaveEmployee();
+        });
+        return;
+      }
+    }
+
+    try {
+      // Use structured address data from formData
+      const street = formData.street || "";
+      const city = formData.city || "";
+      const province = formData.province || "";
+      const postalCode = formData.postalCode || "";
+      const country = formData.country || "Canada";
+
+      // Update or create address
+      let addressId: string | null = null;
+
+      // Check if employee has existing address
+
+      const { data: existingEmployee, error: existingEmployeeError } =
+        await supabase
+          .from("employees")
+          .select(
+            `
+            address_id,
+            addresses (
+              street,
+              city,
+              province,
+              postal_code,
+              country,
+              latitude,
+              longitude
+            )
+          `
+          )
+          .eq("employee_id", id)
+          .single();
+
+      if (existingEmployeeError) {
+        console.error(
+          "Error fetching existing employee:",
+          existingEmployeeError
+        );
+      }
+
+      if (existingEmployee?.address_id) {
+        // Update existing address
+        const { error: addressError } = await addressesApi.updateAddress(
+          existingEmployee.address_id,
+          {
+            street,
+            city,
+            province,
+            postal_code: postalCode,
+            country,
+            latitude: formData.latitude || null,
+            longitude: formData.longitude || null,
+          }
+        );
+
+        if (addressError) {
+          setValidationErrors([
+            {
+              field: "address",
+              message: "Failed to update address. Please try again.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
+          return;
+        }
+        addressId = existingEmployee.address_id;
+      } else {
+        // Create new address
+        const { data: newAddress, error: addressError } = await supabase
+          .from("addresses")
+          .insert({
+            street,
+            city,
+            province,
+            postal_code: postalCode,
+            country,
+            latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+            longitude: formData.longitude
+              ? parseFloat(formData.longitude)
+              : null,
+          })
+          .select()
+          .single();
+
+        if (addressError) {
+          setValidationErrors([
+            {
+              field: "address",
+              message: "Failed to create address. Please try again.",
+              element: null,
+            },
+          ]);
+          setShowErrorModal(true);
+          return;
+        }
+        addressId = newAddress.id;
+      }
+
+      // Update employee with address_id
+      const updateData: {
+        first_name: string;
+        last_name: string;
+        employee_type: string;
+        address_id: string | null;
+        user_phone?: string;
+        is_available: boolean;
+        availability: string[];
+        user_email?: string;
+      } = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        employee_type: formData.role,
+        address_id: addressId, // Always update address_id
+        is_available: formData.isAvailable,
+        availability: formAvailability.map((av) => av.day_of_week),
+      };
+
+      // Only update email and phone if they're different from the current ones
+
+      const { data: currentEmployee } = await supabase
+        .from("employees")
+        .select("user_email, user_phone")
+        .eq("employee_id", id)
+        .single();
+
+      if (formData.email !== currentEmployee?.user_email) {
+        if (currentEmployee?.user_email === null) {
+          updateData.user_email = formData.email;
+        } else {
+          const currentEmailExists = await employeesApi.checkIfEmailExists(
+            formData.email,
+            id as string
+          );
+          if (currentEmailExists) {
+            setValidationErrors([
+              {
+                field: "email",
+                message:
+                  "This email is already in use by another employee. Please use a different email.",
+                element: emailRef.current,
+              },
+            ]);
+            setShowErrorModal(true);
+            return;
+          } else {
+            updateData.user_email = formData.email;
+          }
+        }
+      }
+
+      // Check if the new phone number is already used by another employee
+      if (formData.phone !== currentEmployee?.user_phone) {
+        // If current phone is null, we can always update
+        if (currentEmployee?.user_phone === null) {
+          updateData.user_phone = formData.phone;
+        } else {
+          // Check if the new phone number is already used by another employee
+          const currentPhoneExists = await employeesApi.checkIfPhoneExists(
+            formData.phone,
+            id as string
+          );
+
+          if (currentPhoneExists) {
+            setValidationErrors([
+              {
+                field: "phone",
+                message:
+                  "This phone number is already in use by another employee. Please use a different phone number.",
+                element: phoneRef.current,
+              },
+            ]);
+            setShowErrorModal(true);
+            return;
+          } else {
+            updateData.user_phone = formData.phone;
+          }
+        }
+      } else {
+        updateData.user_phone = currentEmployee.user_phone;
+      }
+
+      // update employee with employeeApi error handling
+      try {
+        await employeesApi.updateEmployee(id as string, updateData);
+      } catch (error) {
+        setValidationErrors([
+          // @ts-expect-error TODO (yoohyun.kim): fix error type
+          { field: "submit", message: error.message, element: null },
+        ]);
+        setShowErrorModal(true);
+        return;
+      }
+
+      // Verify address update by fetching the updated employee data
+      const { error: verifyError } = await supabase
+        .from("employees")
+        .select(
+          `
+          *,
+          addresses (
+            street,
+            city,
+            province,
+            postal_code,
+            country,
+            latitude,
+            longitude
+          )
+        `
+        )
+        .eq("employee_id", id)
+        .single();
+
+      if (verifyError) {
+        console.error("Error verifying employee update:", verifyError);
+      }
+
+      // Wage update with history
+      if (formData.wage) {
+        try {
+          await wagesApi.updateWage(id as string, parseFloat(formData.wage));
+        } catch (wageError) {
+          setValidationErrors([
+            // @ts-expect-error TODO (yoohyun.kim): fix error type
+            { field: "wage", message: wageError.message, element: null },
+          ]);
+          setShowErrorModal(true);
+        }
+      }
+
+      // Show success modal instead of alert
+      setValidationErrors([
+        {
+          field: "success",
+          message: "Employee updated successfully!",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+
+      // upsert availability
+      handleUpsertAvailability();
+
+      // Redirect after closing modal
+      setTimeout(() => {
+        router.push("/employees");
+      }, 1500);
+    } catch (error) {
+      setValidationErrors([
+        {
+          field: "submit",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to update employee. Please try again.",
+          element: null,
+        },
+      ]);
+      setShowErrorModal(true);
+      return;
+    }
+  };
+
+  // The actual save logic, extracted for reuse after assignment removal
+  const doSaveEmployee = async () => {
     try {
       // Use structured address data from formData
       const street = formData.street || "";
@@ -806,6 +1140,19 @@ export default function EditEmployeePage(): ReactElement {
           </div>
 
           {/* Is Available */}
+          <div className="mt-8 mb-8">
+            <h3 className="font-bold text-base mb-1">Active Employee</h3>
+            <TutorialHighlight
+              isHighlighted={shouldHighlight(".active-employee-explanation")}
+              className="active-employee-explanation"
+            >
+              <div className="text-sm text-gray-700">
+                Set employees as inactive if they are no longer working
+                actively. This allows you to retain employee records without
+                deleting them.
+              </div>
+            </TutorialHighlight>
+          </div>
           <div>
             <label htmlFor="isAvailable" className="flex gap-2 font-bold">
               <span className="w-4 h-4">
@@ -1031,6 +1378,89 @@ export default function EditEmployeePage(): ReactElement {
                 }
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assignment warning modal */}
+      {showAssignmentWarning && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h2 className="modal-title">Warning: Remove Assignments</h2>
+            </div>
+            <div
+              className="modal-body"
+              style={{
+                maxWidth: "100vw",
+                overflowX: "auto",
+                padding: "0.5rem",
+              }}
+            >
+              <p className="mb-2">
+                This employee is currently assigned to the following future
+                events and/or truck assignments. Setting them as inactive will
+                remove these assignments and mark the events as pending if not
+                fully staffed.
+              </p>
+              {futureAssignments.length > 0 && (
+                <>
+                  <h3 className="font-semibold mt-2 mb-1">Event Assignments</h3>
+                  <div className="flex flex-col gap-2 mb-2">
+                    {futureAssignments.map((a) => (
+                      <div
+                        key={a.id}
+                        className="event-card bg-white px-3 py-2 rounded shadow-sm border border-gray-200 flex flex-row flex-wrap items-center gap-2 cursor-pointer hover:bg-primary-light/40 transition min-w-0"
+                        onClick={() => router.push(`/events/${a.event_id}`)}
+                        title="View Event Details"
+                        style={{ wordBreak: "break-word", overflow: "hidden" }}
+                      >
+                        <span
+                          className="font-semibold text-sm truncate min-w-0 flex-1"
+                          style={{ maxWidth: "70%" }}
+                        >
+                          {a.events?.title || "(Untitled Event)"}
+                        </span>
+                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                          {format(new Date(a.start_date), "yyyy-MM-dd")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {futureTruckAssignments.length > 0 && (
+                <>
+                  <h3 className="font-semibold mt-2 mb-1">Truck Assignments</h3>
+                  <ul className="list-disc pl-5 mb-2">
+                    {futureTruckAssignments.map((t) => (
+                      <li key={t.id}>
+                        Event ID: {t.event_id} —{" "}
+                        {format(new Date(t.start_time), "yyyy-MM-dd HH:mm")} to{" "}
+                        {format(new Date(t.end_time), "yyyy-MM-dd HH:mm")}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+            <div className="modal-footer flex gap-4 justify-end">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAssignmentWarning(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  setShowAssignmentWarning(false);
+                  if (pendingInactiveUpdate) await pendingInactiveUpdate();
+                }}
+              >
+                Remove
               </button>
             </div>
           </div>

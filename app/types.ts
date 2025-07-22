@@ -155,3 +155,54 @@ export const getTruckBorderColor = (type: string): string => {
       return "var(--text-muted)";
   }
 };
+
+export type CheckinData = {
+  clock_in_at?: string | null;
+  clock_out_at?: string | null;
+  // Add other fields as needed
+};
+export type Assignment = {
+  id: string;
+  type: "server" | "truck";
+  start_date?: string;
+  start_time?: string;
+  end_date?: string;
+  end_time?: string;
+  events?: {
+    title?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      province?: string;
+      postal_code?: string;
+      country?: string;
+    };
+  };
+  trucks?: { name?: string };
+  clock_in_at?: string | null;
+  clock_out_at?: string | null;
+};
+
+export interface CheckinEmployee {
+  employee_id: string;
+  first_name?: string;
+  last_name?: string;
+  employee_type?: string;
+}
+
+interface AssignmentInfo {
+  id: string;
+  type: "server" | "truck";
+  event_title?: string;
+  truck_name?: string;
+  start_time: string;
+  end_time: string;
+  event_id?: string;
+}
+export interface CheckinLog {
+  id: string;
+  employee: CheckinEmployee;
+  assignment: AssignmentInfo;
+  clock_in_at: string | null;
+  clock_out_at: string | null;
+}
