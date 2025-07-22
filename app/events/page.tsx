@@ -55,7 +55,25 @@ export default function Events(): ReactElement {
               sorted[0].id;
           }
         } else {
-          const data = await eventsApi.getAllEventsBasicInfo();
+          // Fetch only events assigned to the current user
+          if (!user?.id) {
+            setLimitedEvents([]);
+            setFilteredLimitedEvents([]);
+            setIsLoading(false);
+            return;
+          }
+          const response = await fetch(
+            `/api/events/assigned?userId=${user.id}`
+          );
+          if (!response.ok) {
+            setError("Failed to load assigned events. Please try again.");
+            setLimitedEvents([]);
+            setFilteredLimitedEvents([]);
+            setIsLoading(false);
+            return;
+          }
+          const result = await response.json();
+          const data = result.events || [];
           const sorted = [...data].sort((a, b) => {
             const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
             const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;

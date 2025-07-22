@@ -471,85 +471,86 @@ export default function TruckManagementPage() {
                               Mark All Packed
                             </button>
                           </TutorialHighlight>
-                          {showAddInput[truck.id] ? (
-                            <>
-                              <input
-                                type="text"
-                                value={newItem[truck.id] || ""}
-                                onChange={(e) =>
-                                  setNewItem((prev) => ({
-                                    ...prev,
-                                    [truck.id]: e.target.value,
-                                  }))
-                                }
-                                placeholder="Add item..."
-                                className="px-2 py-1 border rounded text-sm focus:outline-none"
-                                style={{
-                                  borderColor: "var(--border)",
-                                  minWidth: 0,
-                                  flex: 1,
-                                }}
-                                onFocus={(e) => {
-                                  e.currentTarget.style.borderColor =
-                                    "var(--success-medium)";
-                                  e.currentTarget.style.boxShadow =
-                                    "0 0 0 2px var(--success-light)";
-                                }}
-                                onBlur={(e) => {
-                                  e.currentTarget.style.borderColor =
-                                    "var(--border)";
-                                  e.currentTarget.style.boxShadow = "";
-                                }}
-                              />
-                              <button
-                                className="px-3 py-1 text-sm rounded transition-colors"
-                                style={{
-                                  background: "var(--text-muted)",
-                                  color: "var(--white)",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background =
-                                    "var(--text-secondary)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background =
-                                    "var(--text-muted)";
-                                }}
-                                onClick={async () => {
-                                  await handleAddItem(truck.id);
-                                  setShowAddInput((prev) => ({
-                                    ...prev,
-                                    [truck.id]: false,
-                                  }));
-                                }}
-                                type="button"
+                          {isAdmin &&
+                            (showAddInput[truck.id] ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={newItem[truck.id] || ""}
+                                  onChange={(e) =>
+                                    setNewItem((prev) => ({
+                                      ...prev,
+                                      [truck.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Add item..."
+                                  className="px-2 py-1 border rounded text-sm focus:outline-none"
+                                  style={{
+                                    borderColor: "var(--border)",
+                                    minWidth: 0,
+                                    flex: 1,
+                                  }}
+                                  onFocus={(e) => {
+                                    e.currentTarget.style.borderColor =
+                                      "var(--success-medium)";
+                                    e.currentTarget.style.boxShadow =
+                                      "0 0 0 2px var(--success-light)";
+                                  }}
+                                  onBlur={(e) => {
+                                    e.currentTarget.style.borderColor =
+                                      "var(--border)";
+                                    e.currentTarget.style.boxShadow = "";
+                                  }}
+                                />
+                                <button
+                                  className="px-3 py-1 text-sm rounded transition-colors"
+                                  style={{
+                                    background: "var(--text-muted)",
+                                    color: "var(--white)",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background =
+                                      "var(--text-secondary)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background =
+                                      "var(--text-muted)";
+                                  }}
+                                  onClick={async () => {
+                                    await handleAddItem(truck.id);
+                                    setShowAddInput((prev) => ({
+                                      ...prev,
+                                      [truck.id]: false,
+                                    }));
+                                  }}
+                                  type="button"
+                                >
+                                  Save
+                                </button>
+                              </>
+                            ) : (
+                              <TutorialHighlight
+                                isHighlighted={shouldHighlight(
+                                  `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:last-child`
+                                )}
                               >
-                                Save
-                              </button>
-                            </>
-                          ) : (
-                            <TutorialHighlight
-                              isHighlighted={shouldHighlight(
-                                `.truck-card:nth-child(${index + 1}) .pt-4.flex.gap-2 button:last-child`
-                              )}
-                            >
-                              <button
-                                style={{
-                                  backgroundColor: "var(--primary-dark)",
-                                }}
-                                className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
-                                onClick={() =>
-                                  setShowAddInput((prev) => ({
-                                    ...prev,
-                                    [truck.id]: true,
-                                  }))
-                                }
-                                type="button"
-                              >
-                                Add Item
-                              </button>
-                            </TutorialHighlight>
-                          )}
+                                <button
+                                  style={{
+                                    backgroundColor: "var(--primary-dark)",
+                                  }}
+                                  className="px-3 py-1 text-white text-sm rounded hover:bg-primary-medium transition-colors"
+                                  onClick={() =>
+                                    setShowAddInput((prev) => ({
+                                      ...prev,
+                                      [truck.id]: true,
+                                    }))
+                                  }
+                                  type="button"
+                                >
+                                  Add Item
+                                </button>
+                              </TutorialHighlight>
+                            ))}
                         </div>
                       </div>
                     )}
