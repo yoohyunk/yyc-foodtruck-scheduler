@@ -416,7 +416,6 @@ body {
    Landing Page
 ========================= */
 .landing-container {
-
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -440,7 +439,7 @@ body {
   max-width: 800px;
   width: 100%;
   text-align: center;
- 
+
   box-shadow: 0 16px 64px rgba(0, 0, 0, 0.1);
   padding: 3rem;
   transition: var(--hover-transition);
