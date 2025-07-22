@@ -129,6 +129,12 @@ export const assignmentsApi = {
     }>
   > {
     try {
+      console.log(
+        "getServerAssignmentsByEventId called with eventId:",
+        eventId
+      );
+
+      // First try to get assignments with full employee data
       const { data, error } = await supabase
         .from("assignments")
         .select(
@@ -139,8 +145,44 @@ export const assignmentsApi = {
         )
         .eq("event_id", eventId);
 
+      console.log(
+        "Server assignments query result - data:",
+        data,
+        "error:",
+        error
+      );
+
       if (error) {
-        throw new Error(`Error fetching server assignments: ${error.message}`);
+        console.log(
+          "Error with full employee data, trying limited view:",
+          error
+        );
+
+        // If that fails, try with limited employee view
+        const { data: limitedData, error: limitedError } = await supabase
+          .from("assignments")
+          .select(
+            `
+            *,
+            employees_limited_view!inner(*)
+          `
+          )
+          .eq("event_id", eventId);
+
+        console.log(
+          "Limited view query result - data:",
+          limitedData,
+          "error:",
+          limitedError
+        );
+
+        if (limitedError) {
+          throw new Error(
+            `Error fetching server assignments: ${limitedError.message}`
+          );
+        }
+
+        return limitedData || [];
       }
 
       return data || [];

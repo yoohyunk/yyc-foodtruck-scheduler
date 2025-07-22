@@ -1,20 +1,30 @@
 "use client";
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-import { Employee } from "@/app/types";
+import { Tables } from "@/database.types";
+
+// Type for employee data from limited view
+type EmployeeLimited = Tables<"employees_limited_view"> & {
+  created_at?: string;
+  is_pending?: boolean;
+  is_available?: boolean;
+  addresses?: Tables<"addresses">;
+  currentWage?: number;
+};
 import { createClient } from "@/lib/supabase/client";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Employees(): ReactElement {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeLimited[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<EmployeeLimited[]>(
+    []
+  );
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(
-    null
-  );
+  const [employeeToDelete, setEmployeeToDelete] =
+    useState<EmployeeLimited | null>(null);
   const router = useRouter();
   const supabase = createClient();
   const { shouldHighlight } = useTutorial();
@@ -29,25 +39,21 @@ export default function Employees(): ReactElement {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const { data, error } = await supabase
-          .from("employees")
-          .select(
-            `
-            employee_id,
-            first_name,
-            last_name,
-            employee_type,
-            is_available,
-            availability,
-            address_id,
-            user_id,
-            user_email,
-            user_phone,
-            created_at,
-            is_pending
-          `
-          )
-          .neq("employee_type", "pending");
+        let data, error;
+        if (isAdmin) {
+          // Admin: fetch from full employees table
+          ({ data, error } = await supabase.from("employees").select("*"));
+        } else {
+          // Non-admin: fetch from limited view
+          ({ data, error } = await supabase.from("employees_limited_view")
+            .select(`
+              employee_id,
+              first_name,
+              last_name,
+              employee_type,
+              user_phone
+            `));
+        }
 
         if (error) {
           console.error("Error fetching employees:", error);
@@ -59,61 +65,15 @@ export default function Employees(): ReactElement {
           return;
         }
 
-        // Get addresses for the employees
-        const addressIds = data.map((emp) => emp.address_id).filter(Boolean);
-        const { data: addressesData } = await supabase
-          .from("addresses")
-          .select("*")
-          .in("id", addressIds);
-
-        // Get wage information - get all wages and find the most recent one for each employee
-        const { data: allWages, error: wageError } = await supabase
-          .from("wage")
-          .select("*")
-          .in(
-            "employee_id",
-            data.map((emp) => emp.employee_id)
-          )
-          .order("start_date", { ascending: false });
-
-        if (wageError) {
-          console.error("Error fetching wages:", wageError);
-        }
-
-        // Create a map of employee_id to their most recent wage
-        const wageMap = new Map();
-        if (allWages) {
-          allWages.forEach((wage) => {
-            if (!wageMap.has(wage.employee_id)) {
-              wageMap.set(wage.employee_id, wage);
-            }
-          });
-        }
-
         const formattedEmployees = data.map((emp) => {
-          const address = addressesData?.find(
-            (addr) => addr.id === emp.address_id
-          );
-          const wage = wageMap.get(emp.employee_id);
-
           return {
             ...emp,
+            // Add default values for fields not available in limited view
             created_at: emp.created_at || new Date().toISOString(),
-            is_pending: emp.is_pending || false,
-            addresses: address
-              ? {
-                  id: address.id,
-                  street: address.street,
-                  city: address.city,
-                  province: address.province,
-                  postal_code: address.postal_code,
-                  country: address.country,
-                  latitude: address.latitude,
-                  longitude: address.longitude,
-                  created_at: address.created_at,
-                }
-              : undefined,
-            currentWage: wage?.hourly_wage || 0,
+            is_pending: emp.is_pending ?? false,
+            is_available: emp.is_available ?? true,
+            addresses: emp.addresses,
+            currentWage: emp.currentWage ?? 0,
           };
         });
 
@@ -148,8 +108,8 @@ export default function Employees(): ReactElement {
           }
         });
 
-        setEmployees(sortedEmployees as Employee[]);
-        setFilteredEmployees(sortedEmployees as Employee[]);
+        setEmployees(sortedEmployees as EmployeeLimited[]);
+        setFilteredEmployees(sortedEmployees as EmployeeLimited[]);
         // Set global variable for tutorial navigation
         if (typeof window !== "undefined" && sortedEmployees.length > 0) {
           (
@@ -162,7 +122,7 @@ export default function Employees(): ReactElement {
     };
 
     fetchEmployees();
-  }, [supabase, sortMode, activeStatus]);
+  }, [supabase, sortMode, activeStatus, isAdmin]);
 
   // Filter employees based on the active filter and activeStatus
   useEffect(() => {
@@ -205,7 +165,7 @@ export default function Employees(): ReactElement {
     });
   }, [sortMode]);
 
-  const handleDeleteClick = (employee: Employee) => {
+  const handleDeleteClick = (employee: EmployeeLimited) => {
     // Debug: Test authentication and permissions
     console.log("Testing authentication and permissions...");
     supabase.auth.getUser().then(({ data: { user }, error }) => {
@@ -649,15 +609,7 @@ export default function Employees(): ReactElement {
                     {employee.addresses?.city}, {employee.addresses?.province}
                   </p>
                 )}
-                <p>
-                  <strong>Email:</strong>{" "}
-                  <a
-                    href={`mailto:${employee.user_email}`}
-                    className="text-blue-500"
-                  >
-                    {employee.user_email}
-                  </a>
-                </p>
+
                 <p>
                   <strong>Phone:</strong> {employee.user_phone}
                 </p>
@@ -683,14 +635,9 @@ export default function Employees(): ReactElement {
                 {isAdmin && (
                   <p>
                     <strong>Availability:</strong>{" "}
-                    {Array.isArray(employee.availability) &&
-                    employee.availability.length > 0 ? (
-                      <span className="text-primary-medium">
-                        {employee.availability.join(", ")}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">Not available</span>
-                    )}
+                    <span className="text-gray-500">
+                      Not available in limited view
+                    </span>
                   </p>
                 )}
               </TutorialHighlight>

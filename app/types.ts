@@ -206,3 +206,8 @@ export interface CheckinLog {
   clock_in_at: string | null;
   clock_out_at: string | null;
 }
+
+// Type for basic event info from limited view
+export type EventBasicInfo = Tables<"event_basic_info_view"> & {
+  status?: string | null;
+};
