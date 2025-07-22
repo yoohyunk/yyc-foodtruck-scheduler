@@ -29,6 +29,7 @@ export default function Home(): ReactElement {
           .filter((event) => new Date(event.start_date) >= new Date())
           .slice(0, 6)
           .map((event) => ({
+            id: event.id, // Add id for navigation
             title: event.title || "Untitled Event",
             startTime: new Date(event.start_date).toLocaleDateString(),
             location: event.description || "Location not set",
@@ -86,7 +87,11 @@ export default function Home(): ReactElement {
                 <p style={{ color: "var(--text-muted)" }}>Loading events...</p>
               ) : events.length > 0 ? (
                 events.map((event, index) => (
-                  <div key={index} className="section-card">
+                  <div
+                    key={index}
+                    className="section-card cursor-pointer hover:bg-blue-50"
+                    onClick={() => router.push(`/events/${event.id}`)}
+                  >
                     <h3 className="section-card-title">{event.title}</h3>
                     <p className="section-card-text">
                       <strong>Date:</strong> {event.startTime}
