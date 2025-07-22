@@ -260,7 +260,7 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchTruckAssignments();
-  }, [event?.id, eventBasicInfo?.id, isAdmin, event]);
+  }, [event?.id, eventBasicInfo?.id, isAdmin]);
 
   // For non-admin users, we don't need to fetch separate employee/truck data
   // since the assignments now include the related data
