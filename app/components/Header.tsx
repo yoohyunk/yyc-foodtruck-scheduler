@@ -64,21 +64,8 @@ export default function Header(): React.ReactElement {
             {user && employeeId && (
               <Link
                 href={`/employees/${employeeId}`}
-                className="auth-button"
+                className="auth-button profile-button"
                 title="Profile"
-                style={{
-                  marginRight: "0.5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  textDecoration: "none",
-                  color: "#008080",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#006666";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#008080";
-                }}
               >
                 <FiUser size={24} />
               </Link>

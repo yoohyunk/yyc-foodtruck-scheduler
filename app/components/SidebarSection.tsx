@@ -43,23 +43,23 @@ export const SidebarSection = React.memo(function SidebarSection({
         className="flex items-center justify-between w-full rounded-xl transition-all duration-200 group"
         style={{
           padding: "0.75rem 1rem",
-          background: hasActive ? "var(--primary-light)" : "transparent",
-          color: hasActive ? "var(--secondary-dark)" : "var(--primary-light)",
+          background: hasActive ? "var(--primary-dark)" : "transparent",
+          color: hasActive ? "var(--primary-light)" : "var(--primary-dark)",
           fontWeight: 600,
           border: hasActive
-            ? "2px solid var(--primary-light)"
+            ? "2px solid var(--primary-dark)"
             : "2px solid transparent",
         }}
         onMouseEnter={(e) => {
           if (!hasActive) {
-            e.currentTarget.style.background = "var(--primary-light)";
-            e.currentTarget.style.color = "var(--secondary-dark)";
+            e.currentTarget.style.background = "var(--primary-dark)";
+            e.currentTarget.style.color = "var(--primary-light)";
           }
         }}
         onMouseLeave={(e) => {
           if (!hasActive) {
             e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--primary-light)";
+            e.currentTarget.style.color = "var(--primary-dark)";
           }
         }}
       >
@@ -67,9 +67,22 @@ export const SidebarSection = React.memo(function SidebarSection({
           href={section.mainHref}
           className="flex items-center gap-4 flex-1"
           onClick={() => {
+            console.log(
+              "SidebarSection main link clicked:",
+              section.name,
+              "isMobile:",
+              isMobile,
+              "disableAnimations:",
+              disableAnimations
+            );
             if (!disableAnimations) {
               onToggle();
-              if (isMobile) onCloseSidebar();
+              if (isMobile) {
+                console.log(
+                  "Calling onCloseSidebar from SidebarSection main link"
+                );
+                onCloseSidebar();
+              }
             }
           }}
         >
@@ -132,11 +145,11 @@ export const SidebarSection = React.memo(function SidebarSection({
                     paddingTop: "0.5rem",
                     paddingBottom: "0.5rem",
                     background: isActiveLink
-                      ? "var(--primary-light)"
+                      ? "var(--primary-dark)"
                       : "transparent",
                     color: isActiveLink
-                      ? "var(--secondary-dark)"
-                      : "var(--primary-light)",
+                      ? "var(--primary-light)"
+                      : "var(--primary-dark)",
                     boxShadow: isActiveLink
                       ? "0 4px 16px rgba(255, 213, 134, 0.3)"
                       : undefined,
@@ -146,27 +159,42 @@ export const SidebarSection = React.memo(function SidebarSection({
                     cursor:
                       isAddItem && shouldDisable ? "not-allowed" : "pointer",
                     border: isActiveLink
-                      ? "2px solid var(--primary-light)"
+                      ? "2px solid var(--primary-dark)"
                       : "2px solid transparent",
                   }}
                   tabIndex={isAddItem && shouldDisable ? -1 : 0}
                   aria-disabled={isAddItem && shouldDisable}
                   onClick={(e) => {
+                    console.log(
+                      "SidebarSection nested link clicked:",
+                      link.name,
+                      "isMobile:",
+                      isMobile,
+                      "isAddItem:",
+                      isAddItem,
+                      "shouldDisable:",
+                      shouldDisable
+                    );
                     if (isAddItem && shouldDisable) e.preventDefault();
-                    if (isMobile) onCloseSidebar();
+                    if (isMobile) {
+                      console.log(
+                        "Calling onCloseSidebar from SidebarSection nested link"
+                      );
+                      onCloseSidebar();
+                    }
                   }}
                   title={isAddItem && shouldDisable ? "Admin only" : link.name}
                   onMouseEnter={(e) => {
                     if (!isActiveLink && !(isAddItem && shouldDisable)) {
-                      e.currentTarget.style.background = "var(--primary-light)";
-                      e.currentTarget.style.color = "var(--secondary-dark)";
+                      e.currentTarget.style.background = "var(--primary-dark)";
+                      e.currentTarget.style.color = "var(--primary-light)";
                       e.currentTarget.style.transform = "scale(1.02)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActiveLink) {
                       e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "var(--primary-light)";
+                      e.currentTarget.style.color = "var(--primary-dark)";
                       e.currentTarget.style.transform = "scale(1)";
                     }
                   }}

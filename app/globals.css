@@ -124,7 +124,7 @@ body {
   top: 0;
   z-index: 9999;
   backdrop-filter: blur(10px);
-  border-bottom: 3px solid var(--secondary-light);
+  border-bottom: 3px solid var(--primary-dark);
   width: 100%;
   left: 0;
   right: 0;
@@ -160,7 +160,6 @@ body {
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(255, 245, 205, 0.4);
   transition: box-shadow 0.3s ease;
-  border: 2px solid var(--secondary-light);
 }
 
 .logo-img:hover {
@@ -310,6 +309,18 @@ body {
   color: var(--white);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(179, 106, 94, 0.4);
+}
+
+.profile-button {
+  color: #008080;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-button:hover {
+  color: #006666;
 }
 
 /* Mobile/Overflow Menu Overlay */
@@ -936,7 +947,7 @@ body {
    Sidebar
 ========================= */
 .sidebar {
-  background: var(--primary-dark);
+  backdrop-filter: blur(10px);
   border-radius: 0;
   padding: 2.5rem;
   box-shadow: 0 2px 8px var(--shadow);
@@ -956,6 +967,7 @@ body {
 }
 
 .sidebar-content {
+  /* border-left: 3px solid var(--primary-dark); */
   padding: 1rem;
   overflow: hidden;
   height: 100%;
@@ -982,6 +994,7 @@ body {
 /* Mobile sidebar styles */
 @media (max-width: 1023px) {
   .sidebar {
+    backdrop-filter: blur(10px);
     position: fixed;
     top: 80px;
     left: 0;
@@ -3564,11 +3577,11 @@ button[title="Delete Employee"]:hover {
   }
 
   .logo {
-    min-width: 160px;
+    min-width: 85px;
   }
 
   .logo span {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 
   .nav-links {
@@ -3587,6 +3600,31 @@ button[title="Delete Employee"]:hover {
   .nav-link .nav-icon {
     font-size: 1.1rem;
   }
+
+  /* Ensure all buttons in nav-right are the same size on mobile */
+  .nav-right {
+    gap: 0.5rem;
+  }
+
+  .auth-button {
+    min-width: 3rem;
+    height: 3rem;
+    padding: 0.75rem;
+    justify-content: center;
+  }
+
+  .profile-button {
+    min-width: 3rem;
+    height: 3rem;
+    padding: 0.75rem;
+    justify-content: center;
+  }
+
+  .hamburger-button {
+    min-width: 3rem;
+    height: 3rem;
+    padding: 0.75rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -3595,16 +3633,16 @@ button[title="Delete Employee"]:hover {
   }
 
   .logo {
-    min-width: 140px;
+    min-width: 100px;
   }
 
   .logo-img {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .logo span {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 
   .nav-link {
@@ -3613,6 +3651,31 @@ button[title="Delete Employee"]:hover {
 
   .nav-link .nav-icon {
     font-size: 1rem;
+  }
+
+  /* Ensure all buttons in nav-right are the same size on small mobile */
+  .nav-right {
+    gap: 0.4rem;
+  }
+
+  .auth-button {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.6rem;
+    justify-content: center;
+  }
+
+  .profile-button {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.6rem;
+    justify-content: center;
+  }
+
+  .hamburger-button {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.6rem;
   }
 }
 
