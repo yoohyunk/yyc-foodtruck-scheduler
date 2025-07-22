@@ -111,7 +111,7 @@ export default function EmployeeDashboard() {
                 ),
                 location: data?.addresses?.street || "Event Location",
               };
-            } catch (error) {
+            } catch {
               return {
                 truck_name: "Event",
                 shift_date: assignment.start_date,
@@ -157,7 +157,7 @@ export default function EmployeeDashboard() {
 
         setTimeOffRequests(timeOffRequests);
         setIsLoading(false);
-      } catch (error) {
+      } catch {
         setIsLoading(false);
       }
     };
