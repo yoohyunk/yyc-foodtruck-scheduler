@@ -23,6 +23,7 @@ export default function Employees(): ReactElement {
   const [activeStatus, setActiveStatus] = useState<"active" | "inactive">(
     "active"
   );
+  const [viewMode, setViewMode] = useState<"list" | "directory">("list");
   const { isAdmin } = useAuth();
 
   // Fetch employees from employee.json
@@ -448,6 +449,32 @@ export default function Employees(): ReactElement {
         </button>
       </TutorialHighlight>
 
+      {/* View Toggle Buttons */}
+      <div className="flex justify-center mb-6">
+        <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+          <button
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+              viewMode === "list"
+                ? "bg-white text-primary-dark shadow-sm"
+                : "text-gray-600 hover:text-primary-dark"
+            }`}
+            onClick={() => setViewMode("list")}
+          >
+            📋 List View
+          </button>
+          <button
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+              viewMode === "directory"
+                ? "bg-white text-primary-dark shadow-sm"
+                : "text-gray-600 hover:text-primary-dark"
+            }`}
+            onClick={() => setViewMode("directory")}
+          >
+            👥 Directory View
+          </button>
+        </div>
+      </div>
+
       {/* Sort Toggle - now below filters */}
       <div className="flex flex-col gap-4 mb-4">
         <div className="flex justify-end">
@@ -607,10 +634,12 @@ export default function Employees(): ReactElement {
               <TutorialHighlight
                 key={employee.employee_id}
                 isHighlighted={highlightEmployeeCard}
-                className="employee-card bg-white p-4 rounded shadow relative"
+                className={`employee-card bg-white rounded shadow relative ${
+                  viewMode === "directory" ? "p-3" : "p-4"
+                }`}
               >
                 {/* Action Buttons */}
-                {isAdmin && (
+                {isAdmin && viewMode === "list" && (
                   <div className="absolute top-2 right-2 flex gap-4">
                     <TutorialHighlight isHighlighted={highlightEditButton}>
                       <button
@@ -637,61 +666,98 @@ export default function Employees(): ReactElement {
                   </div>
                 )}
 
-                <h3 className="text-lg font-semibold">
-                  {employee.first_name} {employee.last_name}
-                </h3>
-                <p>
-                  <strong>Role:</strong> {employee.employee_type}
-                </p>
-                {isAdmin && (
-                  <p>
-                    <strong>Address:</strong> {employee.addresses?.street},{" "}
-                    {employee.addresses?.city}, {employee.addresses?.province}
-                  </p>
-                )}
-                <p>
-                  <strong>Email:</strong>{" "}
-                  <a
-                    href={`mailto:${employee.user_email}`}
-                    className="text-blue-500"
-                  >
-                    {employee.user_email}
-                  </a>
-                </p>
-                <p>
-                  <strong>Phone:</strong> {employee.user_phone}
-                </p>
-                {isAdmin && (
-                  <p>
-                    <strong>Wage:</strong> ${employee.currentWage || 0}/hr
-                  </p>
-                )}
-                {isAdmin && (
-                  <p>
-                    <strong>Status:</strong>{" "}
-                    <span
-                      className={
-                        employee.is_available
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }
-                    >
-                      {employee.is_available ? "Available" : "Unavailable"}
-                    </span>
-                  </p>
-                )}
-                {isAdmin && (
-                  <p>
-                    <strong>Availability:</strong>{" "}
-                    {Array.isArray(employee.availability) &&
-                    employee.availability.length > 0 ? (
-                      <span className="text-primary-medium">
-                        {employee.availability.join(", ")}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">Not available</span>
+                {viewMode === "list" ? (
+                  // List View - Full Details
+                  <>
+                    <h3 className="text-lg font-semibold">
+                      {employee.first_name} {employee.last_name}
+                    </h3>
+                    <p>
+                      <strong>Role:</strong> {employee.employee_type}
+                    </p>
+                    {isAdmin && (
+                      <p>
+                        <strong>Address:</strong> {employee.addresses?.street},{" "}
+                        {employee.addresses?.city},{" "}
+                        {employee.addresses?.province}
+                      </p>
                     )}
-                  </p>
+                    <p>
+                      <strong>Email:</strong>{" "}
+                      <a
+                        href={`mailto:${employee.user_email}`}
+                        className="text-blue-500"
+                      >
+                        {employee.user_email}
+                      </a>
+                    </p>
+                    <p>
+                      <strong>Phone:</strong> {employee.user_phone}
+                    </p>
+                    {isAdmin && (
+                      <p>
+                        <strong>Wage:</strong> ${employee.currentWage || 0}/hr
+                      </p>
+                    )}
+                    {isAdmin && (
+                      <p>
+                        <strong>Status:</strong>{" "}
+                        <span
+                          className={
+                            employee.is_available
+                              ? "text-green-500"
+                              : "text-red-500"
+                          }
+                        >
+                          {employee.is_available ? "Available" : "Unavailable"}
+                        </span>
+                      </p>
+                    )}
+                    {isAdmin && (
+                      <p>
+                        <strong>Availability:</strong>{" "}
+                        {Array.isArray(employee.availability) &&
+                        employee.availability.length > 0 ? (
+                          <span className="text-primary-medium">
+                            {employee.availability.join(", ")}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">Not available</span>
+                        )}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  // Directory View - Compact
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-base font-semibold">
+                        {employee.first_name} {employee.last_name}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {employee.employee_type}
+                      </p>
+                      <p className="text-sm">
+                        <a
+                          href={`mailto:${employee.user_email}`}
+                          className="text-blue-500 hover:underline"
+                        >
+                          {employee.user_email}
+                        </a>
+                      </p>
+                    </div>
+                    {isAdmin && (
+                      <button
+                        className="text-gray-400 hover:text-primary-dark transition-colors"
+                        onClick={() =>
+                          router.push(`/employees/${employee.employee_id}`)
+                        }
+                        title="View Details"
+                      >
+                        👁️
+                      </button>
+                    )}
+                  </div>
                 )}
               </TutorialHighlight>
             );
