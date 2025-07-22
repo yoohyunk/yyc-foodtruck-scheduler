@@ -19,30 +19,6 @@ function getTodayString() {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-// Add formatTime helper from check-in/page.tsx
-function formatTime(dateStr?: string | null) {
-  if (!dateStr) return "-";
-  // If timezone is missing, add Z (UTC)
-  let safeStr = dateStr;
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+$/.test(dateStr)) {
-    safeStr = dateStr + "Z";
-  }
-  const d = new Date(safeStr);
-  let hours = d.getUTCHours() - 6;
-  if (hours < 0) hours += 24;
-  const minutes = d.getUTCMinutes();
-  const ampm = hours >= 12 ? "PM" : "AM";
-  const displayHour = ((hours + 11) % 12) + 1;
-  const result =
-    displayHour.toString().padStart(2, "0") +
-    ":" +
-    minutes.toString().padStart(2, "0") +
-    " " +
-    ampm;
-
-  return result;
-}
-
 export default function AdminCheckinLogsPage() {
   const [date, setDate] = useState(getTodayString());
   const [logs, setLogs] = useState<CheckinLog[]>([]);
@@ -281,7 +257,6 @@ export default function AdminCheckinLogsPage() {
                   event={eventInfo}
                   serverLogs={group.server}
                   driverLogs={group.truck}
-                  formatTime={formatTime}
                 />
               );
             })
