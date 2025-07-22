@@ -7,7 +7,6 @@ type LogType = "server" | "driver";
 interface LogListSectionProps {
   type: LogType;
   logs: CheckinLog[];
-  formatTime: (dateStr?: string | null) => string;
   getExpectedTimes?: (log: CheckinLog) => {
     expectedStart?: string;
     expectedEnd?: string;

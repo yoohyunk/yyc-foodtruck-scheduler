@@ -1,6 +1,5 @@
 import { createClient } from "./client";
 import { Tables } from "@/database.types";
-import { format, toZonedTime } from "date-fns-tz";
 
 type Address = {
   id: string;
@@ -19,28 +18,20 @@ export type CheckinRecord =
 export async function getTodayAssignmentsForEmployee(employeeId: string) {
   const supabase = createClient();
   const now = new Date();
-  // Use UTC for today range
-  const startOfDayUTC = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)
-  );
-  const endOfDayUTC = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      23,
-      59,
-      59
-    )
-  );
+
+  // Use local time for today range (same as events)
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
 
   // Get server assignments
   const { data: serverAssignments, error: serverError } = await supabase
     .from("assignments")
     .select(`*, employees(*)`)
     .eq("employee_id", employeeId)
-    .gte("start_date", startOfDayUTC.toISOString())
-    .lte("start_date", endOfDayUTC.toISOString());
+    .gte("start_date", startOfDay.toISOString())
+    .lte("start_date", endOfDay.toISOString());
 
   // Get event info for server assignments
   if (serverAssignments && serverAssignments.length > 0) {
@@ -105,8 +96,8 @@ export async function getTodayAssignmentsForEmployee(employeeId: string) {
     .from("truck_assignment")
     .select(`*, trucks(*), employees(*)`)
     .eq("driver_id", employeeId)
-    .gte("start_time", startOfDayUTC.toISOString())
-    .lte("start_time", endOfDayUTC.toISOString());
+    .gte("start_time", startOfDay.toISOString())
+    .lte("start_time", endOfDay.toISOString());
 
   // Get event info for truck assignments
   if (truckAssignments && truckAssignments.length > 0) {
@@ -205,15 +196,20 @@ export async function getCheckinRecord(
   }
 }
 
-// Checkin
+// Checkin - use local time (same as events)
 export async function checkin(assignmentId: string, type: "server" | "truck") {
   const supabase = createClient();
 
   const now = new Date();
-  const calgaryTime = toZonedTime(now, "America/Edmonton");
-  const formatted = format(calgaryTime, "yyyy-MM-dd'T'HH:mm:ss", {
-    timeZone: "America/Edmonton",
-  });
+  // Format as local time string without timezone conversion (same as events)
+  // Use local date and time to avoid timezone issues
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, "0");
+  const day = now.getDate().toString().padStart(2, "0");
+  const hours = now.getHours().toString().padStart(2, "0");
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const seconds = now.getSeconds().toString().padStart(2, "0");
+  const formatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`; // YYYY-MM-DDTHH:MM:SS
 
   let existing;
   if (type === "truck") {
@@ -233,11 +229,9 @@ export async function checkin(assignmentId: string, type: "server" | "truck") {
   }
 
   if (existing && existing.clock_in_at) {
-    // 이미 체크인된 경우, 기존 데이터 반환
     return existing;
   }
 
-  // 없으면 insert
   if (type === "truck") {
     const { data, error } = await supabase
       .from("truck_assignment_checkin")
@@ -257,15 +251,21 @@ export async function checkin(assignmentId: string, type: "server" | "truck") {
   }
 }
 
-// Checkout
+// Checkout - use local time (same as events)
 export async function checkout(assignmentId: string, type: "server" | "truck") {
   const supabase = createClient();
 
   const now = new Date();
-  const calgaryTime = toZonedTime(now, "America/Edmonton");
-  const formatted = format(calgaryTime, "yyyy-MM-dd'T'HH:mm:ss", {
-    timeZone: "America/Edmonton",
-  });
+  // Format as local time string without timezone conversion (same as events)
+  // Use local date and time to avoid timezone issues
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, "0");
+  const day = now.getDate().toString().padStart(2, "0");
+  const hours = now.getHours().toString().padStart(2, "0");
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const seconds = now.getSeconds().toString().padStart(2, "0");
+  const formatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`; // YYYY-MM-DDTHH:MM:SS
+
   if (type === "truck") {
     const { data, error } = await supabase
       .from("truck_assignment_checkin")
