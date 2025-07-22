@@ -125,12 +125,6 @@ export default function Events(): ReactElement {
       setFilteredAdminEvents(filtered);
     } else {
       let filtered = [...limitedEvents];
-      if (activeFilter !== "All") {
-        filtered = filtered.filter((event) => {
-          // limited view has no status, so always show all
-          return true;
-        });
-      }
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (selectedDate) {

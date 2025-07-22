@@ -5,6 +5,7 @@ import { Tables } from "@/database.types";
 
 // Type for employee data from limited view
 type EmployeeLimited = Tables<"employees_limited_view"> & {
+  status?: string | null;
   created_at?: string;
   is_pending?: boolean;
   is_available?: boolean;
@@ -618,9 +619,21 @@ export default function Employees(): ReactElement {
                     <strong>Wage:</strong> ${employee.currentWage || 0}/hr
                   </p>
                 )}
-                {isAdmin && (
-                  <p>
-                    <strong>Status:</strong>{" "}
+                <p>
+                  <strong>Status:</strong>{" "}
+                  {employee.status ? (
+                    <span
+                      className={
+                        employee.status === "Active"
+                          ? "text-green-500"
+                          : employee.status === "Inactive"
+                            ? "text-red-500"
+                            : "text-gray-500"
+                      }
+                    >
+                      {employee.status}
+                    </span>
+                  ) : (
                     <span
                       className={
                         employee.is_available
@@ -630,8 +643,8 @@ export default function Employees(): ReactElement {
                     >
                       {employee.is_available ? "Available" : "Unavailable"}
                     </span>
-                  </p>
-                )}
+                  )}
+                </p>
                 {isAdmin && (
                   <p>
                     <strong>Availability:</strong>{" "}
