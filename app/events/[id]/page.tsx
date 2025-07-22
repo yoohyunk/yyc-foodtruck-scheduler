@@ -1198,7 +1198,7 @@ export default function EventDetailsPage(): ReactElement {
 
                 {/* Assign Staff and Trucks Buttons (Admin only) */}
                 {isAdmin && (
-                  <div className="mt-6 flex flex-col md:flex-row gap-4 w-full max-w-xl md:max-w-2xl justify-center items-center">
+                  <div className="mt-6 flex flex-col md:flex-row gap-4 w-full max-w-xl md:max-w-3xl justify-between items-center">
                     <TutorialHighlight
                       isHighlighted={shouldHighlight(
                         ".select-employees-button"
