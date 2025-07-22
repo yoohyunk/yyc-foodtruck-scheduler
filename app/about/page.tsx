@@ -43,6 +43,41 @@ export default function TruckManagementPage() {
           setLoading(false);
           return;
         }
+        if (isAdmin) {
+          // Admin: fetch all trucks
+          const { data: allTrucks, error } = await supabase
+            .from("trucks")
+            .select("*, addresses:address_id(*)");
+          if (error) {
+            console.error("Error fetching all trucks:", error);
+            setTrucks([]);
+            setLoading(false);
+            return;
+          }
+          // Add default packingList if missing
+          setTrucks(
+            (allTrucks || []).map((truck) => ({
+              ...truck,
+              packingList: Array.isArray(truck.packing_list)
+                ? truck.packing_list
+                : [
+                    "Food preparation equipment",
+                    "Cooking utensils and tools",
+                    "Food storage containers",
+                    "Cleaning supplies",
+                    "Safety equipment",
+                    "Cash register and payment system",
+                    "Menu boards and signage",
+                    "First aid kit",
+                    "Fire extinguisher",
+                    "Generator and fuel",
+                  ],
+            }))
+          );
+          setLoading(false);
+          return;
+        }
+        // Employee: fetch only assigned trucks (existing logic)
         // Get employee_id from user_id
         const employee = await employeesApi.getEmployeeByUserId(user.id);
         if (!employee) {
@@ -108,7 +143,7 @@ export default function TruckManagementPage() {
       }
     };
     fetchAssignedTrucks();
-  }, [user, authLoading, supabase]);
+  }, [user, authLoading, supabase, isAdmin]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
