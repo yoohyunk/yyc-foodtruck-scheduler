@@ -567,6 +567,7 @@ export type Database = {
           end_date: string | null;
           id: string | null;
           start_date: string | null;
+          status: string | null;
           title: string | null;
         };
         Insert: {
@@ -576,6 +577,7 @@ export type Database = {
           end_date?: string | null;
           id?: string | null;
           start_date?: string | null;
+          status?: string | null;
           title?: string | null;
         };
         Update: {
@@ -585,6 +587,7 @@ export type Database = {
           end_date?: string | null;
           id?: string | null;
           start_date?: string | null;
+          status?: string | null;
           title?: string | null;
         };
         Relationships: [
