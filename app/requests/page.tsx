@@ -6,7 +6,7 @@ import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 import { employeesApi } from "@/lib/supabase/employees";
 import { Employee } from "../types";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ErrorModal from "../components/ErrorModal";
 import { ValidationError } from "@/lib/formValidation";
 
@@ -20,6 +20,7 @@ export default function RequestsPage(): ReactElement {
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("All"); // For employee filtering
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Error modal state
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -70,6 +71,14 @@ export default function RequestsPage(): ReactElement {
     }
     setPendingDeleteId(null);
   };
+
+  // Check for URL parameter and set employee filter
+  useEffect(() => {
+    const employeeIdParam = searchParams.get("employeeId");
+    if (employeeIdParam && isAdmin) {
+      setSelectedEmployeeId(employeeIdParam);
+    }
+  }, [searchParams, isAdmin]);
 
   // Fetch all time off requests and employees
   useEffect(() => {

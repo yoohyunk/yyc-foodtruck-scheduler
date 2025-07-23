@@ -2,7 +2,13 @@
 import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-import { HomePageEvent, TimeOffRequest, Employee, getEventStatusBorderColor, getTimeOffStatusBorderColor } from "./types";
+import {
+  HomePageEvent,
+  TimeOffRequest,
+  Employee,
+  getEventStatusBorderColor,
+  getTimeOffStatusBorderColor,
+} from "./types";
 import type { Tables } from "@/database.types";
 import { TutorialOverlay } from "./tutorial";
 import { useTutorial } from "./tutorial/TutorialContext";
@@ -427,11 +433,25 @@ export default function Home(): ReactElement {
                 </p>
               ) : timeOffRequests.length > 0 ? (
                 timeOffRequests.map((request, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="section-card"
+                    onClick={() =>
+                      router.push(`/requests?employeeId=${request.employee_id}`)
+                    }
                     style={{
                       border: `3px solid ${getTimeOffStatusBorderColor(request.status)}`,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 8px 25px rgba(0, 0, 0, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "";
                     }}
                   >
                     <h3 className="section-card-title">
