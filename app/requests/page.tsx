@@ -18,6 +18,7 @@ export default function RequestsPage(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("All"); // For employee filtering
   const router = useRouter();
 
   // Error modal state
@@ -215,6 +216,13 @@ export default function RequestsPage(): ReactElement {
       filtered = filtered.filter((request) => request.status === filterStatus);
     }
 
+    // Apply employee filter (only for admin users)
+    if (isAdmin && selectedEmployeeId !== "All") {
+      filtered = filtered.filter(
+        (request) => request.employee_id === selectedEmployeeId
+      );
+    }
+
     // Apply date filter (only for admin users)
     if (isAdmin) {
       const today = new Date();
@@ -246,7 +254,7 @@ export default function RequestsPage(): ReactElement {
     });
 
     return filtered;
-  }, [requests, filterStatus, selectedDate, isAdmin]);
+  }, [requests, filterStatus, selectedEmployeeId, selectedDate, isAdmin]);
 
   if (isLoading) {
     return (
@@ -346,6 +354,38 @@ export default function RequestsPage(): ReactElement {
           </div>
         </button>
       </div>
+
+      {/* Employee Filter - Only for Admin Users */}
+      {isAdmin && (
+        <div className="mb-6">
+          <label
+            htmlFor="employee-filter"
+            className="block text-primary-dark font-medium mb-2"
+          >
+            Filter by Employee
+          </label>
+          <select
+            id="employee-filter"
+            value={selectedEmployeeId}
+            onChange={(e) => setSelectedEmployeeId(e.target.value)}
+            className="input-field w-full cursor-pointer"
+          >
+            <option value="All">All Employees</option>
+            {employees
+              .filter((employee) => employee.is_available) // Only show active employees
+              .sort((a, b) =>
+                `${a.first_name} ${a.last_name}`.localeCompare(
+                  `${b.first_name} ${b.last_name}`
+                )
+              )
+              .map((employee) => (
+                <option key={employee.employee_id} value={employee.employee_id}>
+                  {employee.first_name} {employee.last_name}
+                </option>
+              ))}
+          </select>
+        </div>
+      )}
 
       {/* Date Filter - Only for Admin Users */}
       {isAdmin && (

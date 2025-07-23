@@ -1534,7 +1534,7 @@ button[title="Delete Employee"]:hover {
 }
 
 .employee-card.role-admin {
-    border-color: var(--primary-light); /* primary-light */
+  border-color: var(--primary-light); /* primary-light */
 }
 
 .employee-card.role-unknown {
@@ -1580,7 +1580,7 @@ button[title="Delete Employee"]:hover {
 }
 
 .truck-card.type-food-truck {
-    border-color: var(--secondary-dark); /* secondary-dark */
+  border-color: var(--secondary-dark); /* secondary-dark */
 }
 
 .truck-card.type-beverage-truck {
@@ -1596,7 +1596,7 @@ button[title="Delete Employee"]:hover {
 }
 
 .truck-card.type-unknown {
-    border-color: var(--text-muted); /* text-muted */
+  border-color: var(--text-muted); /* text-muted */
 }
 
 /* Employee filter dropdown styling */
@@ -5017,7 +5017,7 @@ input:not(:-webkit-autofill) {
 }
 
 .employee-status.unavailable {
-  background: var(--secondary-dark)econdary-dark);
+  background: var(--secondary-dark);
   color: #ffffff;
   border-color: var(--secondary-dark);
 }

@@ -99,6 +99,7 @@ export interface TimeOffRequestFormData {
 }
 
 export interface HomePageEvent {
+  id: string;
   title: string;
   startTime: string;
   location: string;

@@ -8,12 +8,15 @@ import ErrorModal from "@/app/components/ErrorModal";
 import { eventsApi } from "@/lib/supabase/events";
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { Tables } from "@/database.types";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Types from DB
 type Employee = Tables<"employees">;
 type Event = Tables<"events">;
 
 const AddAssignmentPage: React.FC = () => {
+  const { user, isAdmin } = useAuth();
+
   // Assignment form state
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -226,7 +229,22 @@ const AddAssignmentPage: React.FC = () => {
   const loadEventsForModal = async () => {
     if (!startDate) return;
     try {
-      const allEvents: Event[] = await eventsApi.getAllEvents();
+      // Fetch events based on user role
+      let allEvents: Event[];
+      if (isAdmin) {
+        // Admin: load all events
+        allEvents = await eventsApi.getAllEvents();
+      } else if (user) {
+        // Employee: load only assigned events
+        const response = await fetch(`/api/events/assigned?userId=${user.id}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch assigned events");
+        }
+        const result = await response.json();
+        allEvents = result.events || [];
+      } else {
+        allEvents = [];
+      }
       function toUTCDateString(date: Date | string) {
         const d = new Date(date);
         return (

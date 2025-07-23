@@ -2,17 +2,20 @@
 import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-import { HomePageEvent, TimeOffRequest } from "./types";
+import { HomePageEvent, TimeOffRequest, Employee } from "./types";
+import type { Tables } from "@/database.types";
 import { TutorialOverlay } from "./tutorial";
 import { useTutorial } from "./tutorial/TutorialContext";
 import { TutorialHighlight } from "./components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
+import { employeesApi } from "@/lib/supabase/employees";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home(): ReactElement {
   const [events, setEvents] = useState<HomePageEvent[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -64,6 +67,7 @@ export default function Home(): ReactElement {
 
         // Fetch upcoming events based on user role
         let eventsData: Array<{
+          id: string;
           start_date: string;
           title?: string | null;
           description?: string | null;
@@ -72,6 +76,7 @@ export default function Home(): ReactElement {
           // Admin: show all events
           const adminEvents = await eventsApi.getAllEvents();
           eventsData = adminEvents.map((event) => ({
+            id: event.id,
             start_date: event.start_date || "",
             title: event.title,
             description: event.description,
@@ -87,7 +92,14 @@ export default function Home(): ReactElement {
             );
           }
           const data = await response.json();
-          eventsData = data.events || [];
+          eventsData = (data.events || []).map(
+            (event: Tables<"event_basic_info_view">) => ({
+              id: event.id,
+              start_date: event.start_date || "",
+              title: event.title,
+              description: event.description,
+            })
+          );
         } else {
           eventsData = [];
         }
@@ -96,6 +108,7 @@ export default function Home(): ReactElement {
           .filter((event) => new Date(event.start_date) >= new Date())
           .slice(0, 6)
           .map((event) => ({
+            id: event.id,
             title: event.title || "Untitled Event",
             startTime: new Date(event.start_date).toLocaleDateString(),
             location: event.description || "Location not set",
@@ -120,10 +133,15 @@ export default function Home(): ReactElement {
           }));
 
         setTimeOffRequests(upcomingRequests);
+
+        // Fetch employees for name mapping
+        const employeesData = await employeesApi.getAllEmployees();
+        setEmployees(employeesData);
       } catch (error) {
         console.error("Error fetching data:", error);
         setEvents([]);
         setTimeOffRequests([]);
+        setEmployees([]);
       } finally {
         setIsLoading(false);
       }
@@ -131,6 +149,15 @@ export default function Home(): ReactElement {
 
     fetchData();
   }, [isAdmin, user, authLoading]);
+
+  // Helper function to get employee name by ID
+  const getEmployeeName = (employeeId: string | null): string => {
+    if (!employeeId) return "Unknown Employee";
+    const employee = employees.find((emp) => emp.employee_id === employeeId);
+    return employee
+      ? `${employee.first_name} ${employee.last_name}`
+      : "Unknown Employee";
+  };
 
   return (
     <div className="landing-container">
@@ -307,7 +334,24 @@ export default function Home(): ReactElement {
                 <p style={{ color: "var(--text-muted)" }}>Loading events...</p>
               ) : events.length > 0 ? (
                 events.map((event, index) => (
-                  <div key={index} className="section-card">
+                  <div
+                    key={index}
+                    className="section-card"
+                    onClick={() => router.push(`/events/${event.id}`)}
+                    style={{
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 8px 25px rgba(0, 0, 0, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "";
+                    }}
+                  >
                     <h3 className="section-card-title">{event.title}</h3>
                     <p className="section-card-text">
                       <strong>Date:</strong> {event.startTime}
@@ -341,7 +385,9 @@ export default function Home(): ReactElement {
               ) : timeOffRequests.length > 0 ? (
                 timeOffRequests.map((request, index) => (
                   <div key={index} className="section-card">
-                    <h3 className="section-card-title">{request.type}</h3>
+                    <h3 className="section-card-title">
+                      {getEmployeeName(request.employee_id)}
+                    </h3>
                     <p className="section-card-text">
                       <strong>Start Date:</strong>{" "}
                       {new Date(request.start_datetime).toLocaleDateString()}
