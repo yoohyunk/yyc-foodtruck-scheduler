@@ -145,21 +145,6 @@ export default function TruckManagementPage() {
     fetchAssignedTrucks();
   }, [user, authLoading, supabase, isAdmin]);
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Food Truck":
-        return "bg-orange-100 text-orange-800";
-      case "Beverage Truck":
-        return "bg-blue-100 text-blue-800";
-      case "Dessert Truck":
-        return "bg-pink-100 text-pink-800";
-      case "Holiday Truck":
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   const toggleTruckExpansion = (truckId: string) => {
     const newExpandedTrucks = new Set(expandedTrucks);
     if (newExpandedTrucks.has(truckId)) {
@@ -317,12 +302,7 @@ export default function TruckManagementPage() {
                           </h3>
                           <div className="flex items-center mt-1">
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(truck.type)}`}
-                            >
-                              {truck.type}
-                            </span>
-                            <span
-                              className="text-sm ml-2"
+                              className="text-sm"
                               style={{ color: "var(--text-muted)" }}
                             >
                               Capacity: {truck.capacity}

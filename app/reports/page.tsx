@@ -36,6 +36,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
     <Link href={href} className="block">
       <div
         className={`employee-card bg-white p-6 rounded shadow hover:shadow-lg transition-shadow duration-200 ${color}`}
+        style={{ border: "none" }}
       >
         <div className="flex items-center mb-4">
           <div className="p-3 rounded-full bg-primary-light mr-4">

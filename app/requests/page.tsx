@@ -442,6 +442,7 @@ export default function RequestsPage(): ReactElement {
             <div
               key={request.id}
               className="employee-card bg-white p-6 rounded shadow relative"
+              style={{ border: "none" }}
             >
               {/* Header Row */}
               <div className="flex justify-between items-start mb-4">
