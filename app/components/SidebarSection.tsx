@@ -67,6 +67,13 @@ export const SidebarSection = React.memo(function SidebarSection({
           href={section.mainHref}
           className="flex items-center gap-4 flex-1"
           onClick={() => {
+             // Always close sidebar on mobile, regardless of admin status
+            if (isMobile) {
+              onCloseSidebar();
+            }
+            // Only toggle dropdown if animations are enabled (admin users)
+            if (!disableAnimations) {
+              onToggle();
             console.log(
               "SidebarSection main link clicked:",
               section.name,
@@ -83,7 +90,8 @@ export const SidebarSection = React.memo(function SidebarSection({
                 );
                 onCloseSidebar();
               }
-            }
+
+              }
           }}
         >
           <span style={{ fontSize: "1.25rem" }}>{section.icon}</span>
