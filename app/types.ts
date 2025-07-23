@@ -103,6 +103,7 @@ export interface HomePageEvent {
   title: string;
   startTime: string;
   location: string;
+  status?: string | null;
 }
 
 export interface Coordinates {
@@ -224,22 +225,22 @@ export const getEmployeeRoleFilterColor = (
 export const getEventStatusColor = (status: string): string => {
   switch (status) {
     case "Pending":
-      return "var(secondary-light)"; // secondary-light
+      return "var(--secondary-light)"; // secondary-light
     case "Scheduled":
-      return "var(secondary-medium)"; // secondary-medium
+      return "var(--secondary-medium)"; // secondary-medium
     default:
-      return "var(text-muted)"; // text-muted
+      return "var(--text-muted)"; // text-muted
   }
 };
 
 export const getEventStatusBorderColor = (status: string): string => {
   switch (status) {
     case "Pending":
-      return "var(secondary-light)"; // secondary-light
+      return "var(--secondary-light)"; // secondary-light
     case "Scheduled":
       return "var(--secondary-medium)"; // secondary-medium
     default:
-      return "#718096"; // text-muted
+      return "var(--text-muted)"; // text-muted
   }
 };
 
@@ -256,6 +257,20 @@ export const getEventStatusFilterColor = (
       return "bg-secondary-medium text-white";
     default:
       return "bg-primary-dark text-white";
+  }
+};
+
+// Time-off request status color mapping functions
+export const getTimeOffStatusBorderColor = (status: string): string => {
+  switch (status) {
+    case "Approved":
+      return "var(--success-medium)";
+    case "Rejected":
+      return "var(--error-medium)";
+    case "Pending":
+      return "var(--warning-medium)";
+    default:
+      return "var(--text-muted)";
   }
 };
 

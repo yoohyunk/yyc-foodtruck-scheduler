@@ -2,7 +2,7 @@
 import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-import { HomePageEvent, TimeOffRequest, Employee } from "./types";
+import { HomePageEvent, TimeOffRequest, Employee, getEventStatusBorderColor, getTimeOffStatusBorderColor } from "./types";
 import type { Tables } from "@/database.types";
 import { TutorialOverlay } from "./tutorial";
 import { useTutorial } from "./tutorial/TutorialContext";
@@ -131,6 +131,7 @@ export default function Home(): ReactElement {
             title: event.title || "Untitled Event",
             startTime: new Date(event.start_date).toLocaleDateString(),
             location: event.description || "Location not set",
+            status: event.status,
           }));
 
         setEvents(upcomingEvents);
@@ -380,6 +381,7 @@ export default function Home(): ReactElement {
                     style={{
                       cursor: "pointer",
                       transition: "all 0.2s ease",
+                      border: `3px solid ${getEventStatusBorderColor(event.status || "Pending")}`,
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = "translateY(-2px)";
@@ -425,7 +427,13 @@ export default function Home(): ReactElement {
                 </p>
               ) : timeOffRequests.length > 0 ? (
                 timeOffRequests.map((request, index) => (
-                  <div key={index} className="section-card">
+                  <div 
+                    key={index} 
+                    className="section-card"
+                    style={{
+                      border: `3px solid ${getTimeOffStatusBorderColor(request.status)}`,
+                    }}
+                  >
                     <h3 className="section-card-title">
                       {getEmployeeName(request.employee_id)}
                     </h3>
