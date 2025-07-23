@@ -754,9 +754,9 @@ body {
 }
 
 .section-card-text span:last-child.bg-red-100 {
-  background: #e78f81 !important;
+  background: var(--secondary-light) !important;
   color: #ffffff !important;
-  border: 1px solid #e78f81;
+  border: 1px solid var(--secondary-light);
 }
 
 .section-card-text span:last-child.bg-yellow-100 {
@@ -1435,7 +1435,6 @@ tr:hover td {
 }
 
 .employee-card {
-  border: 1px solid #e5e7eb;
   background-color: var(--white);
   border-radius: 0.5rem;
   padding: 1rem;
@@ -1513,6 +1512,99 @@ button[title="Delete Employee"]:hover {
   color: var(--white);
 }
 
+/* Employee Role Color Styles */
+.employee-card {
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 2px solid;
+}
+
+.employee-card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Employee role border classes */
+.employee-card.role-driver {
+  border-color: var(--secondary-light); /* secondary-light */
+}
+
+.employee-card.role-server {
+  border-color: #a86e63; /* secondary-medium */
+}
+
+.employee-card.role-admin {
+  border-color: #ffd586; /* primary-light */
+}
+
+.employee-card.role-unknown {
+  border-color: #718096; /* text-muted */
+}
+
+/* Event Status Color Styles */
+.event-card {
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 2px solid;
+}
+
+.event-card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Event status border classes */
+.event-card.status-pending {
+  border-color: var(--secondary-light); /* secondary-light */
+}
+
+.event-card.status-scheduled {
+  border-color: #a86e63; /* secondary-medium */
+}
+
+.event-card.status-unknown {
+  border-color: #718096; /* text-muted */
+}
+
+/* Truck type border classes */
+.truck-card {
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 2px solid;
+  padding: 1rem !important;
+}
+
+.truck-card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.truck-card.type-food-truck {
+  border-color: #b36a5e; /* secondary-dark */
+}
+
+.truck-card.type-beverage-truck {
+  border-color: #ffd586; /* primary-light */
+}
+
+.truck-card.type-dessert-truck {
+  border-color: var(--secondary-light); /* secondary-light */
+}
+
+.truck-card.type-holiday-truck {
+  border-color: #008080; /* primary-dark */
+}
+
+.truck-card.type-unknown {
+  border-color: #718096; /* text-muted */
+}
+
+/* Employee filter dropdown styling */
+.employee-filter-dropdown:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 128, 157, 0.2);
+}
+
 .filter-buttons .button.bg-secondary-dark {
   background-color: #e5e7eb;
   color: var(--primary-dark);
@@ -1523,11 +1615,21 @@ button[title="Delete Employee"]:hover {
   color: var(--white);
 }
 
+/* Employee filter button specific styles */
+.employee-filter-all {
+  color: #e5e7eb !important;
+  background-color: var(--primary-dark) !important;
+}
+
+.employee-filter-admin {
+  background-color: var(--primary-light) !important;
+  color: var(--primary-dark) !important;
+}
+
 /* =========================
    Event Components
 ========================= */
 .event-card {
-  border: 1px solid black;
   border-radius: 0.5rem;
   padding: 1rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -2582,19 +2684,6 @@ button[title="Delete Employee"]:hover {
 /* =========================
    Truck Components
 ========================= */
-.truck-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-  position: relative;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  background-color: white;
-  transition: all 0.2s ease;
-}
-
-.truck-card:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
 
 .truck-title {
   font-size: 1.25rem;
@@ -2792,7 +2881,7 @@ button[title="Delete Employee"]:hover {
 
 .tutorial-highlight-border {
   position: fixed;
-  border: 4px solid #00809d;
+  border: 4px solid var(--primary-dark);
   border-radius: 8px;
   transition: opacity 0.3s;
   opacity: 0;
@@ -2814,7 +2903,7 @@ button[title="Delete Employee"]:hover {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
   max-width: 400px;
   width: 350px;
-  border: 2px solid #00809d;
+  border: 2px solid var(--primary-dark);
   z-index: 9999;
   backdrop-filter: blur(4px);
   background: rgba(255, 255, 255, 0.98);
@@ -2826,7 +2915,7 @@ button[title="Delete Employee"]:hover {
   left: 0;
   right: 0;
   height: 3px;
-  background: #00809d;
+  background: var(--primary-dark);
   border-radius: 12px 12px 0 0;
 }
 
@@ -2876,7 +2965,7 @@ button[title="Delete Employee"]:hover {
 }
 
 .tutorial-progress-dot-active {
-  background-color: #00809d;
+  background-color: var(--primary-dark);
   transform: scale(1.2);
 }
 
@@ -2938,9 +3027,9 @@ button[title="Delete Employee"]:hover {
 }
 
 .tutorial-button-primary {
-  background: #00809d;
+  background: var(--primary-dark);
   color: white;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   font-weight: 700;
 }
 
@@ -3714,7 +3803,7 @@ input:not(:-webkit-autofill) {
   display: block;
   font-size: 14px;
   font-weight: 700;
-  color: #00809d;
+  color: var(--primary-dark);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -3740,7 +3829,7 @@ input:not(:-webkit-autofill) {
 
 .form-input:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 4px rgba(0, 128, 157, 0.15);
   background: #f8fafc;
   transform: translateY(-2px);
@@ -3773,7 +3862,7 @@ input:not(:-webkit-autofill) {
 
 .form-select:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 4px rgba(0, 128, 157, 0.15);
   background: #f8fafc;
   transform: translateY(-2px);
@@ -3795,7 +3884,7 @@ input:not(:-webkit-autofill) {
 
 .form-textarea:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 4px rgba(0, 128, 157, 0.15);
   background: #f8fafc;
   transform: translateY(-2px);
@@ -3829,8 +3918,8 @@ input:not(:-webkit-autofill) {
 }
 
 .form-checkbox input[type="checkbox"]:checked {
-  background: #00809d;
-  border-color: #00809d;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
   box-shadow: 0 2px 8px rgba(0, 128, 157, 0.3);
 }
 
@@ -3880,7 +3969,7 @@ input:not(:-webkit-autofill) {
 }
 
 .btn-primary {
-  background: #00809d;
+  background: var(--primary-dark);
   color: #ffffff;
   box-shadow: 0 6px 20px rgba(0, 128, 157, 0.3);
 }
@@ -3984,7 +4073,7 @@ input:not(:-webkit-autofill) {
 .form-section-title {
   font-size: 18px;
   font-weight: 800;
-  color: #00809d;
+  color: var(--primary-dark);
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 2px solid #e2e8f0;
@@ -4012,7 +4101,7 @@ input:not(:-webkit-autofill) {
 }
 
 .validation-message.success {
-  color: #00809d;
+  color: var(--primary-dark);
   background: #fffbeb;
   border-color: #ffd586;
 }
@@ -4202,7 +4291,7 @@ input:not(:-webkit-autofill) {
 }
 
 .btn-primary {
-  background: #00809d;
+  background: var(--primary-dark);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(255, 213, 134, 0.3);
 }
@@ -4762,32 +4851,14 @@ input:not(:-webkit-autofill) {
   border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
   position: relative;
   margin-bottom: 1rem;
 }
 
-.event-card:nth-child(odd) {
-  border-left: 4px solid #ffd586;
-}
-
-.event-card:nth-child(even) {
-  border-left: 4px solid #ffaaaa;
-}
-
-.event-card:nth-child(3n) {
-  border-left: 4px solid #b36a5e;
-}
-
-.event-card:nth-child(4n) {
-  border-left: 4px solid #ffd586;
-}
-
 .event-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border-color: #cbd5e0;
 }
 
 .event-card h3 {
@@ -4897,32 +4968,14 @@ input:not(:-webkit-autofill) {
   border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
   position: relative;
   margin-bottom: 1rem;
 }
 
-.employee-card:nth-child(odd) {
-  border-left: 4px solid #ffaaaa;
-}
-
-.employee-card:nth-child(even) {
-  border-left: 4px solid #ffd586;
-}
-
-.employee-card:nth-child(3n) {
-  border-left: 4px solid #b36a5e;
-}
-
-.employee-card:nth-child(4n) {
-  border-left: 4px solid #ffaaaa;
-}
-
 .employee-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border-color: #cbd5e0;
 }
 
 .employee-card h3 {
@@ -5009,8 +5062,7 @@ input:not(:-webkit-autofill) {
 /* Professional Info Cards */
 .event-card-info,
 .driver-card,
-.server-card,
-.truck-card {
+.server-card {
   background: #ffffff;
   border-radius: 0.75rem;
   padding: 1.5rem;
@@ -5023,36 +5075,31 @@ input:not(:-webkit-autofill) {
 
 .event-card-info:nth-child(odd),
 .driver-card:nth-child(odd),
-.server-card:nth-child(odd),
-.truck-card:nth-child(odd) {
+.server-card:nth-child(odd) {
   border-left: 4px solid #ffd586;
 }
 
 .event-card-info:nth-child(even),
 .driver-card:nth-child(even),
-.server-card:nth-child(even),
-.truck-card:nth-child(even) {
+.server-card:nth-child(even) {
   border-left: 4px solid #ffaaaa;
 }
 
 .event-card-info:nth-child(3n),
 .driver-card:nth-child(3n),
-.server-card:nth-child(3n),
-.truck-card:nth-child(3n) {
+.server-card:nth-child(3n) {
   border-left: 4px solid #b36a5e;
 }
 
 .event-card-info:nth-child(4n),
 .driver-card:nth-child(4n),
-.server-card:nth-child(4n),
-.truck-card:nth-child(4n) {
+.server-card:nth-child(4n) {
   border-left: 4px solid #ffd586;
 }
 
 .event-card-info:hover,
 .driver-card:hover,
-.server-card:hover,
-.truck-card:hover {
+.server-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   border-color: #cbd5e0;
@@ -5060,8 +5107,7 @@ input:not(:-webkit-autofill) {
 
 .event-card-info h3,
 .driver-card h3,
-.server-card h3,
-.truck-card h3 {
+.server-card h3 {
   font-size: 1.25rem;
   font-weight: 600;
   color: #1a202c;
@@ -5070,8 +5116,7 @@ input:not(:-webkit-autofill) {
 
 .event-card-info p,
 .driver-card p,
-.server-card p,
-.truck-card p {
+.server-card p {
   color: #1a202c;
   margin-bottom: 0.375rem;
   font-weight: 400;
@@ -5080,8 +5125,7 @@ input:not(:-webkit-autofill) {
 
 .event-card-info strong,
 .driver-card strong,
-.server-card strong,
-.truck-card strong {
+.server-card strong {
   color: #1a202c;
   font-weight: 600;
 }
@@ -5416,7 +5460,7 @@ input:not(:-webkit-autofill) {
 }
 
 .truck-assignment-item label.font-semibold.text-lg:hover {
-  color: #00809d;
+  color: var(--primary-dark);
 }
 
 /* Truck Type Badge */
@@ -5503,13 +5547,13 @@ input:not(:-webkit-autofill) {
   transition: all 0.2s ease;
   margin: 0;
   padding: 0;
-  accent-color: #00809d;
+  accent-color: var(--primary-dark);
   flex-shrink: 0;
 }
 
 .truck-assignment-item input[type="checkbox"]:checked {
-  background: #00809d;
-  border-color: #00809d;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
   box-shadow: 0 2px 8px rgba(0, 128, 157, 0.3);
 }
 
@@ -5565,7 +5609,7 @@ input:not(:-webkit-autofill) {
 
 .truck-assignment-item select:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 3px rgba(0, 128, 157, 0.1);
 }
 
@@ -5590,7 +5634,7 @@ input:not(:-webkit-autofill) {
 }
 
 .truck-assignment-item .text-sm.text-blue-800 strong {
-  color: #00809d;
+  color: var(--primary-dark);
   font-weight: 700;
 }
 
@@ -5633,7 +5677,7 @@ input:not(:-webkit-autofill) {
 
 .text-sm.text-green-700.flex.items-center.gap-2 span:first-child {
   font-weight: 600;
-  color: #00809d;
+  color: var(--primary-dark);
 }
 
 /* Error State for Truck Assignment */
@@ -5828,12 +5872,12 @@ input:not(:-webkit-autofill) {
   transition: all 0.2s ease;
   margin: 0;
   padding: 0;
-  accent-color: #00809d;
+  accent-color: var(--primary-dark);
 }
 
 .truck-checkbox:checked {
-  background: #00809d;
-  border-color: #00809d;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
   box-shadow: 0 2px 8px rgba(0, 128, 157, 0.3);
 }
 
@@ -5864,7 +5908,7 @@ input:not(:-webkit-autofill) {
 
 .truck-filter-dropdown:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 3px rgba(0, 128, 157, 0.1);
 }
 

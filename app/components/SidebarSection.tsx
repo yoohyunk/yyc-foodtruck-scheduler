@@ -203,8 +203,8 @@ export const SidebarSection = React.memo(function SidebarSection({
                     className="transition-colors duration-200"
                     style={{
                       color: isActiveLink
-                        ? "var(--secondary-dark)"
-                        : "var(--primary-light)",
+                        ? "var(--primary-light)"
+                        : "var(--primary-dark)",
                       fontSize: "1rem",
                     }}
                   >

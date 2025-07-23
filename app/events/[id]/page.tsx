@@ -318,7 +318,7 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchServerAssignments();
-  }, [event?.id, eventBasicInfo?.id, isAdmin, event?.number_of_servers_needed]);
+  }, [event, eventBasicInfo?.id, isAdmin]);
 
   // Update assigned employees when server assignments change
   useEffect(() => {

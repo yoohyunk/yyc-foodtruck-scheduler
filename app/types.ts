@@ -156,6 +156,108 @@ export const getTruckBorderColor = (type: string): string => {
   }
 };
 
+// Utility function to get truck type CSS class name
+export const getTruckTypeClass = (type: string): string => {
+  return `type-${(type || "unknown").toLowerCase().replace(/\s+/g, "-")}`;
+};
+
+// Employee role color mapping functions
+export const getEmployeeRoleColor = (role: string): string => {
+  switch (role) {
+    case "Driver":
+      return "var(--secondary-light)";
+    case "Server":
+      return "var(--secondary-medium)";
+    case "Admin":
+      return "var(--primary-light)";
+    default:
+      return "var(--text-muted)";
+  }
+};
+
+export const getEmployeeRoleBadge = (role: string): string => {
+  switch (role) {
+    case "Driver":
+      return "bg-orange-100 text-orange-800";
+    case "Server":
+      return "bg-blue-100 text-blue-800";
+    case "Admin":
+      return "bg-purple-100 text-purple-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
+export const getEmployeeRoleBorderColor = (role: string): string => {
+  switch (role) {
+    case "Driver":
+      return "#e78f81"; // secondary-light
+    case "Server":
+      return "#a86e63"; // secondary-medium
+    case "Admin":
+      return "#ffd586"; // primary-light
+    default:
+      return "#718096"; // text-muted
+  }
+};
+
+export const getEmployeeRoleFilterColor = (
+  role: string,
+  isActive: boolean
+): string => {
+  if (!isActive) return "bg-gray-200 text-primary-dark";
+
+  switch (role) {
+    case "Driver":
+      return "bg-secondary-light text-white";
+    case "Server":
+      return "bg-secondary-medium text-white";
+    case "Admin":
+      return "bg-primary-light text-white";
+    default:
+      return "bg-primary-dark text-white";
+  }
+};
+
+// Event status color mapping functions
+export const getEventStatusColor = (status: string): string => {
+  switch (status) {
+    case "Pending":
+      return "#e78f81"; // secondary-light
+    case "Scheduled":
+      return "#a86e63"; // secondary-medium
+    default:
+      return "#718096"; // text-muted
+  }
+};
+
+export const getEventStatusBorderColor = (status: string): string => {
+  switch (status) {
+    case "Pending":
+      return "#e78f81"; // secondary-light
+    case "Scheduled":
+      return "#a86e63"; // secondary-medium
+    default:
+      return "#718096"; // text-muted
+  }
+};
+
+export const getEventStatusFilterColor = (
+  status: string,
+  isActive: boolean
+): string => {
+  if (!isActive) return "bg-gray-200 text-primary-dark";
+
+  switch (status) {
+    case "Pending":
+      return "bg-secondary-light text-white";
+    case "Scheduled":
+      return "bg-secondary-medium text-white";
+    default:
+      return "bg-primary-dark text-white";
+  }
+};
+
 export type CheckinData = {
   clock_in_at?: string | null;
   clock_out_at?: string | null;

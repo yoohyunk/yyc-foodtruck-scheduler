@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { useAuth } from "@/contexts/AuthContext";
+import { getEmployeeRoleFilterColor } from "../types";
 
 export default function Employees(): ReactElement {
   const [employees, setEmployees] = useState<EmployeeLimited[]>([]);
@@ -384,25 +385,25 @@ export default function Employees(): ReactElement {
         className="filter-buttons grid"
       >
         <button
-          className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button employee-filter-all `}
           onClick={() => setActiveFilter("All")}
         >
           All
         </button>
         <button
-          className={`button ${activeFilter === "Driver" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button ${getEmployeeRoleFilterColor("Driver", activeFilter === "Driver")}`}
           onClick={() => setActiveFilter("Driver")}
         >
           Drivers
         </button>
         <button
-          className={`button ${activeFilter === "Server" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button ${getEmployeeRoleFilterColor("Server", activeFilter === "Server")}`}
           onClick={() => setActiveFilter("Server")}
         >
           Servers
         </button>
         <button
-          className={`button ${activeFilter === "Admin" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button employee-filter-admin `}
           onClick={() => setActiveFilter("Admin")}
         >
           Admins
@@ -568,7 +569,7 @@ export default function Employees(): ReactElement {
               <TutorialHighlight
                 key={employee.employee_id}
                 isHighlighted={highlightEmployeeCard}
-                className="employee-card bg-white p-4 rounded shadow relative"
+                className={`employee-card bg-white p-4 rounded shadow relative role-${(employee.employee_type || "unknown").toLowerCase()}`}
               >
                 {/* Action Buttons */}
                 {isAdmin && (

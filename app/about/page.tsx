@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
-import { getTruckBorderColor } from "../types";
+import { getTruckTypeClass } from "../types";
 import { useAuth } from "@/contexts/AuthContext";
 import { employeesApi } from "@/lib/supabase/employees";
 
@@ -288,16 +288,12 @@ export default function TruckManagementPage() {
             className="grid gap-6 truck-management"
           >
             {trucks.map((truck, index) => {
-              const leftBorderColor = getTruckBorderColor(truck.type);
               return (
                 <div
                   key={truck.id}
-                  className="truck-card"
+                  className={`truck-card ${getTruckTypeClass(truck.type)}`}
                   style={{
-                    border: "1px solid var(--border)",
-                    borderLeft: `10px solid ${leftBorderColor}`,
                     borderRadius: "1.5rem",
-                    transition: "border-color 0.2s",
                   }}
                 >
                   <TutorialHighlight
