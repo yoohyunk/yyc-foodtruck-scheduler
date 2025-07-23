@@ -5,11 +5,11 @@
 ========================= */
 :root {
   /* Primary Colors - Updated with new color palette */
-  --primary-dark: #00809d;
+  --primary-dark: #4a77ad;
   --primary-light: #ffd586;
-  --secondary-dark: #a86e63;
-  --primary-medium: #00809d;
-  --secondary-medium: #a86e63;
+  --secondary-dark: #49516f;
+  --primary-medium: #4a77ad;
+  --secondary-medium: #49516f;
   --secondary-light: #e78f81;
   --background-light: #f8fafc;
   --background-dark: #1a202c;
@@ -816,19 +816,19 @@ body {
 
 .btn-primary:hover {
   box-shadow: 0 12px 32px rgba(255, 213, 134, 0.4);
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .btn-secondary {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border: 2px solid #ffaaaa;
+  border: 2px solid var(--secondary-light);
   box-shadow: 0 6px 20px rgba(255, 170, 170, 0.3);
 }
 
 .btn-secondary:hover {
   box-shadow: 0 12px 32px rgba(255, 170, 170, 0.4);
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 /* =========================
@@ -1530,15 +1530,15 @@ button[title="Delete Employee"]:hover {
 }
 
 .employee-card.role-server {
-  border-color: #a86e63; /* secondary-medium */
+  border-color: var(--secondary-medium); /* secondary-medium */
 }
 
 .employee-card.role-admin {
-  border-color: #ffd586; /* primary-light */
+    border-color: var(--primary-light); /* primary-light */
 }
 
 .employee-card.role-unknown {
-  border-color: #718096; /* text-muted */
+  border-color: var(--text-muted); /* text-muted */
 }
 
 /* Event Status Color Styles */
@@ -1559,11 +1559,11 @@ button[title="Delete Employee"]:hover {
 }
 
 .event-card.status-scheduled {
-  border-color: #a86e63; /* secondary-medium */
+  border-color: var(--secondary-medium); /* secondary-medium */
 }
 
 .event-card.status-unknown {
-  border-color: #718096; /* text-muted */
+  border-color: var(--text-muted); /* text-muted */
 }
 
 /* Truck type border classes */
@@ -1580,11 +1580,11 @@ button[title="Delete Employee"]:hover {
 }
 
 .truck-card.type-food-truck {
-  border-color: #b36a5e; /* secondary-dark */
+    border-color: var(--secondary-dark); /* secondary-dark */
 }
 
 .truck-card.type-beverage-truck {
-  border-color: #ffd586; /* primary-light */
+  border-color: var(--primary-light); /* primary-light */
 }
 
 .truck-card.type-dessert-truck {
@@ -1592,11 +1592,11 @@ button[title="Delete Employee"]:hover {
 }
 
 .truck-card.type-holiday-truck {
-  border-color: #008080; /* primary-dark */
+  border-color: var(--primary-dark); /* primary-dark */
 }
 
 .truck-card.type-unknown {
-  border-color: #718096; /* text-muted */
+    border-color: var(--text-muted); /* text-muted */
 }
 
 /* Employee filter dropdown styling */
@@ -2772,7 +2772,7 @@ button[title="Delete Employee"]:hover {
 }
 
 .info-link {
-  color: #3b82f6;
+  color: var(--secondary-medium);
   text-decoration: none;
 }
 
@@ -3017,12 +3017,12 @@ button[title="Delete Employee"]:hover {
 .tutorial-button-skip {
   background-color: #fef2f2;
   color: #8b4513;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .tutorial-button-skip:hover {
   background-color: #fee2e2;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
   transform: translateY(-1px);
 }
 
@@ -3058,7 +3058,7 @@ button[title="Delete Employee"]:hover {
   left: 12px;
   width: 4px;
   height: 4px;
-  background-color: #ffaaaa;
+  background-color: var(--secondary-light);
   opacity: 0.4;
 }
 
@@ -3557,7 +3557,7 @@ button[title="Delete Employee"]:hover {
   width: 16px;
   height: 16px;
   border: 2px solid #f3f4f6;
-  border-top: 2px solid #3b82f6;
+  border-top: 2px solid var(--secondary-medium);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -3596,12 +3596,12 @@ button[title="Delete Employee"]:hover {
 .form-input:focus-visible,
 .form-select:focus-visible,
 .form-textarea:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--secondary-medium);
   outline-offset: 2px;
 }
 
 .btn:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--secondary-medium);
   outline-offset: 2px;
 }
 
@@ -3989,9 +3989,9 @@ input:not(:-webkit-autofill) {
 }
 
 .btn-secondary {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border: 2px solid #ffaaaa;
+  border: 2px solid var(--secondary-light);
   box-shadow: 0 6px 20px rgba(255, 170, 170, 0.3);
 }
 
@@ -4109,7 +4109,7 @@ input:not(:-webkit-autofill) {
 .validation-message.warning {
   color: #1a202c;
   background: #fff7ed;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 /* =========================
@@ -4148,7 +4148,7 @@ input:not(:-webkit-autofill) {
 }
 
 .form-input:hover {
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .form-input::placeholder {
@@ -4176,7 +4176,7 @@ input:not(:-webkit-autofill) {
 }
 
 .form-select:hover {
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .form-textarea {
@@ -4201,7 +4201,7 @@ input:not(:-webkit-autofill) {
 }
 
 .form-textarea:hover {
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .form-textarea::placeholder {
@@ -4210,7 +4210,7 @@ input:not(:-webkit-autofill) {
 }
 
 .form-error {
-  color: #b36a5e;
+  color: var(--secondary-dark);
   font-size: 0.875rem;
   margin-top: 0.5rem;
   font-weight: 500;
@@ -4298,30 +4298,30 @@ input:not(:-webkit-autofill) {
 
 .btn-primary:hover {
   box-shadow: 0 8px 24px rgba(255, 213, 134, 0.4);
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .btn-secondary {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border: 2px solid #ffaaaa;
+  border: 2px solid var(--secondary-light);
   box-shadow: 0 4px 12px rgba(255, 170, 170, 0.3);
 }
 
 .btn-secondary:hover {
   box-shadow: 0 8px 24px rgba(255, 170, 170, 0.4);
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .btn-danger {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(179, 106, 94, 0.3);
 }
 
 .btn-danger:hover {
   box-shadow: 0 8px 24px rgba(179, 106, 94, 0.4);
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .btn-outline {
@@ -4389,7 +4389,7 @@ input:not(:-webkit-autofill) {
   font-weight: 700;
   padding: 1rem;
   text-align: left;
-  border-bottom: 2px solid #ffaaaa;
+  border-bottom: 2px solid var(--secondary-light);
   font-size: 0.95rem;
   letter-spacing: 0.02em;
 }
@@ -4438,15 +4438,15 @@ input:not(:-webkit-autofill) {
 }
 
 .badge-warning {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .badge-error {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .badge-info {
@@ -4476,15 +4476,15 @@ input:not(:-webkit-autofill) {
 }
 
 .alert-warning {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .alert-error {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .alert-info {
@@ -4531,7 +4531,7 @@ input:not(:-webkit-autofill) {
   justify-content: space-between;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #ffaaaa;
+  border-bottom: 2px solid var(--secondary-light);
 }
 
 .modal-title {
@@ -4541,7 +4541,7 @@ input:not(:-webkit-autofill) {
 }
 
 .modal-close {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
   border: none;
   border-radius: 0.5rem;
@@ -4557,7 +4557,7 @@ input:not(:-webkit-autofill) {
 }
 
 .modal-close:hover {
-  background: #a55a4e;
+  background: var(--secondary-light);
   transform: scale(1.1);
 }
 
@@ -4572,7 +4572,7 @@ input:not(:-webkit-autofill) {
   gap: 1rem;
   justify-content: flex-end;
   padding-top: 1rem;
-  border-top: 2px solid #ffaaaa;
+  border-top: 2px solid var(--secondary-light);
 }
 
 /* =========================
@@ -4818,9 +4818,9 @@ input:not(:-webkit-autofill) {
 }
 
 .filter-buttons button:nth-child(2) {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .filter-buttons button:nth-child(2):hover,
@@ -4832,15 +4832,15 @@ input:not(:-webkit-autofill) {
 }
 
 .filter-buttons button:nth-child(3) {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .filter-buttons button:nth-child(3):hover,
 .filter-buttons button:nth-child(3).active {
-  background: #a55a4e;
-  border-color: #a55a4e;
+  background: var(--secondary-light);
+  border-color: var(--secondary-light);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(179, 106, 94, 0.3);
 }
@@ -4911,9 +4911,9 @@ input:not(:-webkit-autofill) {
 }
 
 .event-actions button:nth-child(2) {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .event-actions button:nth-child(2):hover {
@@ -4923,14 +4923,14 @@ input:not(:-webkit-autofill) {
 }
 
 .event-actions button:nth-child(3) {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .event-actions button:nth-child(3):hover {
-  background: #a55a4e;
-  border-color: #a55a4e;
+  background: var(--secondary-light);
+  border-color: var(--secondary-light);
   transform: translateY(-1px);
 }
 
@@ -4958,7 +4958,7 @@ input:not(:-webkit-autofill) {
   transform: translateX(-50%);
   width: 60px;
   height: 3px;
-  background: #ffaaaa;
+  background: var(--secondary-light);
   border-radius: 2px;
 }
 
@@ -5017,15 +5017,15 @@ input:not(:-webkit-autofill) {
 }
 
 .employee-status.unavailable {
-  background: #b36a5e;
+  background: var(--secondary-dark)econdary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .employee-status.pending {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 /* Professional Employee Type Badges */
@@ -5048,15 +5048,15 @@ input:not(:-webkit-autofill) {
 }
 
 .employee-type.driver {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .employee-type.server {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 /* Professional Info Cards */
@@ -5082,13 +5082,13 @@ input:not(:-webkit-autofill) {
 .event-card-info:nth-child(even),
 .driver-card:nth-child(even),
 .server-card:nth-child(even) {
-  border-left: 4px solid #ffaaaa;
+  border-left: 4px solid var(--secondary-light);
 }
 
 .event-card-info:nth-child(3n),
 .driver-card:nth-child(3n),
 .server-card:nth-child(3n) {
-  border-left: 4px solid #b36a5e;
+  border-left: 4px solid var(--secondary-dark);
 }
 
 .event-card-info:nth-child(4n),
@@ -5154,11 +5154,11 @@ input:not(:-webkit-autofill) {
 }
 
 .event-section:nth-child(even) {
-  border-left: 3px solid #ffaaaa;
+  border-left: 3px solid var(--secondary-light);
 }
 
 .event-section:nth-child(3n) {
-  border-left: 3px solid #b36a5e;
+  border-left: 3px solid var(--secondary-dark);
 }
 
 .event-section:hover {
@@ -5188,11 +5188,11 @@ input:not(:-webkit-autofill) {
 }
 
 .assigned-employee-card:nth-child(even) {
-  border-left: 3px solid #ffaaaa;
+  border-left: 3px solid var(--secondary-light);
 }
 
 .assigned-employee-card:nth-child(3n) {
-  border-left: 3px solid #b36a5e;
+  border-left: 3px solid var(--secondary-dark);
 }
 
 .assigned-employee-card:hover {
@@ -5281,11 +5281,11 @@ input:not(:-webkit-autofill) {
 
 /* Professional Error States */
 .error-container {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(179, 106, 94, 0.2);
-  border: 1px solid #b36a5e;
+  border: 1px solid var(--secondary-dark);
   margin-bottom: 1.5rem;
 }
 
@@ -5298,7 +5298,7 @@ input:not(:-webkit-autofill) {
 
 .error-container button {
   background: #ffffff;
-  color: #b36a5e;
+  color: var(--secondary-dark);
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   font-weight: 500;
@@ -5394,12 +5394,12 @@ input:not(:-webkit-autofill) {
 
 /* Truck Assignment Item - Beverage Truck */
 .truck-assignment-item.border-blue-300 {
-  border-left: 6px solid #3b82f6;
+  border-left: 6px solid var(--secondary-medium);
   background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
 }
 
 .truck-assignment-item.border-blue-300::before {
-  background: #3b82f6;
+  background: var(--secondary-medium);
 }
 
 /* Truck Assignment Item - Dessert Truck */
@@ -5485,16 +5485,16 @@ input:not(:-webkit-autofill) {
 
 /* Beverage Truck Badge */
 .truck-assignment-item .bg-blue-100.text-blue-800 {
-  background: #ffaaaa !important;
+  background: var(--secondary-light) !important;
   color: #1a202c !important;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 /* Dessert Truck Badge */
 .truck-assignment-item .bg-pink-100.text-pink-800 {
-  background: #b36a5e !important;
+  background: var(--secondary-dark) !important;
   color: #ffffff !important;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 /* Holiday Truck Badge */
@@ -5531,9 +5531,9 @@ input:not(:-webkit-autofill) {
 
 /* Unavailable Status */
 .truck-assignment-item .bg-red-100.text-red-800 {
-  background: #b36a5e !important;
+  background: var(--secondary-dark) !important;
   color: #ffffff !important;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 /* Checkbox Styling */
@@ -5801,12 +5801,12 @@ input:not(:-webkit-autofill) {
 
 /* Modal Truck Assignment - Beverage Truck */
 .truck-assignment.border-blue-300 {
-  border-left: 6px solid #3b82f6;
+  border-left: 6px solid var(--secondary-medium);
   background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
 }
 
 .truck-assignment.border-blue-300::before {
-  background: #3b82f6;
+  background: var(--secondary-medium);
 }
 
 /* Modal Truck Assignment - Dessert Truck */

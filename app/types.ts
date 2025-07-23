@@ -178,24 +178,24 @@ export const getEmployeeRoleColor = (role: string): string => {
 export const getEmployeeRoleBadge = (role: string): string => {
   switch (role) {
     case "Driver":
-      return "bg-orange-100 text-orange-800";
+      return "var(--secondary-light)";
     case "Server":
-      return "bg-blue-100 text-blue-800";
+      return "var(--secondary-medium)";
     case "Admin":
-      return "bg-purple-100 text-purple-800";
+      return "var(--primary-light)";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "var(--text-muted)";
   }
 };
 
 export const getEmployeeRoleBorderColor = (role: string): string => {
   switch (role) {
     case "Driver":
-      return "#e78f81"; // secondary-light
+      return "var(--secondary-light)"; // secondary-light
     case "Server":
-      return "#a86e63"; // secondary-medium
+      return "#var(--secondary-medium)"; // secondary-medium
     case "Admin":
-      return "#ffd586"; // primary-light
+      return "#var(--primary-light)"; // primary-light
     default:
       return "#718096"; // text-muted
   }
@@ -223,20 +223,20 @@ export const getEmployeeRoleFilterColor = (
 export const getEventStatusColor = (status: string): string => {
   switch (status) {
     case "Pending":
-      return "#e78f81"; // secondary-light
+      return "var(secondary-light)"; // secondary-light
     case "Scheduled":
-      return "#a86e63"; // secondary-medium
+      return "var(secondary-medium)"; // secondary-medium
     default:
-      return "#718096"; // text-muted
+      return "var(text-muted)"; // text-muted
   }
 };
 
 export const getEventStatusBorderColor = (status: string): string => {
   switch (status) {
     case "Pending":
-      return "#e78f81"; // secondary-light
+      return "var(secondary-light)"; // secondary-light
     case "Scheduled":
-      return "#a86e63"; // secondary-medium
+      return "var(--secondary-medium)"; // secondary-medium
     default:
       return "#718096"; // text-muted
   }
