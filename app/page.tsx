@@ -17,6 +17,7 @@ import { eventsApi } from "@/lib/supabase/events";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 import { employeesApi } from "@/lib/supabase/employees";
 import { useAuth } from "@/contexts/AuthContext";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Home(): ReactElement {
   const [events, setEvents] = useState<HomePageEvent[]>([]);
@@ -25,6 +26,7 @@ export default function Home(): ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
+  const supabase = createClient();
 
   const { shouldHighlight } = useTutorial();
 
@@ -171,7 +173,36 @@ export default function Home(): ReactElement {
         // Fetch employees for name mapping with separate error handling
         try {
           console.log("Fetching employees...");
-          const employeesData = await employeesApi.getAllEmployees();
+          let employeesData;
+          if (isAdmin) {
+            // Admin: get full employee data
+            employeesData = await employeesApi.getAllEmployees();
+          } else {
+            // Non-admin: get limited employee data for name mapping only
+            const { data, error } = await supabase
+              .from("employees_limited_view")
+              .select("employee_id, first_name, last_name")
+              .order("first_name", { ascending: true });
+
+            if (error) {
+              throw new Error(
+                `Error fetching employee names: ${error.message}`
+              );
+            }
+            // Add default values to match Employee type
+            employeesData = (data || []).map((emp) => ({
+              ...emp,
+              address_id: null,
+              availability: null,
+              created_at: "",
+              employee_type: null,
+              is_available: true,
+              is_pending: false,
+              user_email: null,
+              user_id: null,
+              user_phone: null,
+            }));
+          }
           setEmployees(employeesData);
           console.log("Set employees:", employeesData.length);
         } catch (employeesError) {
