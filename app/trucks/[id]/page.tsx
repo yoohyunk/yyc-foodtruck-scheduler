@@ -378,24 +378,56 @@ export default function EditTruckPage(): ReactElement {
           allAssignments
         );
 
-        if (allAssignments && allAssignments.length > 0) {
-          // Delete ALL truck assignments for this truck (not just future ones)
-          // When a truck becomes unavailable, it should not have ANY assignments
-          console.log(
-            `Removing ALL ${allAssignments.length} assignments for truck ${id}`
-          );
+                 if (allAssignments && allAssignments.length > 0) {
+           // Delete ALL truck assignments for this truck (not just future ones)
+           // When a truck becomes unavailable, it should not have ANY assignments
+           console.log(
+             `Removing ALL ${allAssignments.length} assignments for truck ${id}`
+           );
 
-          const { error: deleteError } = await supabase
-            .from("truck_assignment")
-            .delete()
-            .eq("truck_id", id);
+           // Get unique event IDs that will be affected
+           const affectedEventIds = [
+             ...new Set(
+               allAssignments
+                 .map((assignment) => assignment.event_id)
+                 .filter((eventId) => eventId !== null)
+             ),
+           ];
+           
+           console.log(`Events that will be set to Pending:`, affectedEventIds);
 
-          if (deleteError) {
-            console.error("Error deleting truck assignments:", deleteError);
-            throw new Error(
-              `Failed to remove truck assignments: ${deleteError.message}`
-            );
-          }
+           const { error: deleteError } = await supabase
+             .from("truck_assignment")
+             .delete()
+             .eq("truck_id", id);
+
+           if (deleteError) {
+             console.error("Error deleting truck assignments:", deleteError);
+             throw new Error(
+               `Failed to remove truck assignments: ${deleteError.message}`
+             );
+           }
+
+           // Set all affected events back to "Pending" status
+           if (affectedEventIds.length > 0) {
+             console.log(
+               `Setting ${affectedEventIds.length} events back to Pending status`
+             );
+             
+             const { error: eventUpdateError } = await supabase
+               .from("events")
+               .update({ status: "Pending" })
+               .in("id", affectedEventIds);
+
+             if (eventUpdateError) {
+               console.error("Error updating event statuses:", eventUpdateError);
+               throw new Error(
+                 `Failed to update event statuses to Pending: ${eventUpdateError.message}`
+               );
+             }
+             
+             console.log(`Successfully set ${affectedEventIds.length} events to Pending`);
+           }
 
           // Verify deletion worked by checking ALL remaining assignments
           const { data: remainingAssignments, error: verifyError } =
@@ -429,14 +461,14 @@ export default function EditTruckPage(): ReactElement {
         }
       }
 
-      // Determine success message based on what happened
-      let successMessage = "Truck updated successfully!";
-      if (
-        currentTruck?.is_available === true &&
-        updateData.is_available === false
-      ) {
-        successMessage += " All truck assignments have been removed.";
-      }
+             // Determine success message based on what happened
+       let successMessage = "Truck updated successfully!";
+       if (
+         currentTruck?.is_available === true &&
+         updateData.is_available === false
+       ) {
+         successMessage += " All truck assignments have been removed and affected events have been set to Pending status.";
+       }
 
       setValidationErrors([
         {
