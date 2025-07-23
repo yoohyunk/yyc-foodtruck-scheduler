@@ -291,10 +291,10 @@ export default function EditTruckPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      // First, get the current truck to get the address_id
+      // First, get the current truck to get the address_id and current availability status
       const { data: currentTruck, error: fetchError } = await supabase
         .from("trucks")
-        .select("address_id")
+        .select("address_id, is_available")
         .eq("id", id)
         .single();
 
@@ -350,10 +350,98 @@ export default function EditTruckPage(): ReactElement {
         throw new Error("Failed to update truck");
       }
 
+      // If truck availability was changed from true to false, remove ALL truck assignments for this truck
+      if (
+        currentTruck?.is_available === true &&
+        updateData.is_available === false
+      ) {
+        console.log(
+          "Truck availability changed to false, removing ALL truck assignments..."
+        );
+
+        // First, get ALL truck assignments for this truck to see what we're working with
+        const { data: allAssignments, error: allAssignmentsError } =
+          await supabase
+            .from("truck_assignment")
+            .select("id, start_time, end_time, event_id, driver_id")
+            .eq("truck_id", id);
+
+        if (allAssignmentsError) {
+          console.error("Error fetching all assignments:", allAssignmentsError);
+          throw new Error(
+            `Failed to fetch truck assignments: ${allAssignmentsError.message}`
+          );
+        }
+
+        console.log(
+          `Found ${allAssignments?.length || 0} total assignments for truck:`,
+          allAssignments
+        );
+
+        if (allAssignments && allAssignments.length > 0) {
+          // Delete ALL truck assignments for this truck (not just future ones)
+          // When a truck becomes unavailable, it should not have ANY assignments
+          console.log(
+            `Removing ALL ${allAssignments.length} assignments for truck ${id}`
+          );
+
+          const { error: deleteError } = await supabase
+            .from("truck_assignment")
+            .delete()
+            .eq("truck_id", id);
+
+          if (deleteError) {
+            console.error("Error deleting truck assignments:", deleteError);
+            throw new Error(
+              `Failed to remove truck assignments: ${deleteError.message}`
+            );
+          }
+
+          // Verify deletion worked by checking ALL remaining assignments
+          const { data: remainingAssignments, error: verifyError } =
+            await supabase
+              .from("truck_assignment")
+              .select("id, start_time, event_id")
+              .eq("truck_id", id);
+
+          if (verifyError) {
+            console.error("Error verifying assignment deletion:", verifyError);
+            throw new Error(
+              `Failed to verify assignment removal: ${verifyError.message}`
+            );
+          }
+
+          if (remainingAssignments && remainingAssignments.length > 0) {
+            console.error(
+              `Assignment deletion failed - ${remainingAssignments.length} assignments still exist:`,
+              remainingAssignments
+            );
+            throw new Error(
+              `Failed to remove all truck assignments. ${remainingAssignments.length} assignments remain.`
+            );
+          }
+
+          console.log(
+            `Successfully removed ALL ${allAssignments.length} truck assignments`
+          );
+        } else {
+          console.log("No truck assignments found to remove");
+        }
+      }
+
+      // Determine success message based on what happened
+      let successMessage = "Truck updated successfully!";
+      if (
+        currentTruck?.is_available === true &&
+        updateData.is_available === false
+      ) {
+        successMessage += " All truck assignments have been removed.";
+      }
+
       setValidationErrors([
         {
           field: "success",
-          message: "Truck updated successfully!",
+          message: successMessage,
           element: null,
         },
       ]);
@@ -522,8 +610,7 @@ export default function EditTruckPage(): ReactElement {
             <div
               className="section-card mb-4"
               style={{
-                borderLeft: "6px solid var(--primary-light)",
-                borderTop: "4px solid var(--secondary-light)",
+                border: "none",
               }}
               data-no-before="true"
             >
