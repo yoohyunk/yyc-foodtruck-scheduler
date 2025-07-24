@@ -96,6 +96,12 @@ export default function Sidebar() {
   useEffect(() => {
     const checkScreenSize = () => {
       const isMobileView = window.innerWidth < 1024; // lg breakpoint
+      console.log(
+        "Screen size check - window.innerWidth:",
+        window.innerWidth,
+        "isMobileView:",
+        isMobileView
+      );
       setIsMobile(isMobileView);
       if (!isMobileView) {
         setIsOpen(false); // Close mobile menu when switching to desktop
@@ -126,7 +132,15 @@ export default function Sidebar() {
     [pathname]
   );
 
-  const closeSidebar = () => setIsOpen(false);
+  const closeSidebar = () => {
+    console.log(
+      "closeSidebar called, current isOpen:",
+      isOpen,
+      "isMobile:",
+      isMobile
+    );
+    setIsOpen(false);
+  };
 
   const toggleSection = React.useCallback((sectionName: string) => {
     setExpandedSections((prev) => {
@@ -184,10 +198,7 @@ export default function Sidebar() {
       )}
 
       {/* Sidebar */}
-      <aside
-        className={`sidebar ${isMobile && isOpen ? "mobile-open" : ""}`}
-        style={{ background: "var(--primary-dark)" }}
-      >
+      <aside className={`sidebar ${isMobile && isOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-content">
           {/* Navigation Sections */}
           <div>

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
-import { getTruckBorderColor } from "../types";
+import { getTruckTypeClass } from "../types";
 import ErrorModal from "../components/ErrorModal";
 import { trucksApi } from "@/lib/supabase/trucks";
 import { useAuth } from "@/contexts/AuthContext";
@@ -308,7 +308,6 @@ export default function Trucks(): ReactElement {
       >
         {filteredTrucks.length > 0 ? (
           filteredTrucks.map((truck, index) => {
-            const leftBorderColor = getTruckBorderColor(truck.type);
             return (
               <TutorialHighlight
                 key={truck.id}
@@ -317,13 +316,10 @@ export default function Trucks(): ReactElement {
                 )}
               >
                 <div
-                  className="truck-card p-6 rounded-lg shadow-md relative"
+                  className={`truck-card p-6 rounded-lg shadow-md relative ${getTruckTypeClass(truck.type)}`}
                   style={{
                     backgroundColor: "var(--white)",
-                    border: "1px solid var(--border)",
-                    borderLeft: `10px solid ${leftBorderColor}`,
                     borderRadius: "1.5rem",
-                    transition: "border-color 0.2s",
                   }}
                 >
                   {/* Edit Button */}

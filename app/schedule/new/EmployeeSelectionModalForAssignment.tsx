@@ -137,6 +137,18 @@ const EmployeeSelectionModalForAssignment: React.FC<Props> = ({
             value={employeeTypeFilter}
             onChange={(e) => setEmployeeTypeFilter(e.target.value)}
             className="input-field text-sm px-3 py-1"
+            style={{
+              borderColor:
+                employeeTypeFilter === "all"
+                  ? "var(--text-muted)"
+                  : employeeTypeFilter === "Driver"
+                    ? "var(--secondary-light)"
+                    : employeeTypeFilter === "Server"
+                      ? "var(--secondary-medium)"
+                      : employeeTypeFilter === "Admin"
+                        ? "var(--primary-light)"
+                        : "var(--text-muted)",
+            }}
           >
             <option value="all">All Types</option>
             <option value="Server">Server</option>

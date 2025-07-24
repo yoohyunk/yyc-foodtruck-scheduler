@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
-import { getTruckBorderColor } from "../types";
+import { getTruckTypeClass } from "../types";
 import { useAuth } from "@/contexts/AuthContext";
 import { employeesApi } from "@/lib/supabase/employees";
 
@@ -43,6 +43,41 @@ export default function TruckManagementPage() {
           setLoading(false);
           return;
         }
+        if (isAdmin) {
+          // Admin: fetch all trucks
+          const { data: allTrucks, error } = await supabase
+            .from("trucks")
+            .select("*, addresses:address_id(*)");
+          if (error) {
+            console.error("Error fetching all trucks:", error);
+            setTrucks([]);
+            setLoading(false);
+            return;
+          }
+          // Add default packingList if missing
+          setTrucks(
+            (allTrucks || []).map((truck) => ({
+              ...truck,
+              packingList: Array.isArray(truck.packing_list)
+                ? truck.packing_list
+                : [
+                    "Food preparation equipment",
+                    "Cooking utensils and tools",
+                    "Food storage containers",
+                    "Cleaning supplies",
+                    "Safety equipment",
+                    "Cash register and payment system",
+                    "Menu boards and signage",
+                    "First aid kit",
+                    "Fire extinguisher",
+                    "Generator and fuel",
+                  ],
+            }))
+          );
+          setLoading(false);
+          return;
+        }
+        // Employee: fetch only assigned trucks (existing logic)
         // Get employee_id from user_id
         const employee = await employeesApi.getEmployeeByUserId(user.id);
         if (!employee) {
@@ -108,22 +143,7 @@ export default function TruckManagementPage() {
       }
     };
     fetchAssignedTrucks();
-  }, [user, authLoading, supabase]);
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Food Truck":
-        return "bg-orange-100 text-orange-800";
-      case "Beverage Truck":
-        return "bg-blue-100 text-blue-800";
-      case "Dessert Truck":
-        return "bg-pink-100 text-pink-800";
-      case "Holiday Truck":
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  }, [user, authLoading, supabase, isAdmin]);
 
   const toggleTruckExpansion = (truckId: string) => {
     const newExpandedTrucks = new Set(expandedTrucks);
@@ -253,16 +273,12 @@ export default function TruckManagementPage() {
             className="grid gap-6 truck-management"
           >
             {trucks.map((truck, index) => {
-              const leftBorderColor = getTruckBorderColor(truck.type);
               return (
                 <div
                   key={truck.id}
-                  className="truck-card"
+                  className={`truck-card ${getTruckTypeClass(truck.type)}`}
                   style={{
-                    border: "1px solid var(--border)",
-                    borderLeft: `10px solid ${leftBorderColor}`,
                     borderRadius: "1.5rem",
-                    transition: "border-color 0.2s",
                   }}
                 >
                   <TutorialHighlight
@@ -286,12 +302,7 @@ export default function TruckManagementPage() {
                           </h3>
                           <div className="flex items-center mt-1">
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(truck.type)}`}
-                            >
-                              {truck.type}
-                            </span>
-                            <span
-                              className="text-sm ml-2"
+                              className="text-sm"
                               style={{ color: "var(--text-muted)" }}
                             >
                               Capacity: {truck.capacity}

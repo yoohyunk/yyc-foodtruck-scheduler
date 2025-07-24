@@ -11,11 +11,18 @@ type EmployeeLimited = Tables<"employees_limited_view"> & {
   is_available?: boolean;
   addresses?: Tables<"addresses">;
   currentWage?: number;
+  availability?: Array<{
+    day_of_week: string;
+    start_time: string;
+    end_time: string;
+  }>;
 };
 import { createClient } from "@/lib/supabase/client";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { useAuth } from "@/contexts/AuthContext";
+import { getEmployeeRoleFilterColor } from "../types";
+import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 
 export default function Employees(): ReactElement {
   const [employees, setEmployees] = useState<EmployeeLimited[]>([]);
@@ -42,18 +49,30 @@ export default function Employees(): ReactElement {
       try {
         let data, error;
         if (isAdmin) {
-          // Admin: fetch from full employees table
-          ({ data, error } = await supabase.from("employees").select("*"));
+          // Admin: fetch from full employees table with address and wage data
+          ({ data, error } = await supabase
+            .from("employees")
+            .select(
+              `
+              *,
+              addresses (*)
+            `
+            )
+            .order("created_at", { ascending: false }));
         } else {
-          // Non-admin: fetch from limited view
-          ({ data, error } = await supabase.from("employees_limited_view")
-            .select(`
+          // Non-admin: fetch from limited view only
+          ({ data, error } = await supabase
+            .from("employees_limited_view")
+            .select(
+              `
               employee_id,
               first_name,
               last_name,
               employee_type,
               user_phone
-            `));
+            `
+            )
+            .order("first_name", { ascending: true }));
         }
 
         if (error) {
@@ -66,22 +85,84 @@ export default function Employees(): ReactElement {
           return;
         }
 
-        const formattedEmployees = data.map((emp) => {
-          return {
-            ...emp,
-            // Add default values for fields not available in limited view
-            created_at: emp.created_at || new Date().toISOString(),
-            is_pending: emp.is_pending ?? false,
-            is_available: emp.is_available ?? true,
-            addresses: emp.addresses,
-            currentWage: emp.currentWage ?? 0,
-          };
-        });
+        let formattedEmployees;
 
-        // Filter employees by activeStatus
-        const statusEmployees = formattedEmployees.filter((emp) =>
-          activeStatus === "active" ? emp.is_available : !emp.is_available
-        );
+        if (isAdmin) {
+          // For admin: get wage data and availability for each employee
+          const employeesWithWagesAndAvailability = await Promise.all(
+            data.map(async (emp) => {
+              try {
+                // Fetch wage data
+                const { data: wageData } = await supabase
+                  .from("wage")
+                  .select("hourly_wage")
+                  .eq("employee_id", emp.employee_id)
+                  .order("start_date", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+
+                // Fetch availability data
+                let availabilityData: Array<{
+                  day_of_week: string;
+                  start_time: string;
+                  end_time: string;
+                }> = [];
+                try {
+                  availabilityData =
+                    await employeeAvailabilityApi.getEmployeeAvailability(
+                      emp.employee_id
+                    );
+                } catch (availabilityError) {
+                  console.error(
+                    `Error fetching availability for employee ${emp.employee_id}:`,
+                    availabilityError
+                  );
+                }
+
+                return {
+                  ...emp,
+                  currentWage: wageData?.hourly_wage || 0,
+                  availability: availabilityData,
+                };
+              } catch (error) {
+                console.error(
+                  `Error fetching data for employee ${emp.employee_id}:`,
+                  error
+                );
+                return {
+                  ...emp,
+                  currentWage: 0,
+                  availability: [],
+                };
+              }
+            })
+          );
+
+          formattedEmployees = employeesWithWagesAndAvailability;
+        } else {
+          // For non-admin: add default values for missing fields
+          formattedEmployees = data.map((emp) => ({
+            ...emp,
+            // Default values for fields not available in limited view
+            created_at: new Date().toISOString(),
+            is_pending: false,
+            is_available: true, // Assume available for non-admin view
+            addresses: null,
+            currentWage: 0,
+          }));
+        }
+
+        // Filter employees by activeStatus (only for admin since non-admin doesn't have access to is_available)
+        let statusEmployees;
+        if (isAdmin) {
+          statusEmployees = formattedEmployees.filter((emp) =>
+            activeStatus === "active" ? emp.is_available : !emp.is_available
+          );
+        } else {
+          // For non-admin, show all employees since we can't filter by availability
+          statusEmployees = formattedEmployees;
+        }
+
         // Sort employees alphabetically by last name, then first name
         const sortedEmployees = statusEmployees.sort((a, b) => {
           if (sortMode === "last") {
@@ -384,25 +465,25 @@ export default function Employees(): ReactElement {
         className="filter-buttons grid"
       >
         <button
-          className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button employee-filter-all `}
           onClick={() => setActiveFilter("All")}
         >
           All
         </button>
         <button
-          className={`button ${activeFilter === "Driver" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button ${getEmployeeRoleFilterColor("Driver", activeFilter === "Driver")}`}
           onClick={() => setActiveFilter("Driver")}
         >
           Drivers
         </button>
         <button
-          className={`button ${activeFilter === "Server" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button ${getEmployeeRoleFilterColor("Server", activeFilter === "Server")}`}
           onClick={() => setActiveFilter("Server")}
         >
           Servers
         </button>
         <button
-          className={`button ${activeFilter === "Admin" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button employee-filter-admin `}
           onClick={() => setActiveFilter("Admin")}
         >
           Admins
@@ -568,7 +649,7 @@ export default function Employees(): ReactElement {
               <TutorialHighlight
                 key={employee.employee_id}
                 isHighlighted={highlightEmployeeCard}
-                className="employee-card bg-white p-4 rounded shadow relative"
+                className={`employee-card bg-white p-4 rounded shadow relative role-${(employee.employee_type || "unknown").toLowerCase()}`}
               >
                 {/* Action Buttons */}
                 {isAdmin && (
@@ -619,39 +700,87 @@ export default function Employees(): ReactElement {
                     <strong>Wage:</strong> ${employee.currentWage || 0}/hr
                   </p>
                 )}
-                <p>
-                  <strong>Status:</strong>{" "}
-                  {employee.status ? (
-                    <span
-                      className={
-                        employee.status === "Active"
-                          ? "text-green-500"
-                          : employee.status === "Inactive"
-                            ? "text-red-500"
-                            : "text-gray-500"
-                      }
-                    >
-                      {employee.status}
-                    </span>
-                  ) : (
-                    <span
-                      className={
-                        employee.is_available
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }
-                    >
-                      {employee.is_available ? "Available" : "Unavailable"}
-                    </span>
-                  )}
-                </p>
                 {isAdmin && (
                   <p>
-                    <strong>Availability:</strong>{" "}
-                    <span className="text-gray-500">
-                      Not available in limited view
-                    </span>
+                    <strong>Status:</strong>{" "}
+                    {employee.status ? (
+                      <span
+                        className={
+                          employee.status === "Active"
+                            ? "text-green-500"
+                            : employee.status === "Inactive"
+                              ? "text-red-500"
+                              : "text-gray-500"
+                        }
+                      >
+                        {employee.status}
+                      </span>
+                    ) : (
+                      <span
+                        className={
+                          employee.is_available
+                            ? "text-green-500"
+                            : "text-red-500"
+                        }
+                      >
+                        {employee.is_available ? "Available" : "Unavailable"}
+                      </span>
+                    )}
                   </p>
+                )}
+                {isAdmin && (
+                  <div>
+                    <p>
+                      <strong>Availability:</strong>
+                    </p>
+                    <div
+                      className="text-sm text-gray-600 mt-1 p-2 bg-gray-50 rounded"
+                      style={{ maxWidth: "100%", wordWrap: "break-word" }}
+                    >
+                      {employee.availability &&
+                      employee.availability.length > 0 ? (
+                        <div className="space-y-1">
+                          {employee.availability
+                            .sort((a, b) => {
+                              const dayOrder = [
+                                "Monday",
+                                "Tuesday",
+                                "Wednesday",
+                                "Thursday",
+                                "Friday",
+                                "Saturday",
+                                "Sunday",
+                              ];
+                              return (
+                                dayOrder.indexOf(a.day_of_week) -
+                                dayOrder.indexOf(b.day_of_week)
+                              );
+                            })
+                            .map((avail, index) => {
+                              const startTime = avail.start_time.slice(0, 5); // Remove seconds
+                              const endTime = avail.end_time.slice(0, 5); // Remove seconds
+                              return (
+                                <div
+                                  key={index}
+                                  className="flex justify-between"
+                                >
+                                  <span className="font-medium">
+                                    {avail.day_of_week}:
+                                  </span>
+                                  <span>
+                                    {startTime} - {endTime}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 italic">
+                          No availability set
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 )}
               </TutorialHighlight>
             );

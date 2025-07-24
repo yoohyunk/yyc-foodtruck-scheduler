@@ -424,6 +424,18 @@ export default function AssignmentReport(): ReactElement {
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
                 className="input-field"
+                style={{
+                  borderColor:
+                    selectedType === "All"
+                      ? "var(--text-muted)"
+                      : selectedType === "driver"
+                        ? "var(--secondary-light)"
+                        : selectedType === "server"
+                          ? "var(--secondary-medium)"
+                          : selectedType === "standalone"
+                            ? "var(--primary-light)"
+                            : "var(--text-muted)",
+                }}
               >
                 <option value="All">All Types</option>
                 <option value="server">Server Shifts</option>

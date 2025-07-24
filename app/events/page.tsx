@@ -3,7 +3,7 @@
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { extractDate, extractTime } from "./utils";
-import { Event } from "../types";
+import { Event, getEventStatusFilterColor } from "../types";
 import type { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
@@ -206,19 +206,19 @@ export default function Events(): ReactElement {
         className="filter-buttons grid grid-cols-3 gap-4 mb-6"
       >
         <button
-          className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button ${getEventStatusFilterColor("All", activeFilter === "All")}`}
           onClick={() => setActiveFilter("All")}
         >
           All
         </button>
         <button
-          className={`button ${activeFilter === "Pending" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button ${getEventStatusFilterColor("Pending", activeFilter === "Pending")}`}
           onClick={() => setActiveFilter("Pending")}
         >
           Pending
         </button>
         <button
-          className={`button ${activeFilter === "Scheduled" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button ${getEventStatusFilterColor("Scheduled", activeFilter === "Scheduled")}`}
           onClick={() => setActiveFilter("Scheduled")}
         >
           Scheduled
@@ -261,7 +261,7 @@ export default function Events(): ReactElement {
                 isHighlighted={shouldHighlight(
                   `.event-card:nth-child(${filteredAdminEvents.indexOf(event) + 1})`
                 )}
-                className="event-card bg-white p-4 rounded shadow relative"
+                className={`event-card bg-white p-4 rounded shadow relative status-${(event.status || "unknown").toLowerCase()}`}
               >
                 <h3 className="text-lg font-semibold">{event.title}</h3>
                 <p>
@@ -343,7 +343,7 @@ export default function Events(): ReactElement {
               isHighlighted={shouldHighlight(
                 `.event-card:nth-child(${filteredLimitedEvents.indexOf(event) + 1})`
               )}
-              className="event-card bg-white p-4 rounded shadow relative"
+              className={`event-card bg-white p-4 rounded shadow relative status-${(event.status || "unknown").toLowerCase()}`}
             >
               <h3 className="text-lg font-semibold">{event.title}</h3>
               <p>

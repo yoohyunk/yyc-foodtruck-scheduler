@@ -556,7 +556,20 @@ export default function EmployeeSelectionModal({
                   value={employeeFilter}
                   onChange={(e) => onFilterChange(e.target.value)}
                   className="input-field employee-filter-dropdown text-sm px-3 py-1"
-                  style={{ minWidth: "180px", maxWidth: "240px" }}
+                  style={{
+                    minWidth: "180px",
+                    maxWidth: "240px",
+                    borderColor:
+                      employeeFilter === "all"
+                        ? "var(--text-muted)"
+                        : employeeFilter === "Driver"
+                          ? "var(--secondary-light)"
+                          : employeeFilter === "Server"
+                            ? "var(--secondary-medium)"
+                            : employeeFilter === "Admin"
+                              ? "var(--primary-light)"
+                              : "var(--text-muted)",
+                  }}
                 >
                   <option value="all">All Employees</option>
                   <option value="Server">Server Only</option>

@@ -2,20 +2,31 @@
 import "./globals.css";
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-import { HomePageEvent, TimeOffRequest } from "./types";
+import {
+  HomePageEvent,
+  TimeOffRequest,
+  Employee,
+  getEventStatusBorderColor,
+  getTimeOffStatusBorderColor,
+} from "./types";
+import type { Tables } from "@/database.types";
 import { TutorialOverlay } from "./tutorial";
 import { useTutorial } from "./tutorial/TutorialContext";
 import { TutorialHighlight } from "./components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
+import { employeesApi } from "@/lib/supabase/employees";
 import { useAuth } from "@/contexts/AuthContext";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Home(): ReactElement {
   const [events, setEvents] = useState<HomePageEvent[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
+  const supabase = createClient();
 
   const { shouldHighlight } = useTutorial();
 
@@ -64,73 +75,164 @@ export default function Home(): ReactElement {
 
         // Fetch upcoming events based on user role
         let eventsData: Array<{
+          id: string;
           start_date: string;
           title?: string | null;
           description?: string | null;
-        }>;
-        if (isAdmin) {
-          // Admin: show all events
-          const adminEvents = await eventsApi.getAllEvents();
-          eventsData = adminEvents.map((event) => ({
-            start_date: event.start_date || "",
-            title: event.title,
-            description: event.description,
-          }));
-        } else if (user) {
-          // Employee: show only assigned events
-          const response = await fetch(
-            `/api/events/assigned?userId=${user.id}`
-          );
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch assigned events: ${response.statusText}`
+          status?: string | null;
+        }> = [];
+
+        // Fetch events based on user role with better error handling
+        try {
+          if (isAdmin === true) {
+            console.log("Fetching admin events...");
+            // Admin: show only pending events
+            const adminEvents = await eventsApi.getAllEvents();
+            console.log("Admin events fetched:", adminEvents.length);
+            eventsData = adminEvents
+              .filter((event) => (event.status || "Pending") === "Pending")
+              .map((event) => ({
+                id: event.id,
+                start_date: event.start_date || "",
+                title: event.title,
+                description: event.description,
+                status: event.status,
+              }));
+            console.log("Filtered pending events:", eventsData.length);
+          } else if (user?.id) {
+            console.log("Fetching employee events for user:", user.id);
+            // Employee: show only assigned events
+            const response = await fetch(
+              `/api/events/assigned?userId=${user.id}`
             );
+            if (!response.ok) {
+              throw new Error(
+                `Failed to fetch assigned events: ${response.statusText}`
+              );
+            }
+            const data = await response.json();
+            console.log("Employee events response:", data);
+            eventsData = (data.events || []).map(
+              (event: Tables<"event_basic_info_view">) => ({
+                id: event.id,
+                start_date: event.start_date || "",
+                title: event.title,
+                description: event.description,
+                status: event.status,
+              })
+            );
+          } else {
+            console.log("No user or admin status, setting empty events");
+            eventsData = [];
           }
-          const data = await response.json();
-          eventsData = data.events || [];
-        } else {
+        } catch (eventsError) {
+          console.error("Error fetching events:", eventsError);
           eventsData = [];
         }
 
+        // Process upcoming events
         const upcomingEvents = eventsData
           .filter((event) => new Date(event.start_date) >= new Date())
           .slice(0, 6)
           .map((event) => ({
+            id: event.id,
             title: event.title || "Untitled Event",
             startTime: new Date(event.start_date).toLocaleDateString(),
             location: event.description || "Location not set",
+            status: event.status,
           }));
 
         setEvents(upcomingEvents);
+        console.log("Set upcoming events:", upcomingEvents.length);
 
-        // Fetch time-off requests
-        const requestsData = await timeOffRequestsApi.getAllTimeOffRequests();
-        const upcomingRequests = requestsData
-          .filter((request) => new Date(request.start_datetime) >= new Date())
-          .slice(0, 4)
-          .map((request) => ({
-            id: request.id,
-            employee_id: request.employee_id,
-            start_datetime: request.start_datetime,
-            end_datetime: request.end_datetime,
-            reason: request.reason,
-            type: request.type || "Time Off",
-            status: request.status,
-            created_at: request.created_at,
-          }));
+        // Fetch time-off requests with separate error handling
+        try {
+          console.log("Fetching time-off requests...");
+          const requestsData = await timeOffRequestsApi.getAllTimeOffRequests();
+          const upcomingRequests = requestsData
+            .filter((request) => new Date(request.start_datetime) >= new Date())
+            .slice(0, 4)
+            .map((request) => ({
+              id: request.id,
+              employee_id: request.employee_id,
+              start_datetime: request.start_datetime,
+              end_datetime: request.end_datetime,
+              reason: request.reason,
+              type: request.type || "Time Off",
+              status: request.status,
+              created_at: request.created_at,
+            }));
 
-        setTimeOffRequests(upcomingRequests);
+          setTimeOffRequests(upcomingRequests);
+          console.log("Set time-off requests:", upcomingRequests.length);
+        } catch (requestsError) {
+          console.error("Error fetching time-off requests:", requestsError);
+          setTimeOffRequests([]);
+        }
+
+        // Fetch employees for name mapping with separate error handling
+        try {
+          console.log("Fetching employees...");
+          let employeesData;
+          if (isAdmin) {
+            // Admin: get full employee data
+            employeesData = await employeesApi.getAllEmployees();
+          } else {
+            // Non-admin: get limited employee data for name mapping only
+            const { data, error } = await supabase
+              .from("employees_limited_view")
+              .select("employee_id, first_name, last_name")
+              .order("first_name", { ascending: true });
+
+            if (error) {
+              throw new Error(
+                `Error fetching employee names: ${error.message}`
+              );
+            }
+            // Add default values to match Employee type
+            employeesData = (data || []).map((emp) => ({
+              ...emp,
+              address_id: null,
+              availability: null,
+              created_at: "",
+              employee_type: null,
+              is_available: true,
+              is_pending: false,
+              user_email: null,
+              user_id: null,
+              user_phone: null,
+            }));
+          }
+          setEmployees(employeesData);
+          console.log("Set employees:", employeesData.length);
+        } catch (employeesError) {
+          console.error("Error fetching employees:", employeesError);
+          setEmployees([]);
+        }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("General error in fetchData:", error);
         setEvents([]);
         setTimeOffRequests([]);
+        setEmployees([]);
       } finally {
         setIsLoading(false);
+        console.log("Homepage loading complete");
       }
     };
 
-    fetchData();
+    // Add a small delay to ensure auth state is stable
+    const timeoutId = setTimeout(fetchData, 100);
+    return () => clearTimeout(timeoutId);
   }, [isAdmin, user, authLoading]);
+
+  // Helper function to get employee name by ID
+  const getEmployeeName = (employeeId: string | null): string => {
+    if (!employeeId) return "Unknown Employee";
+    const employee = employees.find((emp) => emp.employee_id === employeeId);
+    return employee
+      ? `${employee.first_name} ${employee.last_name}`
+      : "Unknown Employee";
+  };
 
   return (
     <div className="landing-container">
@@ -301,13 +403,33 @@ export default function Home(): ReactElement {
           className="upcoming-events-highlight"
         >
           <section data-section="upcoming-events">
-            <h2 className="section-title">Upcoming Events</h2>
+            <h2 className="section-title">
+              {isAdmin ? "Upcoming Pending Events" : "Upcoming Events"}
+            </h2>
             <div className="grid gap-4">
               {isLoading ? (
                 <p style={{ color: "var(--text-muted)" }}>Loading events...</p>
               ) : events.length > 0 ? (
                 events.map((event, index) => (
-                  <div key={index} className="section-card">
+                  <div
+                    key={index}
+                    className="section-card"
+                    onClick={() => router.push(`/events/${event.id}`)}
+                    style={{
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      border: `3px solid ${getEventStatusBorderColor(event.status || "Pending")}`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 8px 25px rgba(0, 0, 0, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "";
+                    }}
+                  >
                     <h3 className="section-card-title">{event.title}</h3>
                     <p className="section-card-text">
                       <strong>Date:</strong> {event.startTime}
@@ -319,7 +441,9 @@ export default function Home(): ReactElement {
                 ))
               ) : (
                 <p style={{ color: "var(--text-muted)" }}>
-                  No upcoming events.
+                  {isAdmin
+                    ? "No upcoming pending events."
+                    : "No upcoming events."}
                 </p>
               )}
             </div>
@@ -340,8 +464,30 @@ export default function Home(): ReactElement {
                 </p>
               ) : timeOffRequests.length > 0 ? (
                 timeOffRequests.map((request, index) => (
-                  <div key={index} className="section-card">
-                    <h3 className="section-card-title">{request.type}</h3>
+                  <div
+                    key={index}
+                    className="section-card"
+                    onClick={() =>
+                      router.push(`/requests?employeeId=${request.employee_id}`)
+                    }
+                    style={{
+                      border: `3px solid ${getTimeOffStatusBorderColor(request.status)}`,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 8px 25px rgba(0, 0, 0, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "";
+                    }}
+                  >
+                    <h3 className="section-card-title">
+                      {getEmployeeName(request.employee_id)}
+                    </h3>
                     <p className="section-card-text">
                       <strong>Start Date:</strong>{" "}
                       {new Date(request.start_datetime).toLocaleDateString()}

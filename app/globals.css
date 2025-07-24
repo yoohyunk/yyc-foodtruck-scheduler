@@ -5,11 +5,11 @@
 ========================= */
 :root {
   /* Primary Colors - Updated with new color palette */
-  --primary-dark: #00809d;
+  --primary-dark: #4a77ad;
   --primary-light: #ffd586;
-  --secondary-dark: #a86e63;
-  --primary-medium: #00809d;
-  --secondary-medium: #a86e63;
+  --secondary-dark: #49516f;
+  --primary-medium: #4a77ad;
+  --secondary-medium: #49516f;
   --secondary-light: #e78f81;
   --background-light: #f8fafc;
   --background-dark: #1a202c;
@@ -117,14 +117,14 @@ body {
 ========================= */
 /* Header Styling */
 .header {
-  background: var(--primary-dark);
+  /* background: var(--primary-dark); */
   padding: 1rem 2rem;
   box-shadow: 0 8px 32px rgba(255, 245, 205, 0.4);
   position: sticky;
   top: 0;
   z-index: 9999;
   backdrop-filter: blur(10px);
-  border-bottom: 3px solid var(--secondary-light);
+  border-bottom: 3px solid var(--primary-dark);
   width: 100%;
   left: 0;
   right: 0;
@@ -160,7 +160,6 @@ body {
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(255, 245, 205, 0.4);
   transition: box-shadow 0.3s ease;
-  border: 2px solid var(--secondary-light);
 }
 
 .logo-img:hover {
@@ -312,6 +311,18 @@ body {
   box-shadow: 0 4px 12px rgba(179, 106, 94, 0.4);
 }
 
+.profile-button {
+  color: #008080;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-button:hover {
+  color: #006666;
+}
+
 /* Mobile/Overflow Menu Overlay */
 .mobile-menu-overlay {
   position: fixed;
@@ -378,12 +389,6 @@ body {
   font-weight: 600;
 }
 
-.mobile-quick-actions {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
 .mobile-section-title {
   color: var(--text-primary);
   font-size: 0.875rem;
@@ -422,7 +427,6 @@ body {
    Landing Page
 ========================= */
 .landing-container {
-  background: var(--background);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -439,7 +443,6 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 245, 205, 0.15);
   pointer-events: none;
 }
 
@@ -447,24 +450,12 @@ body {
   max-width: 800px;
   width: 100%;
   text-align: center;
-  background: var(--surface);
-  border-radius: 2rem;
+
   box-shadow: 0 16px 64px rgba(0, 0, 0, 0.1);
   padding: 3rem;
-  border: 3px solid var(--primary-light);
   transition: var(--hover-transition);
   position: relative;
   overflow: hidden;
-}
-
-.landing-main::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--primary-dark);
 }
 
 .landing-title {
@@ -572,7 +563,6 @@ body {
   gap: 1.5rem;
   padding: 2rem 3rem;
   text-decoration: none;
-  border-radius: 2rem;
   font-weight: 800;
   font-size: 1.4rem;
   color: var(--text-primary);
@@ -591,7 +581,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.3);
+
   transition: left 0.6s ease;
 }
 
@@ -722,7 +712,6 @@ body {
   left: 0;
   right: 0;
   height: 4px;
-  background: var(--secondary-medium);
 }
 
 /* Override ::before for add new item sections */
@@ -765,9 +754,9 @@ body {
 }
 
 .section-card-text span:last-child.bg-red-100 {
-  background: #e78f81 !important;
+  background: var(--secondary-light) !important;
   color: #ffffff !important;
-  border: 1px solid #e78f81;
+  border: 1px solid var(--secondary-light);
 }
 
 .section-card-text span:last-child.bg-yellow-100 {
@@ -827,19 +816,19 @@ body {
 
 .btn-primary:hover {
   box-shadow: 0 12px 32px rgba(255, 213, 134, 0.4);
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .btn-secondary {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border: 2px solid #ffaaaa;
+  border: 2px solid var(--secondary-light);
   box-shadow: 0 6px 20px rgba(255, 170, 170, 0.3);
 }
 
 .btn-secondary:hover {
   box-shadow: 0 12px 32px rgba(255, 170, 170, 0.4);
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 /* =========================
@@ -937,33 +926,6 @@ body {
 }
 
 /* =========================
-   Footer
-========================= */
-footer {
-  background-color: var(--primary-dark);
-  color: var(--primary-light);
-  padding: 1.5rem 0;
-  text-align: center;
-  font-size: 0.875rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-footer p {
-  margin: 0;
-}
-
-footer a {
-  color: var(--primary-light);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.3s ease;
-}
-
-footer a:hover {
-  color: var(--primary-dark);
-}
-
-/* =========================
    Grid Layout
 ========================= */
 .grid {
@@ -985,7 +947,7 @@ footer a:hover {
    Sidebar
 ========================= */
 .sidebar {
-  background: var(--primary-dark);
+  backdrop-filter: blur(10px);
   border-radius: 0;
   padding: 2.5rem;
   box-shadow: 0 2px 8px var(--shadow);
@@ -1005,6 +967,7 @@ footer a:hover {
 }
 
 .sidebar-content {
+  /* border-left: 3px solid var(--primary-dark); */
   padding: 1rem;
   overflow: hidden;
   height: 100%;
@@ -1031,6 +994,7 @@ footer a:hover {
 /* Mobile sidebar styles */
 @media (max-width: 1023px) {
   .sidebar {
+    backdrop-filter: blur(10px);
     position: fixed;
     top: 80px;
     left: 0;
@@ -1471,7 +1435,6 @@ tr:hover td {
 }
 
 .employee-card {
-  border: 1px solid #e5e7eb;
   background-color: var(--white);
   border-radius: 0.5rem;
   padding: 1rem;
@@ -1549,6 +1512,99 @@ button[title="Delete Employee"]:hover {
   color: var(--white);
 }
 
+/* Employee Role Color Styles */
+.employee-card {
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 2px solid;
+}
+
+.employee-card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Employee role border classes */
+.employee-card.role-driver {
+  border-color: var(--secondary-light); /* secondary-light */
+}
+
+.employee-card.role-server {
+  border-color: var(--secondary-medium); /* secondary-medium */
+}
+
+.employee-card.role-admin {
+  border-color: var(--primary-light); /* primary-light */
+}
+
+.employee-card.role-unknown {
+  border-color: var(--text-muted); /* text-muted */
+}
+
+/* Event Status Color Styles */
+.event-card {
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 2px solid;
+}
+
+.event-card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Event status border classes */
+.event-card.status-pending {
+  border-color: var(--secondary-light); /* secondary-light */
+}
+
+.event-card.status-scheduled {
+  border-color: var(--secondary-medium); /* secondary-medium */
+}
+
+.event-card.status-unknown {
+  border-color: var(--text-muted); /* text-muted */
+}
+
+/* Truck type border classes */
+.truck-card {
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 2px solid;
+  padding: 1rem !important;
+}
+
+.truck-card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.truck-card.type-food-truck {
+  border-color: var(--secondary-dark); /* secondary-dark */
+}
+
+.truck-card.type-beverage-truck {
+  border-color: var(--primary-light); /* primary-light */
+}
+
+.truck-card.type-dessert-truck {
+  border-color: var(--secondary-light); /* secondary-light */
+}
+
+.truck-card.type-holiday-truck {
+  border-color: var(--primary-dark); /* primary-dark */
+}
+
+.truck-card.type-unknown {
+  border-color: var(--text-muted); /* text-muted */
+}
+
+/* Employee filter dropdown styling */
+.employee-filter-dropdown:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 128, 157, 0.2);
+}
+
 .filter-buttons .button.bg-secondary-dark {
   background-color: #e5e7eb;
   color: var(--primary-dark);
@@ -1559,11 +1615,21 @@ button[title="Delete Employee"]:hover {
   color: var(--white);
 }
 
+/* Employee filter button specific styles */
+.employee-filter-all {
+  color: #e5e7eb !important;
+  background-color: var(--primary-dark) !important;
+}
+
+.employee-filter-admin {
+  background-color: var(--primary-light) !important;
+  color: var(--primary-dark) !important;
+}
+
 /* =========================
    Event Components
 ========================= */
 .event-card {
-  border: 1px solid black;
   border-radius: 0.5rem;
   padding: 1rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -2261,9 +2327,6 @@ button[title="Delete Employee"]:hover {
 /* Event styling improvements */
 .fc .fc-event-main-frame {
   padding: 0.25rem;
-  border-radius: 0.25rem;
-  background-color: var(--surface);
-  border: 1px solid var(--border);
   transition: all 0.2s ease;
   width: 100% !important;
   max-width: 100% !important;
@@ -2621,19 +2684,6 @@ button[title="Delete Employee"]:hover {
 /* =========================
    Truck Components
 ========================= */
-.truck-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-  position: relative;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  background-color: white;
-  transition: all 0.2s ease;
-}
-
-.truck-card:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
 
 .truck-title {
   font-size: 1.25rem;
@@ -2722,7 +2772,7 @@ button[title="Delete Employee"]:hover {
 }
 
 .info-link {
-  color: #3b82f6;
+  color: var(--secondary-medium);
   text-decoration: none;
 }
 
@@ -2831,7 +2881,7 @@ button[title="Delete Employee"]:hover {
 
 .tutorial-highlight-border {
   position: fixed;
-  border: 4px solid #00809d;
+  border: 4px solid var(--primary-dark);
   border-radius: 8px;
   transition: opacity 0.3s;
   opacity: 0;
@@ -2853,7 +2903,7 @@ button[title="Delete Employee"]:hover {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
   max-width: 400px;
   width: 350px;
-  border: 2px solid #00809d;
+  border: 2px solid var(--primary-dark);
   z-index: 9999;
   backdrop-filter: blur(4px);
   background: rgba(255, 255, 255, 0.98);
@@ -2865,7 +2915,7 @@ button[title="Delete Employee"]:hover {
   left: 0;
   right: 0;
   height: 3px;
-  background: #00809d;
+  background: var(--primary-dark);
   border-radius: 12px 12px 0 0;
 }
 
@@ -2915,7 +2965,7 @@ button[title="Delete Employee"]:hover {
 }
 
 .tutorial-progress-dot-active {
-  background-color: #00809d;
+  background-color: var(--primary-dark);
   transform: scale(1.2);
 }
 
@@ -2967,19 +3017,19 @@ button[title="Delete Employee"]:hover {
 .tutorial-button-skip {
   background-color: #fef2f2;
   color: #8b4513;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .tutorial-button-skip:hover {
   background-color: #fee2e2;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
   transform: translateY(-1px);
 }
 
 .tutorial-button-primary {
-  background: #00809d;
+  background: var(--primary-dark);
   color: white;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   font-weight: 700;
 }
 
@@ -3008,7 +3058,7 @@ button[title="Delete Employee"]:hover {
   left: 12px;
   width: 4px;
   height: 4px;
-  background-color: #ffaaaa;
+  background-color: var(--secondary-light);
   opacity: 0.4;
 }
 
@@ -3507,7 +3557,7 @@ button[title="Delete Employee"]:hover {
   width: 16px;
   height: 16px;
   border: 2px solid #f3f4f6;
-  border-top: 2px solid #3b82f6;
+  border-top: 2px solid var(--secondary-medium);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -3546,12 +3596,12 @@ button[title="Delete Employee"]:hover {
 .form-input:focus-visible,
 .form-select:focus-visible,
 .form-textarea:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--secondary-medium);
   outline-offset: 2px;
 }
 
 .btn:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--secondary-medium);
   outline-offset: 2px;
 }
 
@@ -3616,11 +3666,11 @@ button[title="Delete Employee"]:hover {
   }
 
   .logo {
-    min-width: 160px;
+    min-width: 85px;
   }
 
   .logo span {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 
   .nav-links {
@@ -3639,6 +3689,31 @@ button[title="Delete Employee"]:hover {
   .nav-link .nav-icon {
     font-size: 1.1rem;
   }
+
+  /* Ensure all buttons in nav-right are the same size on mobile */
+  .nav-right {
+    gap: 0.5rem;
+  }
+
+  .auth-button {
+    min-width: 3rem;
+    height: 3rem;
+    padding: 0.75rem;
+    justify-content: center;
+  }
+
+  .profile-button {
+    min-width: 3rem;
+    height: 3rem;
+    padding: 0.75rem;
+    justify-content: center;
+  }
+
+  .hamburger-button {
+    min-width: 3rem;
+    height: 3rem;
+    padding: 0.75rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -3647,16 +3722,16 @@ button[title="Delete Employee"]:hover {
   }
 
   .logo {
-    min-width: 140px;
+    min-width: 100px;
   }
 
   .logo-img {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .logo span {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 
   .nav-link {
@@ -3665,6 +3740,31 @@ button[title="Delete Employee"]:hover {
 
   .nav-link .nav-icon {
     font-size: 1rem;
+  }
+
+  /* Ensure all buttons in nav-right are the same size on small mobile */
+  .nav-right {
+    gap: 0.4rem;
+  }
+
+  .auth-button {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.6rem;
+    justify-content: center;
+  }
+
+  .profile-button {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.6rem;
+    justify-content: center;
+  }
+
+  .hamburger-button {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.6rem;
   }
 }
 
@@ -3703,7 +3803,7 @@ input:not(:-webkit-autofill) {
   display: block;
   font-size: 14px;
   font-weight: 700;
-  color: #00809d;
+  color: var(--primary-dark);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -3729,7 +3829,7 @@ input:not(:-webkit-autofill) {
 
 .form-input:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 4px rgba(0, 128, 157, 0.15);
   background: #f8fafc;
   transform: translateY(-2px);
@@ -3762,7 +3862,7 @@ input:not(:-webkit-autofill) {
 
 .form-select:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 4px rgba(0, 128, 157, 0.15);
   background: #f8fafc;
   transform: translateY(-2px);
@@ -3784,7 +3884,7 @@ input:not(:-webkit-autofill) {
 
 .form-textarea:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 4px rgba(0, 128, 157, 0.15);
   background: #f8fafc;
   transform: translateY(-2px);
@@ -3818,8 +3918,8 @@ input:not(:-webkit-autofill) {
 }
 
 .form-checkbox input[type="checkbox"]:checked {
-  background: #00809d;
-  border-color: #00809d;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
   box-shadow: 0 2px 8px rgba(0, 128, 157, 0.3);
 }
 
@@ -3869,7 +3969,7 @@ input:not(:-webkit-autofill) {
 }
 
 .btn-primary {
-  background: #00809d;
+  background: var(--primary-dark);
   color: #ffffff;
   box-shadow: 0 6px 20px rgba(0, 128, 157, 0.3);
 }
@@ -3889,9 +3989,9 @@ input:not(:-webkit-autofill) {
 }
 
 .btn-secondary {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border: 2px solid #ffaaaa;
+  border: 2px solid var(--secondary-light);
   box-shadow: 0 6px 20px rgba(255, 170, 170, 0.3);
 }
 
@@ -3973,7 +4073,7 @@ input:not(:-webkit-autofill) {
 .form-section-title {
   font-size: 18px;
   font-weight: 800;
-  color: #00809d;
+  color: var(--primary-dark);
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 2px solid #e2e8f0;
@@ -4001,7 +4101,7 @@ input:not(:-webkit-autofill) {
 }
 
 .validation-message.success {
-  color: #00809d;
+  color: var(--primary-dark);
   background: #fffbeb;
   border-color: #ffd586;
 }
@@ -4009,7 +4109,7 @@ input:not(:-webkit-autofill) {
 .validation-message.warning {
   color: #1a202c;
   background: #fff7ed;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 /* =========================
@@ -4048,7 +4148,7 @@ input:not(:-webkit-autofill) {
 }
 
 .form-input:hover {
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .form-input::placeholder {
@@ -4076,7 +4176,7 @@ input:not(:-webkit-autofill) {
 }
 
 .form-select:hover {
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .form-textarea {
@@ -4101,7 +4201,7 @@ input:not(:-webkit-autofill) {
 }
 
 .form-textarea:hover {
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .form-textarea::placeholder {
@@ -4110,7 +4210,7 @@ input:not(:-webkit-autofill) {
 }
 
 .form-error {
-  color: #b36a5e;
+  color: var(--secondary-dark);
   font-size: 0.875rem;
   margin-top: 0.5rem;
   font-weight: 500;
@@ -4191,37 +4291,37 @@ input:not(:-webkit-autofill) {
 }
 
 .btn-primary {
-  background: #00809d;
+  background: var(--primary-dark);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(255, 213, 134, 0.3);
 }
 
 .btn-primary:hover {
   box-shadow: 0 8px 24px rgba(255, 213, 134, 0.4);
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .btn-secondary {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border: 2px solid #ffaaaa;
+  border: 2px solid var(--secondary-light);
   box-shadow: 0 4px 12px rgba(255, 170, 170, 0.3);
 }
 
 .btn-secondary:hover {
   box-shadow: 0 8px 24px rgba(255, 170, 170, 0.4);
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .btn-danger {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(179, 106, 94, 0.3);
 }
 
 .btn-danger:hover {
   box-shadow: 0 8px 24px rgba(179, 106, 94, 0.4);
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .btn-outline {
@@ -4275,7 +4375,7 @@ input:not(:-webkit-autofill) {
   border-radius: 1rem;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 2px solid #ffd586;
+  /* border: 2px solid #ffd586; */
 }
 
 .table {
@@ -4285,12 +4385,11 @@ input:not(:-webkit-autofill) {
 }
 
 .table th {
-  background: #ffd586;
   color: #1a202c;
   font-weight: 700;
   padding: 1rem;
   text-align: left;
-  border-bottom: 2px solid #ffaaaa;
+  border-bottom: 2px solid var(--secondary-light);
   font-size: 0.95rem;
   letter-spacing: 0.02em;
 }
@@ -4339,15 +4438,15 @@ input:not(:-webkit-autofill) {
 }
 
 .badge-warning {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .badge-error {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .badge-info {
@@ -4377,15 +4476,15 @@ input:not(:-webkit-autofill) {
 }
 
 .alert-warning {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .alert-error {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .alert-info {
@@ -4432,7 +4531,7 @@ input:not(:-webkit-autofill) {
   justify-content: space-between;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #ffaaaa;
+  border-bottom: 2px solid var(--secondary-light);
 }
 
 .modal-title {
@@ -4442,7 +4541,7 @@ input:not(:-webkit-autofill) {
 }
 
 .modal-close {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
   border: none;
   border-radius: 0.5rem;
@@ -4458,7 +4557,7 @@ input:not(:-webkit-autofill) {
 }
 
 .modal-close:hover {
-  background: #a55a4e;
+  background: var(--secondary-light);
   transform: scale(1.1);
 }
 
@@ -4473,7 +4572,7 @@ input:not(:-webkit-autofill) {
   gap: 1rem;
   justify-content: flex-end;
   padding-top: 1rem;
-  border-top: 2px solid #ffaaaa;
+  border-top: 2px solid var(--secondary-light);
 }
 
 /* =========================
@@ -4682,7 +4781,6 @@ input:not(:-webkit-autofill) {
   transform: translateX(-50%);
   width: 60px;
   height: 3px;
-  background: #ffd586;
   border-radius: 2px;
 }
 
@@ -4720,9 +4818,9 @@ input:not(:-webkit-autofill) {
 }
 
 .filter-buttons button:nth-child(2) {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .filter-buttons button:nth-child(2):hover,
@@ -4734,15 +4832,15 @@ input:not(:-webkit-autofill) {
 }
 
 .filter-buttons button:nth-child(3) {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .filter-buttons button:nth-child(3):hover,
 .filter-buttons button:nth-child(3).active {
-  background: #a55a4e;
-  border-color: #a55a4e;
+  background: var(--secondary-light);
+  border-color: var(--secondary-light);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(179, 106, 94, 0.3);
 }
@@ -4753,32 +4851,14 @@ input:not(:-webkit-autofill) {
   border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
   position: relative;
   margin-bottom: 1rem;
 }
 
-.event-card:nth-child(odd) {
-  border-left: 4px solid #ffd586;
-}
-
-.event-card:nth-child(even) {
-  border-left: 4px solid #ffaaaa;
-}
-
-.event-card:nth-child(3n) {
-  border-left: 4px solid #b36a5e;
-}
-
-.event-card:nth-child(4n) {
-  border-left: 4px solid #ffd586;
-}
-
 .event-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border-color: #cbd5e0;
 }
 
 .event-card h3 {
@@ -4831,9 +4911,9 @@ input:not(:-webkit-autofill) {
 }
 
 .event-actions button:nth-child(2) {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .event-actions button:nth-child(2):hover {
@@ -4843,14 +4923,14 @@ input:not(:-webkit-autofill) {
 }
 
 .event-actions button:nth-child(3) {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .event-actions button:nth-child(3):hover {
-  background: #a55a4e;
-  border-color: #a55a4e;
+  background: var(--secondary-light);
+  border-color: var(--secondary-light);
   transform: translateY(-1px);
 }
 
@@ -4878,7 +4958,7 @@ input:not(:-webkit-autofill) {
   transform: translateX(-50%);
   width: 60px;
   height: 3px;
-  background: #ffaaaa;
+  background: var(--secondary-light);
   border-radius: 2px;
 }
 
@@ -4888,32 +4968,14 @@ input:not(:-webkit-autofill) {
   border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
   position: relative;
   margin-bottom: 1rem;
 }
 
-.employee-card:nth-child(odd) {
-  border-left: 4px solid #ffaaaa;
-}
-
-.employee-card:nth-child(even) {
-  border-left: 4px solid #ffd586;
-}
-
-.employee-card:nth-child(3n) {
-  border-left: 4px solid #b36a5e;
-}
-
-.employee-card:nth-child(4n) {
-  border-left: 4px solid #ffaaaa;
-}
-
 .employee-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border-color: #cbd5e0;
 }
 
 .employee-card h3 {
@@ -4955,15 +5017,15 @@ input:not(:-webkit-autofill) {
 }
 
 .employee-status.unavailable {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 .employee-status.pending {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 /* Professional Employee Type Badges */
@@ -4986,22 +5048,21 @@ input:not(:-webkit-autofill) {
 }
 
 .employee-type.driver {
-  background: #ffaaaa;
+  background: var(--secondary-light);
   color: #1a202c;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 .employee-type.server {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   color: #ffffff;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 /* Professional Info Cards */
 .event-card-info,
 .driver-card,
-.server-card,
-.truck-card {
+.server-card {
   background: #ffffff;
   border-radius: 0.75rem;
   padding: 1.5rem;
@@ -5014,36 +5075,31 @@ input:not(:-webkit-autofill) {
 
 .event-card-info:nth-child(odd),
 .driver-card:nth-child(odd),
-.server-card:nth-child(odd),
-.truck-card:nth-child(odd) {
+.server-card:nth-child(odd) {
   border-left: 4px solid #ffd586;
 }
 
 .event-card-info:nth-child(even),
 .driver-card:nth-child(even),
-.server-card:nth-child(even),
-.truck-card:nth-child(even) {
-  border-left: 4px solid #ffaaaa;
+.server-card:nth-child(even) {
+  border-left: 4px solid var(--secondary-light);
 }
 
 .event-card-info:nth-child(3n),
 .driver-card:nth-child(3n),
-.server-card:nth-child(3n),
-.truck-card:nth-child(3n) {
-  border-left: 4px solid #b36a5e;
+.server-card:nth-child(3n) {
+  border-left: 4px solid var(--secondary-dark);
 }
 
 .event-card-info:nth-child(4n),
 .driver-card:nth-child(4n),
-.server-card:nth-child(4n),
-.truck-card:nth-child(4n) {
+.server-card:nth-child(4n) {
   border-left: 4px solid #ffd586;
 }
 
 .event-card-info:hover,
 .driver-card:hover,
-.server-card:hover,
-.truck-card:hover {
+.server-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   border-color: #cbd5e0;
@@ -5051,8 +5107,7 @@ input:not(:-webkit-autofill) {
 
 .event-card-info h3,
 .driver-card h3,
-.server-card h3,
-.truck-card h3 {
+.server-card h3 {
   font-size: 1.25rem;
   font-weight: 600;
   color: #1a202c;
@@ -5061,8 +5116,7 @@ input:not(:-webkit-autofill) {
 
 .event-card-info p,
 .driver-card p,
-.server-card p,
-.truck-card p {
+.server-card p {
   color: #1a202c;
   margin-bottom: 0.375rem;
   font-weight: 400;
@@ -5071,8 +5125,7 @@ input:not(:-webkit-autofill) {
 
 .event-card-info strong,
 .driver-card strong,
-.server-card strong,
-.truck-card strong {
+.server-card strong {
   color: #1a202c;
   font-weight: 600;
 }
@@ -5101,11 +5154,11 @@ input:not(:-webkit-autofill) {
 }
 
 .event-section:nth-child(even) {
-  border-left: 3px solid #ffaaaa;
+  border-left: 3px solid var(--secondary-light);
 }
 
 .event-section:nth-child(3n) {
-  border-left: 3px solid #b36a5e;
+  border-left: 3px solid var(--secondary-dark);
 }
 
 .event-section:hover {
@@ -5135,11 +5188,11 @@ input:not(:-webkit-autofill) {
 }
 
 .assigned-employee-card:nth-child(even) {
-  border-left: 3px solid #ffaaaa;
+  border-left: 3px solid var(--secondary-light);
 }
 
 .assigned-employee-card:nth-child(3n) {
-  border-left: 3px solid #b36a5e;
+  border-left: 3px solid var(--secondary-dark);
 }
 
 .assigned-employee-card:hover {
@@ -5228,11 +5281,11 @@ input:not(:-webkit-autofill) {
 
 /* Professional Error States */
 .error-container {
-  background: #b36a5e;
+  background: var(--secondary-dark);
   border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(179, 106, 94, 0.2);
-  border: 1px solid #b36a5e;
+  border: 1px solid var(--secondary-dark);
   margin-bottom: 1.5rem;
 }
 
@@ -5245,7 +5298,7 @@ input:not(:-webkit-autofill) {
 
 .error-container button {
   background: #ffffff;
-  color: #b36a5e;
+  color: var(--secondary-dark);
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   font-weight: 500;
@@ -5341,12 +5394,12 @@ input:not(:-webkit-autofill) {
 
 /* Truck Assignment Item - Beverage Truck */
 .truck-assignment-item.border-blue-300 {
-  border-left: 6px solid #3b82f6;
+  border-left: 6px solid var(--secondary-medium);
   background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
 }
 
 .truck-assignment-item.border-blue-300::before {
-  background: #3b82f6;
+  background: var(--secondary-medium);
 }
 
 /* Truck Assignment Item - Dessert Truck */
@@ -5407,7 +5460,7 @@ input:not(:-webkit-autofill) {
 }
 
 .truck-assignment-item label.font-semibold.text-lg:hover {
-  color: #00809d;
+  color: var(--primary-dark);
 }
 
 /* Truck Type Badge */
@@ -5432,16 +5485,16 @@ input:not(:-webkit-autofill) {
 
 /* Beverage Truck Badge */
 .truck-assignment-item .bg-blue-100.text-blue-800 {
-  background: #ffaaaa !important;
+  background: var(--secondary-light) !important;
   color: #1a202c !important;
-  border-color: #ffaaaa;
+  border-color: var(--secondary-light);
 }
 
 /* Dessert Truck Badge */
 .truck-assignment-item .bg-pink-100.text-pink-800 {
-  background: #b36a5e !important;
+  background: var(--secondary-dark) !important;
   color: #ffffff !important;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 /* Holiday Truck Badge */
@@ -5478,9 +5531,9 @@ input:not(:-webkit-autofill) {
 
 /* Unavailable Status */
 .truck-assignment-item .bg-red-100.text-red-800 {
-  background: #b36a5e !important;
+  background: var(--secondary-dark) !important;
   color: #ffffff !important;
-  border-color: #b36a5e;
+  border-color: var(--secondary-dark);
 }
 
 /* Checkbox Styling */
@@ -5494,13 +5547,13 @@ input:not(:-webkit-autofill) {
   transition: all 0.2s ease;
   margin: 0;
   padding: 0;
-  accent-color: #00809d;
+  accent-color: var(--primary-dark);
   flex-shrink: 0;
 }
 
 .truck-assignment-item input[type="checkbox"]:checked {
-  background: #00809d;
-  border-color: #00809d;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
   box-shadow: 0 2px 8px rgba(0, 128, 157, 0.3);
 }
 
@@ -5556,7 +5609,7 @@ input:not(:-webkit-autofill) {
 
 .truck-assignment-item select:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 3px rgba(0, 128, 157, 0.1);
 }
 
@@ -5581,7 +5634,7 @@ input:not(:-webkit-autofill) {
 }
 
 .truck-assignment-item .text-sm.text-blue-800 strong {
-  color: #00809d;
+  color: var(--primary-dark);
   font-weight: 700;
 }
 
@@ -5624,7 +5677,7 @@ input:not(:-webkit-autofill) {
 
 .text-sm.text-green-700.flex.items-center.gap-2 span:first-child {
   font-weight: 600;
-  color: #00809d;
+  color: var(--primary-dark);
 }
 
 /* Error State for Truck Assignment */
@@ -5748,12 +5801,12 @@ input:not(:-webkit-autofill) {
 
 /* Modal Truck Assignment - Beverage Truck */
 .truck-assignment.border-blue-300 {
-  border-left: 6px solid #3b82f6;
+  border-left: 6px solid var(--secondary-medium);
   background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
 }
 
 .truck-assignment.border-blue-300::before {
-  background: #3b82f6;
+  background: var(--secondary-medium);
 }
 
 /* Modal Truck Assignment - Dessert Truck */
@@ -5819,12 +5872,12 @@ input:not(:-webkit-autofill) {
   transition: all 0.2s ease;
   margin: 0;
   padding: 0;
-  accent-color: #00809d;
+  accent-color: var(--primary-dark);
 }
 
 .truck-checkbox:checked {
-  background: #00809d;
-  border-color: #00809d;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
   box-shadow: 0 2px 8px rgba(0, 128, 157, 0.3);
 }
 
@@ -5855,7 +5908,7 @@ input:not(:-webkit-autofill) {
 
 .truck-filter-dropdown:focus {
   outline: none;
-  border-color: #00809d;
+  border-color: var(--primary-dark);
   box-shadow: 0 0 0 3px rgba(0, 128, 157, 0.1);
 }
 

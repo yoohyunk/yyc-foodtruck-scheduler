@@ -436,10 +436,6 @@ export default function AddTrucks(): ReactElement {
               className="section-card mb-4"
               style={{
                 border: "none",
-                borderLeft: "6px solid var(--primary-light)",
-                borderTop: "4px solid var(--secondary-light)",
-                borderRight: "none",
-                borderBottom: "none",
               }}
               data-no-before="true"
             >
