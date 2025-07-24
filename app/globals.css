@@ -6549,4 +6549,43 @@ input:not(:-webkit-autofill) {
   color: #666;
 }
 
+/* =========================
+   Search Input Styling
+========================= */
+.search-input-container {
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
+}
 
+.search-input-container .relative {
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
+.search-input-container input {
+  border-radius: 0.5rem;
+  border: 2px solid #e2e8f0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding-left: 3rem !important;
+  padding-right: 3rem !important;
+}
+
+.search-input-container input:focus {
+  border-color: var(--primary-dark);
+  box-shadow: 0 0 0 3px rgba(0, 128, 157, 0.1);
+  outline: none;
+}
+
+.search-input-container input:hover {
+  border-color: #cbd5e0;
+}
+
+/* Search icon positioning */
+.search-input-container .absolute.inset-y-0.left-0 {
+  padding-left: 1rem;
+}
+
+.search-input-container .absolute.inset-y-0.right-0 {
+  padding-right: 1rem;
+}

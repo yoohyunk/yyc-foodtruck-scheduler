@@ -10,6 +10,7 @@ import { getTruckTypeClass } from "../types";
 import ErrorModal from "../components/ErrorModal";
 import { trucksApi } from "@/lib/supabase/trucks";
 import { useAuth } from "@/contexts/AuthContext";
+import SearchInput from "../components/SearchInput";
 
 type Truck = Tables<"trucks"> & {
   addresses?: Tables<"addresses">;
@@ -22,6 +23,7 @@ export default function Trucks(): ReactElement {
   const [activeStatus, setActiveStatus] = useState<"active" | "inactive">(
     "active"
   );
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
@@ -87,19 +89,44 @@ export default function Trucks(): ReactElement {
     };
   }, [fetchTrucks]);
 
-  // Filter trucks based on the active filter and activeStatus
+  // Filter trucks based on the active filter, activeStatus, and search term
   useEffect(() => {
     let filtered = trucks;
+
+    // Filter by truck type
     if (activeFilter !== "All") {
       filtered = filtered.filter((truck) => truck.type === activeFilter);
     }
+
+    // Filter by status
     filtered = filtered.filter((truck) =>
       activeStatus === "active" ? truck.is_available : !truck.is_available
     );
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((truck) => {
+        const name = (truck.name || "").toLowerCase();
+        const type = (truck.type || "").toLowerCase();
+        const capacity = (truck.capacity || "").toLowerCase();
+        const address = (truck.addresses?.street || "").toLowerCase();
+        const packingList = (truck.packing_list || []).join(" ").toLowerCase();
+
+        return (
+          name.includes(searchLower) ||
+          type.includes(searchLower) ||
+          capacity.includes(searchLower) ||
+          address.includes(searchLower) ||
+          packingList.includes(searchLower)
+        );
+      });
+    }
+
     // Sort alphabetically by name
     filtered = filtered.sort((a, b) => a.name.localeCompare(b.name));
     setFilteredTrucks(filtered);
-  }, [activeFilter, trucks, activeStatus]);
+  }, [activeFilter, trucks, activeStatus, searchTerm]);
 
   // Handler to open the delete confirmation modal
   const handleDeleteClick = (truck: Truck) => {
@@ -154,6 +181,15 @@ export default function Trucks(): ReactElement {
     <div className="trucks-page">
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Truck Management</h2>
+      </div>
+
+      {/* Search Input */}
+      <div className="search-input-container">
+        <SearchInput
+          placeholder="Search trucks by name, type, capacity, location, or equipment..."
+          onSearch={setSearchTerm}
+          className="max-w-md"
+        />
       </div>
 
       {/* Filter Buttons */}

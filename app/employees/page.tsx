@@ -23,6 +23,7 @@ import { TutorialHighlight } from "../components/TutorialHighlight";
 import { useAuth } from "@/contexts/AuthContext";
 import { getEmployeeRoleFilterColor } from "../types";
 import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
+import SearchInput from "../components/SearchInput";
 
 export default function Employees(): ReactElement {
   const [employees, setEmployees] = useState<EmployeeLimited[]>([]);
@@ -41,6 +42,7 @@ export default function Employees(): ReactElement {
   const [activeStatus, setActiveStatus] = useState<"active" | "inactive">(
     "active"
   );
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const { isAdmin } = useAuth();
 
   // Fetch employees from employee.json
@@ -206,16 +208,38 @@ export default function Employees(): ReactElement {
     fetchEmployees();
   }, [supabase, sortMode, activeStatus, isAdmin]);
 
-  // Filter employees based on the active filter and activeStatus
+  // Filter employees based on the active filter, activeStatus, and search term
   useEffect(() => {
     let filtered = employees;
+
+    // Filter by employee type
     if (activeFilter !== "All") {
       filtered = filtered.filter(
         (employee) => employee.employee_type === activeFilter
       );
     }
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((employee) => {
+        const firstName = (employee.first_name || "").toLowerCase();
+        const lastName = (employee.last_name || "").toLowerCase();
+        const phone = (employee.user_phone || "").toLowerCase();
+        const role = (employee.employee_type || "").toLowerCase();
+
+        return (
+          firstName.includes(searchLower) ||
+          lastName.includes(searchLower) ||
+          phone.includes(searchLower) ||
+          role.includes(searchLower) ||
+          `${firstName} ${lastName}`.includes(searchLower)
+        );
+      });
+    }
+
     setFilteredEmployees(filtered);
-  }, [activeFilter, employees]);
+  }, [activeFilter, searchTerm, employees]);
 
   // Add a useEffect to re-sort when sortMode changes
   useEffect(() => {
@@ -459,6 +483,15 @@ export default function Employees(): ReactElement {
 
   return (
     <div className="employees-page">
+      {/* Search Input */}
+      <div className="search-input-container">
+        <SearchInput
+          placeholder="Search employees by name, phone, or role..."
+          onSearch={setSearchTerm}
+          className="max-w-md"
+        />
+      </div>
+
       {/* Filter Buttons */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".filter-buttons")}
@@ -612,6 +645,19 @@ export default function Employees(): ReactElement {
           </div>
         </div>
       )}
+
+      {/* Results Count */}
+      <div className="mb-4 text-sm text-gray-600">
+        {searchTerm.trim() || activeFilter !== "All" ? (
+          <span>
+            Showing {filteredEmployees.length} of {employees.length} employees
+            {searchTerm.trim() && ` matching "${searchTerm}"`}
+            {activeFilter !== "All" && ` in ${activeFilter} category`}
+          </span>
+        ) : (
+          <span>Showing all {employees.length} employees</span>
+        )}
+      </div>
 
       {/* Employee List */}
       <TutorialHighlight

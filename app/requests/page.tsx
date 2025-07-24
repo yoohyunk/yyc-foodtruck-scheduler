@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import ErrorModal from "../components/ErrorModal";
 import { ValidationError } from "@/lib/formValidation";
+import SearchInput from "../components/SearchInput";
 
 export default function RequestsPage(): ReactElement {
   const { isAdmin } = useAuth();
@@ -19,6 +20,7 @@ export default function RequestsPage(): ReactElement {
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("All"); // For employee filtering
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -255,6 +257,37 @@ export default function RequestsPage(): ReactElement {
       }
     }
 
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((request) => {
+        const employeeName = getEmployeeName(request.employee_id).toLowerCase();
+        const requestType = (request.type || "").toLowerCase();
+        const requestStatus = (request.status || "").toLowerCase();
+        const requestReason = (request.reason || "").toLowerCase();
+        const startDate = formatLocalDateTimeString(
+          request.start_datetime
+        ).toLowerCase();
+        const endDate = formatLocalDateTimeString(
+          request.end_datetime
+        ).toLowerCase();
+        const duration = calculateDuration(
+          request.start_datetime,
+          request.end_datetime
+        ).toLowerCase();
+
+        return (
+          employeeName.includes(searchLower) ||
+          requestType.includes(searchLower) ||
+          requestStatus.includes(searchLower) ||
+          requestReason.includes(searchLower) ||
+          startDate.includes(searchLower) ||
+          endDate.includes(searchLower) ||
+          duration.includes(searchLower)
+        );
+      });
+    }
+
     // Sort filtered requests by start_datetime ascending (soonest first)
     filtered.sort((a, b) => {
       const dateA = new Date(a.start_datetime).getTime();
@@ -263,7 +296,14 @@ export default function RequestsPage(): ReactElement {
     });
 
     return filtered;
-  }, [requests, filterStatus, selectedEmployeeId, selectedDate, isAdmin]);
+  }, [
+    requests,
+    filterStatus,
+    selectedEmployeeId,
+    selectedDate,
+    searchTerm,
+    isAdmin,
+  ]);
 
   if (isLoading) {
     return (
@@ -306,6 +346,15 @@ export default function RequestsPage(): ReactElement {
         <h2 className="text-2xl text-primary-dark">
           Time-Off Requests Management
         </h2>
+      </div>
+
+      {/* Search Input */}
+      <div className="search-input-container mb-6">
+        <SearchInput
+          placeholder="Search by employee name, request type, status, reason, dates, or duration..."
+          onSearch={setSearchTerm}
+          className="max-w-md"
+        />
       </div>
 
       {/* Filter Buttons */}
