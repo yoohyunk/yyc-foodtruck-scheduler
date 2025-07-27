@@ -220,6 +220,7 @@ export type Database = {
           expected_budget: number | null;
           id: string;
           is_prepaid: boolean;
+          note: string | null;
           number_of_driver_needed: number | null;
           number_of_servers_needed: number | null;
           start_date: string;
@@ -238,6 +239,7 @@ export type Database = {
           expected_budget?: number | null;
           id?: string;
           is_prepaid?: boolean;
+          note?: string | null;
           number_of_driver_needed?: number | null;
           number_of_servers_needed?: number | null;
           start_date: string;
@@ -256,6 +258,7 @@ export type Database = {
           expected_budget?: number | null;
           id?: string;
           is_prepaid?: boolean;
+          note?: string | null;
           number_of_driver_needed?: number | null;
           number_of_servers_needed?: number | null;
           start_date?: string;
