@@ -77,7 +77,7 @@ export default function Header(): React.ReactElement {
               </button>
             ) : (
               <Link href="/login" className="auth-button">
-                <FiHome />
+                <FiHome size={20} />
                 <span>Login</span>
               </Link>
             )}

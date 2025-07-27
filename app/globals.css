@@ -131,7 +131,7 @@ body {
 }
 
 .nav-container {
-  max-width: 1400px;
+  max-width: 1560px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -271,14 +271,14 @@ body {
   gap: 0.5rem;
   color: var(--text-primary);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 700;
   padding: 0.75rem 1.25rem;
   border-radius: 0.75rem;
   transition: all 0.2s ease;
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
 }
 
 .auth-button:hover {
@@ -964,6 +964,7 @@ body {
   overflow: hidden;
   z-index: 40;
   transition: transform 0.3s ease-in-out;
+  
 }
 
 .sidebar-content {
