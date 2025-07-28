@@ -118,7 +118,7 @@ body {
 /* Header Styling */
 .header {
   /* background: var(--primary-dark); */
-  padding: 1rem 2rem;
+  padding: 1rem 1.5rem;
   box-shadow: 0 8px 32px rgba(255, 245, 205, 0.4);
   position: sticky;
   top: 0;
@@ -131,13 +131,14 @@ body {
 }
 
 .nav-container {
-  max-width: 1560px;
+  max-width: auto;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 2rem;
   position: relative;
+  padding: 0 1.5rem;
 }
 
 .logo {
