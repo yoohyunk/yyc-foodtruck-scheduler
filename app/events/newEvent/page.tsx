@@ -37,6 +37,7 @@ import {
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 import { calculateStraightLineDistance } from "@/lib/utils/distance";
+import { cleanPostalCode } from "@/lib/utils";
 
 // Function to combine date and time exactly as entered, preserving local time
 const combineDateTime = (date: string, time: string): string => {
@@ -274,7 +275,12 @@ export default function AddEventPage(): ReactElement {
       if (parts.length >= 2) {
         const streetPart = parts[0];
         const city = parts[1];
-        const postalCode = parts[2] || "";
+        let postalCode = parts[2] || "";
+
+        // Clean postal code using utility function
+        if (postalCode) {
+          postalCode = cleanPostalCode(postalCode);
+        }
 
         // Extract street number and name from street part
         const streetParts = streetPart.split(" ");
