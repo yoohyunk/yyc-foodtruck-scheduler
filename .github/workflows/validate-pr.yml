@@ -47,6 +47,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
       NEXT_PUBLIC_SUPABASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_SUPABASE_PROJECT_ID }}
+      GEOAPIFY_API_KEY: ${{ secrets.GEOAPIFY_API_KEY }}
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js 18.x
@@ -81,6 +82,5 @@ jobs:
           path: |
             node_modules/.cache/jest
           key: ${{ runner.os }}-jest-${{ hashFiles('**/package-lock.json') }}
-
       - name: Run jest
         run: npm test
