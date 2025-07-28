@@ -332,8 +332,10 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     // Parse initial value if provided
     useEffect(() => {
       if (value) {
+        console.log("AddressForm initial value:", value);
         try {
           const parts = value.split(",").map((part) => part.trim());
+          console.log("Parsed parts:", parts);
           if (parts.length >= 2) {
             const streetParts = parts[0].split(" ");
             const streetNumber = streetParts[0] || "";
@@ -348,14 +350,37 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
                 .slice(1, direction === "None" ? undefined : -1)
                 .join(" ") || "";
 
+            // Handle different address formats
+            let postalCode = "";
+            if (parts.length >= 3) {
+              // Check if parts[2] is a province (like "Alberta") or postal code
+              const thirdPart = parts[2];
+              if (thirdPart && !thirdPart.match(/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/)) {
+                // If it's not a postal code format, it might be a province
+                // Look for postal code in parts[3] if it exists
+                if (parts.length >= 4) {
+                  postalCode = parts[3] || "";
+                }
+              } else {
+                // It's a postal code
+                postalCode = thirdPart;
+              }
+            }
+
+            // Clean postal code from initial value
+            console.log("Raw postal code from parsing:", postalCode);
+            const cleanPostalCodeValue = cleanPostalCode(postalCode);
+            console.log("Cleaned postal code:", cleanPostalCodeValue);
+
             const newData = {
               streetNumber,
               streetName,
               direction,
               city: parts[1] || "Calgary",
-              postalCode: parts[2] || "",
+              postalCode: cleanPostalCodeValue,
             };
 
+            console.log("Setting form data:", newData);
             setFormData(newData);
           }
         } catch (error) {

@@ -688,7 +688,8 @@ export default function Employees(): ReactElement {
                 {isAdmin && (
                   <p>
                     <strong>Address:</strong> {employee.addresses?.street},{" "}
-                    {employee.addresses?.city}, {employee.addresses?.province}
+                    {employee.addresses?.city}, {employee.addresses?.province},{" "}
+                    {employee.addresses?.postal_code}
                   </p>
                 )}
 
