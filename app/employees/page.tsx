@@ -228,12 +228,19 @@ export default function Employees(): ReactElement {
         const phone = (employee.user_phone || "").toLowerCase();
         const role = (employee.employee_type || "").toLowerCase();
 
+        // Check if search term matches availability days
+        const hasMatchingAvailability =
+          employee.availability?.some((avail) =>
+            avail.day_of_week.toLowerCase().includes(searchLower)
+          ) || false;
+
         return (
           firstName.includes(searchLower) ||
           lastName.includes(searchLower) ||
           phone.includes(searchLower) ||
           role.includes(searchLower) ||
-          `${firstName} ${lastName}`.includes(searchLower)
+          `${firstName} ${lastName}`.includes(searchLower) ||
+          hasMatchingAvailability
         );
       });
     }
@@ -486,7 +493,7 @@ export default function Employees(): ReactElement {
       {/* Search Input */}
       <div className="search-input-container">
         <SearchInput
-          placeholder="Search employees by name, phone, or role..."
+          placeholder="Search employees by name, phone, role, or availability (e.g., monday, tuesday)..."
           onSearch={setSearchTerm}
           className="max-w-md"
         />
