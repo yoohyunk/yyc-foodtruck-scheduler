@@ -3,6 +3,7 @@ import { EventFormData } from "@/app/types";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ErrorModal from "@/app/components/ErrorModal";
+import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import {
   validateForm,
   ValidationRule,
@@ -16,7 +17,9 @@ interface EditEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   formData: EventFormData;
-  onFormChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFormChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
   selectedDate: Date | null;
   selectedEndDate: Date | null;
   selectedTime: Date | null;
@@ -28,6 +31,12 @@ interface EditEventModalProps {
   onEndTimeChange: (time: Date | null) => void;
   onSubmit: (e: React.FormEvent) => void;
   setEditFormData: (data: EventFormData) => void;
+  onLocationChange: (
+    address: string,
+    coordinates?: { latitude: number; longitude: number }
+  ) => void;
+  onCheckAddress: () => boolean;
+  onAddressError: (errors: ValidationError[]) => void;
 }
 
 export default function EditEventModal({
@@ -46,6 +55,9 @@ export default function EditEventModal({
   onEndTimeChange,
   onSubmit,
   setEditFormData,
+  onLocationChange,
+  onCheckAddress,
+  onAddressError,
 }: EditEventModalProps) {
   // Move all useRef calls to the top level
   const nameRef = useRef<HTMLInputElement>(null);
@@ -57,7 +69,7 @@ export default function EditEventModal({
   const endDateRef = useRef<HTMLDivElement>(null);
   const timeRef = useRef<HTMLDivElement>(null);
   const endTimeRef = useRef<HTMLDivElement>(null);
-  const locationRef = useRef<HTMLInputElement>(null);
+  const addressFormRef = useRef<AddressFormRef>(null);
 
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
@@ -105,12 +117,13 @@ export default function EditEventModal({
         endTimeRef.current
       ),
       createValidationRule(
-        "location",
+        "street",
         true,
         undefined,
-        "Location is required.",
-        locationRef.current
+        "Street address is required.",
+        null
       ),
+      createValidationRule("city", true, undefined, "City is required.", null),
       createValidationRule(
         "requiredServers",
         true,
@@ -172,6 +185,7 @@ export default function EditEventModal({
       setShowErrorModal(true);
       return;
     }
+
     onSubmit(e);
   };
 
@@ -276,13 +290,26 @@ export default function EditEventModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Location <span className="text-red-500">*</span>
                 </label>
-                <input
-                  ref={locationRef}
-                  type="text"
-                  name="location"
-                  value={formData.location}
+                <AddressForm
+                  ref={addressFormRef}
+                  value={`${formData.street}, ${formData.city}, ${formData.province}, ${formData.postalCode}`}
+                  onChange={onLocationChange}
+                  placeholder="Enter event location"
+                  onCheckAddress={onCheckAddress}
+                  onAddressError={onAddressError}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Description
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
                   onChange={onFormChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter event description (optional)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] resize-vertical"
                 />
               </div>
 

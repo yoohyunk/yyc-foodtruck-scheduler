@@ -97,7 +97,6 @@ export default function Events(): ReactElement {
     fetchEvents();
 
     const handleFocus = () => {
-      console.log("Events page: Refreshing data on focus");
       fetchEvents();
     };
 
@@ -279,6 +278,12 @@ export default function Events(): ReactElement {
                 <p>
                   <strong>Description:</strong>{" "}
                   {event.description || "No description"}
+                </p>
+                <p>
+                  <strong>Location:</strong>{" "}
+                  {event.addresses
+                    ? `${event.addresses.street}, ${event.addresses.city}, ${event.addresses.province}, ${event.addresses.postal_code}`
+                    : "Location not set"}
                 </p>
                 {"status" in event && event.status && (
                   <p>
