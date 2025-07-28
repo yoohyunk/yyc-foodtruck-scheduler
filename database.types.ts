@@ -60,6 +60,7 @@ export type Database = {
           is_completed: boolean | null;
           start_date: string;
           status: string | null;
+          truck_id: string | null;
         };
         Insert: {
           created_at?: string;
@@ -70,6 +71,7 @@ export type Database = {
           is_completed?: boolean | null;
           start_date: string;
           status?: string | null;
+          truck_id?: string | null;
         };
         Update: {
           created_at?: string;
@@ -80,6 +82,7 @@ export type Database = {
           is_completed?: boolean | null;
           start_date?: string;
           status?: string | null;
+          truck_id?: string | null;
         };
         Relationships: [
           {
@@ -108,6 +111,13 @@ export type Database = {
             columns: ["event_id"];
             isOneToOne: false;
             referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "assignments_truck_id_fkey";
+            columns: ["truck_id"];
+            isOneToOne: false;
+            referencedRelation: "trucks";
             referencedColumns: ["id"];
           },
         ];
