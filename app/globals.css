@@ -6131,6 +6131,18 @@ input:not(:-webkit-autofill) {
     min-width: 70px;
     min-height: 40px;
   }
+  
+    /* Make filter buttons more touch-friendly on mobile */
+  .filter-buttons {
+    gap: 8px !important;
+  }
+  
+  .filter-buttons .button {
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+  }
 
   .daily-schedule,
   .weekly-schedule,
