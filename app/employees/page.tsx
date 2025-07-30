@@ -495,7 +495,6 @@ export default function Employees(): ReactElement {
         <SearchInput
           placeholder="Search employees by name, phone, role, or availability (e.g., monday, tuesday)..."
           onSearch={setSearchTerm}
-          className="max-w-md"
         />
       </div>
 

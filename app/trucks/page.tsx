@@ -188,7 +188,6 @@ export default function Trucks(): ReactElement {
         <SearchInput
           placeholder="Search trucks by name, type, capacity, location, or equipment..."
           onSearch={setSearchTerm}
-          className="max-w-md"
         />
       </div>
 

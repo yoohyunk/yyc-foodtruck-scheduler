@@ -353,7 +353,6 @@ export default function RequestsPage(): ReactElement {
         <SearchInput
           placeholder="Search by employee name, request type, status, reason, dates, or duration..."
           onSearch={setSearchTerm}
-          className="max-w-md"
         />
       </div>
 

@@ -259,7 +259,6 @@ export default function Events(): ReactElement {
         <SearchInput
           placeholder="Search events by title, description, contact, or status..."
           onSearch={setSearchTerm}
-          className="max-w-md"
         />
       </div>
 
