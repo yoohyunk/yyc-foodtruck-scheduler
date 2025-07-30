@@ -203,7 +203,7 @@ export default function EditEmployeePage(): ReactElement {
 
         // Format address
         const address = employeeData.addresses
-          ? `${employeeData.addresses.street}, ${employeeData.addresses.city}, ${employeeData.addresses.province}`
+          ? `${employeeData.addresses.street}, ${employeeData.addresses.city}, ${employeeData.addresses.province}, ${employeeData.addresses.postal_code}  `
           : "";
 
         setFormData({

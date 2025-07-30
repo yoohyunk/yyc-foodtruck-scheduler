@@ -27,7 +27,7 @@ export interface EventFormData {
   endDate: string;
   time: string;
   endTime: string;
-  location: string;
+  description: string;
   requiredServers: string;
   contactName: string;
   contactEmail: string;

@@ -5,6 +5,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
+import { cleanPostalCode } from "@/lib/utils";
 
 interface AddressFormProps {
   value: string;
@@ -25,6 +26,19 @@ interface AddressFormData {
   direction: string;
   city: string;
   postalCode: string;
+}
+
+interface AutocompleteSuggestion {
+  display: string;
+  streetNumber: string;
+  streetName: string;
+  city: string;
+  postalCode: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  fullAddress: string;
 }
 
 interface AddressValidation {
@@ -151,9 +165,18 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     const [checkMessage, setCheckMessage] = useState<string>("");
     const [isChecking, setIsChecking] = useState(false);
 
+    // Autocomplete state
+    const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>(
+      []
+    );
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+    const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+
     const streetNumberRef = useRef<HTMLInputElement>(null);
     const streetNameRef = useRef<HTMLInputElement>(null);
     const postalCodeRef = useRef<HTMLInputElement>(null);
+    const autocompleteRef = useRef<HTMLDivElement>(null);
 
     // Expose validate method to parent
     useImperativeHandle(ref, () => ({
@@ -235,13 +258,30 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
       return name.trim().length > 0;
     };
 
-    // Handler for street number change (allow spaces, no stripping/collapsing)
+    // Handler for street number change with autocomplete
     const handleStreetNumberChange = (
       e: React.ChangeEvent<HTMLInputElement>
     ) => {
       const value = e.target.value; // allow spaces as typed
       const newFormData = { ...formData, streetNumber: value };
       setFormData(newFormData);
+
+      // Clear previous timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // Trigger autocomplete if we have enough characters
+      if (value.trim().length >= 3) {
+        // Debounce the API call by 300ms
+        debounceTimerRef.current = setTimeout(() => {
+          fetchSuggestions(value);
+        }, 300);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+
       // Address will only be updated when Check Address button is clicked
     };
 
@@ -273,6 +313,10 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     // Handler for postal code formatting (allow spaces, only auto-insert after 3 chars)
     const handlePostalCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       let value = e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, ""); // allow spaces
+
+      // Clean postal code using utility function
+      value = cleanPostalCode(value);
+
       // Only auto-insert a space after 3 characters if not already present
       if (value.length === 4 && value[3] !== " ") {
         value = value.slice(0, 3) + " " + value.slice(3);
@@ -288,8 +332,10 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     // Parse initial value if provided
     useEffect(() => {
       if (value) {
+        console.log("AddressForm initial value:", value);
         try {
           const parts = value.split(",").map((part) => part.trim());
+          console.log("Parsed parts:", parts);
           if (parts.length >= 2) {
             const streetParts = parts[0].split(" ");
             const streetNumber = streetParts[0] || "";
@@ -304,14 +350,37 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
                 .slice(1, direction === "None" ? undefined : -1)
                 .join(" ") || "";
 
+            // Handle different address formats
+            let postalCode = "";
+            if (parts.length >= 3) {
+              // Check if parts[2] is a province (like "Alberta") or postal code
+              const thirdPart = parts[2];
+              if (thirdPart && !thirdPart.match(/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/)) {
+                // If it's not a postal code format, it might be a province
+                // Look for postal code in parts[3] if it exists
+                if (parts.length >= 4) {
+                  postalCode = parts[3] || "";
+                }
+              } else {
+                // It's a postal code
+                postalCode = thirdPart;
+              }
+            }
+
+            // Clean postal code from initial value
+            console.log("Raw postal code from parsing:", postalCode);
+            const cleanPostalCodeValue = cleanPostalCode(postalCode);
+            console.log("Cleaned postal code:", cleanPostalCodeValue);
+
             const newData = {
               streetNumber,
               streetName,
               direction,
               city: parts[1] || "Calgary",
-              postalCode: parts[2] || "",
+              postalCode: cleanPostalCodeValue,
             };
 
+            console.log("Setting form data:", newData);
             setFormData(newData);
           }
         } catch (error) {
@@ -319,6 +388,112 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
         }
       }
     }, [value]);
+
+    // Debounce timer ref
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Autocomplete functions with debouncing
+    const fetchSuggestions = async (query: string) => {
+      if (!query || query.trim().length < 3) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      setIsLoadingSuggestions(true);
+      try {
+        const response = await fetch(
+          `/api/geocode/autocomplete?text=${encodeURIComponent(query)}&limit=5`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setSuggestions(data.suggestions);
+            setShowSuggestions(data.suggestions.length > 0);
+          } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+          }
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+        setSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+
+    const handleSuggestionSelect = (suggestion: AutocompleteSuggestion) => {
+      // Clean postal code using utility function
+      const cleanPostalCodeValue = cleanPostalCode(suggestion.postalCode || "");
+
+      setFormData({
+        streetNumber: suggestion.streetNumber,
+        streetName: suggestion.streetName,
+        direction: "None", // Will need to be parsed from the suggestion
+        city: suggestion.city,
+        postalCode: cleanPostalCodeValue,
+      });
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
+
+      // Update the parent component with the selected address
+      onChange(suggestion.fullAddress, suggestion.coordinates);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (!showSuggestions) return;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedSuggestionIndex((prev) =>
+            prev < suggestions.length - 1 ? prev + 1 : prev
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (
+            selectedSuggestionIndex >= 0 &&
+            suggestions[selectedSuggestionIndex]
+          ) {
+            handleSuggestionSelect(suggestions[selectedSuggestionIndex]);
+          }
+          break;
+        case "Escape":
+          setShowSuggestions(false);
+          setSelectedSuggestionIndex(-1);
+          break;
+      }
+    };
+
+    // Close suggestions when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          autocompleteRef.current &&
+          !autocompleteRef.current.contains(event.target as Node)
+        ) {
+          setShowSuggestions(false);
+          setSelectedSuggestionIndex(-1);
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, []);
 
     // Geocode address using Nominatim
     const geocodeAddress = async () => {
@@ -469,13 +644,14 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
     return (
       <div className="address-form space-y-2">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div>
+          <div className="relative" ref={autocompleteRef}>
             <input
               ref={streetNumberRef}
               type="text"
               name="streetNumber"
               value={formData.streetNumber}
               onChange={handleStreetNumberChange}
+              onKeyDown={handleKeyDown}
               onBlur={() => setShowErrors(true)}
               placeholder="Street Number *"
               required={required}
@@ -487,6 +663,35 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
                   : "border-gray-300"
               } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
             />
+            {isLoadingSuggestions && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+              </div>
+            )}
+            {formData.streetNumber.trim().length >= 3 &&
+              !isLoadingSuggestions &&
+              !showSuggestions && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs">
+                  No results
+                </div>
+              )}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {suggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${
+                      index === selectedSuggestionIndex ? "bg-blue-50" : ""
+                    }`}
+                    onClick={() => handleSuggestionSelect(suggestion)}
+                  >
+                    <div className="text-sm text-gray-900">
+                      {suggestion.display}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {showErrors && !validation.streetNumber && (
               <p className="text-red-500 text-sm mt-1">
                 {errorMessages.streetNumber}
@@ -565,7 +770,7 @@ const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(
             value={formData.postalCode}
             onChange={handlePostalCodeChange}
             onBlur={() => setShowErrors(true)}
-            placeholder="Postal Code (Optional)"
+            placeholder="Postal Code (e.g., T3G 4Y9)"
             required={false}
             maxLength={7}
             autoComplete="postal-code"
