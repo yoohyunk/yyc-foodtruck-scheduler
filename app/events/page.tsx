@@ -32,13 +32,13 @@ export default function Events(): ReactElement {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && searchQuery) {
-        setSearchQuery('');
+      if (event.key === "Escape" && searchQuery) {
+        setSearchQuery("");
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [searchQuery]);
 
   // Fetch events from Supabase
@@ -124,7 +124,7 @@ export default function Events(): ReactElement {
   useEffect(() => {
     if (isAdmin) {
       let filtered = [...adminEvents];
-      
+
       // Apply status filter
       if (activeFilter !== "All") {
         filtered = filtered.filter((event) => {
@@ -132,7 +132,7 @@ export default function Events(): ReactElement {
           return activeFilter === eventStatus;
         });
       }
-      
+
       // Apply date filter
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -151,35 +151,41 @@ export default function Events(): ReactElement {
           return eventEnd >= today;
         });
       }
-      
+
       // Apply search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
         filtered = filtered.filter((event) => {
           const title = event.title?.toLowerCase() || "";
           const description = event.description?.toLowerCase() || "";
-          const contactName = ("contact_name" in event && event.contact_name) ? event.contact_name.toLowerCase() : "";
-          const location = event.addresses ? 
-            `${event.addresses.street}, ${event.addresses.city}, ${event.addresses.province}, ${event.addresses.postal_code}`.toLowerCase() : "";
-          
-          return title.includes(query) || 
-                 description.includes(query) || 
-                 contactName.includes(query) || 
-                 location.includes(query);
+          const contactName =
+            "contact_name" in event && event.contact_name
+              ? event.contact_name.toLowerCase()
+              : "";
+          const location = event.addresses
+            ? `${event.addresses.street}, ${event.addresses.city}, ${event.addresses.province}, ${event.addresses.postal_code}`.toLowerCase()
+            : "";
+
+          return (
+            title.includes(query) ||
+            description.includes(query) ||
+            contactName.includes(query) ||
+            location.includes(query)
+          );
         });
       }
-      
+
       // Sort by date
       filtered.sort((a, b) => {
         const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
         const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
         return dateA - dateB;
       });
-      
+
       setFilteredAdminEvents(filtered);
     } else {
       let filtered = [...limitedEvents];
-      
+
       // Apply date filter
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -198,28 +204,35 @@ export default function Events(): ReactElement {
           return eventEnd >= today;
         });
       }
-      
+
       // Apply search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
         filtered = filtered.filter((event) => {
           const title = event.title?.toLowerCase() || "";
           const description = event.description?.toLowerCase() || "";
-          
+
           return title.includes(query) || description.includes(query);
         });
       }
-      
+
       // Sort by date
       filtered.sort((a, b) => {
         const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
         const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
         return dateA - dateB;
       });
-      
+
       setFilteredLimitedEvents(filtered);
     }
-  }, [activeFilter, selectedDate, searchQuery, adminEvents, limitedEvents, isAdmin]);
+  }, [
+    activeFilter,
+    selectedDate,
+    searchQuery,
+    adminEvents,
+    limitedEvents,
+    isAdmin,
+  ]);
 
   if (isLoading) {
     return (
@@ -310,7 +323,7 @@ export default function Events(): ReactElement {
             </button>
           )}
         </div>
-        
+
         {/* Date Filter */}
         <div>
           <label
@@ -333,15 +346,24 @@ export default function Events(): ReactElement {
       {(searchQuery.trim() || selectedDate) && (
         <div className="search-results-count">
           <p>
-            Showing <span className="highlight">{isAdmin ? filteredAdminEvents.length : filteredLimitedEvents.length}</span> event(s)
+            Showing{" "}
+            <span className="highlight">
+              {isAdmin
+                ? filteredAdminEvents.length
+                : filteredLimitedEvents.length}
+            </span>{" "}
+            event(s)
             {searchQuery.trim() && (
               <>
-                {" "}matching <span className="highlight">"{searchQuery}"</span>
+                {" "}
+                matching{" "}
+                <span className="highlight">&quot;{searchQuery}&quot;</span>
               </>
             )}
             {selectedDate && (
               <>
-                {" "}on <span className="highlight">{selectedDate}</span>
+                {" "}
+                on <span className="highlight">{selectedDate}</span>
               </>
             )}
           </p>
@@ -444,10 +466,9 @@ export default function Events(): ReactElement {
               <div className="search-no-results-icon">🔍</div>
               <h3>No events found</h3>
               <p>
-                {searchQuery.trim() 
-                  ? `No events match your search for "${searchQuery}". Try adjusting your search terms or filters.`
-                  : "No events match your current filters. Try adjusting the date or status filters."
-                }
+                {searchQuery.trim()
+                  ? `No events match your search for &quot;${searchQuery}&quot;. Try adjusting your search terms or filters.`
+                  : "No events match your current filters. Try adjusting the date or status filters."}
               </p>
             </div>
           )
@@ -513,10 +534,9 @@ export default function Events(): ReactElement {
             <div className="search-no-results-icon">🔍</div>
             <h3>No events found</h3>
             <p>
-              {searchQuery.trim() 
-                ? `No events match your search for "${searchQuery}". Try adjusting your search terms or filters.`
-                : "No events match your current filters. Try adjusting the date or status filters."
-              }
+              {searchQuery.trim()
+                ? `No events match your search for &quot;${searchQuery}&quot;. Try adjusting your search terms or filters.`
+                : "No events match your current filters. Try adjusting the date or status filters."}
             </p>
           </div>
         )}
