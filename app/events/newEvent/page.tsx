@@ -37,6 +37,7 @@ import {
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 import { calculateStraightLineDistance } from "@/lib/utils/distance";
+import { cleanPostalCode } from "@/lib/utils";
 
 // Function to combine date and time exactly as entered, preserving local time
 const combineDateTime = (date: string, time: string): string => {
@@ -53,7 +54,7 @@ export default function AddEventPage(): ReactElement {
     endDate: "",
     time: "",
     endTime: "",
-    location: "",
+    description: "",
     requiredServers: "",
     contactName: "",
     contactEmail: "",
@@ -167,7 +168,6 @@ export default function AddEventPage(): ReactElement {
 
     // Add focus event listener to refresh data when user navigates back
     const handleFocus = () => {
-      console.log("New event page: Refreshing data on focus");
       fetchData();
     };
 
@@ -180,7 +180,7 @@ export default function AddEventPage(): ReactElement {
   }, []);
 
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ): void => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -261,12 +261,10 @@ export default function AddEventPage(): ReactElement {
     setTruckAvailabilityReasons(new Map());
   };
 
-  const handleLocationChange = (
+  const handleAddressChange = (
     address: string,
     coords?: { latitude: number; longitude: number }
   ) => {
-    console.log("handleLocationChange called with:", address, coords);
-
     // Parse the address components from the full address string
     const parseAddress = (fullAddress: string) => {
       const parts = fullAddress.split(",").map((part) => part.trim());
@@ -274,7 +272,12 @@ export default function AddEventPage(): ReactElement {
       if (parts.length >= 2) {
         const streetPart = parts[0];
         const city = parts[1];
-        const postalCode = parts[2] || "";
+        let postalCode = parts[2] || "";
+
+        // Clean postal code using utility function
+        if (postalCode) {
+          postalCode = cleanPostalCode(postalCode);
+        }
 
         // Extract street number and name from street part
         const streetParts = streetPart.split(" ");
@@ -313,14 +316,15 @@ export default function AddEventPage(): ReactElement {
     setFormData((prev) => {
       const updated = {
         ...prev,
-        location: address,
         street: addressComponents.street,
         city: addressComponents.city,
         province: addressComponents.province,
         postalCode: addressComponents.postalCode,
         country: addressComponents.country,
+        latitude: coords?.latitude?.toString() || "",
+        longitude: coords?.longitude?.toString() || "",
       };
-      console.log("Updated formData with address components:");
+
       return updated;
     });
     setCoordinates(coords);
@@ -455,18 +459,21 @@ export default function AddEventPage(): ReactElement {
         );
 
         // Get available drivers and managers separately, then combine
+        // Create address string from individual fields
+        const addressString = `${formData.street}, ${formData.city}, ${formData.province}, ${formData.postalCode}`;
+
         const [availableDrivers, availableManagers] = await Promise.all([
           employeeAvailabilityApi.getAvailableEmployees(
             "Driver",
             eventStartDate.toISOString(),
             eventEndDate.toISOString(),
-            formData.location
+            addressString
           ),
           employeeAvailabilityApi.getAvailableEmployees(
             "Manager",
             eventStartDate.toISOString(),
             eventEndDate.toISOString(),
-            formData.location
+            addressString
           ),
         ]);
 
@@ -545,7 +552,10 @@ export default function AddEventPage(): ReactElement {
     formData.time,
     formData.endTime,
     formData.endDate,
-    formData.location,
+    formData.street,
+    formData.city,
+    formData.province,
+    formData.postalCode,
     employees,
   ]);
 
@@ -626,7 +636,10 @@ export default function AddEventPage(): ReactElement {
     formData.date,
     formData.time,
     formData.endTime,
-    formData.location,
+    formData.street,
+    formData.city,
+    formData.province,
+    formData.postalCode,
     employees,
     loadAvailableDrivers,
   ]);
@@ -711,11 +724,14 @@ export default function AddEventPage(): ReactElement {
                 // Use the optimized getAvailableServers function which includes distance + wage sorting
                 const eventStartDate = `${formData.date}T${formData.time}`;
                 const eventEndDate = `${formData.endDate}T${formData.endTime}`;
+                // Create address string from individual fields
+                const addressString = `${formData.street}, ${formData.city}, ${formData.province}, ${formData.postalCode}`;
+
                 const sortedAvailableServers =
                   await employeeAvailabilityApi.getAvailableServers(
                     eventStartDate,
                     eventEndDate,
-                    formData.location,
+                    addressString,
                     undefined, // excludeEventId
                     coordinates // Pass the coordinates directly
                   );
@@ -738,9 +754,8 @@ export default function AddEventPage(): ReactElement {
                       const { getCoordinates } = await import(
                         "@/app/AlgApi/distance"
                       );
-                      const eventCoords = await getCoordinates(
-                        formData.location
-                      );
+                      const addressString = `${formData.street}, ${formData.city}, ${formData.province}, ${formData.postalCode}`;
+                      const eventCoords = await getCoordinates(addressString);
 
                       // Use our distance API
                       try {
@@ -822,7 +837,6 @@ export default function AddEventPage(): ReactElement {
   };
 
   const validateFormData = (): ValidationError[] => {
-    console.log("validateFormData - current formData:", formData);
     const validationRules: ValidationRule[] = [
       createValidationRule(
         "name",
@@ -860,12 +874,13 @@ export default function AddEventPage(): ReactElement {
         endTimeRef.current?.input
       ),
       createValidationRule(
-        "location",
+        "street",
         true,
         undefined,
-        "Location is required.",
+        "Street address is required.",
         null
       ),
+      createValidationRule("city", true, undefined, "City is required.", null),
       createValidationRule(
         "requiredServers",
         false, // Make it optional
@@ -958,13 +973,16 @@ export default function AddEventPage(): ReactElement {
           (emp) => "distance" in emp
         );
 
+        // Create address string from individual fields
+        const addressString = `${formData.street}, ${formData.city}, ${formData.province}, ${formData.postalCode}`;
+
         if (hasDistanceProperty) {
           // Pre-sorted employees were only sorted by distance, need to re-check availability
           availableServers = await assignmentsApi.getAvailableServers(
             formData.date,
             formData.time,
             formData.endTime,
-            formData.location
+            addressString
           );
         } else {
           // Pre-sorted employees were already availability-checked
@@ -972,14 +990,14 @@ export default function AddEventPage(): ReactElement {
         }
       } else {
         // Fallback to the original method if no pre-sorted employees
+        // Create address string from individual fields
+        const addressString = `${formData.street}, ${formData.city}, ${formData.province}, ${formData.postalCode}`;
+
         availableServers = await assignmentsApi.getAvailableServers(
           formData.date,
           formData.time,
           formData.endTime,
-          formData.location
-        );
-        console.log(
-          `Fetched ${availableServers.length} available servers using original method`
+          addressString
         );
       }
 
@@ -1020,7 +1038,7 @@ export default function AddEventPage(): ReactElement {
         title: capitalizeTitle(formData.name),
         start_date: startDateTime,
         end_date: endDateTime,
-        description: formData.location,
+        description: formData.description,
         contact_name: formData.contactName,
         contact_email: formData.contactEmail,
         contact_phone: formData.contactPhone,
@@ -1213,11 +1231,25 @@ export default function AddEventPage(): ReactElement {
             </div>
             <AddressForm
               ref={addressFormRef}
-              value={formData.location}
-              onChange={handleLocationChange}
+              value={`${formData.street}, ${formData.city}, ${formData.province}, ${formData.postalCode}`}
+              onChange={handleAddressChange}
               placeholder="Enter event location"
               onCheckAddress={handleCheckAddress}
               onAddressError={handleAddressError}
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="description" className="input-label">
+              Event Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Enter event description (optional)"
+              className="input-field min-h-[100px] resize-vertical"
             />
           </div>
 

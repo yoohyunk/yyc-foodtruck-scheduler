@@ -1,7 +1,7 @@
 "use client";
 import "../../globals.css";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, ReactElement, useCallback } from "react";
+import { useEffect, useState, ReactElement, useCallback, useRef } from "react";
 import { extractDate, extractTime } from "../utils";
 import {
   Event,
@@ -28,6 +28,8 @@ import {
   ValidationError,
 } from "@/lib/formValidation";
 import ErrorModal from "../../components/ErrorModal";
+import { cleanPostalCode } from "@/lib/utils";
+import { AddressFormRef } from "@/app/components/AddressForm";
 
 // Import components
 import EmployeeSelectionModal from "./components/EmployeeSelectionModal";
@@ -76,7 +78,7 @@ export default function EventDetailsPage(): ReactElement {
     endDate: "",
     time: "",
     endTime: "",
-    location: "",
+    description: "",
     requiredServers: "",
     contactName: "",
     contactEmail: "",
@@ -98,6 +100,7 @@ export default function EventDetailsPage(): ReactElement {
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const addressFormRef = useRef<AddressFormRef>(null);
 
   // Employee filter state - default to Server for server assignments
   const [employeeFilter, setEmployeeFilter] = useState<string>("Server");
@@ -141,7 +144,6 @@ export default function EventDetailsPage(): ReactElement {
   // Fetch event details from Supabase
   useEffect(() => {
     const fetchEvent = async () => {
-      console.log("fetchEvent called with id:", id, "isAdmin:", isAdmin);
       if (!id) return;
 
       try {
@@ -150,18 +152,18 @@ export default function EventDetailsPage(): ReactElement {
 
         if (isAdmin) {
           // Admin gets full event details
-          console.log("Fetching full event data for admin");
+
           const eventData = await eventsApi.getEventById(id as string);
-          console.log("Full event data fetched:", eventData);
+
           setEvent(eventData);
           setEventBasicInfo(null);
         } else {
           // Non-admin gets basic event info only
-          console.log("Fetching basic event data for non-admin");
+
           const basicEventData = await eventsApi.getEventBasicInfoById(
             id as string
           );
-          console.log("Basic event data fetched:", basicEventData);
+
           setEventBasicInfo(basicEventData);
           setEvent(null);
         }
@@ -208,7 +210,6 @@ export default function EventDetailsPage(): ReactElement {
 
     // Add focus event listener to refresh data when user navigates back
     const handleFocus = () => {
-      console.log("Event details page: Refreshing data on focus");
       fetchData();
     };
 
@@ -223,35 +224,17 @@ export default function EventDetailsPage(): ReactElement {
   // Fetch truck assignments when event is loaded (both admin and non-admin)
   useEffect(() => {
     const eventId = isAdmin ? event?.id : eventBasicInfo?.id;
-    console.log(
-      "Truck assignments useEffect - eventId:",
-      eventId,
-      "isAdmin:",
-      isAdmin
-    );
-    console.log(
-      "event?.id:",
-      event?.id,
-      "eventBasicInfo?.id:",
-      eventBasicInfo?.id
-    );
 
     if (!eventId) {
-      console.log("No eventId available, skipping truck assignments fetch");
       return;
     }
 
     const fetchTruckAssignments = async () => {
       try {
-        console.log("Fetching truck assignments for event ID:", eventId);
         const assignments =
           await truckAssignmentsApi.getTruckAssignmentsByEventId(eventId);
-        console.log("Truck assignments fetched:", assignments);
+
         if (!isAdmin) {
-          console.log(
-            "[EventDetailsPage] Non-admin truckAssignments after fetch:",
-            assignments
-          );
         }
         setTruckAssignments(assignments);
       } catch (error) {
@@ -266,39 +249,21 @@ export default function EventDetailsPage(): ReactElement {
   // since the assignments now include the related data
   useEffect(() => {
     if (isAdmin) return; // Admin already has this data
-
-    console.log("Non-admin user - assignments should include related data");
-    console.log("Server assignments:", serverAssignments);
-    console.log("Truck assignments:", truckAssignments);
   }, [serverAssignments, truckAssignments, isAdmin]);
 
   // Fetch server assignments when event is loaded (both admin and non-admin)
   useEffect(() => {
     const eventId = isAdmin ? event?.id : eventBasicInfo?.id;
-    console.log(
-      "Server assignments useEffect - eventId:",
-      eventId,
-      "isAdmin:",
-      isAdmin
-    );
-    console.log(
-      "event?.id:",
-      event?.id,
-      "eventBasicInfo?.id:",
-      eventBasicInfo?.id
-    );
 
     if (!eventId) {
-      console.log("No eventId available, skipping server assignments fetch");
       return;
     }
 
     const fetchServerAssignments = async () => {
       try {
-        console.log("Fetching server assignments for event ID:", eventId);
         const assignments =
           await assignmentsApi.getServerAssignmentsByEventId(eventId);
-        console.log("Server assignments fetched:", assignments);
+
         setServerAssignments(assignments);
 
         // Check if we need to show server warning (admin only)
@@ -666,7 +631,7 @@ export default function EventDetailsPage(): ReactElement {
       endDate: endDate ? endDate.toISOString().split("T")[0] : "",
       time: event.start_date ? extractTime(event.start_date) : "",
       endTime: event.end_date ? extractTime(event.end_date) : "",
-      location: event.description || "",
+      description: event.description || "",
       requiredServers: event.number_of_servers_needed?.toString() || "",
       contactName: event.contact_name || "",
       contactEmail: event.contact_email || "",
@@ -674,13 +639,13 @@ export default function EventDetailsPage(): ReactElement {
       trucks: [],
       isPrepaid: event.is_prepaid || false,
       // Address fields
-      street: "",
-      city: "",
-      province: "",
-      postalCode: "",
-      country: "",
-      latitude: "",
-      longitude: "",
+      street: event.addresses?.street || "",
+      city: event.addresses?.city || "",
+      province: event.addresses?.province || "",
+      postalCode: event.addresses?.postal_code || "",
+      country: event.addresses?.country || "",
+      latitude: event.addresses?.latitude || "",
+      longitude: event.addresses?.longitude || "",
     });
 
     setSelectedDate(startDate);
@@ -720,12 +685,96 @@ export default function EventDetailsPage(): ReactElement {
     openEditModal();
   };
 
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setEditFormData({
       ...editFormData,
       [name]: value,
     });
+  };
+
+  const handleEditLocationChange = (
+    address: string,
+    coordinates?: { latitude: number; longitude: number }
+  ) => {
+    // Parse the address components from the full address string
+    const parseAddress = (fullAddress: string) => {
+      const parts = fullAddress.split(",").map((part) => part.trim());
+
+      if (parts.length >= 2) {
+        const streetPart = parts[0];
+        const city = parts[1];
+        let postalCode = parts[2] || "";
+
+        // Clean postal code using utility function
+        if (postalCode) {
+          postalCode = cleanPostalCode(postalCode);
+        }
+
+        // Extract street number and name from street part
+        const streetParts = streetPart.split(" ");
+        const streetNumber = streetParts[0] || "";
+        const direction = ["NW", "NE", "SW", "SE"].includes(
+          streetParts[streetParts.length - 1]
+        )
+          ? streetParts[streetParts.length - 1]
+          : "";
+        const streetName = direction
+          ? streetParts.slice(1, -1).join(" ")
+          : streetParts.slice(1).join(" ");
+
+        return {
+          street:
+            `${streetNumber} ${streetName}${direction ? " " + direction : ""}`.trim(),
+          city: city,
+          province: "Alberta", // Default for Calgary area
+          postalCode: postalCode,
+          country: "Canada", // Default
+        };
+      }
+
+      // Fallback if parsing fails
+      return {
+        street: fullAddress,
+        city: "Calgary",
+        province: "Alberta",
+        postalCode: "",
+        country: "Canada",
+      };
+    };
+
+    const addressComponents = parseAddress(address);
+
+    setEditFormData((prev) => {
+      const updated = {
+        ...prev,
+        location: address,
+        street: addressComponents.street,
+        city: addressComponents.city,
+        province: addressComponents.province,
+        postalCode: addressComponents.postalCode,
+        country: addressComponents.country,
+        latitude: coordinates?.latitude?.toString() || "",
+        longitude: coordinates?.longitude?.toString() || "",
+      };
+
+      return updated;
+    });
+  };
+
+  const handleEditCheckAddress = () => {
+    // Only update state if AddressForm validates
+    const valid = addressFormRef.current?.validate() ?? false;
+    return valid;
+  };
+
+  const handleEditAddressError = (errors: ValidationError[]) => {
+    setErrorModalErrors(errors);
+    setErrorModalTitle("Address Validation Errors");
+    setErrorModalType("error");
+    setIsErrorModalOpen(true);
   };
 
   const handleEditDateChange = (date: Date | null) => {
@@ -770,8 +819,11 @@ export default function EventDetailsPage(): ReactElement {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return; // Prevent multiple submissions
+    if (isSubmitting) {
+      return; // Prevent multiple submissions
+    }
 
+    setIsSubmitting(true);
     setError(null);
 
     if (!event?.id) {
@@ -805,11 +857,12 @@ export default function EventDetailsPage(): ReactElement {
         "Please select a valid end time."
       ),
       createValidationRule(
-        "location",
+        "street",
         true,
         undefined,
-        "Location is required."
+        "Street address is required."
       ),
+      createValidationRule("city", true, undefined, "City is required."),
       createValidationRule(
         "requiredServers",
         true,
@@ -881,7 +934,7 @@ export default function EventDetailsPage(): ReactElement {
       // Update the event
       const updatedEvent = await eventsApi.updateEvent(event.id, {
         title: capitalizeTitle(sanitizedData.name),
-        description: sanitizedData.location,
+        description: sanitizedData.description as string,
         start_date: startDateTime || undefined,
         end_date: endDateTime || undefined,
         number_of_servers_needed: parseInt(
@@ -891,6 +944,15 @@ export default function EventDetailsPage(): ReactElement {
         contact_email: sanitizedData.contactEmail,
         contact_phone: sanitizedData.contactPhone,
         is_prepaid: sanitizedData.isPrepaid,
+        addressData: {
+          street: sanitizedData.street,
+          city: sanitizedData.city,
+          province: sanitizedData.province,
+          postal_code: sanitizedData.postalCode,
+          country: sanitizedData.country,
+          latitude: sanitizedData.latitude,
+          longitude: sanitizedData.longitude,
+        },
       });
 
       // Update server assignments with new event times if times changed
@@ -933,6 +995,7 @@ export default function EventDetailsPage(): ReactElement {
       showSuccess("Success", "Event updated successfully.");
     } catch (error) {
       console.error("Error updating event:", error);
+
       showError("Update Error", "Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -1011,6 +1074,10 @@ export default function EventDetailsPage(): ReactElement {
                       // Admin view - full event details
                       <>
                         <p className="event-detail-info">
+                          <strong className="info-label">Description:</strong>
+                          <span className="info-text">{event.description}</span>
+                        </p>
+                        <p className="event-detail-info">
                           <strong className="info-label">Date:</strong>
                           <span className="info-text">
                             {extractDate(event.start_date, event.end_date)}
@@ -1027,7 +1094,9 @@ export default function EventDetailsPage(): ReactElement {
                         <p className="event-detail-info">
                           <strong className="info-label">Location:</strong>
                           <span className="info-text">
-                            {event.description || "Location not set"}
+                            {event.addresses
+                              ? `${event.addresses.street}, ${event.addresses.city}, ${event.addresses.province}, ${event.addresses.postal_code}`
+                              : "Location not set"}
                           </span>
                         </p>
                         <p className="event-detail-info">
@@ -1400,6 +1469,9 @@ export default function EventDetailsPage(): ReactElement {
                     selectedEndTime={selectedEndTime}
                     isSubmitting={isSubmitting}
                     setEditFormData={setEditFormData}
+                    onLocationChange={handleEditLocationChange}
+                    onCheckAddress={handleEditCheckAddress}
+                    onAddressError={handleEditAddressError}
                   />
                 )}
 
