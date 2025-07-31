@@ -742,6 +742,13 @@ export default function Employees(): ReactElement {
                       employee.availability.length > 0 ? (
                         <div className="space-y-1">
                           {employee.availability
+                            // Filter out repeated days so each day only shows once
+                            .filter(
+                              (avail, index, array) =>
+                                array.findIndex(
+                                  (a) => a.day_of_week === avail.day_of_week
+                                ) === index
+                            )
                             .sort((a, b) => {
                               const dayOrder = [
                                 "Monday",
@@ -762,7 +769,7 @@ export default function Employees(): ReactElement {
                               const endTime = avail.end_time.slice(0, 5); // Remove seconds
                               return (
                                 <div
-                                  key={index}
+                                  key={`${avail.day_of_week}-${index}`}
                                   className="flex justify-between"
                                 >
                                   <span className="font-medium">
