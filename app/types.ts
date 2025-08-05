@@ -27,7 +27,7 @@ export interface EventFormData {
   endDate: string;
   time: string;
   endTime: string;
-  location: string;
+  description: string;
   requiredServers: string;
   contactName: string;
   contactEmail: string;
@@ -99,9 +99,11 @@ export interface TimeOffRequestFormData {
 }
 
 export interface HomePageEvent {
+  id: string;
   title: string;
   startTime: string;
   location: string;
+  status?: string | null;
 }
 
 export interface Coordinates {
@@ -154,4 +156,176 @@ export const getTruckBorderColor = (type: string): string => {
     default:
       return "var(--text-muted)";
   }
+};
+
+// Utility function to get truck type CSS class name
+export const getTruckTypeClass = (type: string): string => {
+  return `type-${(type || "unknown").toLowerCase().replace(/\s+/g, "-")}`;
+};
+
+// Employee role color mapping functions
+export const getEmployeeRoleColor = (role: string): string => {
+  switch (role) {
+    case "Driver":
+      return "var(--secondary-light)";
+    case "Server":
+      return "var(--secondary-medium)";
+    case "Admin":
+      return "var(--primary-light)";
+    default:
+      return "var(--text-muted)";
+  }
+};
+
+export const getEmployeeRoleBadge = (role: string): string => {
+  switch (role) {
+    case "Driver":
+      return "var(--secondary-light)";
+    case "Server":
+      return "var(--secondary-medium)";
+    case "Admin":
+      return "var(--primary-light)";
+    default:
+      return "var(--text-muted)";
+  }
+};
+
+export const getEmployeeRoleBorderColor = (role: string): string => {
+  switch (role) {
+    case "Driver":
+      return "var(--secondary-light)"; // secondary-light
+    case "Server":
+      return "#var(--secondary-medium)"; // secondary-medium
+    case "Admin":
+      return "#var(--primary-light)"; // primary-light
+    default:
+      return "#718096"; // text-muted
+  }
+};
+
+export const getEmployeeRoleFilterColor = (
+  role: string,
+  isActive: boolean
+): string => {
+  if (!isActive) return "bg-gray-200 text-primary-dark";
+
+  switch (role) {
+    case "Driver":
+      return "bg-secondary-light text-white";
+    case "Server":
+      return "bg-secondary-medium text-white";
+    case "Admin":
+      return "bg-primary-light text-white";
+    default:
+      return "bg-primary-dark text-white";
+  }
+};
+
+// Event status color mapping functions
+export const getEventStatusColor = (status: string): string => {
+  switch (status) {
+    case "Pending":
+      return "var(--secondary-light)"; // secondary-light
+    case "Scheduled":
+      return "var(--secondary-medium)"; // secondary-medium
+    default:
+      return "var(--text-muted)"; // text-muted
+  }
+};
+
+export const getEventStatusBorderColor = (status: string): string => {
+  switch (status) {
+    case "Pending":
+      return "var(--secondary-light)"; // secondary-light
+    case "Scheduled":
+      return "var(--secondary-medium)"; // secondary-medium
+    default:
+      return "var(--text-muted)"; // text-muted
+  }
+};
+
+export const getEventStatusFilterColor = (
+  status: string,
+  isActive: boolean
+): string => {
+  if (!isActive) return "bg-gray-200 text-primary-dark";
+
+  switch (status) {
+    case "Pending":
+      return "bg-secondary-light text-white";
+    case "Scheduled":
+      return "bg-secondary-medium text-white";
+    default:
+      return "bg-primary-dark text-white";
+  }
+};
+
+// Time-off request status color mapping functions
+export const getTimeOffStatusBorderColor = (status: string): string => {
+  switch (status) {
+    case "Approved":
+      return "var(--success-medium)";
+    case "Rejected":
+      return "var(--error-medium)";
+    case "Pending":
+      return "var(--warning-medium)";
+    default:
+      return "var(--text-muted)";
+  }
+};
+
+export type CheckinData = {
+  clock_in_at?: string | null;
+  clock_out_at?: string | null;
+  // Add other fields as needed
+};
+export type Assignment = {
+  id: string;
+  type: "server" | "truck";
+  start_date?: string;
+  start_time?: string;
+  end_date?: string;
+  end_time?: string;
+  events?: {
+    title?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      province?: string;
+      postal_code?: string;
+      country?: string;
+    };
+  };
+  trucks?: { name?: string };
+  clock_in_at?: string | null;
+  clock_out_at?: string | null;
+};
+
+export interface CheckinEmployee {
+  employee_id: string;
+  first_name?: string;
+  last_name?: string;
+  employee_type?: string;
+}
+
+interface AssignmentInfo {
+  id: string;
+  type: "server" | "truck";
+  event_title?: string;
+  truck_name?: string;
+  start_time: string;
+  end_time: string;
+  event_id?: string;
+}
+export interface CheckinLog {
+  id: string;
+  employee: CheckinEmployee;
+  assignment: AssignmentInfo;
+  clock_in_at: string | null;
+  clock_out_at: string | null;
+}
+
+// Type for basic event info from limited view
+export type EventBasicInfo = Tables<"event_basic_info_view"> & {
+  status?: string | null;
 };

@@ -291,10 +291,10 @@ export default function EditTruckPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      // First, get the current truck to get the address_id
+      // First, get the current truck to get the address_id and current availability status
       const { data: currentTruck, error: fetchError } = await supabase
         .from("trucks")
-        .select("address_id")
+        .select("address_id, is_available")
         .eq("id", id)
         .single();
 
@@ -350,10 +350,133 @@ export default function EditTruckPage(): ReactElement {
         throw new Error("Failed to update truck");
       }
 
+      // If truck availability was changed from true to false, remove ALL truck assignments for this truck
+      if (
+        currentTruck?.is_available === true &&
+        updateData.is_available === false
+      ) {
+        console.log(
+          "Truck availability changed to false, removing ALL truck assignments..."
+        );
+
+        // First, get ALL truck assignments for this truck to see what we're working with
+        const { data: allAssignments, error: allAssignmentsError } =
+          await supabase
+            .from("truck_assignment")
+            .select("id, start_time, end_time, event_id, driver_id")
+            .eq("truck_id", id);
+
+        if (allAssignmentsError) {
+          console.error("Error fetching all assignments:", allAssignmentsError);
+          throw new Error(
+            `Failed to fetch truck assignments: ${allAssignmentsError.message}`
+          );
+        }
+
+        console.log(
+          `Found ${allAssignments?.length || 0} total assignments for truck:`,
+          allAssignments
+        );
+
+        if (allAssignments && allAssignments.length > 0) {
+          // Delete ALL truck assignments for this truck (not just future ones)
+          // When a truck becomes unavailable, it should not have ANY assignments
+          console.log(
+            `Removing ALL ${allAssignments.length} assignments for truck ${id}`
+          );
+
+          // Get unique event IDs that will be affected
+          const affectedEventIds = [
+            ...new Set(
+              allAssignments
+                .map((assignment) => assignment.event_id)
+                .filter((eventId) => eventId !== null)
+            ),
+          ];
+
+          console.log(`Events that will be set to Pending:`, affectedEventIds);
+
+          const { error: deleteError } = await supabase
+            .from("truck_assignment")
+            .delete()
+            .eq("truck_id", id);
+
+          if (deleteError) {
+            console.error("Error deleting truck assignments:", deleteError);
+            throw new Error(
+              `Failed to remove truck assignments: ${deleteError.message}`
+            );
+          }
+
+          // Set all affected events back to "Pending" status
+          if (affectedEventIds.length > 0) {
+            console.log(
+              `Setting ${affectedEventIds.length} events back to Pending status`
+            );
+
+            const { error: eventUpdateError } = await supabase
+              .from("events")
+              .update({ status: "Pending" })
+              .in("id", affectedEventIds);
+
+            if (eventUpdateError) {
+              console.error("Error updating event statuses:", eventUpdateError);
+              throw new Error(
+                `Failed to update event statuses to Pending: ${eventUpdateError.message}`
+              );
+            }
+
+            console.log(
+              `Successfully set ${affectedEventIds.length} events to Pending`
+            );
+          }
+
+          // Verify deletion worked by checking ALL remaining assignments
+          const { data: remainingAssignments, error: verifyError } =
+            await supabase
+              .from("truck_assignment")
+              .select("id, start_time, event_id")
+              .eq("truck_id", id);
+
+          if (verifyError) {
+            console.error("Error verifying assignment deletion:", verifyError);
+            throw new Error(
+              `Failed to verify assignment removal: ${verifyError.message}`
+            );
+          }
+
+          if (remainingAssignments && remainingAssignments.length > 0) {
+            console.error(
+              `Assignment deletion failed - ${remainingAssignments.length} assignments still exist:`,
+              remainingAssignments
+            );
+            throw new Error(
+              `Failed to remove all truck assignments. ${remainingAssignments.length} assignments remain.`
+            );
+          }
+
+          console.log(
+            `Successfully removed ALL ${allAssignments.length} truck assignments`
+          );
+        } else {
+          console.log("No truck assignments found to remove");
+        }
+      }
+
+      // Determine success message based on what happened
+      let successMessage = "Truck updated successfully!";
+      if (
+        currentTruck?.is_available === true &&
+        updateData.is_available === false
+      ) {
+        successMessage +=
+          " All truck assignments have been removed and affected events have been set to Pending status.";
+      }
+
       setValidationErrors([
         {
           field: "success",
-          message: "Truck updated successfully!",
+          message: successMessage,
           element: null,
         },
       ]);
@@ -486,6 +609,35 @@ export default function EditTruckPage(): ReactElement {
                 Available for assignments
               </span>
             </div>
+            {!formData.isAvailable && (
+              <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-orange-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-orange-800">
+                      Warning: Setting as unavailable will remove all truck
+                      assignments
+                    </h3>
+                    <p className="mt-1 text-sm text-orange-700">
+                      Marking this truck as unavailable will permanently delete
+                      all current and future truck assignments for this truck.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="input-group">
@@ -522,8 +674,7 @@ export default function EditTruckPage(): ReactElement {
             <div
               className="section-card mb-4"
               style={{
-                borderLeft: "6px solid var(--primary-light)",
-                borderTop: "4px solid var(--secondary-light)",
+                border: "none",
               }}
               data-no-before="true"
             >

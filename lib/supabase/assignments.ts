@@ -11,14 +11,17 @@ export const assignmentsApi = {
     eventDate: string,
     eventStartTime: string,
     eventEndTime: string,
-    eventAddress: string
+    eventAddress: string,
+    eventCoordinates?: { latitude: number; longitude: number }
   ): Promise<Employee[]> {
     const eventStartDate = `${eventDate}T${eventStartTime}`;
     const eventEndDate = `${eventDate}T${eventEndTime}`;
     return employeeAvailabilityApi.getAvailableServers(
       eventStartDate,
       eventEndDate,
-      eventAddress
+      eventAddress,
+      undefined, // excludeEventId
+      eventCoordinates
     );
   },
 
@@ -126,6 +129,12 @@ export const assignmentsApi = {
     }>
   > {
     try {
+      console.log(
+        "getServerAssignmentsByEventId called with eventId:",
+        eventId
+      );
+
+      // First try to get assignments with full employee data
       const { data, error } = await supabase
         .from("assignments")
         .select(
@@ -136,8 +145,44 @@ export const assignmentsApi = {
         )
         .eq("event_id", eventId);
 
+      console.log(
+        "Server assignments query result - data:",
+        data,
+        "error:",
+        error
+      );
+
       if (error) {
-        throw new Error(`Error fetching server assignments: ${error.message}`);
+        console.log(
+          "Error with full employee data, trying limited view:",
+          error
+        );
+
+        // If that fails, try with limited employee view
+        const { data: limitedData, error: limitedError } = await supabase
+          .from("assignments")
+          .select(
+            `
+            *,
+            employees_limited_view!inner(*)
+          `
+          )
+          .eq("event_id", eventId);
+
+        console.log(
+          "Limited view query result - data:",
+          limitedData,
+          "error:",
+          limitedError
+        );
+
+        if (limitedError) {
+          throw new Error(
+            `Error fetching server assignments: ${limitedError.message}`
+          );
+        }
+
+        return limitedData || [];
       }
 
       return data || [];
@@ -197,18 +242,39 @@ export const assignmentsApi = {
       event_id: string;
       start_date: string;
       end_date: string;
+      events: {
+        id: string;
+        title: string;
+        start_date: string;
+        end_date: string;
+      };
     }>
   > {
     const { data, error } = await supabase
       .from("assignments")
-      .select("*")
+      .select(
+        `
+        *,
+        events (
+          id,
+          title,
+          start_date,
+          end_date
+        )
+      `
+      )
       .eq("employee_id", employeeId);
 
     if (error) {
       throw new Error(`Error fetching assignments: ${error.message}`);
     }
 
-    return data || [];
+    return (data || []).map((item) => ({
+      ...item,
+      events: Array.isArray(item.events)
+        ? item.events[0] || { title: null }
+        : item.events,
+    }));
   },
 
   // Get all truck assignments for an employee
@@ -217,8 +283,8 @@ export const assignmentsApi = {
       id: string;
       driver_id: string;
       event_id: string;
-      start_date: string;
-      end_date: string;
+      start_time: string;
+      end_time: string;
     }>
   > {
     const { data, error } = await supabase
@@ -252,6 +318,144 @@ export const assignmentsApi = {
       await this.checkAndUpdateEventStatus(eventId);
     } catch (error) {
       console.error("Error removing server assignment:", error);
+      throw error;
+    }
+  },
+  // Remove a truck assignment (for manual unassignment)
+  async removeTruckAssignment(assignmentId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("truck_assignment")
+        .delete()
+        .eq("id", assignmentId);
+
+      if (error) {
+        throw new Error(`Error removing truck assignment: ${error.message}`);
+      }
+      // Optionally, update event status if needed (not implemented here)
+    } catch (error) {
+      console.error("Error removing truck assignment:", error);
+      throw error;
+    }
+  },
+  // Get all assignments (for reports)
+  async getAllAssignments(): Promise<
+    Array<{
+      id: string;
+      employee_id: string | null;
+      event_id: string | null;
+      start_date: string;
+      end_date: string;
+      is_completed: boolean | null;
+      status: string | null;
+      created_at: string;
+    }>
+  > {
+    const { data, error } = await supabase
+      .from("assignments")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Error fetching all assignments: ${error.message}`);
+    }
+
+    return data || [];
+  },
+
+  // Get all truck assignments (for reports)
+  async getAllTruckAssignments(): Promise<
+    Array<{
+      id: string;
+      driver_id: string | null;
+      event_id: string | null;
+      start_time: string;
+      end_time: string;
+      created_at: string;
+      truck_id: string | null;
+    }>
+  > {
+    const { data, error } = await supabase
+      .from("truck_assignment")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Error fetching all truck assignments: ${error.message}`);
+    }
+
+    return data || [];
+  },
+
+  // Update server assignments when event times change
+  async updateServerAssignmentsForEvent(
+    eventId: string,
+    newStartDate: string,
+    newEndDate: string
+  ): Promise<void> {
+    try {
+      // Get all server assignments for this event
+      const { data: assignments, error: fetchError } = await supabase
+        .from("assignments")
+        .select("id")
+        .eq("event_id", eventId);
+
+      if (fetchError) {
+        throw new Error(
+          `Error fetching server assignments: ${fetchError.message}`
+        );
+      }
+
+      if (!assignments || assignments.length === 0) {
+        return; // No assignments to update
+      }
+
+      // Update all assignments with new start and end dates
+      const { error: updateError } = await supabase
+        .from("assignments")
+        .update({
+          start_date: newStartDate,
+          end_date: newEndDate,
+        })
+        .eq("event_id", eventId);
+
+      if (updateError) {
+        throw new Error(
+          `Error updating server assignments: ${updateError.message}`
+        );
+      }
+
+      console.log(
+        `Updated ${assignments.length} server assignments for event ${eventId}`
+      );
+    } catch (error) {
+      console.error("Error updating server assignments for event:", error);
+      throw error;
+    }
+  },
+
+  // Update individual assignment times
+  async updateAssignmentTimes(
+    assignmentId: string,
+    newStartDate: string,
+    newEndDate: string
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({
+          start_date: newStartDate,
+          end_date: newEndDate,
+        })
+        .eq("id", assignmentId);
+
+      if (error) {
+        throw new Error(`Error updating assignment times: ${error.message}`);
+      }
+
+      console.log(`Updated assignment ${assignmentId} times`);
+    } catch (error) {
+      console.error("Error updating assignment times:", error);
       throw error;
     }
   },

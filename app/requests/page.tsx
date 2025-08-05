@@ -6,9 +6,10 @@ import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
 import { employeesApi } from "@/lib/supabase/employees";
 import { Employee } from "../types";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ErrorModal from "../components/ErrorModal";
 import { ValidationError } from "@/lib/formValidation";
+import SearchInput from "../components/SearchInput";
 
 export default function RequestsPage(): ReactElement {
   const { isAdmin } = useAuth();
@@ -18,7 +19,10 @@ export default function RequestsPage(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("All"); // For employee filtering
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Error modal state
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -69,6 +73,14 @@ export default function RequestsPage(): ReactElement {
     }
     setPendingDeleteId(null);
   };
+
+  // Check for URL parameter and set employee filter
+  useEffect(() => {
+    const employeeIdParam = searchParams.get("employeeId");
+    if (employeeIdParam && isAdmin) {
+      setSelectedEmployeeId(employeeIdParam);
+    }
+  }, [searchParams, isAdmin]);
 
   // Fetch all time off requests and employees
   useEffect(() => {
@@ -157,16 +169,14 @@ export default function RequestsPage(): ReactElement {
       : "Unknown Employee";
   };
 
-  const formatDateTime = (dateTimeString: string) => {
-    const date = new Date(dateTimeString);
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  // Helper to display local time as selected (no timezone conversion)
+  function formatLocalDateTimeString(dateTimeString: string) {
+    if (!dateTimeString) return "";
+    const [date, time] = dateTimeString.split("T");
+    if (!date || !time) return dateTimeString;
+    const [hour, minute] = time.split(":");
+    return `${date} ${hour}:${minute}`;
+  }
 
   const formatDateOnly = (dateTimeString: string) => {
     const date = new Date(dateTimeString);
@@ -217,6 +227,13 @@ export default function RequestsPage(): ReactElement {
       filtered = filtered.filter((request) => request.status === filterStatus);
     }
 
+    // Apply employee filter (only for admin users)
+    if (isAdmin && selectedEmployeeId !== "All") {
+      filtered = filtered.filter(
+        (request) => request.employee_id === selectedEmployeeId
+      );
+    }
+
     // Apply date filter (only for admin users)
     if (isAdmin) {
       const today = new Date();
@@ -240,6 +257,37 @@ export default function RequestsPage(): ReactElement {
       }
     }
 
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((request) => {
+        const employeeName = getEmployeeName(request.employee_id).toLowerCase();
+        const requestType = (request.type || "").toLowerCase();
+        const requestStatus = (request.status || "").toLowerCase();
+        const requestReason = (request.reason || "").toLowerCase();
+        const startDate = formatLocalDateTimeString(
+          request.start_datetime
+        ).toLowerCase();
+        const endDate = formatLocalDateTimeString(
+          request.end_datetime
+        ).toLowerCase();
+        const duration = calculateDuration(
+          request.start_datetime,
+          request.end_datetime
+        ).toLowerCase();
+
+        return (
+          employeeName.includes(searchLower) ||
+          requestType.includes(searchLower) ||
+          requestStatus.includes(searchLower) ||
+          requestReason.includes(searchLower) ||
+          startDate.includes(searchLower) ||
+          endDate.includes(searchLower) ||
+          duration.includes(searchLower)
+        );
+      });
+    }
+
     // Sort filtered requests by start_datetime ascending (soonest first)
     filtered.sort((a, b) => {
       const dateA = new Date(a.start_datetime).getTime();
@@ -248,7 +296,14 @@ export default function RequestsPage(): ReactElement {
     });
 
     return filtered;
-  }, [requests, filterStatus, selectedDate, isAdmin]);
+  }, [
+    requests,
+    filterStatus,
+    selectedEmployeeId,
+    selectedDate,
+    searchTerm,
+    isAdmin,
+  ]);
 
   if (isLoading) {
     return (
@@ -291,6 +346,14 @@ export default function RequestsPage(): ReactElement {
         <h2 className="text-2xl text-primary-dark">
           Time-Off Requests Management
         </h2>
+      </div>
+
+      {/* Search Input */}
+      <div className="search-input-container mb-6">
+        <SearchInput
+          placeholder="Search by employee name, request type, status, reason, dates, or duration..."
+          onSearch={setSearchTerm}
+        />
       </div>
 
       {/* Filter Buttons */}
@@ -349,6 +412,38 @@ export default function RequestsPage(): ReactElement {
         </button>
       </div>
 
+      {/* Employee Filter - Only for Admin Users */}
+      {isAdmin && (
+        <div className="mb-6">
+          <label
+            htmlFor="employee-filter"
+            className="block text-primary-dark font-medium mb-2"
+          >
+            Filter by Employee
+          </label>
+          <select
+            id="employee-filter"
+            value={selectedEmployeeId}
+            onChange={(e) => setSelectedEmployeeId(e.target.value)}
+            className="input-field w-full cursor-pointer"
+          >
+            <option value="All">All Employees</option>
+            {employees
+              .filter((employee) => employee.is_available) // Only show active employees
+              .sort((a, b) =>
+                `${a.first_name} ${a.last_name}`.localeCompare(
+                  `${b.first_name} ${b.last_name}`
+                )
+              )
+              .map((employee) => (
+                <option key={employee.employee_id} value={employee.employee_id}>
+                  {employee.first_name} {employee.last_name}
+                </option>
+              ))}
+          </select>
+        </div>
+      )}
+
       {/* Date Filter - Only for Admin Users */}
       {isAdmin && (
         <div className="mb-6">
@@ -404,6 +499,7 @@ export default function RequestsPage(): ReactElement {
             <div
               key={request.id}
               className="employee-card bg-white p-6 rounded shadow relative"
+              style={{ border: "none" }}
             >
               {/* Header Row */}
               <div className="flex justify-between items-start mb-4">
@@ -486,7 +582,7 @@ export default function RequestsPage(): ReactElement {
                     </span>
                   </div>
                   <span className="text-sm text-gray-600">
-                    {formatDateTime(request.start_datetime)}
+                    {formatLocalDateTimeString(request.start_datetime)}
                   </span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
@@ -497,7 +593,7 @@ export default function RequestsPage(): ReactElement {
                     </span>
                   </div>
                   <span className="text-sm text-gray-600">
-                    {formatDateTime(request.end_datetime)}
+                    {formatLocalDateTimeString(request.end_datetime)}
                   </span>
                 </div>
               </div>

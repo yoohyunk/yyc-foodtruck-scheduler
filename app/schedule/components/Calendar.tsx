@@ -1,16 +1,17 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { EventContent } from "./EventContent";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import listPlugin from "@fullcalendar/list";
 
 const FullCalendar = dynamic(() => import("@fullcalendar/react"), {
   ssr: false,
 });
 
-const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin];
+const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin];
 
 export interface CalendarEvent {
   id: string;
@@ -42,148 +43,273 @@ export const Calendar = ({
   onEventClick,
 }: CalendarProps) => {
   const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("Calendar props:", {
+      viewMode,
+      selectedDate: selectedDate.toISOString(),
+      eventsCount: events.length,
+      events: events.map((e) => ({
+        id: e.id,
+        title: e.title,
+        start: e.start,
+        end: e.end,
+      })),
+    });
+  }, [viewMode, selectedDate, events]);
+
+  // Single useEffect for responsive detection
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth;
       setIsMobile(width <= 768);
-      setIsTablet(width > 768 && width <= 1024);
-      setIsDesktop(width > 1024);
     };
 
     checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    
-    return () => window.removeEventListener('resize', checkScreenSize);
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const viewType =
-    viewMode === "daily"
-      ? "timeGridDay"
-      : viewMode === "weekly"
-        ? "dayGridWeek" 
-        : "dayGridMonth";
+  // Memoized view type calculation
+  const viewType = useMemo(() => {
+    if (isMobile || viewMode === "weekly") {
+      return "listWeek";
+    }
 
-  // Responsive configurations based on screen size
-  const getResponsiveConfig = () => {
-    if (isMobile) {
+    switch (viewMode) {
+      case "daily":
+        return "timeGridDay";
+      case "monthly":
+        return "dayGridMonth";
+      default:
+        return "listWeek";
+    }
+  }, [isMobile, viewMode]);
+
+  // Memoized calendar height
+  const calendarHeight = useMemo(() => {
+    return isMobile ? "600px" : "auto";
+  }, [isMobile]);
+
+  // Memoized header format to prevent duplicate headers
+  const headerFormat = useMemo(
+    () => ({
+      weekday: (isMobile
+        ? "short"
+        : viewMode === "monthly"
+          ? "short"
+          : "long") as "short" | "long",
+      day: "numeric" as const,
+    }),
+    [isMobile, viewMode]
+  );
+
+  // Memoized list view formats to prevent default FullCalendar headers
+  const listFormats = useMemo(() => {
+    if (isMobile || viewMode === "weekly") {
       return {
-        eventMinHeight: 40,
-        dayMaxEvents: 2,
-        slotDuration: "02:00:00",
-        slotLabelInterval: "02:00",
-        dayMaxEventRows: 2,
-        aspectRatio: 0.6,
-        fontSize: '10px',
-        padding: '1px 2px'
-      };
-    } else if (isTablet) {
-      return {
-        eventMinHeight: 55,
-        dayMaxEvents: 3,
-        slotDuration: "01:30:00",
-        slotLabelInterval: "01:30",
-        dayMaxEventRows: 3,
-        aspectRatio: 1.0,
-        fontSize: '12px',
-        padding: '2px 4px'
-      };
-    } else {
-      return {
-        eventMinHeight: 70,
-        dayMaxEvents: 4,
-        slotDuration: "01:00:00",
-        slotLabelInterval: "01:00",
-        dayMaxEventRows: 4,
-        aspectRatio: 1.35,
-        fontSize: '14px',
-        padding: '4px 6px'
+        listDayFormat: {
+          month: "long" as const,
+          day: "numeric" as const,
+          weekday: "long" as const,
+        },
+        listDaySideFormat: {
+          month: "long" as const,
+          day: "numeric" as const,
+          year: "numeric" as const,
+        },
       };
     }
-  };
+    return {};
+  }, [isMobile, viewMode]);
 
-  const config = getResponsiveConfig();
-  
+  // Calculate earliest event time for daily view
+  const scrollTime = useMemo(() => {
+    if (viewMode !== "daily") return "03:00:00";
+
+    const dayEvents = events.filter((event) => {
+      const eventDate = new Date(event.start);
+      const selectedDateStr = selectedDate.toDateString();
+      return eventDate.toDateString() === selectedDateStr;
+    });
+
+    console.log("Day events for scroll time calculation:", dayEvents);
+
+    if (dayEvents.length === 0) return "03:00:00";
+
+    const earliestEvent = dayEvents.reduce((earliest, event) => {
+      const eventTime = new Date(event.start);
+      const earliestTime = new Date(earliest.start);
+      return eventTime < earliestTime ? event : earliest;
+    });
+
+    const earliestTime = new Date(earliestEvent.start);
+    console.log("Earliest event time:", earliestTime);
+
+    // Start 1 hour before the earliest event, but not before 6am
+    const startHour = Math.max(6, earliestTime.getHours() - 1);
+    const scrollTimeStr = `${startHour.toString().padStart(2, "0")}:00:00`;
+    console.log("Calculated scroll time:", scrollTimeStr);
+
+    return scrollTimeStr;
+  }, [events, selectedDate, viewMode]);
+
+  // Calculate slot min time for daily view
+  const slotMinTime = useMemo(() => {
+    if (viewMode !== "daily") return "00:00:00";
+
+    const dayEvents = events.filter((event) => {
+      const eventDate = new Date(event.start);
+      const selectedDateStr = selectedDate.toDateString();
+      return eventDate.toDateString() === selectedDateStr;
+    });
+
+    if (dayEvents.length === 0) return "06:00:00";
+
+    const earliestEvent = dayEvents.reduce((earliest, event) => {
+      const eventTime = new Date(event.start);
+      const earliestTime = new Date(earliest.start);
+      return eventTime < earliestTime ? event : earliest;
+    });
+
+    const earliestTime = new Date(earliestEvent.start);
+
+    // Start 1 hour before the earliest event, but not before 6am
+    const startHour = Math.max(6, earliestTime.getHours() - 1);
+    return `${startHour.toString().padStart(2, "0")}:00:00`;
+  }, [events, selectedDate, viewMode]);
+
+  // Memoized aspect ratio
+  const aspectRatio = useMemo(() => {
+    if (isMobile || viewMode === "weekly") return 1.2;
+    if (viewMode === "monthly") return 1.35;
+    return 1.1;
+  }, [isMobile, viewMode]);
+
+  // Memoized container styles
+  const containerStyles = useMemo(
+    () => ({
+      background: "var(--surface)",
+      borderRadius: "0.75rem",
+      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+      padding: isMobile ? "0.25rem" : "0.5rem",
+      overflow: "hidden",
+      width: "100%",
+      maxWidth: "100%",
+    }),
+    [isMobile]
+  );
+
+  const innerContainerStyles = useMemo(
+    () => ({
+      width: "100%",
+      maxWidth: "100%",
+      overflow: "hidden",
+      minWidth: 0,
+    }),
+    []
+  );
+
+  // Check if there are no events for the selected date in daily view
+  const hasEventsForSelectedDate = useMemo(() => {
+    if (viewMode !== "daily") return true;
+
+    const dayEvents = events.filter((event) => {
+      const eventDate = new Date(event.start);
+      const selectedDateStr = selectedDate.toDateString();
+      return eventDate.toDateString() === selectedDateStr;
+    });
+
+    return dayEvents.length > 0;
+  }, [events, selectedDate, viewMode]);
+
+  // Show "Great day off" message when no events in daily view
+  if (viewMode === "daily" && !hasEventsForSelectedDate) {
+    return (
+      <div className={`${viewMode}-schedule`} style={containerStyles}>
+        <div style={innerContainerStyles}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "400px",
+              padding: "2rem",
+              textAlign: "center",
+              background: "var(--white)",
+              borderRadius: "0.5rem",
+            }}
+          >
+            <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🍋</div>
+            <h2
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: "600",
+                marginBottom: "0.5rem",
+                color: "#374151",
+              }}
+            >
+              No events today
+            </h2>
+            <p style={{ fontSize: "1.1rem", color: "#6b7280" }}>
+              Have a great day off!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`${viewMode}-schedule mobile-calendar responsive-calendar`}>
-      <FullCalendar
-        key={`${viewMode}-${selectedDate.toISOString()}-${isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop'}`}
-        plugins={plugins}
-        initialView={viewType}
-        initialDate={selectedDate}
-        events={events}
-        eventClick={(info) => {
-          const eventId = info.event.id;
-          if (eventId) {
-            onEventClick(eventId);
-          }
-        }}
-        eventContent={EventContent}
-        height="auto"
-        eventMinHeight={config.eventMinHeight}
-        dayMaxEvents={config.dayMaxEvents}
-        headerToolbar={{
-          left: "",
-          center: "",
-          right: "",
-        }}
-        dayHeaderFormat={{ weekday: "long", day: "numeric" }}
-        dayHeaderContent={({ date }) => {
-          const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-          const dayNum = date.getDate();
-          return (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div>{dayNum}</div>
-              <div>{dayName}</div>
-            </div>
-          );
-        }}
-        dayCellClassNames="custom-day-cell"
-        eventClassNames="custom-event-wrapper"
-        slotMinTime="00:00:00"
-        slotMaxTime="24:00:00"
-        slotDuration={config.slotDuration}
-        slotLabelInterval={config.slotLabelInterval}
-        slotLabelFormat={{
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        }}
-        displayEventTime={true}
-        displayEventEnd={true}
-        allDaySlot={false}
-        showNonCurrentDates={viewMode === "monthly"}
-        fixedWeekCount={viewMode === "monthly"}
-        dayMaxEventRows={viewMode === "monthly" ? false : config.dayMaxEventRows}
-        eventDisplay="block"
-        eventOverlap={false}
-        firstDay={1}
-        aspectRatio={config.aspectRatio}
-        handleWindowResize={true}
-        windowResizeDelay={100}
-        eventConstraint={{
-          startTime: "00:00:00",
-          endTime: "24:00:00",
-          dows: [0, 1, 2, 3, 4, 5, 6],
-        }}
-        // Responsive event rendering
-        eventDidMount={(info) => {
-          info.el.style.fontSize = config.fontSize;
-          info.el.style.padding = config.padding;
-          if (isMobile) {
-            info.el.style.cursor = 'pointer';
-          }
-        }}
-        // Touch-friendly interactions
-        selectable={true}
-        selectMirror={true}
-        unselectAuto={true}
-        // Better mobile navigation
-        navLinks={true}
-        moreLinkClick="popover"
-      />
+    <div className={`${viewMode}-schedule`} style={containerStyles}>
+      <div style={innerContainerStyles}>
+        <FullCalendar
+          key={`${viewType}-${selectedDate.toISOString()}-${isMobile}`}
+          plugins={plugins}
+          initialView={viewType}
+          initialDate={selectedDate}
+          events={events}
+          eventClick={(info) => {
+            const eventId = info.event.id;
+            if (eventId) {
+              onEventClick(eventId);
+            }
+          }}
+          height={calendarHeight}
+          eventMinHeight={isMobile ? 40 : 60}
+          headerToolbar={{
+            left: "",
+            center: "",
+            right: "",
+          }}
+          dayHeaderFormat={headerFormat}
+          dayCellClassNames="custom-day-cell"
+          eventClassNames="custom-event-wrapper"
+          allDaySlot={false}
+          showNonCurrentDates={viewMode === "monthly" && !isMobile}
+          fixedWeekCount={viewMode === "monthly" && !isMobile}
+          eventOverlap={false}
+          eventConstraint={{
+            startTime: "00:00:00",
+            endTime: "24:00:00",
+            dows: [0, 1, 2, 3, 4, 5, 6],
+          }}
+          aspectRatio={aspectRatio}
+          expandRows={!(isMobile || viewMode === "weekly")}
+          handleWindowResize={true}
+          windowResizeDelay={100}
+          scrollTime={scrollTime}
+          slotMinTime={slotMinTime}
+          slotMaxTime="23:00:00"
+          {...listFormats}
+          eventContent={EventContent}
+          // Disable event time display to prevent time/graphic columns
+          displayEventTime={false}
+          displayEventEnd={false}
+        />
+      </div>
     </div>
   );
 };

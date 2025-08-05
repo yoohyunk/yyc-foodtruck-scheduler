@@ -60,6 +60,7 @@ export type Database = {
           is_completed: boolean | null;
           start_date: string;
           status: string | null;
+          truck_id: string | null;
         };
         Insert: {
           created_at?: string;
@@ -70,6 +71,7 @@ export type Database = {
           is_completed?: boolean | null;
           start_date: string;
           status?: string | null;
+          truck_id?: string | null;
         };
         Update: {
           created_at?: string;
@@ -80,6 +82,7 @@ export type Database = {
           is_completed?: boolean | null;
           start_date?: string;
           status?: string | null;
+          truck_id?: string | null;
         };
         Relationships: [
           {
@@ -90,10 +93,31 @@ export type Database = {
             referencedColumns: ["employee_id"];
           },
           {
+            foreignKeyName: "assignments_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees_limited_view";
+            referencedColumns: ["employee_id"];
+          },
+          {
+            foreignKeyName: "assignments_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "event_basic_info_view";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "assignments_event_id_fkey";
             columns: ["event_id"];
             isOneToOne: false;
             referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "assignments_truck_id_fkey";
+            columns: ["truck_id"];
+            isOneToOne: false;
+            referencedRelation: "trucks";
             referencedColumns: ["id"];
           },
         ];
@@ -129,6 +153,13 @@ export type Database = {
             columns: ["employee_id"];
             isOneToOne: false;
             referencedRelation: "employees";
+            referencedColumns: ["employee_id"];
+          },
+          {
+            foreignKeyName: "employee_availability_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees_limited_view";
             referencedColumns: ["employee_id"];
           },
         ];
@@ -199,6 +230,7 @@ export type Database = {
           expected_budget: number | null;
           id: string;
           is_prepaid: boolean;
+          note: string | null;
           number_of_driver_needed: number | null;
           number_of_servers_needed: number | null;
           start_date: string;
@@ -217,6 +249,7 @@ export type Database = {
           expected_budget?: number | null;
           id?: string;
           is_prepaid?: boolean;
+          note?: string | null;
           number_of_driver_needed?: number | null;
           number_of_servers_needed?: number | null;
           start_date: string;
@@ -235,6 +268,7 @@ export type Database = {
           expected_budget?: number | null;
           id?: string;
           is_prepaid?: boolean;
+          note?: string | null;
           number_of_driver_needed?: number | null;
           number_of_servers_needed?: number | null;
           start_date?: string;
@@ -247,6 +281,38 @@ export type Database = {
             columns: ["address_id"];
             isOneToOne: false;
             referencedRelation: "addresses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      server_assignment_clockin: {
+        Row: {
+          assignment_id: string | null;
+          clock_in_at: string | null;
+          clock_out_at: string | null;
+          created_at: string;
+          id: string;
+        };
+        Insert: {
+          assignment_id?: string | null;
+          clock_in_at?: string | null;
+          clock_out_at?: string | null;
+          created_at?: string;
+          id?: string;
+        };
+        Update: {
+          assignment_id?: string | null;
+          clock_in_at?: string | null;
+          clock_out_at?: string | null;
+          created_at?: string;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "server_assignment_clockin_assignment_id_fkey";
+            columns: ["assignment_id"];
+            isOneToOne: false;
+            referencedRelation: "assignments";
             referencedColumns: ["id"];
           },
         ];
@@ -290,6 +356,13 @@ export type Database = {
             referencedRelation: "employees";
             referencedColumns: ["employee_id"];
           },
+          {
+            foreignKeyName: "time_off_request_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees_limited_view";
+            referencedColumns: ["employee_id"];
+          },
         ];
       };
       truck_assignment: {
@@ -329,6 +402,20 @@ export type Database = {
             referencedColumns: ["employee_id"];
           },
           {
+            foreignKeyName: "truck_assignment_driver_id_fkey";
+            columns: ["driver_id"];
+            isOneToOne: false;
+            referencedRelation: "employees_limited_view";
+            referencedColumns: ["employee_id"];
+          },
+          {
+            foreignKeyName: "truck_assignment_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "event_basic_info_view";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "truck_assignment_event_id_fkey";
             columns: ["event_id"];
             isOneToOne: false;
@@ -340,6 +427,38 @@ export type Database = {
             columns: ["truck_id"];
             isOneToOne: false;
             referencedRelation: "trucks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      truck_assignment_checkin: {
+        Row: {
+          assignment_id: string | null;
+          clock_in_at: string | null;
+          clock_out_at: string | null;
+          created_at: string;
+          id: string;
+        };
+        Insert: {
+          assignment_id?: string | null;
+          clock_in_at?: string | null;
+          clock_out_at?: string | null;
+          created_at?: string;
+          id?: string;
+        };
+        Update: {
+          assignment_id?: string | null;
+          clock_in_at?: string | null;
+          clock_out_at?: string | null;
+          created_at?: string;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "truck_assignment_checkin_assignment_id_fkey";
+            columns: ["assignment_id"];
+            isOneToOne: false;
+            referencedRelation: "truck_assignment";
             referencedColumns: ["id"];
           },
         ];
@@ -418,11 +537,82 @@ export type Database = {
             referencedRelation: "employees";
             referencedColumns: ["employee_id"];
           },
+          {
+            foreignKeyName: "wage_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees_limited_view";
+            referencedColumns: ["employee_id"];
+          },
         ];
       };
     };
     Views: {
-      [_ in never]: never;
+      employees_limited_view: {
+        Row: {
+          employee_id: string | null;
+          employee_type: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          user_phone: string | null;
+        };
+        Insert: {
+          employee_id?: string | null;
+          employee_type?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          user_phone?: string | null;
+        };
+        Update: {
+          employee_id?: string | null;
+          employee_type?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          user_phone?: string | null;
+        };
+        Relationships: [];
+      };
+      event_basic_info_view: {
+        Row: {
+          address_id: string | null;
+          created_at: string | null;
+          description: string | null;
+          end_date: string | null;
+          id: string | null;
+          start_date: string | null;
+          status: string | null;
+          title: string | null;
+        };
+        Insert: {
+          address_id?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          end_date?: string | null;
+          id?: string | null;
+          start_date?: string | null;
+          status?: string | null;
+          title?: string | null;
+        };
+        Update: {
+          address_id?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          end_date?: string | null;
+          id?: string | null;
+          start_date?: string | null;
+          status?: string | null;
+          title?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "events_address_id_fkey";
+            columns: ["address_id"];
+            isOneToOne: false;
+            referencedRelation: "addresses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       [_ in never]: never;

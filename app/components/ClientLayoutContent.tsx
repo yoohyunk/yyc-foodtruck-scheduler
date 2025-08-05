@@ -3,7 +3,6 @@
 import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { TutorialProvider, TutorialOverlay } from "@/app/tutorial";
-import { Footer } from "./Footer";
 import Header from "./Header";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -65,9 +64,6 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
                   {children}
                 </div>
               </main>
-
-              {/* Footer */}
-              <Footer />
             </div>
           </div>
 

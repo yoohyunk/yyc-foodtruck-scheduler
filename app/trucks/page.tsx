@@ -6,7 +6,11 @@ import { createClient } from "@/lib/supabase/client";
 import { Tables } from "@/database.types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
-import { getTruckBorderColor } from "../types";
+import { getTruckTypeClass } from "../types";
+import ErrorModal from "../components/ErrorModal";
+import { trucksApi } from "@/lib/supabase/trucks";
+import { useAuth } from "@/contexts/AuthContext";
+import SearchInput from "../components/SearchInput";
 
 type Truck = Tables<"trucks"> & {
   addresses?: Tables<"addresses">;
@@ -16,10 +20,22 @@ export default function Trucks(): ReactElement {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filteredTrucks, setFilteredTrucks] = useState<Truck[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("All");
+  const [activeStatus, setActiveStatus] = useState<"active" | "inactive">(
+    "active"
+  );
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
   const supabase = createClient();
+  const { isAdmin } = useAuth();
+
+  // State for delete modal and error handling
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [truckToDelete, setTruckToDelete] = useState<Truck | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   // Function to fetch trucks - memoized with useCallback
   const fetchTrucks = useCallback(async () => {
@@ -73,14 +89,85 @@ export default function Trucks(): ReactElement {
     };
   }, [fetchTrucks]);
 
-  // Filter trucks based on the active filter
+  // Filter trucks based on the active filter, activeStatus, and search term
   useEffect(() => {
-    if (activeFilter === "All") {
-      setFilteredTrucks(trucks);
-    } else {
-      setFilteredTrucks(trucks.filter((truck) => truck.type === activeFilter));
+    let filtered = trucks;
+
+    // Filter by truck type
+    if (activeFilter !== "All") {
+      filtered = filtered.filter((truck) => truck.type === activeFilter);
     }
-  }, [activeFilter, trucks]);
+
+    // Filter by status
+    filtered = filtered.filter((truck) =>
+      activeStatus === "active" ? truck.is_available : !truck.is_available
+    );
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((truck) => {
+        const name = (truck.name || "").toLowerCase();
+        const type = (truck.type || "").toLowerCase();
+        const capacity = (truck.capacity || "").toLowerCase();
+        const address = (truck.addresses?.street || "").toLowerCase();
+        const packingList = (truck.packing_list || []).join(" ").toLowerCase();
+
+        return (
+          name.includes(searchLower) ||
+          type.includes(searchLower) ||
+          capacity.includes(searchLower) ||
+          address.includes(searchLower) ||
+          packingList.includes(searchLower)
+        );
+      });
+    }
+
+    // Sort alphabetically by name
+    filtered = filtered.sort((a, b) => a.name.localeCompare(b.name));
+    setFilteredTrucks(filtered);
+  }, [activeFilter, trucks, activeStatus, searchTerm]);
+
+  // Handler to open the delete confirmation modal
+  const handleDeleteClick = (truck: Truck) => {
+    setTruckToDelete(truck);
+    setShowDeleteModal(true);
+    setDeleteError(null);
+    setDeleteSuccess(false);
+  };
+
+  // Handler to actually delete the truck
+  const handleDeleteConfirm = async () => {
+    if (!truckToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    // Optimistically remove the truck from the UI before deleting from the database
+    const updatedTrucks = trucks.filter((t) => t.id !== truckToDelete.id);
+    setTrucks(updatedTrucks);
+    setFilteredTrucks(updatedTrucks);
+    const restoreTruck = truckToDelete; // Save for possible rollback
+    setShowDeleteModal(false);
+    setTruckToDelete(null);
+    try {
+      // Delete from the database
+      await trucksApi.deleteTruck(restoreTruck.id);
+      setDeleteSuccess(true);
+    } catch (error: unknown) {
+      // If deletion fails, restore the truck to the UI
+      setTrucks((prev) => [...prev, restoreTruck]);
+      setFilteredTrucks((prev) => [...prev, restoreTruck]);
+      if (error && typeof error === "object" && "message" in error) {
+        setDeleteError(
+          (error as { message?: string }).message ||
+            "Failed to delete truck. Please try again."
+        );
+      } else {
+        setDeleteError("Failed to delete truck. Please try again.");
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,6 +181,14 @@ export default function Trucks(): ReactElement {
     <div className="trucks-page">
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Truck Management</h2>
+      </div>
+
+      {/* Search Input */}
+      <div className="search-input-container">
+        <SearchInput
+          placeholder="Search trucks by name, type, capacity, location, or equipment..."
+          onSearch={setSearchTerm}
+        />
       </div>
 
       {/* Filter Buttons */}
@@ -207,6 +302,40 @@ export default function Trucks(): ReactElement {
         </button>
       </TutorialHighlight>
 
+      {/* Active/Inactive Toggle */}
+      <div className="mb-4 flex justify-end">
+        <div className="flex items-center gap-2 md:gap-4">
+          <span className="font-medium text-primary-dark">Show:</span>
+          <button
+            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "active" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+            style={{
+              backgroundColor:
+                activeStatus === "active" ? "var(--primary-dark)" : undefined,
+              borderColor:
+                activeStatus === "active" ? "var(--primary-dark)" : undefined,
+              minWidth: 90,
+            }}
+            onClick={() => setActiveStatus("active")}
+          >
+            Active
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "inactive" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+            style={{
+              backgroundColor:
+                activeStatus === "inactive" ? "var(--primary-dark)" : undefined,
+              borderColor:
+                activeStatus === "inactive" ? "var(--primary-dark)" : undefined,
+              minWidth: 90,
+            }}
+            onClick={() => setActiveStatus("inactive")}
+          >
+            Inactive
+          </button>
+        </div>
+      </div>
+      <div className="h-5"></div>
+
       {/* Truck List */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".truck-list")}
@@ -214,7 +343,6 @@ export default function Trucks(): ReactElement {
       >
         {filteredTrucks.length > 0 ? (
           filteredTrucks.map((truck, index) => {
-            const leftBorderColor = getTruckBorderColor(truck.type);
             return (
               <TutorialHighlight
                 key={truck.id}
@@ -223,13 +351,10 @@ export default function Trucks(): ReactElement {
                 )}
               >
                 <div
-                  className="truck-card p-6 rounded-lg shadow-md relative"
+                  className={`truck-card p-6 rounded-lg shadow-md relative ${getTruckTypeClass(truck.type)}`}
                   style={{
                     backgroundColor: "var(--white)",
-                    border: "1px solid var(--border)",
-                    borderLeft: `10px solid ${leftBorderColor}`,
                     borderRadius: "1.5rem",
-                    transition: "border-color 0.2s",
                   }}
                 >
                   {/* Edit Button */}
@@ -246,6 +371,17 @@ export default function Trucks(): ReactElement {
                       ✏️
                     </button>
                   </TutorialHighlight>
+                  {/* Delete Button - only for unavailable trucks */}
+                  {truck.is_available === false && (
+                    <button
+                      className="absolute top-4 right-16 text-red-500 hover:text-red-700 delete-button"
+                      onClick={() => handleDeleteClick(truck)}
+                      title="Delete Truck"
+                      style={{ fontSize: "1.25rem" }}
+                    >
+                      🗑️
+                    </button>
+                  )}
 
                   <h3 className="text-xl font-semibold mb-3">{truck.name}</h3>
 
@@ -295,17 +431,22 @@ export default function Trucks(): ReactElement {
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg mb-4">No trucks found.</p>
             <button
-              onClick={() => router.push("/trucks/add-trucks")}
+              onClick={() => isAdmin && router.push("/trucks/add-trucks")}
               className="button"
               style={{
                 backgroundColor: "var(--success-medium)",
                 color: "var(--white)",
+                opacity: isAdmin ? 1 : 0.5,
+                cursor: isAdmin ? "pointer" : "not-allowed",
               }}
+              disabled={!isAdmin}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--success-dark)";
+                if (isAdmin)
+                  e.currentTarget.style.background = "var(--success-dark)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "var(--success-medium)";
+                if (isAdmin)
+                  e.currentTarget.style.background = "var(--success-medium)";
               }}
             >
               Add Your First Truck
@@ -313,6 +454,42 @@ export default function Trucks(): ReactElement {
           </div>
         )}
       </TutorialHighlight>
+      {/* Delete Confirmation Modal */}
+      <ErrorModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        errors={
+          truckToDelete
+            ? [
+                {
+                  field: "delete",
+                  message: `Are you sure you want to delete ${truckToDelete.name}? This action cannot be undone.`,
+                },
+              ]
+            : []
+        }
+        title="Confirm Delete"
+        type="confirmation"
+        onConfirm={handleDeleteConfirm}
+        confirmText={isDeleting ? "Deleting..." : "Delete"}
+        cancelText="Cancel"
+      />
+      {/* Error Modal for delete errors */}
+      <ErrorModal
+        isOpen={!!deleteError}
+        onClose={() => setDeleteError(null)}
+        errors={deleteError ? [{ field: "delete", message: deleteError }] : []}
+        title="Delete Error"
+        type="error"
+      />
+      {/* Success Modal for delete success */}
+      <ErrorModal
+        isOpen={deleteSuccess}
+        onClose={() => setDeleteSuccess(false)}
+        errors={[{ field: "success", message: "Truck deleted successfully!" }]}
+        title="Success!"
+        type="success"
+      />
     </div>
   );
 }

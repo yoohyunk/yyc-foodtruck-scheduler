@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { assignmentsApi } from "@/lib/supabase/assignments";
 import { useState } from "react";
 import ErrorModal from "../../../components/ErrorModal";
+import EditAssignmentModal from "./EditAssignmentModal";
+import { extractTime, extractDate } from "../../utils";
 
 interface ServerAssignment {
   id: string;
@@ -19,11 +21,13 @@ interface ServerAssignment {
 interface ServerAssignmentsSectionProps {
   serverAssignments: ServerAssignment[];
   onAssignmentRemoved?: () => void;
+  isAdmin?: boolean;
 }
 
 export default function ServerAssignmentsSection({
   serverAssignments,
   onAssignmentRemoved,
+  isAdmin = false,
 }: ServerAssignmentsSectionProps) {
   const router = useRouter();
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -33,6 +37,9 @@ export default function ServerAssignmentsSection({
     eventId: string;
     employeeName: string;
   } | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [assignmentToEdit, setAssignmentToEdit] =
+    useState<ServerAssignment | null>(null);
 
   const handleServerClick = (employeeId: string) => {
     router.push(`/employees/${employeeId}`);
@@ -84,6 +91,22 @@ export default function ServerAssignmentsSection({
     setAssignmentToRemove(null);
   };
 
+  const handleEditClick = (assignment: ServerAssignment) => {
+    setAssignmentToEdit(assignment);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setIsEditModalOpen(false);
+    setAssignmentToEdit(null);
+  };
+
+  const handleAssignmentUpdated = () => {
+    if (onAssignmentRemoved) {
+      onAssignmentRemoved();
+    }
+  };
+
   if (serverAssignments.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -105,8 +128,13 @@ export default function ServerAssignmentsSection({
           {serverAssignments.map((assignment) => (
             <div
               key={assignment.id}
-              className="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
-              onClick={() => handleServerClick(assignment.employee_id)}
+              className={`border border-gray-200 rounded-lg p-4 bg-gray-50 transition-colors${isAdmin ? " hover:bg-gray-100 cursor-pointer" : ""}`}
+              onClick={
+                isAdmin
+                  ? () => handleServerClick(assignment.employee_id)
+                  : undefined
+              }
+              style={!isAdmin ? { pointerEvents: "none", opacity: 0.8 } : {}}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -155,43 +183,60 @@ export default function ServerAssignmentsSection({
                       </svg>
                     </span>
                   )}
-                  <button
-                    className="ml-2 p-1 rounded hover:bg-red-100 text-red-600 flex items-center justify-center"
-                    title="Unassign"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnassignClick(assignment);
-                    }}
-                    disabled={removingId === assignment.id}
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+                  <div className="flex flex-col space-y-1">
+                    {isAdmin && (
+                      <>
+                        <button
+                          className="p-1 rounded hover:bg-red-100 text-red-600 flex items-center justify-center transition-all duration-200 hover:scale-110"
+                          title="Unassign"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnassignClick(assignment);
+                          }}
+                          disabled={removingId === assignment.id}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          className="p-1 rounded hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-all duration-200 hover:scale-110"
+                          title="Edit Times"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditClick(assignment);
+                          }}
+                        >
+                          ✏️
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-gray-200">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Start:</span>
+                    <span className="text-gray-500">Date:</span>
                     <span className="ml-2 text-gray-900">
-                      {new Date(assignment.start_date).toLocaleString()}
+                      {extractDate(assignment.start_date, assignment.end_date)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-500">End:</span>
+                    <span className="text-gray-500">Time:</span>
                     <span className="ml-2 text-gray-900">
-                      {new Date(assignment.end_date).toLocaleString()}
+                      {extractTime(assignment.start_date)} -{" "}
+                      {extractTime(assignment.end_date)}
                     </span>
                   </div>
                 </div>
@@ -215,6 +260,14 @@ export default function ServerAssignmentsSection({
         title="Confirm Unassign"
         type="confirmation"
         onConfirm={handleConfirmUnassign}
+      />
+
+      {/* Edit Assignment Modal */}
+      <EditAssignmentModal
+        isOpen={isEditModalOpen}
+        onClose={handleEditClose}
+        assignment={assignmentToEdit}
+        onAssignmentUpdated={handleAssignmentUpdated}
       />
     </>
   );

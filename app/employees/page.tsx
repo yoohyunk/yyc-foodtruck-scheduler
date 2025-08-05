@@ -1,48 +1,81 @@
 "use client";
 import { useState, useEffect, ReactElement } from "react";
 import { useRouter } from "next/navigation";
-import { Employee } from "@/app/types";
+import { Tables } from "@/database.types";
+
+// Type for employee data from limited view
+type EmployeeLimited = Tables<"employees_limited_view"> & {
+  status?: string | null;
+  created_at?: string;
+  is_pending?: boolean;
+  is_available?: boolean;
+  addresses?: Tables<"addresses">;
+  currentWage?: number;
+  availability?: Array<{
+    day_of_week: string;
+    start_time: string;
+    end_time: string;
+  }>;
+};
 import { createClient } from "@/lib/supabase/client";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
+import { useAuth } from "@/contexts/AuthContext";
+import { getEmployeeRoleFilterColor } from "../types";
+import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
+import SearchInput from "../components/SearchInput";
 
 export default function Employees(): ReactElement {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeLimited[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<EmployeeLimited[]>(
+    []
+  );
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(
-    null
-  );
+  const [employeeToDelete, setEmployeeToDelete] =
+    useState<EmployeeLimited | null>(null);
   const router = useRouter();
   const supabase = createClient();
   const { shouldHighlight } = useTutorial();
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<"last" | "first">("last");
+  const [activeStatus, setActiveStatus] = useState<"active" | "inactive">(
+    "active"
+  );
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const { isAdmin } = useAuth();
 
   // Fetch employees from employee.json
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const { data, error } = await supabase
-          .from("employees")
-          .select(
+        let data, error;
+        if (isAdmin) {
+          // Admin: fetch from full employees table with address and wage data
+          ({ data, error } = await supabase
+            .from("employees")
+            .select(
+              `
+              *,
+              addresses (*)
             `
-            employee_id,
-            first_name,
-            last_name,
-            employee_type,
-            is_available,
-            availability,
-            address_id,
-            user_id,
-            user_email,
-            user_phone,
-            created_at,
-            is_pending
-          `
-          )
-          .neq("employee_type", "pending");
+            )
+            .order("created_at", { ascending: false }));
+        } else {
+          // Non-admin: fetch from limited view only
+          ({ data, error } = await supabase
+            .from("employees_limited_view")
+            .select(
+              `
+              employee_id,
+              first_name,
+              last_name,
+              employee_type,
+              user_phone
+            `
+            )
+            .order("first_name", { ascending: true }));
+        }
 
         if (error) {
           console.error("Error fetching employees:", error);
@@ -54,66 +87,86 @@ export default function Employees(): ReactElement {
           return;
         }
 
-        // Get addresses for the employees
-        const addressIds = data.map((emp) => emp.address_id).filter(Boolean);
-        const { data: addressesData } = await supabase
-          .from("addresses")
-          .select("*")
-          .in("id", addressIds);
+        let formattedEmployees;
 
-        // Get wage information - get all wages and find the most recent one for each employee
-        const { data: allWages, error: wageError } = await supabase
-          .from("wage")
-          .select("*")
-          .in(
-            "employee_id",
-            data.map((emp) => emp.employee_id)
-          )
-          .order("start_date", { ascending: false });
+        if (isAdmin) {
+          // For admin: get wage data and availability for each employee
+          const employeesWithWagesAndAvailability = await Promise.all(
+            data.map(async (emp) => {
+              try {
+                // Fetch wage data
+                const { data: wageData } = await supabase
+                  .from("wage")
+                  .select("hourly_wage")
+                  .eq("employee_id", emp.employee_id)
+                  .order("start_date", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
 
-        if (wageError) {
-          console.error("Error fetching wages:", wageError);
-        }
-
-        // Create a map of employee_id to their most recent wage
-        const wageMap = new Map();
-        if (allWages) {
-          allWages.forEach((wage) => {
-            if (!wageMap.has(wage.employee_id)) {
-              wageMap.set(wage.employee_id, wage);
-            }
-          });
-        }
-
-        const formattedEmployees = data.map((emp) => {
-          const address = addressesData?.find(
-            (addr) => addr.id === emp.address_id
-          );
-          const wage = wageMap.get(emp.employee_id);
-
-          return {
-            ...emp,
-            created_at: emp.created_at || new Date().toISOString(),
-            is_pending: emp.is_pending || false,
-            addresses: address
-              ? {
-                  id: address.id,
-                  street: address.street,
-                  city: address.city,
-                  province: address.province,
-                  postal_code: address.postal_code,
-                  country: address.country,
-                  latitude: address.latitude,
-                  longitude: address.longitude,
-                  created_at: address.created_at,
+                // Fetch availability data
+                let availabilityData: Array<{
+                  day_of_week: string;
+                  start_time: string;
+                  end_time: string;
+                }> = [];
+                try {
+                  availabilityData =
+                    await employeeAvailabilityApi.getEmployeeAvailability(
+                      emp.employee_id
+                    );
+                } catch (availabilityError) {
+                  console.error(
+                    `Error fetching availability for employee ${emp.employee_id}:`,
+                    availabilityError
+                  );
                 }
-              : undefined,
-            currentWage: wage?.hourly_wage || 0,
-          };
-        });
+
+                return {
+                  ...emp,
+                  currentWage: wageData?.hourly_wage || 0,
+                  availability: availabilityData,
+                };
+              } catch (error) {
+                console.error(
+                  `Error fetching data for employee ${emp.employee_id}:`,
+                  error
+                );
+                return {
+                  ...emp,
+                  currentWage: 0,
+                  availability: [],
+                };
+              }
+            })
+          );
+
+          formattedEmployees = employeesWithWagesAndAvailability;
+        } else {
+          // For non-admin: add default values for missing fields
+          formattedEmployees = data.map((emp) => ({
+            ...emp,
+            // Default values for fields not available in limited view
+            created_at: new Date().toISOString(),
+            is_pending: false,
+            is_available: true, // Assume available for non-admin view
+            addresses: null,
+            currentWage: 0,
+          }));
+        }
+
+        // Filter employees by activeStatus (only for admin since non-admin doesn't have access to is_available)
+        let statusEmployees;
+        if (isAdmin) {
+          statusEmployees = formattedEmployees.filter((emp) =>
+            activeStatus === "active" ? emp.is_available : !emp.is_available
+          );
+        } else {
+          // For non-admin, show all employees since we can't filter by availability
+          statusEmployees = formattedEmployees;
+        }
 
         // Sort employees alphabetically by last name, then first name
-        const sortedEmployees = formattedEmployees.sort((a, b) => {
+        const sortedEmployees = statusEmployees.sort((a, b) => {
           if (sortMode === "last") {
             const lastA = (a.last_name || "").toLowerCase();
             const lastB = (b.last_name || "").toLowerCase();
@@ -139,8 +192,8 @@ export default function Employees(): ReactElement {
           }
         });
 
-        setEmployees(sortedEmployees as Employee[]);
-        setFilteredEmployees(sortedEmployees as Employee[]);
+        setEmployees(sortedEmployees as EmployeeLimited[]);
+        setFilteredEmployees(sortedEmployees as EmployeeLimited[]);
         // Set global variable for tutorial navigation
         if (typeof window !== "undefined" && sortedEmployees.length > 0) {
           (
@@ -153,18 +206,47 @@ export default function Employees(): ReactElement {
     };
 
     fetchEmployees();
-  }, [supabase, sortMode]);
+  }, [supabase, sortMode, activeStatus, isAdmin]);
 
-  // Filter employees based on the active filter
+  // Filter employees based on the active filter, activeStatus, and search term
   useEffect(() => {
-    if (activeFilter === "All") {
-      setFilteredEmployees(employees);
-    } else {
-      setFilteredEmployees(
-        employees.filter((employee) => employee.employee_type === activeFilter)
+    let filtered = employees;
+
+    // Filter by employee type
+    if (activeFilter !== "All") {
+      filtered = filtered.filter(
+        (employee) => employee.employee_type === activeFilter
       );
     }
-  }, [activeFilter, employees]);
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((employee) => {
+        const firstName = (employee.first_name || "").toLowerCase();
+        const lastName = (employee.last_name || "").toLowerCase();
+        const phone = (employee.user_phone || "").toLowerCase();
+        const role = (employee.employee_type || "").toLowerCase();
+
+        // Check if search term matches availability days
+        const hasMatchingAvailability =
+          employee.availability?.some((avail) =>
+            avail.day_of_week.toLowerCase().includes(searchLower)
+          ) || false;
+
+        return (
+          firstName.includes(searchLower) ||
+          lastName.includes(searchLower) ||
+          phone.includes(searchLower) ||
+          role.includes(searchLower) ||
+          `${firstName} ${lastName}`.includes(searchLower) ||
+          hasMatchingAvailability
+        );
+      });
+    }
+
+    setFilteredEmployees(filtered);
+  }, [activeFilter, searchTerm, employees]);
 
   // Add a useEffect to re-sort when sortMode changes
   useEffect(() => {
@@ -196,7 +278,7 @@ export default function Employees(): ReactElement {
     });
   }, [sortMode]);
 
-  const handleDeleteClick = (employee: Employee) => {
+  const handleDeleteClick = (employee: EmployeeLimited) => {
     // Debug: Test authentication and permissions
     console.log("Testing authentication and permissions...");
     supabase.auth.getUser().then(({ data: { user }, error }) => {
@@ -408,31 +490,39 @@ export default function Employees(): ReactElement {
 
   return (
     <div className="employees-page">
+      {/* Search Input */}
+      <div className="search-input-container">
+        <SearchInput
+          placeholder="Search employees by name, phone, role, or availability (e.g., monday, tuesday)..."
+          onSearch={setSearchTerm}
+        />
+      </div>
+
       {/* Filter Buttons */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".filter-buttons")}
         className="filter-buttons grid"
       >
         <button
-          className={`button ${activeFilter === "All" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button employee-filter-all `}
           onClick={() => setActiveFilter("All")}
         >
           All
         </button>
         <button
-          className={`button ${activeFilter === "Driver" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button ${getEmployeeRoleFilterColor("Driver", activeFilter === "Driver")}`}
           onClick={() => setActiveFilter("Driver")}
         >
           Drivers
         </button>
         <button
-          className={`button ${activeFilter === "Server" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button ${getEmployeeRoleFilterColor("Server", activeFilter === "Server")}`}
           onClick={() => setActiveFilter("Server")}
         >
           Servers
         </button>
         <button
-          className={`button ${activeFilter === "Admin" ? "bg-primary-dark text-white" : "bg-gray-200 text-primary-dark"}`}
+          className={`button employee-filter-admin `}
           onClick={() => setActiveFilter("Admin")}
         >
           Admins
@@ -440,36 +530,81 @@ export default function Employees(): ReactElement {
       </TutorialHighlight>
 
       {/* Sort Toggle - now below filters */}
-      <div className="mb-4 flex justify-end">
-        <div className="flex items-center gap-2 md:gap-4">
-          <span className="font-medium text-primary-dark">Sort by:</span>
-          <button
-            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${sortMode === "first" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
-            style={{
-              backgroundColor:
-                sortMode === "first" ? "var(--primary-dark)" : undefined,
-              borderColor:
-                sortMode === "first" ? "var(--primary-dark)" : undefined,
-              minWidth: 90,
-            }}
-            onClick={() => setSortMode("first")}
-          >
-            First Name
-          </button>
-          <button
-            className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${sortMode === "last" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
-            style={{
-              backgroundColor:
-                sortMode === "last" ? "var(--primary-dark)" : undefined,
-              borderColor:
-                sortMode === "last" ? "var(--primary-dark)" : undefined,
-              minWidth: 90,
-            }}
-            onClick={() => setSortMode("last")}
-          >
-            Last Name
-          </button>
+      <div className="flex flex-col gap-4 mb-4">
+        <div className="flex justify-end">
+          <div className="flex items-center gap-2 md:gap-4">
+            <span className="font-medium text-primary-dark">Sort by:</span>
+            <button
+              className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${sortMode === "first" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+              style={{
+                backgroundColor:
+                  sortMode === "first" ? "var(--primary-dark)" : undefined,
+                borderColor:
+                  sortMode === "first" ? "var(--primary-dark)" : undefined,
+                minWidth: 90,
+              }}
+              onClick={() => setSortMode("first")}
+            >
+              First Name
+            </button>
+            <button
+              className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${sortMode === "last" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+              style={{
+                backgroundColor:
+                  sortMode === "last" ? "var(--primary-dark)" : undefined,
+                borderColor:
+                  sortMode === "last" ? "var(--primary-dark)" : undefined,
+                minWidth: 90,
+              }}
+              onClick={() => setSortMode("last")}
+            >
+              Last Name
+            </button>
+          </div>
         </div>
+        {/* Active/Inactive Toggle - Admin Only */}
+        {isAdmin && (
+          <div className="flex justify-end my-4 mb-8">
+            <div className="flex items-center gap-2 md:gap-4">
+              <span className="font-medium text-primary-dark">Show:</span>
+              <button
+                className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "active" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+                style={{
+                  backgroundColor:
+                    activeStatus === "active"
+                      ? "var(--primary-dark)"
+                      : undefined,
+                  borderColor:
+                    activeStatus === "active"
+                      ? "var(--primary-dark)"
+                      : undefined,
+                  minWidth: 90,
+                }}
+                onClick={() => setActiveStatus("active")}
+              >
+                Active
+              </button>
+              <button
+                className={`px-4 py-2 rounded-full shadow transition-all duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-primary-dark text-sm font-semibold ${activeStatus === "inactive" ? "text-white scale-105" : "bg-gray-100 text-primary-dark border-gray-200 hover:bg-primary-light hover:text-primary-dark"}`}
+                style={{
+                  backgroundColor:
+                    activeStatus === "inactive"
+                      ? "var(--primary-dark)"
+                      : undefined,
+                  borderColor:
+                    activeStatus === "inactive"
+                      ? "var(--primary-dark)"
+                      : undefined,
+                  minWidth: 90,
+                }}
+                onClick={() => setActiveStatus("inactive")}
+              >
+                Inactive
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="h-.5"></div>
       </div>
 
       {/* Error Display */}
@@ -517,6 +652,19 @@ export default function Employees(): ReactElement {
         </div>
       )}
 
+      {/* Results Count */}
+      <div className="mb-4 text-sm text-gray-600">
+        {searchTerm.trim() || activeFilter !== "All" ? (
+          <span>
+            Showing {filteredEmployees.length} of {employees.length} employees
+            {searchTerm.trim() && ` matching "${searchTerm}"`}
+            {activeFilter !== "All" && ` in ${activeFilter} category`}
+          </span>
+        ) : (
+          <span>Showing all {employees.length} employees</span>
+        )}
+      </div>
+
       {/* Employee List */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".employee-list")}
@@ -553,31 +701,35 @@ export default function Employees(): ReactElement {
               <TutorialHighlight
                 key={employee.employee_id}
                 isHighlighted={highlightEmployeeCard}
-                className="employee-card bg-white p-4 rounded shadow relative"
+                className={`employee-card bg-white p-4 rounded shadow relative role-${(employee.employee_type || "unknown").toLowerCase()}`}
               >
                 {/* Action Buttons */}
-                <div className="absolute top-2 right-2 flex gap-4">
-                  <TutorialHighlight isHighlighted={highlightEditButton}>
-                    <button
-                      className="edit-button"
-                      onClick={() =>
-                        router.push(`/employees/${employee.employee_id}`)
-                      }
-                      title="Edit Employee"
-                    >
-                      ✏️
-                    </button>
-                  </TutorialHighlight>
-                  <TutorialHighlight isHighlighted={highlightDeleteButton}>
-                    <button
-                      className="delete-button"
-                      onClick={() => handleDeleteClick(employee)}
-                      title="Delete Employee"
-                    >
-                      🗑️
-                    </button>
-                  </TutorialHighlight>
-                </div>
+                {isAdmin && (
+                  <div className="absolute top-2 right-2 flex gap-4">
+                    <TutorialHighlight isHighlighted={highlightEditButton}>
+                      <button
+                        className="edit-button"
+                        onClick={() =>
+                          router.push(`/employees/${employee.employee_id}`)
+                        }
+                        title="Edit Employee"
+                      >
+                        ✏️
+                      </button>
+                    </TutorialHighlight>
+                    {employee.is_available === false && (
+                      <TutorialHighlight isHighlighted={highlightDeleteButton}>
+                        <button
+                          className="delete-button"
+                          onClick={() => handleDeleteClick(employee)}
+                          title="Delete Employee"
+                        >
+                          🗑️
+                        </button>
+                      </TutorialHighlight>
+                    )}
+                  </div>
+                )}
 
                 <h3 className="text-lg font-semibold">
                   {employee.first_name} {employee.last_name}
@@ -585,46 +737,111 @@ export default function Employees(): ReactElement {
                 <p>
                   <strong>Role:</strong> {employee.employee_type}
                 </p>
-                <p>
-                  <strong>Address:</strong> {employee.addresses?.street},{" "}
-                  {employee.addresses?.city}, {employee.addresses?.province}
-                </p>
-                <p>
-                  <strong>Email:</strong>{" "}
-                  <a
-                    href={`mailto:${employee.user_email}`}
-                    className="text-blue-500"
-                  >
-                    {employee.user_email}
-                  </a>
-                </p>
+                {isAdmin && (
+                  <p>
+                    <strong>Address:</strong> {employee.addresses?.street},{" "}
+                    {employee.addresses?.city}, {employee.addresses?.province},{" "}
+                    {employee.addresses?.postal_code}
+                  </p>
+                )}
+
                 <p>
                   <strong>Phone:</strong> {employee.user_phone}
                 </p>
-                <p>
-                  <strong>Wage:</strong> ${employee.currentWage || 0}/hr
-                </p>
-                <p>
-                  <strong>Status:</strong>{" "}
-                  <span
-                    className={
-                      employee.is_available ? "text-green-500" : "text-red-500"
-                    }
-                  >
-                    {employee.is_available ? "Available" : "Unavailable"}
-                  </span>
-                </p>
-                <p>
-                  <strong>Availability:</strong>{" "}
-                  {Array.isArray(employee.availability) &&
-                  employee.availability.length > 0 ? (
-                    <span className="text-primary-medium">
-                      {employee.availability.join(", ")}
-                    </span>
-                  ) : (
-                    <span className="text-gray-500">Not available</span>
-                  )}
-                </p>
+                {isAdmin && (
+                  <p>
+                    <strong>Wage:</strong> ${employee.currentWage || 0}/hr
+                  </p>
+                )}
+                {isAdmin && (
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    {employee.status ? (
+                      <span
+                        className={
+                          employee.status === "Active"
+                            ? "text-green-500"
+                            : employee.status === "Inactive"
+                              ? "text-red-500"
+                              : "text-gray-500"
+                        }
+                      >
+                        {employee.status}
+                      </span>
+                    ) : (
+                      <span
+                        className={
+                          employee.is_available
+                            ? "text-green-500"
+                            : "text-red-500"
+                        }
+                      >
+                        {employee.is_available ? "Available" : "Unavailable"}
+                      </span>
+                    )}
+                  </p>
+                )}
+                {isAdmin && (
+                  <div>
+                    <p>
+                      <strong>Availability:</strong>
+                    </p>
+                    <div
+                      className="text-sm text-gray-600 mt-1 p-2 bg-gray-50 rounded"
+                      style={{ maxWidth: "100%", wordWrap: "break-word" }}
+                    >
+                      {employee.availability &&
+                      employee.availability.length > 0 ? (
+                        <div className="space-y-1">
+                          {employee.availability
+                            // Filter out repeated days so each day only shows once
+                            .filter(
+                              (avail, index, array) =>
+                                array.findIndex(
+                                  (a) => a.day_of_week === avail.day_of_week
+                                ) === index
+                            )
+                            .sort((a, b) => {
+                              const dayOrder = [
+                                "Monday",
+                                "Tuesday",
+                                "Wednesday",
+                                "Thursday",
+                                "Friday",
+                                "Saturday",
+                                "Sunday",
+                              ];
+                              return (
+                                dayOrder.indexOf(a.day_of_week) -
+                                dayOrder.indexOf(b.day_of_week)
+                              );
+                            })
+                            .map((avail, index) => {
+                              const startTime = avail.start_time.slice(0, 5); // Remove seconds
+                              const endTime = avail.end_time.slice(0, 5); // Remove seconds
+                              return (
+                                <div
+                                  key={`${avail.day_of_week}-${index}`}
+                                  className="flex justify-between"
+                                >
+                                  <span className="font-medium">
+                                    {avail.day_of_week}:
+                                  </span>
+                                  <span>
+                                    {startTime} - {endTime}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 italic">
+                          No availability set
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </TutorialHighlight>
             );
           })

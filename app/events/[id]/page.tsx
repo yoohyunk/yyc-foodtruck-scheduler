@@ -1,7 +1,7 @@
 "use client";
 import "../../globals.css";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, ReactElement, useCallback } from "react";
+import { useEffect, useState, ReactElement, useCallback, useRef } from "react";
 import { extractDate, extractTime } from "../utils";
 import {
   Event,
@@ -12,10 +12,13 @@ import {
 } from "@/app/types";
 import { useTutorial } from "../../tutorial/TutorialContext";
 import { TutorialHighlight } from "../../components/TutorialHighlight";
+import { useAuth } from "@/contexts/AuthContext";
 import { eventsApi, truckAssignmentsApi } from "@/lib/supabase/events";
 import { employeesApi } from "@/lib/supabase/employees";
 import { trucksApi } from "@/lib/supabase/trucks";
 import { assignmentsApi } from "@/lib/supabase/assignments";
+import type { EventBasicInfo } from "@/app/types";
+
 import {
   validateForm,
   ValidationRule,
@@ -25,6 +28,8 @@ import {
   ValidationError,
 } from "@/lib/formValidation";
 import ErrorModal from "../../components/ErrorModal";
+import { cleanPostalCode } from "@/lib/utils";
+import { AddressFormRef } from "@/app/components/AddressForm";
 
 // Import components
 import EmployeeSelectionModal from "./components/EmployeeSelectionModal";
@@ -37,7 +42,11 @@ import ServerAssignmentsSection from "./components/ServerAssignmentsSection";
 export default function EventDetailsPage(): ReactElement {
   const { id } = useParams();
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
+  const [eventBasicInfo, setEventBasicInfo] = useState<EventBasicInfo | null>(
+    null
+  );
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
@@ -69,7 +78,7 @@ export default function EventDetailsPage(): ReactElement {
     endDate: "",
     time: "",
     endTime: "",
-    location: "",
+    description: "",
     requiredServers: "",
     contactName: "",
     contactEmail: "",
@@ -91,6 +100,7 @@ export default function EventDetailsPage(): ReactElement {
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const addressFormRef = useRef<AddressFormRef>(null);
 
   // Employee filter state - default to Server for server assignments
   const [employeeFilter, setEmployeeFilter] = useState<string>("Server");
@@ -139,8 +149,24 @@ export default function EventDetailsPage(): ReactElement {
       try {
         setIsLoadingEvent(true);
         setError(null);
-        const eventData = await eventsApi.getEventById(id as string);
-        setEvent(eventData);
+
+        if (isAdmin) {
+          // Admin gets full event details
+
+          const eventData = await eventsApi.getEventById(id as string);
+
+          setEvent(eventData);
+          setEventBasicInfo(null);
+        } else {
+          // Non-admin gets basic event info only
+
+          const basicEventData = await eventsApi.getEventBasicInfoById(
+            id as string
+          );
+
+          setEventBasicInfo(basicEventData);
+          setEvent(null);
+        }
       } catch (error) {
         console.error("Error fetching event:", error);
         setError("Failed to load event details.");
@@ -150,21 +176,29 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchEvent();
-  }, [id]);
+  }, [id, isAdmin]);
 
-  // Fetch employees and trucks from Supabase
+  // Fetch employees and trucks from Supabase (both admin and non-admin for display)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch employees
-        const employeesData = await employeesApi.getAllEmployees();
-        setEmployees(employeesData);
-        setIsLoadingEmployees(false);
+        if (isAdmin) {
+          // Admin gets full employee and truck data
+          const employeesData = await employeesApi.getAllEmployees();
+          setEmployees(employeesData);
+          setIsLoadingEmployees(false);
 
-        // Fetch trucks
-        const trucksData = await trucksApi.getAllTrucks();
-        setTrucks(trucksData);
-        setIsLoadingTrucks(false);
+          const trucksData = await trucksApi.getAllTrucks();
+          setTrucks(trucksData);
+          setIsLoadingTrucks(false);
+        } else {
+          // Non-admin gets limited employee and truck data for display only
+          // We'll fetch this data when we have assignments to display
+          setEmployees([]);
+          setTrucks([]);
+          setIsLoadingEmployees(false);
+          setIsLoadingTrucks(false);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
         setIsLoadingEmployees(false);
@@ -176,7 +210,6 @@ export default function EventDetailsPage(): ReactElement {
 
     // Add focus event listener to refresh data when user navigates back
     const handleFocus = () => {
-      console.log("Event details page: Refreshing data on focus");
       fetchData();
     };
 
@@ -186,16 +219,23 @@ export default function EventDetailsPage(): ReactElement {
     return () => {
       window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [isAdmin]);
 
-  // Fetch truck assignments when event is loaded
+  // Fetch truck assignments when event is loaded (both admin and non-admin)
   useEffect(() => {
-    const fetchTruckAssignments = async () => {
-      if (!event?.id) return;
+    const eventId = isAdmin ? event?.id : eventBasicInfo?.id;
 
+    if (!eventId) {
+      return;
+    }
+
+    const fetchTruckAssignments = async () => {
       try {
         const assignments =
-          await truckAssignmentsApi.getTruckAssignmentsByEventId(event.id);
+          await truckAssignmentsApi.getTruckAssignmentsByEventId(eventId);
+
+        if (!isAdmin) {
+        }
         setTruckAssignments(assignments);
       } catch (error) {
         console.error("Error fetching truck assignments:", error);
@@ -203,27 +243,39 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchTruckAssignments();
-  }, [event?.id]);
+  }, [event?.id, eventBasicInfo?.id, isAdmin]);
 
-  // Fetch server assignments when event is loaded
+  // For non-admin users, we don't need to fetch separate employee/truck data
+  // since the assignments now include the related data
   useEffect(() => {
-    const fetchServerAssignments = async () => {
-      if (!event?.id) return;
+    if (isAdmin) return; // Admin already has this data
+  }, [serverAssignments, truckAssignments, isAdmin]);
 
+  // Fetch server assignments when event is loaded (both admin and non-admin)
+  useEffect(() => {
+    const eventId = isAdmin ? event?.id : eventBasicInfo?.id;
+
+    if (!eventId) {
+      return;
+    }
+
+    const fetchServerAssignments = async () => {
       try {
-        const assignments = await assignmentsApi.getServerAssignmentsByEventId(
-          event.id
-        );
+        const assignments =
+          await assignmentsApi.getServerAssignmentsByEventId(eventId);
+
         setServerAssignments(assignments);
 
-        // Check if we need to show server warning
-        const requiredServers = event.number_of_servers_needed || 0;
-        const assignedServers = assignments.length;
+        // Check if we need to show server warning (admin only)
+        if (isAdmin && event) {
+          const requiredServers = event.number_of_servers_needed || 0;
+          const assignedServers = assignments.length;
 
-        if (assignedServers < requiredServers) {
-          setShowServerWarning(true);
-        } else {
-          setShowServerWarning(false);
+          if (assignedServers < requiredServers) {
+            setShowServerWarning(true);
+          } else {
+            setShowServerWarning(false);
+          }
         }
       } catch (error) {
         console.error("Error fetching server assignments:", error);
@@ -231,7 +283,7 @@ export default function EventDetailsPage(): ReactElement {
     };
 
     fetchServerAssignments();
-  }, [event?.id, event?.number_of_servers_needed]);
+  }, [event, eventBasicInfo?.id, isAdmin]);
 
   // Update assigned employees when server assignments change
   useEffect(() => {
@@ -577,9 +629,9 @@ export default function EventDetailsPage(): ReactElement {
       name: event.title || "",
       date: startDate ? startDate.toISOString().split("T")[0] : "",
       endDate: endDate ? endDate.toISOString().split("T")[0] : "",
-      time: startDate ? startDate.toTimeString().slice(0, 5) : "",
-      endTime: endDate ? endDate.toTimeString().slice(0, 5) : "",
-      location: event.description || "",
+      time: event.start_date ? extractTime(event.start_date) : "",
+      endTime: event.end_date ? extractTime(event.end_date) : "",
+      description: event.description || "",
       requiredServers: event.number_of_servers_needed?.toString() || "",
       contactName: event.contact_name || "",
       contactEmail: event.contact_email || "",
@@ -587,28 +639,142 @@ export default function EventDetailsPage(): ReactElement {
       trucks: [],
       isPrepaid: event.is_prepaid || false,
       // Address fields
-      street: "",
-      city: "",
-      province: "",
-      postalCode: "",
-      country: "",
-      latitude: "",
-      longitude: "",
+      street: event.addresses?.street || "",
+      city: event.addresses?.city || "",
+      province: event.addresses?.province || "",
+      postalCode: event.addresses?.postal_code || "",
+      country: event.addresses?.country || "",
+      latitude: event.addresses?.latitude || "",
+      longitude: event.addresses?.longitude || "",
     });
 
     setSelectedDate(startDate);
     setSelectedEndDate(endDate);
-    setSelectedTime(startDate);
-    setSelectedEndTime(endDate);
+
+    // Create proper Date objects for time pickers (local time, not UTC)
+    if (event.start_date) {
+      const timeMatch = event.start_date.match(/T(\d{2}):(\d{2}):(\d{2})/);
+      if (timeMatch && startDate) {
+        const hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const localTime = new Date(startDate);
+        localTime.setHours(hours, minutes, 0, 0);
+        setSelectedTime(localTime);
+      } else {
+        setSelectedTime(startDate);
+      }
+    } else {
+      setSelectedTime(startDate);
+    }
+
+    if (event.end_date) {
+      const timeMatch = event.end_date.match(/T(\d{2}):(\d{2}):(\d{2})/);
+      if (timeMatch && endDate) {
+        const hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const localTime = new Date(endDate);
+        localTime.setHours(hours, minutes, 0, 0);
+        setSelectedEndTime(localTime);
+      } else {
+        setSelectedEndTime(endDate);
+      }
+    } else {
+      setSelectedEndTime(endDate);
+    }
+
     openEditModal();
   };
 
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setEditFormData({
       ...editFormData,
       [name]: value,
     });
+  };
+
+  const handleEditLocationChange = (
+    address: string,
+    coordinates?: { latitude: number; longitude: number }
+  ) => {
+    // Parse the address components from the full address string
+    const parseAddress = (fullAddress: string) => {
+      const parts = fullAddress.split(",").map((part) => part.trim());
+
+      if (parts.length >= 2) {
+        const streetPart = parts[0];
+        const city = parts[1];
+        let postalCode = parts[2] || "";
+
+        // Clean postal code using utility function
+        if (postalCode) {
+          postalCode = cleanPostalCode(postalCode);
+        }
+
+        // Extract street number and name from street part
+        const streetParts = streetPart.split(" ");
+        const streetNumber = streetParts[0] || "";
+        const direction = ["NW", "NE", "SW", "SE"].includes(
+          streetParts[streetParts.length - 1]
+        )
+          ? streetParts[streetParts.length - 1]
+          : "";
+        const streetName = direction
+          ? streetParts.slice(1, -1).join(" ")
+          : streetParts.slice(1).join(" ");
+
+        return {
+          street:
+            `${streetNumber} ${streetName}${direction ? " " + direction : ""}`.trim(),
+          city: city,
+          province: "Alberta", // Default for Calgary area
+          postalCode: postalCode,
+          country: "Canada", // Default
+        };
+      }
+
+      // Fallback if parsing fails
+      return {
+        street: fullAddress,
+        city: "Calgary",
+        province: "Alberta",
+        postalCode: "",
+        country: "Canada",
+      };
+    };
+
+    const addressComponents = parseAddress(address);
+
+    setEditFormData((prev) => {
+      const updated = {
+        ...prev,
+        location: address,
+        street: addressComponents.street,
+        city: addressComponents.city,
+        province: addressComponents.province,
+        postalCode: addressComponents.postalCode,
+        country: addressComponents.country,
+        latitude: coordinates?.latitude?.toString() || "",
+        longitude: coordinates?.longitude?.toString() || "",
+      };
+
+      return updated;
+    });
+  };
+
+  const handleEditCheckAddress = () => {
+    // Only update state if AddressForm validates
+    const valid = addressFormRef.current?.validate() ?? false;
+    return valid;
+  };
+
+  const handleEditAddressError = (errors: ValidationError[]) => {
+    setErrorModalErrors(errors);
+    setErrorModalTitle("Address Validation Errors");
+    setErrorModalType("error");
+    setIsErrorModalOpen(true);
   };
 
   const handleEditDateChange = (date: Date | null) => {
@@ -653,8 +819,11 @@ export default function EventDetailsPage(): ReactElement {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return; // Prevent multiple submissions
+    if (isSubmitting) {
+      return; // Prevent multiple submissions
+    }
 
+    setIsSubmitting(true);
     setError(null);
 
     if (!event?.id) {
@@ -688,11 +857,12 @@ export default function EventDetailsPage(): ReactElement {
         "Please select a valid end time."
       ),
       createValidationRule(
-        "location",
+        "street",
         true,
         undefined,
-        "Location is required."
+        "Street address is required."
       ),
+      createValidationRule("city", true, undefined, "City is required."),
       createValidationRule(
         "requiredServers",
         true,
@@ -729,27 +899,27 @@ export default function EventDetailsPage(): ReactElement {
     setIsSubmitting(true);
 
     try {
+      // Function to combine date and time exactly as entered, preserving local time
+      const combineDateTime = (date: Date, time: Date): string => {
+        const dateStr = date.toISOString().split("T")[0];
+        const hours = time.getHours().toString().padStart(2, "0");
+        const minutes = time.getMinutes().toString().padStart(2, "0");
+        const timeStr = `${hours}:${minutes}`;
+
+        // Create a datetime string that preserves the exact time as entered
+        // Format: YYYY-MM-DDTHH:MM:SS (local time, no timezone conversion)
+        return `${dateStr}T${timeStr}:00`;
+      };
+
       // Combine date and time to create proper datetime strings
       const startDateTime =
         selectedDate && selectedTime
-          ? new Date(
-              selectedDate.getFullYear(),
-              selectedDate.getMonth(),
-              selectedDate.getDate(),
-              selectedTime.getHours(),
-              selectedTime.getMinutes()
-            ).toISOString()
+          ? combineDateTime(selectedDate, selectedTime)
           : null;
 
       const endDateTime =
         selectedDate && selectedEndTime
-          ? new Date(
-              selectedDate.getFullYear(),
-              selectedDate.getMonth(),
-              selectedDate.getDate(),
-              selectedEndTime.getHours(),
-              selectedEndTime.getMinutes()
-            ).toISOString()
+          ? combineDateTime(selectedDate, selectedEndTime)
           : null;
 
       // Capitalize the event title
@@ -764,7 +934,7 @@ export default function EventDetailsPage(): ReactElement {
       // Update the event
       const updatedEvent = await eventsApi.updateEvent(event.id, {
         title: capitalizeTitle(sanitizedData.name),
-        description: sanitizedData.location,
+        description: sanitizedData.description as string,
         start_date: startDateTime || undefined,
         end_date: endDateTime || undefined,
         number_of_servers_needed: parseInt(
@@ -774,7 +944,50 @@ export default function EventDetailsPage(): ReactElement {
         contact_email: sanitizedData.contactEmail,
         contact_phone: sanitizedData.contactPhone,
         is_prepaid: sanitizedData.isPrepaid,
+        addressData: {
+          street: sanitizedData.street,
+          city: sanitizedData.city,
+          province: sanitizedData.province,
+          postal_code: sanitizedData.postalCode,
+          country: sanitizedData.country,
+          latitude: sanitizedData.latitude,
+          longitude: sanitizedData.longitude,
+        },
       });
+
+      // Update server assignments with new event times if times changed
+      if (startDateTime && endDateTime) {
+        try {
+          await assignmentsApi.updateServerAssignmentsForEvent(
+            event.id,
+            startDateTime,
+            endDateTime
+          );
+
+          // Refresh server assignments to show updated times
+          await refreshServerAssignments();
+        } catch (error) {
+          console.error("Error updating server assignments:", error);
+          // Don't fail the entire update, just log the error
+        }
+      }
+
+      // Update truck assignments with new event times if times changed
+      if (startDateTime && endDateTime) {
+        try {
+          await truckAssignmentsApi.updateTruckAssignmentsForEvent(
+            event.id,
+            startDateTime,
+            endDateTime
+          );
+
+          // Refresh truck assignments to show updated times
+          await refreshTruckAssignments();
+        } catch (error) {
+          console.error("Error updating truck assignments:", error);
+          // Don't fail the entire update, just log the error
+        }
+      }
 
       // Update local state
       setEvent(updatedEvent);
@@ -782,6 +995,7 @@ export default function EventDetailsPage(): ReactElement {
       showSuccess("Success", "Event updated successfully.");
     } catch (error) {
       console.error("Error updating event:", error);
+
       showError("Update Error", "Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -807,7 +1021,7 @@ export default function EventDetailsPage(): ReactElement {
     );
   }
 
-  if (!event) {
+  if (!event && !eventBasicInfo) {
     return (
       <div className="text-center mt-10">
         <p className="text-lg text-gray-500">Event not found.</p>
@@ -819,352 +1033,472 @@ export default function EventDetailsPage(): ReactElement {
   }
 
   return (
-    <TutorialHighlight
-      isHighlighted={shouldHighlight(".event-details-page")}
-      className="event-details-page"
-    >
-      <div className="flex flex-col gap-6 items-center w-full">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-          <div className="md:col-span-2">
-            <TutorialHighlight
-              isHighlighted={shouldHighlight(".event-detail-card")}
-              className="event-detail-card"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold">{event.title}</h1>
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleEditEvent}
-                    className="edit-button"
-                    title="Edit Event"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={openDeleteModal}
-                    className="delete-button"
-                    title="Delete Event"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-              <div className="event-detail-info-container">
-                <p className="event-detail-info">
-                  <strong className="info-label">Date:</strong>
-                  <span className="info-text">
-                    {extractDate(event.start_date, event.end_date)}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Time:</strong>
-                  <span className="info-text">
-                    {event.start_date && event.end_date
-                      ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
-                      : "Time not set"}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Location:</strong>
-                  <span className="info-text">
-                    {event.description || "Location not set"}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Required Servers:</strong>
-                  <span className="info-text">
-                    {event.number_of_servers_needed || 0}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Required Drivers:</strong>
-                  <span className="info-text">
-                    {event.number_of_driver_needed || 0}
-                  </span>
-                </p>
-                {event.contact_name && (
-                  <p className="event-detail-info">
-                    <strong className="info-label">Contact Name:</strong>
-                    <span className="info-text">{event.contact_name}</span>
-                  </p>
-                )}
-                {event.contact_email && (
-                  <p className="event-detail-info">
-                    <strong className="info-label">Contact Email:</strong>
-                    <span className="info-text">{event.contact_email}</span>
-                  </p>
-                )}
-                {event.contact_phone && (
-                  <p className="event-detail-info">
-                    <strong className="info-label">Contact Phone:</strong>
-                    <span className="info-text">{event.contact_phone}</span>
-                  </p>
-                )}
-                <p className="event-detail-info">
-                  <strong className="info-label">Payment Status:</strong>
-                  <span
-                    className={`px-2 py-1 rounded text-sm ${event.is_prepaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
-                  >
-                    {event.is_prepaid ? "Prepaid" : "Pending Payment"}
-                  </span>
-                </p>
-                <p className="event-detail-info">
-                  <strong className="info-label">Event Status:</strong>
-                  <span
-                    className={`px-2 py-1 rounded text-sm ${
-                      event.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : event.status === "Cancelled"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {event.status || "Pending"}
-                  </span>
-                </p>
-              </div>
-            </TutorialHighlight>
-          </div>
-        </div>
-
-        {/* Server Warning */}
-        {showServerWarning && (
-          <div className="w-full">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-yellow-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-800">
-                    Not Enough Servers Assigned
-                  </h3>
-                  <div className="mt-2 text-sm text-yellow-700">
-                    <p>
-                      This event requires {event?.number_of_servers_needed || 0}{" "}
-                      servers, but only {serverAssignments.length} are currently
-                      assigned. The event status has been set to
-                      &quot;Pending&quot; until all required servers are
-                      assigned.
-                    </p>
+    <div className="flex justify-center w-full min-h-screen">
+      <div className="max-w-3xl w-full px-4">
+        <TutorialHighlight
+          isHighlighted={shouldHighlight(".event-details-page")}
+          className=""
+        >
+          <div className="flex flex-col gap-6 items-center w-full">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+              <div className="w-full md:w-auto md:col-span-2 flex flex-col items-center">
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".event-detail-card")}
+                  className="event-detail-card w-full max-w-xl md:max-w-2xl"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-3xl font-bold">
+                      {isAdmin ? event?.title : eventBasicInfo?.title}
+                    </h1>
+                    {isAdmin && (
+                      <div className="flex gap-4">
+                        <button
+                          onClick={handleEditEvent}
+                          className="edit-button"
+                          title="Edit Event"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={openDeleteModal}
+                          className="delete-button"
+                          title="Delete Event"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
+                  <div className="event-detail-info-container">
+                    {isAdmin && event ? (
+                      // Admin view - full event details
+                      <>
+                        <p className="event-detail-info">
+                          <strong className="info-label">Description:</strong>
+                          <span className="info-text">{event.description}</span>
+                        </p>
+                        <p className="event-detail-info">
+                          <strong className="info-label">Date:</strong>
+                          <span className="info-text">
+                            {extractDate(event.start_date, event.end_date)}
+                          </span>
+                        </p>
+                        <p className="event-detail-info">
+                          <strong className="info-label">Time:</strong>
+                          <span className="info-text">
+                            {event.start_date && event.end_date
+                              ? `${extractTime(event.start_date)} - ${extractTime(event.end_date)}`
+                              : "Time not set"}
+                          </span>
+                        </p>
+                        <p className="event-detail-info">
+                          <strong className="info-label">Location:</strong>
+                          <span className="info-text">
+                            {event.addresses
+                              ? `${event.addresses.street}, ${event.addresses.city}, ${event.addresses.province}, ${event.addresses.postal_code}`
+                              : "Location not set"}
+                          </span>
+                        </p>
+                        <p className="event-detail-info">
+                          <strong className="info-label">
+                            Required Servers:
+                          </strong>
+                          <span className="info-text">
+                            {event.number_of_servers_needed || 0}
+                          </span>
+                        </p>
+                        <p className="event-detail-info">
+                          <strong className="info-label">
+                            Required Drivers:
+                          </strong>
+                          <span className="info-text">
+                            {event.number_of_driver_needed || 0}
+                          </span>
+                        </p>
+                        {event.contact_name && (
+                          <p className="event-detail-info">
+                            <strong className="info-label">
+                              Contact Name:
+                            </strong>
+                            <span className="info-text">
+                              {event.contact_name}
+                            </span>
+                          </p>
+                        )}
+                        {event.contact_email && (
+                          <p className="event-detail-info">
+                            <strong className="info-label">
+                              Contact Email:
+                            </strong>
+                            <span className="info-text">
+                              {event.contact_email}
+                            </span>
+                          </p>
+                        )}
+                        {event.contact_phone && (
+                          <p className="event-detail-info">
+                            <strong className="info-label">
+                              Contact Phone:
+                            </strong>
+                            <span className="info-text">
+                              {event.contact_phone}
+                            </span>
+                          </p>
+                        )}
+                        <p className="event-detail-info">
+                          <strong className="info-label">
+                            Payment Status:
+                          </strong>
+                          <span
+                            className={`px-2 py-1 rounded text-sm ${event.is_prepaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
+                          >
+                            {event.is_prepaid ? "Prepaid" : "Pending Payment"}
+                          </span>
+                        </p>
+                        <p className="event-detail-info">
+                          <strong className="info-label">Status:</strong>
+                          <span
+                            className={`px-2 py-1 rounded text-sm ${
+                              event.status === "Pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : event.status === "Cancelled"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {event.status || "Pending"}
+                          </span>
+                        </p>
+                      </>
+                    ) : (
+                      // Non-admin view - basic event info only
+                      <>
+                        <p className="event-detail-info">
+                          <strong className="info-label">Date:</strong>
+                          <span className="info-text">
+                            {eventBasicInfo?.start_date &&
+                            eventBasicInfo?.end_date
+                              ? extractDate(
+                                  eventBasicInfo.start_date,
+                                  eventBasicInfo.end_date
+                                )
+                              : "Date not set"}
+                          </span>
+                        </p>
+                        <p className="event-detail-info">
+                          <strong className="info-label">Time:</strong>
+                          <span className="info-text">
+                            {eventBasicInfo?.start_date &&
+                            eventBasicInfo?.end_date
+                              ? `${extractTime(eventBasicInfo.start_date)} - ${extractTime(eventBasicInfo.end_date)}`
+                              : "Time not set"}
+                          </span>
+                        </p>
+                        <p className="event-detail-info">
+                          <strong className="info-label">Description:</strong>
+                          <span className="info-text">
+                            {eventBasicInfo?.description ||
+                              "No description available"}
+                          </span>
+                        </p>
+                        <p className="event-detail-info">
+                          <strong className="info-label">Status:</strong>
+                          <span
+                            className={`px-2 py-1 rounded text-sm ${
+                              (eventBasicInfo?.status ?? "Unknown") ===
+                              "Pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : (eventBasicInfo?.status ?? "Unknown") ===
+                                    "Cancelled"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {eventBasicInfo?.status ?? "Unknown"}
+                          </span>
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </TutorialHighlight>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Assign Staff and Trucks Buttons */}
-        <div className="mt-6 flex gap-4">
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".select-employees-button")}
-          >
-            <button
-              className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
-              onClick={openEmployeeModal}
-            >
-              Select Employees
-            </button>
-          </TutorialHighlight>
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".select-trucks-button")}
-          >
-            <button
-              className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
-              onClick={openTruckModal}
-            >
-              Assign Trucks & Drivers
-            </button>
-          </TutorialHighlight>
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".update-payment-button")}
-          >
-            <button
-              className="button bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 update-payment-button"
-              onClick={() => handleUpdatePaymentStatus()}
-            >
-              {event.is_prepaid ? "Mark as Pending Payment" : "Mark as Prepaid"}
-            </button>
-          </TutorialHighlight>
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".update-status-buttons")}
-          >
-            <div className="flex gap-2 update-status-buttons">
-              <select
-                value={event.status || "Pending"}
-                onChange={(e) => handleUpdateStatus(e.target.value)}
-                className="button bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 border-none"
+            {/* Admin-only sections */}
+            {isAdmin && event && (
+              <>
+                {/* Server Warning */}
+                {showServerWarning && (
+                  <div className="w-full">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <svg
+                            className="h-5 w-5 text-yellow-400"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-yellow-800">
+                            Not Enough Servers Assigned
+                          </h3>
+                          <div className="mt-2 text-sm text-yellow-700">
+                            <p>
+                              This event requires{" "}
+                              {event.number_of_servers_needed || 0} servers, but
+                              only {serverAssignments.length} are currently
+                              assigned. The event status has been set to
+                              &quot;Pending&quot; until all required servers are
+                              assigned.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Assign Staff and Trucks Buttons (Admin only) */}
+                {isAdmin && (
+                  <div className="mt-6 flex flex-col md:flex-row gap-4 w-full max-w-xl md:max-w-3xl justify-between items-center">
+                    <TutorialHighlight
+                      isHighlighted={shouldHighlight(
+                        ".select-employees-button"
+                      )}
+                    >
+                      <button
+                        className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-employees-button"
+                        onClick={openEmployeeModal}
+                      >
+                        Select Employees
+                      </button>
+                    </TutorialHighlight>
+                    <TutorialHighlight
+                      isHighlighted={shouldHighlight(".select-trucks-button")}
+                    >
+                      <button
+                        className="button bg-primary-medium text-white py-2 px-4 rounded-lg hover:bg-primary-dark select-trucks-button"
+                        onClick={openTruckModal}
+                      >
+                        Assign Trucks & Drivers
+                      </button>
+                    </TutorialHighlight>
+                    <TutorialHighlight
+                      isHighlighted={shouldHighlight(".update-payment-button")}
+                    >
+                      <button
+                        className="button bg-primary-large text-white py-2 px-4 rounded-lg hover:bg-primary-dark"
+                        onClick={() => handleUpdatePaymentStatus()}
+                      >
+                        {event.is_prepaid
+                          ? "Mark as Pending Payment"
+                          : "Mark as Prepaid"}
+                      </button>
+                    </TutorialHighlight>
+                    <TutorialHighlight
+                      isHighlighted={shouldHighlight(".update-status-buttons")}
+                    >
+                      <div className="flex gap-2 update-status-buttons">
+                        <select
+                          value={event.status || "Pending"}
+                          onChange={(e) => handleUpdateStatus(e.target.value)}
+                          className="button bg-primary-medium text-white py-2 px-4 rounded-lg font-bold text-lg shadow-lg hover:bg-primary-dark border-none"
+                          style={{ minWidth: "160px" }}
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Scheduled">Scheduled</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                    </TutorialHighlight>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Assignments Grid - Side by Side (both admin and non-admin) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+              {/* Server Assignments Section */}
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".assigned-employees-section")}
+                className="assigned-employees-section"
               >
-                <option value="Pending">Pending</option>
-                <option value="Scheduled">Scheduled</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            </div>
-          </TutorialHighlight>
-        </div>
-
-        {/* Employee Selection Modal */}
-        {isEmployeeModalOpen && (
-          <EmployeeSelectionModal
-            key="employee-selection-modal"
-            isOpen={isEmployeeModalOpen}
-            onClose={closeEmployeeModal}
-            employees={employees}
-            assignedEmployees={assignedEmployees}
-            onSaveAssignments={handleSaveEmployeeAssignments}
-            employeeFilter={employeeFilter}
-            onFilterChange={(filter) => setEmployeeFilter(filter)}
-            isLoadingEmployees={isLoadingEmployees}
-            event={{
-              id: event.id,
-              addresses: event.addresses,
-              number_of_servers_needed: event.number_of_servers_needed || 0,
-              start_date: event.start_date,
-              end_date: event.end_date,
-            }}
-            shouldHighlight={shouldHighlight}
-          />
-        )}
-
-        {/* Truck Assignment Modal */}
-        {isTruckAssignmentModalOpen && (
-          <TruckAssignmentModal
-            key="truck-assignment-modal"
-            isOpen={isTruckAssignmentModalOpen}
-            onClose={closeTruckModal}
-            trucks={trucks}
-            onTruckAssignment={(truckId, driverId) =>
-              handleTruckAssignment(truckId, driverId)
-            }
-            getAssignedDriverForTruck={getAssignedDriverForTruck}
-            getAvailableDrivers={getAvailableDrivers}
-            isLoadingTrucks={isLoadingTrucks}
-            shouldHighlight={shouldHighlight}
-            eventStartTime={event?.start_date}
-            eventEndTime={event?.end_date}
-            eventId={event?.id}
-          />
-        )}
-
-        {/* Assignments Grid - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-          {/* Server Assignments Section */}
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".assigned-employees-section")}
-            className="assigned-employees-section"
-          >
-            <div className="server-assignments-section">
-              <ServerAssignmentsSection
-                serverAssignments={serverAssignments}
-                onAssignmentRemoved={refreshServerAssignments}
-              />
-            </div>
-          </TutorialHighlight>
-
-          {/* Truck Assignments Section */}
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".assigned-trucks-section")}
-            className="assigned-trucks-section"
-          >
-            <div className="truck-assignments-section">
-              {truckAssignments.length > 0 ? (
-                <TruckAssignmentsSection
-                  trucks={trucks}
-                  truckAssignments={truckAssignments}
-                  employees={employees}
-                  shouldHighlight={shouldHighlight}
-                  onAssignmentRemoved={refreshTruckAssignments}
-                />
-              ) : (
-                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                    Truck Assignments
-                  </h3>
-                  <p className="text-gray-500">
-                    No trucks assigned to this event yet.
-                  </p>
+                <div className="server-assignments-section">
+                  <ServerAssignmentsSection
+                    serverAssignments={serverAssignments}
+                    onAssignmentRemoved={
+                      isAdmin ? refreshServerAssignments : undefined
+                    }
+                    isAdmin={isAdmin}
+                  />
                 </div>
-              )}
+              </TutorialHighlight>
+
+              {/* Truck Assignments Section */}
+              <TutorialHighlight
+                isHighlighted={shouldHighlight(".assigned-trucks-section")}
+                className="assigned-trucks-section"
+              >
+                <div className="truck-assignments-section">
+                  {truckAssignments.length > 0 ? (
+                    <TruckAssignmentsSection
+                      trucks={trucks}
+                      truckAssignments={truckAssignments}
+                      employees={employees}
+                      shouldHighlight={shouldHighlight}
+                      onAssignmentRemoved={
+                        isAdmin ? refreshTruckAssignments : undefined
+                      }
+                      isAdmin={isAdmin}
+                    />
+                  ) : (
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                      <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                        Truck Assignments
+                      </h3>
+                      <p className="text-gray-500">
+                        No trucks assigned to this event yet.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </TutorialHighlight>
             </div>
-          </TutorialHighlight>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="mt-6 flex gap-4">
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".edit-event-button")}
-          >
-            <button
-              className="button bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 edit-event-button"
-              onClick={handleEditEvent}
-            >
-              Edit Event
-            </button>
-          </TutorialHighlight>
-          <TutorialHighlight
-            isHighlighted={shouldHighlight(".delete-event-button")}
-          >
-            <button
-              className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
-              onClick={openDeleteModal}
-            >
-              Delete Event
-            </button>
-          </TutorialHighlight>
-        </div>
+            {/* Admin-only modals and action buttons */}
+            {isAdmin && event && (
+              <>
+                {/* Employee Selection Modal */}
+                {isEmployeeModalOpen && (
+                  <EmployeeSelectionModal
+                    key="employee-selection-modal"
+                    isOpen={isEmployeeModalOpen}
+                    onClose={closeEmployeeModal}
+                    employees={employees}
+                    assignedEmployees={assignedEmployees}
+                    onSaveAssignments={handleSaveEmployeeAssignments}
+                    employeeFilter={employeeFilter}
+                    onFilterChange={(filter) => setEmployeeFilter(filter)}
+                    isLoadingEmployees={isLoadingEmployees}
+                    event={{
+                      id: event.id,
+                      addresses: event.addresses,
+                      number_of_servers_needed:
+                        event.number_of_servers_needed || 0,
+                      start_date: event.start_date,
+                      end_date: event.end_date,
+                    }}
+                    shouldHighlight={shouldHighlight}
+                  />
+                )}
 
-        {/* Edit Event Modal */}
-        {isEditModalOpen && (
-          <EditEventModal
-            key="edit-event-modal"
-            isOpen={isEditModalOpen}
-            onClose={closeEditModal}
-            onSubmit={handleEditSubmit}
-            formData={editFormData}
-            onFormChange={handleEditFormChange}
-            onDateChange={handleEditDateChange}
-            onEndDateChange={handleEditEndDateChange}
-            onTimeChange={handleEditTimeChange}
-            onEndTimeChange={handleEditEndTimeChange}
-            selectedDate={selectedDate}
-            selectedEndDate={selectedEndDate}
-            selectedTime={selectedTime}
-            selectedEndTime={selectedEndTime}
-            isSubmitting={isSubmitting}
-            setEditFormData={setEditFormData}
-          />
-        )}
+                {/* Truck Assignment Modal */}
+                {isTruckAssignmentModalOpen && (
+                  <TruckAssignmentModal
+                    key="truck-assignment-modal"
+                    isOpen={isTruckAssignmentModalOpen}
+                    onClose={closeTruckModal}
+                    trucks={trucks}
+                    onTruckAssignment={(truckId, driverId) =>
+                      handleTruckAssignment(truckId, driverId)
+                    }
+                    getAssignedDriverForTruck={getAssignedDriverForTruck}
+                    getAvailableDrivers={getAvailableDrivers}
+                    isLoadingTrucks={isLoadingTrucks}
+                    shouldHighlight={shouldHighlight}
+                    eventStartTime={event.start_date}
+                    eventEndTime={event.end_date}
+                    eventId={event.id}
+                  />
+                )}
 
-        {/* Delete Event Confirmation Modal */}
-        {isDeleteModalOpen && (
-          <DeleteEventModal
-            key="delete-event-modal"
-            isOpen={isDeleteModalOpen}
-            onClose={closeDeleteModal}
-            onDelete={handleDeleteEvent}
-            shouldHighlight={shouldHighlight}
-          />
-        )}
+                {/* Action Buttons (Admin only) */}
+                {isAdmin && (
+                  <div className="mt-6 flex flex-col md:flex-row gap-4 w-full max-w-xl md:max-w-2xl mx-auto justify-center items-center">
+                    <TutorialHighlight
+                      isHighlighted={shouldHighlight(".edit-event-button")}
+                    >
+                      <button
+                        className="button bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 edit-event-button"
+                        onClick={handleEditEvent}
+                      >
+                        Edit Event
+                      </button>
+                    </TutorialHighlight>
+                    <TutorialHighlight
+                      isHighlighted={shouldHighlight(".delete-event-button")}
+                    >
+                      <button
+                        className="button bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 delete-event-button"
+                        onClick={openDeleteModal}
+                      >
+                        Delete Event
+                      </button>
+                    </TutorialHighlight>
+                  </div>
+                )}
+              </>
+            )}
 
-        {/* Error Modal */}
-        <ErrorModal
-          isOpen={isErrorModalOpen}
-          onClose={closeErrorModal}
-          errors={errorModalErrors}
-          title={errorModalTitle}
-          type={errorModalType}
-        />
+            {/* Admin-only modals */}
+            {isAdmin && event && (
+              <>
+                {/* Edit Event Modal */}
+                {isEditModalOpen && (
+                  <EditEventModal
+                    key="edit-event-modal"
+                    isOpen={isEditModalOpen}
+                    onClose={closeEditModal}
+                    onSubmit={handleEditSubmit}
+                    formData={editFormData}
+                    onFormChange={handleEditFormChange}
+                    onDateChange={handleEditDateChange}
+                    onEndDateChange={handleEditEndDateChange}
+                    onTimeChange={handleEditTimeChange}
+                    onEndTimeChange={handleEditEndTimeChange}
+                    selectedDate={selectedDate}
+                    selectedEndDate={selectedEndDate}
+                    selectedTime={selectedTime}
+                    selectedEndTime={selectedEndTime}
+                    isSubmitting={isSubmitting}
+                    setEditFormData={setEditFormData}
+                    onLocationChange={handleEditLocationChange}
+                    onCheckAddress={handleEditCheckAddress}
+                    onAddressError={handleEditAddressError}
+                  />
+                )}
+
+                {/* Delete Event Confirmation Modal */}
+                {isDeleteModalOpen && (
+                  <DeleteEventModal
+                    key="delete-event-modal"
+                    isOpen={isDeleteModalOpen}
+                    onClose={closeDeleteModal}
+                    onDelete={handleDeleteEvent}
+                    shouldHighlight={shouldHighlight}
+                  />
+                )}
+              </>
+            )}
+
+            {/* Error Modal */}
+            <ErrorModal
+              isOpen={isErrorModalOpen}
+              onClose={closeErrorModal}
+              errors={errorModalErrors}
+              title={errorModalTitle}
+              type={errorModalType}
+            />
+          </div>
+        </TutorialHighlight>
       </div>
-    </TutorialHighlight>
+    </div>
   );
 }
