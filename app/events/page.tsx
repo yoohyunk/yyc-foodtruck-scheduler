@@ -9,6 +9,7 @@ import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
 import { useAuth } from "@/contexts/AuthContext";
+import SearchInput from "../components/SearchInput";
 
 export default function Events(): ReactElement {
   const [adminEvents, setAdminEvents] = useState<Event[]>([]);
@@ -21,7 +22,7 @@ export default function Events(): ReactElement {
   >([]);
   const [activeFilter, setActiveFilter] = useState<string>("All"); // Default filter is "All"
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
-  const [searchQuery, setSearchQuery] = useState<string>(""); // For search functionality
+  const [searchTerm, setSearchTerm] = useState<string>(""); // For search functionality
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -32,14 +33,14 @@ export default function Events(): ReactElement {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && searchQuery) {
-        setSearchQuery("");
+      if (event.key === "Escape" && searchTerm) {
+        setSearchTerm("");
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [searchQuery]);
+  }, [searchTerm]);
 
   // Fetch events from Supabase
   useEffect(() => {
@@ -153,8 +154,8 @@ export default function Events(): ReactElement {
       }
 
       // Apply search filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
+      if (searchTerm.trim()) {
+        const query = searchTerm.toLowerCase().trim();
         filtered = filtered.filter((event) => {
           const title = event.title?.toLowerCase() || "";
           const description = event.description?.toLowerCase() || "";
@@ -206,8 +207,8 @@ export default function Events(): ReactElement {
       }
 
       // Apply search filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
+      if (searchTerm.trim()) {
+        const query = searchTerm.toLowerCase().trim();
         filtered = filtered.filter((event) => {
           const title = event.title?.toLowerCase() || "";
           const description = event.description?.toLowerCase() || "";
@@ -228,7 +229,7 @@ export default function Events(): ReactElement {
   }, [
     activeFilter,
     selectedDate,
-    searchQuery,
+    searchTerm,
     adminEvents,
     limitedEvents,
     isAdmin,
@@ -265,6 +266,14 @@ export default function Events(): ReactElement {
 
   return (
     <div className="events-page">
+      {/* Search Input */}
+      <div className="search-input-container">
+        <SearchInput
+          placeholder="Search events by title, description, contact, or status..."
+          onSearch={setSearchTerm}
+        />
+      </div>
+
       {/* Filter Buttons */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".filter-buttons")}
@@ -290,42 +299,12 @@ export default function Events(): ReactElement {
         </button>
       </TutorialHighlight>
 
-      {/* Search and Date Filters */}
+      {/* Date Filter */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".additional-filters")}
-        className="additional-filters grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
+        className="additional-filters mb-6"
       >
-        {/* Search Filter */}
-        <div className="search-input-container">
-          <label
-            htmlFor="search-filter"
-            className="block text-primary-dark font-medium mb-2"
-          >
-            Search Events
-          </label>
-          <input
-            type="text"
-            id="search-filter"
-            placeholder="Search by title, description, contact, or location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-field search-input w-full"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="search-clear-button"
-              aria-label="Clear search"
-              title="Clear search (Esc)"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {/* Date Filter */}
-        <div>
+        <div className="max-w-sm">
           <label
             htmlFor="date-filter"
             className="block text-primary-dark font-medium mb-2"
@@ -346,22 +325,22 @@ export default function Events(): ReactElement {
       {/* Results Count */}
       <div className="mb-4 text-sm text-gray-600">
         {isAdmin ? (
-          searchQuery.trim() || activeFilter !== "All" || selectedDate ? (
+          searchTerm.trim() || activeFilter !== "All" || selectedDate ? (
             <span>
               Showing {filteredAdminEvents.length} of {adminEvents.length}{" "}
               events
-              {searchQuery.trim() && ` matching "${searchQuery}"`}
+              {searchTerm.trim() && ` matching "${searchTerm}"`}
               {activeFilter !== "All" && ` with ${activeFilter} status`}
               {selectedDate && ` on ${selectedDate}`}
             </span>
           ) : (
             <span>Showing all {adminEvents.length} events</span>
           )
-        ) : searchQuery.trim() || selectedDate ? (
+        ) : searchTerm.trim() || selectedDate ? (
           <span>
             Showing {filteredLimitedEvents.length} of {limitedEvents.length}{" "}
             events
-            {searchQuery.trim() && ` matching "${searchQuery}"`}
+            {searchTerm.trim() && ` matching "${searchTerm}"`}
             {selectedDate && ` on ${selectedDate}`}
           </span>
         ) : (
@@ -465,8 +444,8 @@ export default function Events(): ReactElement {
               <div className="search-no-results-icon">🔍</div>
               <h3>No events found</h3>
               <p>
-                {searchQuery.trim()
-                  ? `No events match your search for "${searchQuery}". Try adjusting your search terms or filters.`
+                {searchTerm.trim()
+                  ? `No events match your search for "${searchTerm}". Try adjusting your search terms or filters.`
                   : "No events match your current filters. Try adjusting the date or status filters."}
               </p>
             </div>
@@ -533,8 +512,8 @@ export default function Events(): ReactElement {
             <div className="search-no-results-icon">🔍</div>
             <h3>No events found</h3>
             <p>
-              {searchQuery.trim()
-                ? `No events match your search for "${searchQuery}". Try adjusting your search terms or filters.`
+              {searchTerm.trim()
+                ? `No events match your search for "${searchTerm}". Try adjusting your search terms or filters.`
                 : "No events match your current filters. Try adjusting the date or status filters."}
             </p>
           </div>

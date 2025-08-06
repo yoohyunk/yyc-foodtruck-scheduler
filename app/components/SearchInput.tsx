@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 interface SearchInputProps {
   placeholder?: string;
@@ -9,7 +9,7 @@ interface SearchInputProps {
   debounceMs?: number;
 }
 
-export default function SearchInput({
+const SearchInput = React.memo(function SearchInput({
   placeholder = "Search...",
   onSearch,
   className = "",
@@ -25,6 +25,16 @@ export default function SearchInput({
 
     return () => clearTimeout(timer);
   }, [searchTerm, onSearch, debounceMs]);
+
+  // Memoize the clear handler to prevent unnecessary re-renders
+  const handleClear = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  // Memoize the change handler
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
 
   return (
     <div className={`relative ${className}`}>
@@ -46,17 +56,23 @@ export default function SearchInput({
       <input
         type="text"
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={handleChange}
         placeholder={placeholder}
-        className="input-field w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent"
+        className="input-field w-full pl-10 pr-12 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent"
+        style={{
+          minHeight: "2.75rem",
+        }}
       />
       {searchTerm && (
         <button
-          onClick={() => setSearchTerm("")}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+          onClick={handleClear}
+          className="absolute inset-y-0 right-0 pr-3 flex items-center hover:bg-gray-50 rounded-r-md transition-colors"
+          type="button"
+          aria-label="Clear search"
+          title="Clear search"
         >
           <svg
-            className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-pointer"
+            className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -72,4 +88,6 @@ export default function SearchInput({
       )}
     </div>
   );
-}
+});
+
+export default SearchInput;
