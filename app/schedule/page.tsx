@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ViewToggle } from "./components/ViewToggle";
 import { Navigation } from "./components/Navigation";
 import { Calendar, CalendarEvent } from "./components/Calendar";
+import { DateSelector } from "./components/DateSelector";
 import { Event } from "../types";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
@@ -291,6 +292,7 @@ export default function Schedule(): React.ReactElement {
           gap: "0.5rem",
           marginBottom: "1.5rem",
           flexWrap: "wrap",
+          alignItems: "center",
         }}
       >
         <Navigation
@@ -299,6 +301,15 @@ export default function Schedule(): React.ReactElement {
           onNext={handleNext}
           onToday={handleToday}
         />
+        
+        {/* Date Selector for Daily View */}
+        {viewMode === "daily" && (
+          <DateSelector
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            isMobile={isMobile}
+          />
+        )}
       </TutorialHighlight>
 
       {isLoading ? (

@@ -22,6 +22,8 @@
   --text-primary: #1a202c;
   --text-secondary: #4a5568;
   --text-muted: #718096;
+  --surface-hover: #f1f5f9;
+  --surface-light: #f8fafc;
 
   /* Status Colors */
   --success-light: #dcfce7;
