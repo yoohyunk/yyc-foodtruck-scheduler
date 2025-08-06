@@ -61,6 +61,8 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
       - name: Run build
         run: npm run build
+        env:
+          NODE_OPTIONS: --no-deprecation
 
   jest:
     runs-on: ubuntu-latest
