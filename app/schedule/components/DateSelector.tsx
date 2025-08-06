@@ -19,21 +19,23 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [dropdownRef]);
 
   // Generate calendar days for the current month
   const generateCalendarDays = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
 
@@ -43,11 +45,11 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
     // Generate 6 weeks of days (42 days total)
     for (let i = 0; i < 42; i++) {
       const isCurrentMonth = currentDate.getMonth() === month;
-      const isSelected = 
+      const isSelected =
         currentDate.getDate() === selectedDate.getDate() &&
         currentDate.getMonth() === selectedDate.getMonth() &&
         currentDate.getFullYear() === selectedDate.getFullYear();
-      const isToday = 
+      const isToday =
         currentDate.getDate() === new Date().getDate() &&
         currentDate.getMonth() === new Date().getMonth() &&
         currentDate.getFullYear() === new Date().getFullYear();
@@ -250,8 +252,8 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
                   background: day.isSelected
                     ? "var(--primary-medium)"
                     : day.isToday
-                    ? "var(--primary-light)"
-                    : "transparent",
+                      ? "var(--primary-light)"
+                      : "transparent",
                   border: "none",
                   borderRadius: "0.25rem",
                   padding: "0.5rem",
@@ -260,8 +262,8 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
                   color: day.isSelected
                     ? "white"
                     : day.isCurrentMonth
-                    ? "var(--text-primary)"
-                    : "var(--text-muted)",
+                      ? "var(--text-primary)"
+                      : "var(--text-muted)",
                   fontWeight: day.isSelected || day.isToday ? "600" : "400",
                   transition: "all 0.2s ease",
                 }}
@@ -334,4 +336,4 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
       )}
     </div>
   );
-}; 
+};

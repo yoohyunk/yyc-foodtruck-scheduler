@@ -301,7 +301,7 @@ export default function Schedule(): React.ReactElement {
           onNext={handleNext}
           onToday={handleToday}
         />
-        
+
         {/* Date Selector for Daily View */}
         {viewMode === "daily" && (
           <DateSelector
