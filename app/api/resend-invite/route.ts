@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
   //   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email);
   const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `https://yyc-foodtruck-scheduler.vercel.app/set-password`,
+    redirectTo: `https://yyctruckscheduler.vercel.app/set-password`,
   });
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });

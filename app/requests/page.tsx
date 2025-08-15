@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, ReactElement, useMemo } from "react";
+import { useState, useEffect, ReactElement, useMemo, useCallback } from "react";
 import { FiCalendar, FiUser, FiClock } from "react-icons/fi";
 import { TimeOffRequest } from "../types";
 import { timeOffRequestsApi } from "@/lib/supabase/timeOffRequests";
@@ -160,14 +160,17 @@ export default function RequestsPage(): ReactElement {
     setShowErrorModal(true);
   };
 
-  const getEmployeeName = (employeeId: string | null) => {
-    if (!employeeId) return "Unknown Employee";
-    const employee = employees.find((emp) => emp.employee_id === employeeId);
-    return employee
-      ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
-          "Unknown Name"
-      : "Unknown Employee";
-  };
+  const getEmployeeName = useCallback(
+    (employeeId: string | null) => {
+      if (!employeeId) return "Unknown Employee";
+      const employee = employees.find((emp) => emp.employee_id === employeeId);
+      return employee
+        ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
+            "Unknown Name"
+        : "Unknown Employee";
+    },
+    [employees]
+  );
 
   // Helper to display local time as selected (no timezone conversion)
   function formatLocalDateTimeString(dateTimeString: string) {
