@@ -302,6 +302,7 @@ export default function RequestsPage(): ReactElement {
     selectedEmployeeId,
     selectedDate,
     searchTerm,
+    getEmployeeName,
     isAdmin,
   ]);
 
