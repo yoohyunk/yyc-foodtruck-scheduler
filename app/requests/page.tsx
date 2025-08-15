@@ -305,6 +305,7 @@ export default function RequestsPage(): ReactElement {
     isAdmin,
   ]);
 
+  
   if (isLoading) {
     return (
       <div className="requests-page">
