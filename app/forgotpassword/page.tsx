@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
     const supabase = createClient();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `https://yyc-foodtruck-scheduler.vercel.app/set-password`,
+      redirectTo: `https://yyctruckscheduler.vercel.app/set-password`,
     });
 
     if (error) {
