@@ -160,14 +160,17 @@ export default function RequestsPage(): ReactElement {
     setShowErrorModal(true);
   };
 
-  const getEmployeeName = useCallback((employeeId: string | null) => {
-    if (!employeeId) return "Unknown Employee";
-    const employee = employees.find((emp) => emp.employee_id === employeeId);
-    return employee
-      ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
-          "Unknown Name"
-      : "Unknown Employee";
-  }, [employees]);
+  const getEmployeeName = useCallback(
+    (employeeId: string | null) => {
+      if (!employeeId) return "Unknown Employee";
+      const employee = employees.find((emp) => emp.employee_id === employeeId);
+      return employee
+        ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
+            "Unknown Name"
+        : "Unknown Employee";
+    },
+    [employees]
+  );
 
   // Helper to display local time as selected (no timezone conversion)
   function formatLocalDateTimeString(dateTimeString: string) {
