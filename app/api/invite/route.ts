@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getBaseUrl } from "@/lib/utils";
 
 // Type-safe environment variable access
 function getEnvVar(key: string): string {
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
   }
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `https://yyctruckscheduler.vercel.app/set-password`,
+    redirectTo: `${getBaseUrl()}/set-password`,
   });
 
   if (error) {
