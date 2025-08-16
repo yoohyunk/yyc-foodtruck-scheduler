@@ -54,19 +54,22 @@ export function getBaseUrl(): string {
   }
 
   // For server-side (API routes), check if we're in development
-  if (typeof window === 'undefined') {
-    if (process.env.NODE_ENV === 'development') {
-      return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  if (typeof window === "undefined") {
+    if (process.env.NODE_ENV === "development") {
+      return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     }
     // For production server-side, use NEXT_PUBLIC_SITE_URL or fallback
-    return process.env.NEXT_PUBLIC_SITE_URL || 'https://yyctruckscheduler.vercel.app';
+    return (
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      "https://yyc-foodtruck-scheduler.vercel.app"
+    );
   }
 
   // For client-side, we can use window.location.origin
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     return window.location.origin;
   }
 
   // Final fallback
-  return 'https://yyctruckscheduler.vercel.app';
+  return "https://yyc-foodtruck-scheduler.vercel.app";
 }
