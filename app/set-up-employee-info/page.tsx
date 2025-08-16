@@ -54,7 +54,9 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     wage: "",
   });
 
-  const [employeeAvailability, setEmployeeAvailability] = useState<EmployeeAvailability[]>([]);
+  const [employeeAvailability, setEmployeeAvailability] = useState<
+    EmployeeAvailability[]
+  >([]);
 
   const [address, setAddress] = useState<AddressInfo>({
     id: "",
@@ -286,12 +288,12 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
     if (isDaySelected) {
       // Remove day
-      setEmployeeAvailability(prev => 
-        prev.filter(availability => availability.day_of_week !== day)
+      setEmployeeAvailability((prev) =>
+        prev.filter((availability) => availability.day_of_week !== day)
       );
     } else {
       // Add day with default times
-      setEmployeeAvailability(prev => [
+      setEmployeeAvailability((prev) => [
         ...prev,
         {
           day_of_week: day,
@@ -300,7 +302,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
           employee_id: employee.employee_id,
           created_at: new Date().toISOString(),
           id: crypto.randomUUID(),
-        }
+        },
       ]);
     }
   };
@@ -328,7 +330,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     startTime: string,
     endTime: string
   ) => {
-    setEmployeeAvailability(prev => {
+    setEmployeeAvailability((prev) => {
       const currentDayIdx = prev.findIndex(
         (availability) => availability.day_of_week === dayOfWeek
       );
@@ -344,7 +346,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             employee_id: employee.employee_id,
             created_at: new Date().toISOString(),
             id: crypto.randomUUID(),
-          }
+          },
         ];
       } else {
         // Update existing day
@@ -544,7 +546,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             last_name: sanitizedEmployee.last_name || null,
             employee_type: sanitizedEmployee.employee_type || null,
             address_id: addressId,
-            availability: employeeAvailability.map(av => av.day_of_week),
+            availability: employeeAvailability.map((av) => av.day_of_week),
             is_available: employee.is_available,
             user_phone: sanitizedEmployee.user_phone || null,
             user_email: sanitizedEmployee.user_email || null,
@@ -800,7 +802,9 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
             {/* Availability Section */}
             <div className="availability-options bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Availability (Days of the Week)</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                Availability (Days of the Week)
+              </h2>
               <div className="space-y-4">
                 <label className="flex items-center space-x-2">
                   <input
@@ -810,7 +814,9 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm font-medium">
-                    {employeeAvailability.length === daysOfWeek.length ? "Deselect All" : "Select All"}
+                    {employeeAvailability.length === daysOfWeek.length
+                      ? "Deselect All"
+                      : "Select All"}
                   </span>
                 </label>
                 {daysOfWeek.map((day) => (
