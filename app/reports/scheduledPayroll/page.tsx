@@ -527,7 +527,7 @@ export default function PayrollReport(): ReactElement {
           employee,
           currentWage: wage,
           totalHours,
-          totalEvents: allAssignments.length,
+          totalEvents: periodAssignments.length + periodTruckAssignments.length,
           grossPay,
           netPay,
           taxDeductions,
