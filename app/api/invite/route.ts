@@ -28,7 +28,6 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${getBaseUrl()}/set-password`,
-
   });
 
   if (error) {
