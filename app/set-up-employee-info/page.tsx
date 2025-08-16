@@ -10,6 +10,7 @@ import React, {
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "../../database.types";
+import { EmployeeAvailability } from "@/app/types";
 import AddressForm, { AddressFormRef } from "@/app/components/AddressForm";
 import ErrorModal from "@/app/components/ErrorModal";
 import {
@@ -18,6 +19,7 @@ import {
   ValidationError,
   createValidationRule,
 } from "../../lib/formValidation";
+import { employeeAvailabilityApi } from "@/lib/supabase/employeeAvailability";
 
 // Use Supabase types
 type EmployeeInfo = Tables<"employees"> & { wage?: string };
@@ -51,6 +53,8 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     created_at: new Date().toISOString(),
     wage: "",
   });
+
+  const [employeeAvailability, setEmployeeAvailability] = useState<EmployeeAvailability[]>([]);
 
   const [address, setAddress] = useState<AddressInfo>({
     id: "",
@@ -276,21 +280,83 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     setEmployee((prev) => ({ ...prev, [name]: value }));
   };
   const handleDaySelection = (day: string) => {
-    setEmployee((prev) => {
-      const avail = (prev.availability as string[]) || [];
-      return {
+    const isDaySelected = employeeAvailability.some(
+      (availability) => availability.day_of_week === day
+    );
+
+    if (isDaySelected) {
+      // Remove day
+      setEmployeeAvailability(prev => 
+        prev.filter(availability => availability.day_of_week !== day)
+      );
+    } else {
+      // Add day with default times
+      setEmployeeAvailability(prev => [
         ...prev,
-        availability: avail.includes(day)
-          ? avail.filter((d: string) => d !== day)
-          : [...avail, day],
-      };
-    });
+        {
+          day_of_week: day,
+          start_time: "00:00",
+          end_time: "23:59:59",
+          employee_id: employee.employee_id,
+          created_at: new Date().toISOString(),
+          id: crypto.randomUUID(),
+        }
+      ]);
+    }
   };
+
   const handleSelectAll = (e: ChangeEvent<HTMLInputElement>) => {
-    setEmployee((prev) => ({
-      ...prev,
-      availability: e.target.checked ? [...daysOfWeek] : [],
-    }));
+    if (e.target.checked) {
+      // Select all days
+      const allDays = daysOfWeek.map((day) => ({
+        day_of_week: day,
+        start_time: "00:00",
+        end_time: "23:59:59",
+        employee_id: employee.employee_id,
+        created_at: new Date().toISOString(),
+        id: crypto.randomUUID(),
+      }));
+      setEmployeeAvailability(allDays);
+    } else {
+      // Deselect all
+      setEmployeeAvailability([]);
+    }
+  };
+
+  const handleAvailabilityChange = (
+    dayOfWeek: string,
+    startTime: string,
+    endTime: string
+  ) => {
+    setEmployeeAvailability(prev => {
+      const currentDayIdx = prev.findIndex(
+        (availability) => availability.day_of_week === dayOfWeek
+      );
+
+      if (currentDayIdx === -1) {
+        // Add new day
+        return [
+          ...prev,
+          {
+            day_of_week: dayOfWeek,
+            start_time: startTime,
+            end_time: endTime,
+            employee_id: employee.employee_id,
+            created_at: new Date().toISOString(),
+            id: crypto.randomUUID(),
+          }
+        ];
+      } else {
+        // Update existing day
+        const newAvailability = [...prev];
+        newAvailability[currentDayIdx] = {
+          ...newAvailability[currentDayIdx],
+          start_time: startTime,
+          end_time: endTime,
+        };
+        return newAvailability;
+      }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -478,7 +544,7 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
             last_name: sanitizedEmployee.last_name || null,
             employee_type: sanitizedEmployee.employee_type || null,
             address_id: addressId,
-            availability: employee.availability,
+            availability: employeeAvailability.map(av => av.day_of_week),
             is_available: employee.is_available,
             user_phone: sanitizedEmployee.user_phone || null,
             user_email: sanitizedEmployee.user_email || null,
@@ -517,6 +583,25 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
       }));
 
       console.log("Employee updated successfully:", updatedEmployee[0]);
+
+      // Save availability to employee_availability table
+      if (employeeAvailability.length > 0) {
+        try {
+          for (const availability of employeeAvailability) {
+            await employeeAvailabilityApi.upsertEmployeeAvailability(
+              existingEmployee.employee_id,
+              {
+                ...availability,
+                employee_id: existingEmployee.employee_id,
+              }
+            );
+          }
+          console.log("Availability saved successfully");
+        } catch (availabilityError) {
+          console.error("Error saving availability:", availabilityError);
+          // Don't fail the whole process for availability errors
+        }
+      }
 
       // Update wage information for non-admin and non-pending employees
       if (
@@ -715,33 +800,39 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
 
             {/* Availability Section */}
             <div className="availability-options bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Availability</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <h2 className="text-xl font-semibold mb-4">Availability (Days of the Week)</h2>
+              <div className="space-y-4">
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={
-                      Array.isArray(employee.availability) &&
-                      employee.availability.length === daysOfWeek.length
-                    }
+                    checked={employeeAvailability.length === daysOfWeek.length}
                     onChange={handleSelectAll}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium">Select All</span>
+                  <span className="text-sm font-medium">
+                    {employeeAvailability.length === daysOfWeek.length ? "Deselect All" : "Select All"}
+                  </span>
                 </label>
                 {daysOfWeek.map((day) => (
-                  <label key={day} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={
-                        Array.isArray(employee.availability) &&
-                        employee.availability.includes(day)
-                      }
-                      onChange={() => handleDaySelection(day)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm">{day}</span>
-                  </label>
+                  <AvailabilityInput
+                    key={day}
+                    day={day}
+                    isChecked={employeeAvailability.some(
+                      (availability) => availability.day_of_week === day
+                    )}
+                    handleDaySelection={handleDaySelection}
+                    handleAvailabilityChange={handleAvailabilityChange}
+                    startTime={
+                      employeeAvailability.find(
+                        (availability) => availability.day_of_week === day
+                      )?.start_time || "00:00"
+                    }
+                    endTime={
+                      employeeAvailability.find(
+                        (availability) => availability.day_of_week === day
+                      )?.end_time || "23:59"
+                    }
+                  />
                 ))}
               </div>
             </div>
@@ -776,3 +867,76 @@ export default function SetUpEmployeeInfoPage(): ReactElement {
     </>
   );
 }
+
+// AvailabilityInput component - matches the one from edit employee page
+const AvailabilityInput = ({
+  day,
+  isChecked,
+  handleDaySelection,
+  handleAvailabilityChange,
+  startTime,
+  endTime,
+}: {
+  day: string;
+  isChecked: boolean;
+  handleDaySelection: (day: string) => void;
+  handleAvailabilityChange: (
+    dayOfWeek: string,
+    startTime: string,
+    endTime: string
+  ) => void;
+  startTime: string;
+  endTime: string;
+}) => {
+  return (
+    <div>
+      <label className="flex gap-2 font-bold" htmlFor={day}>
+        <span className="w-4 h-4">
+          <input
+            id={day}
+            type="checkbox"
+            checked={isChecked}
+            onChange={() => handleDaySelection(day)}
+          />
+        </span>
+        <span>{day}</span>
+      </label>
+      {isChecked ? (
+        <div className="flex gap-2 mt-2">
+          <label htmlFor={`${day}-start-time`} className="flex flex-col">
+            <span className="text-sm text-gray-600">Start Time</span>
+            <input
+              id={`${day}-start-time`}
+              type="time"
+              value={startTime || "00:00"}
+              onChange={(e) =>
+                handleAvailabilityChange(
+                  day,
+                  e.target.value,
+                  endTime || "23:59:59"
+                )
+              }
+              className="input-field"
+            />
+          </label>
+          <label htmlFor={`${day}-end-time`} className="flex flex-col">
+            <span className="text-sm text-gray-600">End Time</span>
+            <input
+              id={`${day}-end-time`}
+              type="time"
+              value={endTime || "23:59:59"}
+              onChange={(e) =>
+                handleAvailabilityChange(
+                  day,
+                  startTime || "00:00",
+                  e.target.value
+                )
+              }
+              className="input-field"
+            />
+          </label>
+        </div>
+      ) : null}
+    </div>
+  );
+};
