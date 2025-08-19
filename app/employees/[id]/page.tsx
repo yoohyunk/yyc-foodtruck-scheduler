@@ -650,6 +650,9 @@ export default function EditEmployeePage(): ReactElement {
         }
       }
 
+      // upsert availability FIRST
+      handleUpsertAvailability();
+
       // Show success modal instead of alert
       setValidationErrors([
         {
@@ -659,9 +662,6 @@ export default function EditEmployeePage(): ReactElement {
         },
       ]);
       setShowErrorModal(true);
-
-      // upsert availability
-      handleUpsertAvailability();
 
       // Redirect after closing modal
       setTimeout(() => {
@@ -916,6 +916,9 @@ export default function EditEmployeePage(): ReactElement {
         }
       }
 
+      // upsert availability FIRST and wait for it to complete
+      await handleUpsertAvailability();
+
       // Show success modal instead of alert
       setValidationErrors([
         {
@@ -925,9 +928,6 @@ export default function EditEmployeePage(): ReactElement {
         },
       ]);
       setShowErrorModal(true);
-
-      // upsert availability
-      handleUpsertAvailability();
 
       // Redirect after closing modal
       setTimeout(() => {
@@ -1443,10 +1443,10 @@ const useAvailability = (id: string) => {
   });
 
   useEffect(() => {
-    if (employeeAvailability) {
+    if (employeeAvailability && formAvailability.length === 0) {
       setFormAvailability(employeeAvailability);
     }
-  }, [employeeAvailability]);
+  }, [employeeAvailability, formAvailability.length]);
 
   const clearAvailability = () => {
     setFormAvailability([]);
@@ -1517,20 +1517,43 @@ const useAvailability = (id: string) => {
     setFormAvailability(newAvailability);
   };
 
-  const handleUpsertAvailability = () => {
+  const handleUpsertAvailability = async () => {
     // If formAvailability is empty, delete all existing availability
     if (formAvailability.length === 0) {
-      employeeAvailability?.forEach((availability) => {
-        deleteAvailability(availability.id);
-      });
+      const deletePromises =
+        employeeAvailability?.map((availability) => {
+          return new Promise((resolve, reject) => {
+            deleteAvailability(availability.id, {
+              onSuccess: resolve,
+              onError: reject,
+            });
+          });
+        }) || [];
+
+      await Promise.all(deletePromises);
       return;
     }
 
-    formAvailability.forEach((availability) => {
-      const originalDayAvailability = employeeAvailability?.find(
-        (a) => a.day_of_week === availability.day_of_week
-      );
+    // First, delete any days that are no longer selected
+    const daysToDelete =
+      employeeAvailability?.filter(
+        (existing) =>
+          !formAvailability.some(
+            (form) => form.day_of_week === existing.day_of_week
+          )
+      ) || [];
 
+    const deletePromises = daysToDelete.map((availability) => {
+      return new Promise((resolve, reject) => {
+        deleteAvailability(availability.id, {
+          onSuccess: resolve,
+          onError: reject,
+        });
+      });
+    });
+
+    // Then, upsert the selected days
+    const upsertPromises = formAvailability.map((availability) => {
       // If the day is selected in formData.availability but has empty times,
       // use default times (00:00 - 23:59)
       let startTime = availability.start_time;
@@ -1541,20 +1564,9 @@ const useAvailability = (id: string) => {
         endTime = "23:59:59";
       }
 
-      // If there was an original availability but now we have empty times,
-      // delete the original entry
-      if (
-        Boolean(originalDayAvailability) &&
-        availability.start_time === "" &&
-        availability.end_time === ""
-      ) {
-        deleteAvailability(originalDayAvailability?.id || "");
-        return;
-      }
-
       // Skip if both times are empty (day is not selected)
       if (availability.start_time === "" && availability.end_time === "") {
-        return;
+        return Promise.resolve();
       }
 
       if (startTime >= endTime) {
@@ -1568,8 +1580,16 @@ const useAvailability = (id: string) => {
         end_time: endTime,
       };
 
-      upsertEmployeeAvailability(availabilityToUpsert);
+      return new Promise((resolve, reject) => {
+        upsertEmployeeAvailability(availabilityToUpsert, {
+          onSuccess: resolve,
+          onError: reject,
+        });
+      });
     });
+
+    // Wait for all operations to complete
+    await Promise.all([...deletePromises, ...upsertPromises]);
   };
 
   return {
