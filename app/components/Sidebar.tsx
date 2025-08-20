@@ -10,6 +10,7 @@ import {
   FiBarChart2,
   FiHome,
   FiInfo,
+  FiHelpCircle,
 } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { NavLink } from "../types";
@@ -90,7 +91,7 @@ export default function Sidebar() {
   const { isAdmin, loading } = useAuth();
   const shouldDisable = !loading && !isAdmin;
 
-  const { shouldHighlight } = useTutorial();
+  const { shouldHighlight, startTutorial } = useTutorial();
 
   // Check if we're on mobile
   useEffect(() => {
@@ -247,6 +248,20 @@ export default function Sidebar() {
                   isMobile={isMobile}
                 />
               ))}
+
+              <div className="mt-4 pt-4 border-t border-gray-700/20">
+                <SidebarLink
+                  link={{ name: "Help", href: "#", icon: <FiHelpCircle /> }}
+                  isActive={() => false}
+                  shouldHighlight={shouldHighlight}
+                  shouldDisable={false}
+                  onCloseSidebar={() => {
+                    startTutorial();
+                    if (isMobile) closeSidebar();
+                  }}
+                  isMobile={isMobile}
+                />
+              </div>
             </nav>
           </div>
         </div>
