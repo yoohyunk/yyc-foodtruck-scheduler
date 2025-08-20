@@ -66,6 +66,14 @@ export const SidebarLink = React.memo(function SidebarLink({
             "shouldDisable:",
             shouldDisable
           );
+
+          // Special handling for help button
+          if (link.name === "Help") {
+            e.preventDefault();
+            onCloseSidebar();
+            return;
+          }
+
           if (isAddItem && shouldDisable) e.preventDefault();
           if (isMobile) {
             console.log("Calling onCloseSidebar from SidebarLink");

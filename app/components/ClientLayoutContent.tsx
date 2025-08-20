@@ -4,6 +4,7 @@ import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { TutorialProvider, TutorialOverlay } from "@/app/tutorial";
 import Header from "./Header";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Sidebar from "./Sidebar";
@@ -17,6 +18,7 @@ export const queryClient = new QueryClient();
 export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isAdmin } = useAuth();
 
   const noLayoutPaths = ["/login", "/set-password"];
   const isPublicPage = noLayoutPaths.includes(pathname);
@@ -33,7 +35,7 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
 
   if (isPublicPage) {
     return (
-      <TutorialProvider>
+      <TutorialProvider isAdmin={isAdmin}>
         <div
           className="min-h-screen"
           style={{ background: "var(--background-light)" }}
@@ -47,7 +49,7 @@ export function ClientLayoutContent({ children }: ClientLayoutContentProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TutorialProvider>
+      <TutorialProvider isAdmin={isAdmin}>
         <div style={{ background: "var(--background-light)" }}>
           {/* Header - sticky */}
           <Header />

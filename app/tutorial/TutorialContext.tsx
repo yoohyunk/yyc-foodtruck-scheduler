@@ -24,6 +24,7 @@ interface TutorialStep {
   target: string;
   position: "top" | "bottom" | "left" | "right";
   autoAction?: TutorialAutoAction;
+  requiresAdmin?: boolean;
 }
 
 interface TutorialContextType {
@@ -106,6 +107,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click this button to quickly add a new employee to your team. This will take you to the employee invitation form where you can enter their details.",
       target: ".sidebar-nav-add-employee",
       position: "right",
+      requiresAdmin: true,
     },
     {
       id: "events-button",
@@ -122,6 +124,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click this button to quickly create a new work shift. This will take you to the schedule page where you can set up work shifts for your employees.",
       target: ".sidebar-nav-add-shift",
       position: "right",
+      requiresAdmin: true,
     },
     {
       id: "add-event-button",
@@ -130,6 +133,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         'To create a new event, click this button. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
       target: ".sidebar-nav-add-event",
       position: "right",
+      requiresAdmin: true,
     },
     {
       id: "schedule-button",
@@ -154,6 +158,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click this button to add new trucks to your fleet. You can specify the truck type, capacity, and other details.",
       target: ".sidebar-nav-add-trucks",
       position: "right",
+      requiresAdmin: true,
     },
     {
       id: "requests-button",
@@ -220,6 +225,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         'To add a new employee, click the "Add Employee" button in the sidebar. Important tips for the form: 1) Don\'t add number suffixes to numbered streets, 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
       target: ".sidebar-nav-add-employee",
       position: "right",
+      requiresAdmin: true,
     },
     {
       id: "employee-actions",
@@ -228,6 +234,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Each employee card has two buttons: Edit (pencil icon) to update their information, and Delete (trash icon) to remove them from the system. Be careful with the delete button - this action cannot be undone!",
       target: ".employee-card",
       position: "bottom",
+      requiresAdmin: true,
     },
     {
       id: "edit-employee-button",
@@ -276,6 +283,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         'To create a new event, click the "Add Event" button in the sidebar. Important tips: 1) Don\'t add number suffixes to streets (e.g., use "23rd Ave" not "23rd Ave rd"), 2) Postal code is optional, 3) Make sure to include the street number, 4) Include "Calgary" if not automatically filled.',
       target: ".sidebar-nav-add-event",
       position: "right",
+      requiresAdmin: true,
     },
     {
       id: "view-details-button",
@@ -378,6 +386,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         'To create a new shift, click the "Add Shift" button in the sidebar. You\'ll need to select: the date, time, location, and which employees will work. The system will help you find available staff.',
       target: ".sidebar-nav-add-shift",
       position: "right",
+      requiresAdmin: true,
     },
     {
       id: "shift-management",
@@ -478,6 +487,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click this 'Add Item' button to add a custom item to the packing list. This allows you to add truck-specific items that aren't in the default checklist.",
       target: ".truck-card:first-child .pt-4.flex.gap-2 button:last-child",
       position: "bottom",
+      requiresAdmin: true,
     },
     {
       id: "collapse-truck",
@@ -675,6 +685,7 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
         "Click this button to permanently delete this employee from the system. You'll get a confirmation popup to prevent accidental deletions. Be careful - this action cannot be undone!",
       target: "button[onClick*='setShowDeleteModal']",
       position: "bottom",
+      requiresAdmin: true,
     },
   ],
   "/employees/newEmployee": [
@@ -1203,7 +1214,13 @@ function normalizePath(path: string): string {
   return path;
 }
 
-export function TutorialProvider({ children }: { children: ReactNode }) {
+export function TutorialProvider({
+  children,
+  isAdmin = false,
+}: {
+  children: ReactNode;
+  isAdmin?: boolean;
+}) {
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [currentPath, setCurrentPath] = useState(
@@ -1221,11 +1238,20 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   // Get the appropriate tutorial steps for the current page
   const getCurrentSteps = useCallback(() => {
     const pageSteps = pageTutorials[normalizePath(currentPath)] || [];
+
+    // Filter out admin-only steps for non-admin users
+    const filteredSteps = isAdmin
+      ? pageSteps
+      : pageSteps.filter((step) => !step.requiresAdmin);
+
     // Only include common steps on the home page, not when navigating to specific pages
     const isHomePage = normalizePath(currentPath) === "/";
-    const steps = isHomePage ? [...commonSteps, ...pageSteps] : pageSteps;
+    const steps = isHomePage
+      ? [...commonSteps, ...filteredSteps]
+      : filteredSteps;
+
     return steps;
-  }, [currentPath]);
+  }, [currentPath, isAdmin]);
 
   const startTutorial = () => {
     setCurrentPath(normalizePath(window.location.pathname));
