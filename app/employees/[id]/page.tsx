@@ -661,7 +661,7 @@ export default function EditEmployeePage(): ReactElement {
       setShowErrorModal(true);
 
       // upsert availability
-      handleUpsertAvailability();
+      await handleUpsertAvailability();
 
       // Redirect after closing modal
       setTimeout(() => {
@@ -927,7 +927,7 @@ export default function EditEmployeePage(): ReactElement {
       setShowErrorModal(true);
 
       // upsert availability
-      handleUpsertAvailability();
+      await handleUpsertAvailability();
 
       // Redirect after closing modal
       setTimeout(() => {
@@ -1121,43 +1121,6 @@ export default function EditEmployeePage(): ReactElement {
             )}
           </div>
 
-          {/* Is Available */}
-          {isAdmin && (
-            <>
-              <div className="mt-8 mb-8">
-                <h3 className="font-bold text-base mb-1">Active Employee</h3>
-                <TutorialHighlight
-                  isHighlighted={shouldHighlight(
-                    ".active-employee-explanation"
-                  )}
-                  className="active-employee-explanation"
-                >
-                  <div className="text-sm text-gray-700">
-                    Set employees as inactive if they are no longer working
-                    actively. This allows you to retain employee records without
-                    deleting them.
-                  </div>
-                </TutorialHighlight>
-              </div>
-              <div>
-                <label htmlFor="isAvailable" className="flex gap-2 font-bold">
-                  <span className="w-4 h-4">
-                    <input
-                      type="checkbox"
-                      id="isAvailable"
-                      name="isAvailable"
-                      checked={formData.isAvailable}
-                      onChange={handleChange}
-                      disabled={!isAdmin}
-                      className={!isAdmin ? "cursor-not-allowed" : ""}
-                    />
-                  </span>
-                  <span>Is Available</span>
-                </label>
-              </div>
-            </>
-          )}
-
           {/* Availability */}
           <div>
             <h2 className="font-bold text-xl">
@@ -1229,6 +1192,21 @@ export default function EditEmployeePage(): ReactElement {
                   Save Changes
                 </button>
               </TutorialHighlight>
+              {isAdmin && formData.isAvailable && (
+                <TutorialHighlight
+                  isHighlighted={shouldHighlight(".deactivate-employee-button")}
+                >
+                  <button
+                    type="button"
+                    className="button bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, isAvailable: false }));
+                    }}
+                  >
+                    Deactivate Employee
+                  </button>
+                </TutorialHighlight>
+              )}
             </div>
           </div>
         </form>
@@ -1422,7 +1400,7 @@ const useAvailability = (id: string) => {
       employeeAvailabilityApi.getEmployeeAvailability(id as string),
   });
 
-  const { mutate: upsertEmployeeAvailability } = useMutation({
+  const { mutateAsync: upsertEmployeeAvailability } = useMutation({
     mutationFn: (availability: EmployeeAvailability) =>
       employeeAvailabilityApi.upsertEmployeeAvailability(id, availability),
     onSuccess: () => {
@@ -1432,7 +1410,7 @@ const useAvailability = (id: string) => {
     },
   });
 
-  const { mutate: deleteAvailability } = useMutation({
+  const { mutateAsync: deleteAvailability } = useMutation({
     mutationFn: (availabilityId: string) =>
       employeeAvailabilityApi.deleteEmployeeAvailability(availabilityId),
     onSuccess: () => {
@@ -1517,59 +1495,68 @@ const useAvailability = (id: string) => {
     setFormAvailability(newAvailability);
   };
 
-  const handleUpsertAvailability = () => {
-    // If formAvailability is empty, delete all existing availability
-    if (formAvailability.length === 0) {
-      employeeAvailability?.forEach((availability) => {
-        deleteAvailability(availability.id);
+  const handleUpsertAvailability = async () => {
+    try {
+      // If formAvailability is empty, delete all existing availability
+      if (formAvailability.length === 0) {
+        const deletePromises =
+          employeeAvailability?.map((availability) =>
+            deleteAvailability(availability.id)
+          ) || [];
+        await Promise.all(deletePromises);
+        return;
+      }
+
+      const upsertPromises = formAvailability.map(async (availability) => {
+        const originalDayAvailability = employeeAvailability?.find(
+          (a) => a.day_of_week === availability.day_of_week
+        );
+
+        // If the day is selected in formData.availability but has empty times,
+        // use default times (00:00 - 23:59)
+        let startTime = availability.start_time;
+        let endTime = availability.end_time;
+
+        if (startTime === "" || endTime === "") {
+          startTime = "00:00";
+          endTime = "23:59:59";
+        }
+
+        // If there was an original availability but now we have empty times,
+        // delete the original entry
+        if (
+          Boolean(originalDayAvailability) &&
+          availability.start_time === "" &&
+          availability.end_time === ""
+        ) {
+          await deleteAvailability(originalDayAvailability?.id || "");
+          return;
+        }
+
+        // Skip if both times are empty (day is not selected)
+        if (availability.start_time === "" && availability.end_time === "") {
+          return;
+        }
+
+        if (startTime >= endTime) {
+          throw new Error("Start time must be before end time");
+        }
+
+        // Create availability object with potentially default times
+        const availabilityToUpsert = {
+          ...availability,
+          start_time: startTime,
+          end_time: endTime,
+        };
+
+        await upsertEmployeeAvailability(availabilityToUpsert);
       });
-      return;
+
+      await Promise.all(upsertPromises);
+    } catch (error) {
+      console.error("Error updating availability:", error);
+      throw error;
     }
-
-    formAvailability.forEach((availability) => {
-      const originalDayAvailability = employeeAvailability?.find(
-        (a) => a.day_of_week === availability.day_of_week
-      );
-
-      // If the day is selected in formData.availability but has empty times,
-      // use default times (00:00 - 23:59)
-      let startTime = availability.start_time;
-      let endTime = availability.end_time;
-
-      if (startTime === "" || endTime === "") {
-        startTime = "00:00";
-        endTime = "23:59:59";
-      }
-
-      // If there was an original availability but now we have empty times,
-      // delete the original entry
-      if (
-        Boolean(originalDayAvailability) &&
-        availability.start_time === "" &&
-        availability.end_time === ""
-      ) {
-        deleteAvailability(originalDayAvailability?.id || "");
-        return;
-      }
-
-      // Skip if both times are empty (day is not selected)
-      if (availability.start_time === "" && availability.end_time === "") {
-        return;
-      }
-
-      if (startTime >= endTime) {
-        throw new Error("Start time must be before end time");
-      }
-
-      // Create availability object with potentially default times
-      const availabilityToUpsert = {
-        ...availability,
-        start_time: startTime,
-        end_time: endTime,
-      };
-
-      upsertEmployeeAvailability(availabilityToUpsert);
-    });
   };
 
   return {

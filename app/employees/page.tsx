@@ -18,6 +18,7 @@ type EmployeeLimited = Tables<"employees_limited_view"> & {
   }>;
 };
 import { createClient } from "@/lib/supabase/client";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +37,13 @@ export default function Employees(): ReactElement {
     useState<EmployeeLimited | null>(null);
   const router = useRouter();
   const supabase = createClient();
+
+  // Service role client for auth operations
+  const supabaseAdmin = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   const { shouldHighlight } = useTutorial();
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<"last" | "first">("last");
@@ -332,7 +340,7 @@ export default function Employees(): ReactElement {
       // First, get the employee data to find related records
       const { data: employeeData, error: fetchError } = await supabase
         .from("employees")
-        .select("employee_id, address_id")
+        .select("employee_id, address_id, user_id")
         .eq("employee_id", employeeToDelete.employee_id)
         .single();
 
@@ -428,6 +436,24 @@ export default function Employees(): ReactElement {
             console.log("Address deleted successfully");
           }
         }
+      }
+
+      // Delete user from Supabase Auth if user_id exists
+      if (employeeData.user_id) {
+        console.log("Deleting user from auth table:", employeeData.user_id);
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(
+          employeeData.user_id
+        );
+
+        if (authError) {
+          console.error("Error deleting user from auth:", authError);
+          setError(`Failed to delete user from auth: ${authError.message}`);
+          return;
+        } else {
+          console.log("User deleted successfully from auth table");
+        }
+      } else {
+        console.log("No user_id found, skipping auth deletion");
       }
 
       // Finally delete the employee

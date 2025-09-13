@@ -166,6 +166,19 @@ export const employeesApi = {
   },
 
   async deleteEmployee(employeeId: string): Promise<void> {
+    // First get the employee data to find user_id
+    const { data: employeeData, error: fetchError } = await supabase
+      .from("employees")
+      .select("user_id")
+      .eq("employee_id", employeeId)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching employee data for deletion:", fetchError);
+      throw new Error("Failed to fetch employee data for deletion");
+    }
+
+    // Delete from employees table
     const { error } = await supabase
       .from("employees")
       .delete()
@@ -174,6 +187,14 @@ export const employeesApi = {
     if (error) {
       console.error("Error deleting employee:", error);
       throw new Error("Failed to delete employee");
+    }
+
+    // Note: Auth deletion would need to be handled by the calling code
+    // since this function doesn't have access to the service role client
+    if (employeeData.user_id) {
+      console.warn(
+        "Employee has user_id but auth deletion not handled in this function"
+      );
     }
   },
 
