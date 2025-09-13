@@ -10,6 +10,7 @@ import { ValidationError } from "@/lib/formValidation";
 type PendingEmployee = Employee & {
   email?: string;
   invited_at?: string;
+  last_sign_in_at?: string;
 };
 
 export function PendingEmployeesTable({
@@ -145,9 +146,9 @@ export function PendingEmployeesTable({
                       style={{ color: "var(--text-muted)" }}
                     >
                       <p>
-                        Invited:{" "}
-                        {emp.invited_at
-                          ? new Date(emp.invited_at).toLocaleString()
+                        Last Sign In:{" "}
+                        {emp.last_sign_in_at
+                          ? new Date(emp.last_sign_in_at).toLocaleString()
                           : "N/A"}
                       </p>
                     </div>
@@ -199,7 +200,7 @@ export function PendingEmployeesTable({
                     color: "var(--text-primary)",
                   }}
                 >
-                  Invited At
+                  Last Sign In
                 </th>
                 <th
                   className="p-3 text-left font-semibold"
@@ -261,8 +262,8 @@ export function PendingEmployeesTable({
                         color: "var(--text-primary)",
                       }}
                     >
-                      {emp.invited_at
-                        ? new Date(emp.invited_at).toLocaleString()
+                      {emp.last_sign_in_at
+                        ? new Date(emp.last_sign_in_at).toLocaleString()
                         : "N/A"}
                     </td>
                     <td

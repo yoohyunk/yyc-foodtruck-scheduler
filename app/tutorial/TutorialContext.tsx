@@ -1157,10 +1157,18 @@ export const pageTutorials: Record<string, TutorialStep[]> = {
     },
     {
       id: "payroll-report",
-      title: "Payroll Report 💰",
+      title: "Scheduled Payroll Report 💰",
       content:
-        "Calculate total employee hours and wages for the selected pay period (1st-15th or 16th-end of month). This report helps with payroll processing and financial planning.",
+        "Calculate total employee hours and wages for the selected pay period (1st-15th or 16th-end of month) based on scheduled assignments. This report helps with payroll processing and financial planning.",
       target: ".payroll-report",
+      position: "bottom",
+    },
+    {
+      id: "clocked-payroll-report",
+      title: "Clocked Payroll Report ⏰",
+      content:
+        "Calculate total employee hours and wages for the selected pay period based on actual clocked-in/clocked-out times. This provides accurate payroll data based on actual work hours.",
+      target: ".clocked-payroll-report",
       position: "bottom",
     },
     {

@@ -5,6 +5,7 @@ import { Employee } from "../types";
 type PendingEmployee = Employee & {
   email?: string;
   invited_at?: string;
+  last_sign_in_at?: string;
 };
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -26,7 +27,7 @@ export default async function PendingEmployeesPage() {
             className="text-2xl font-bold mb-6 p-4"
             style={{ color: "var(--text-primary)" }}
           >
-            Pending Employees
+            Active Employees
           </h1>
           <div
             className="card text-center"
@@ -39,16 +40,18 @@ export default async function PendingEmployeesPage() {
               color: "var(--text-muted)",
             }}
           >
-            <p>Error loading pending employees: {error.message}</p>
+            <p>Error loading active employees: {error.message}</p>
           </div>
         </div>
       </div>
     );
   }
 
-  const pendingUsers = users.users.filter((user: User) => !user.confirmed_at);
+  const activeUsers = users.users.filter(
+    (user: User) => user.last_sign_in_at !== null
+  );
 
-  if (pendingUsers.length === 0) {
+  if (activeUsers.length === 0) {
     return (
       <div
         className="min-h-screen p-4"
@@ -59,7 +62,7 @@ export default async function PendingEmployeesPage() {
             className="text-2xl font-bold mb-6 p-4"
             style={{ color: "var(--text-primary)" }}
           >
-            Pending Employees
+            Active Employees
           </h1>
           <div
             className="card text-center"
@@ -72,14 +75,14 @@ export default async function PendingEmployeesPage() {
               color: "var(--text-muted)",
             }}
           >
-            No pending employees.
+            No active employees found.
           </div>
         </div>
       </div>
     );
   }
 
-  const userIds = pendingUsers.map((user: User) => user.id);
+  const userIds = activeUsers.map((user: User) => user.id);
 
   const { data: employees, error: empError } = await supabase
     .from("employees")
@@ -97,7 +100,7 @@ export default async function PendingEmployeesPage() {
             className="text-2xl font-bold mb-6 p-4"
             style={{ color: "var(--text-primary)" }}
           >
-            Pending Employees
+            Active Employees
           </h1>
           <div
             className="card text-center"
@@ -117,13 +120,14 @@ export default async function PendingEmployeesPage() {
     );
   }
 
-  const pendingEmployeeList: PendingEmployee[] = employees.map(
+  const activeEmployeeList: PendingEmployee[] = employees.map(
     (emp: Employee) => {
-      const user = pendingUsers.find((u: User) => u.id === emp.user_id);
+      const user = activeUsers.find((u: User) => u.id === emp.user_id);
       return {
         ...emp,
         email: user?.email,
         invited_at: user?.created_at,
+        last_sign_in_at: user?.last_sign_in_at,
       };
     }
   );
@@ -135,9 +139,9 @@ export default async function PendingEmployeesPage() {
           className="text-2xl font-bold mb-6 p-4"
           style={{ color: "var(--text-primary)" }}
         >
-          Pending Employees
+          Active Employees
         </h1>
-        <PendingEmployeesTable employees={pendingEmployeeList} />
+        <PendingEmployeesTable employees={activeEmployeeList} />
       </div>
     </div>
   );

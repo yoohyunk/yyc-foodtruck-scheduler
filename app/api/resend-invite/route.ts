@@ -1,6 +1,7 @@
 // app/api/resend-invite/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getBaseUrl } from "@/lib/utils";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
 
   //   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email);
   const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `https://yyc-foodtruck-scheduler.vercel.app/set-password`,
+    redirectTo: `${getBaseUrl()}/set-password`,
   });
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
