@@ -32,11 +32,13 @@ export default function LoginPage(): ReactElement {
     console.log("Login attempt for user ID:", userId, "email:", username);
 
     // First try to find by user_id
-    let { data: emp, error: empError } = await supabase
+    const { data: empData, error: empError } = await supabase
       .from("employees")
       .select("employee_type, employee_id")
       .eq("user_id", userId)
       .maybeSingle();
+
+    let emp = empData;
 
     // If not found by user_id, try to find by email
     if (!emp && !empError) {
