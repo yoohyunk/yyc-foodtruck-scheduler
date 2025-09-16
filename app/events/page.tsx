@@ -9,7 +9,6 @@ import { useTutorial } from "../tutorial/TutorialContext";
 import { TutorialHighlight } from "../components/TutorialHighlight";
 import { eventsApi } from "@/lib/supabase/events";
 import { useAuth } from "@/contexts/AuthContext";
-import SearchInput from "../components/SearchInput";
 
 export default function Events(): ReactElement {
   const [adminEvents, setAdminEvents] = useState<Event[]>([]);
@@ -22,13 +21,25 @@ export default function Events(): ReactElement {
   >([]);
   const [activeFilter, setActiveFilter] = useState<string>("All"); // Default filter is "All"
   const [selectedDate, setSelectedDate] = useState<string>(""); // For date filtering
-  const [searchTerm, setSearchTerm] = useState<string>(""); // For search filtering
+  const [searchQuery, setSearchQuery] = useState<string>(""); // For search functionality
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { shouldHighlight } = useTutorial();
   const { user, isAdmin } = useAuth();
   const { loading: authLoading } = useAuth();
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && searchQuery) {
+        setSearchQuery("");
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [searchQuery]);
 
   // Fetch events from Supabase
   useEffect(() => {
@@ -109,12 +120,12 @@ export default function Events(): ReactElement {
     };
   }, [isAdmin, user, authLoading]);
 
-  // Filter events based on the active filter, date, and search term
+  // Filter events based on the active filter, date, and search query
   useEffect(() => {
     if (isAdmin) {
       let filtered = [...adminEvents];
 
-      // Filter by status
+      // Apply status filter
       if (activeFilter !== "All") {
         filtered = filtered.filter((event) => {
           const eventStatus = event.status || "Pending";
@@ -122,72 +133,60 @@ export default function Events(): ReactElement {
         });
       }
 
-      // Filter by search term
-      if (searchTerm.trim()) {
-        const searchLower = searchTerm.toLowerCase();
+      // Apply date filter
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate) {
         filtered = filtered.filter((event) => {
-          const title = (event.title || "").toLowerCase();
-          const description = (event.description || "").toLowerCase();
+          const eventDate = event.start_date
+            ? new Date(event.start_date).toISOString().split("T")[0]
+            : "";
+          return eventDate === selectedDate;
+        });
+      } else {
+        filtered = filtered.filter((event) => {
+          if (!event.end_date) return true;
+          const eventEnd = new Date(event.end_date);
+          eventEnd.setHours(0, 0, 0, 0);
+          return eventEnd >= today;
+        });
+      }
+
+      // Apply search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        filtered = filtered.filter((event) => {
+          const title = event.title?.toLowerCase() || "";
+          const description = event.description?.toLowerCase() || "";
           const contactName =
             "contact_name" in event && event.contact_name
               ? event.contact_name.toLowerCase()
               : "";
-          const status = (event.status || "").toLowerCase();
+          const location = event.addresses
+            ? `${event.addresses.street}, ${event.addresses.city}, ${event.addresses.province}, ${event.addresses.postal_code}`.toLowerCase()
+            : "";
 
           return (
-            title.includes(searchLower) ||
-            description.includes(searchLower) ||
-            contactName.includes(searchLower) ||
-            status.includes(searchLower)
+            title.includes(query) ||
+            description.includes(query) ||
+            contactName.includes(query) ||
+            location.includes(query)
           );
         });
       }
 
-      // Filter by date
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate) {
-        filtered = filtered.filter((event) => {
-          const eventDate = event.start_date
-            ? new Date(event.start_date).toISOString().split("T")[0]
-            : "";
-          return eventDate === selectedDate;
-        });
-      } else {
-        filtered = filtered.filter((event) => {
-          if (!event.end_date) return true;
-          const eventEnd = new Date(event.end_date);
-          eventEnd.setHours(0, 0, 0, 0);
-          return eventEnd >= today;
-        });
-      }
-
+      // Sort by date
       filtered.sort((a, b) => {
         const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
         const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
         return dateA - dateB;
       });
+
       setFilteredAdminEvents(filtered);
     } else {
       let filtered = [...limitedEvents];
 
-      // Filter by search term
-      if (searchTerm.trim()) {
-        const searchLower = searchTerm.toLowerCase();
-        filtered = filtered.filter((event) => {
-          const title = (event.title || "").toLowerCase();
-          const description = (event.description || "").toLowerCase();
-          const status = (event.status || "").toLowerCase();
-
-          return (
-            title.includes(searchLower) ||
-            description.includes(searchLower) ||
-            status.includes(searchLower)
-          );
-        });
-      }
-
-      // Filter by date
+      // Apply date filter
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (selectedDate) {
@@ -206,17 +205,30 @@ export default function Events(): ReactElement {
         });
       }
 
+      // Apply search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        filtered = filtered.filter((event) => {
+          const title = event.title?.toLowerCase() || "";
+          const description = event.description?.toLowerCase() || "";
+
+          return title.includes(query) || description.includes(query);
+        });
+      }
+
+      // Sort by date
       filtered.sort((a, b) => {
         const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
         const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
         return dateA - dateB;
       });
+
       setFilteredLimitedEvents(filtered);
     }
   }, [
     activeFilter,
     selectedDate,
-    searchTerm,
+    searchQuery,
     adminEvents,
     limitedEvents,
     isAdmin,
@@ -253,18 +265,10 @@ export default function Events(): ReactElement {
 
   return (
     <div className="events-page">
-      {/* Search Input */}
-      <div className="search-input-container">
-        <SearchInput
-          placeholder="Search events by title, description, contact, or status..."
-          onSearch={setSearchTerm}
-        />
-      </div>
-
       {/* Filter Buttons */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".filter-buttons")}
-        className="filter-buttons grid grid-cols-3 gap-4 mb-6"
+        className="filter-buttons grid grid-cols-3 gap-2 sm:gap-4 mb-6"
       >
         <button
           className={`button ${getEventStatusFilterColor("All", activeFilter === "All")}`}
@@ -286,11 +290,40 @@ export default function Events(): ReactElement {
         </button>
       </TutorialHighlight>
 
-      {/* Date and Distance Filters */}
+      {/* Search and Date Filters */}
       <TutorialHighlight
         isHighlighted={shouldHighlight(".additional-filters")}
-        className="additional-filters grid grid-cols-2 gap-4 mb-6"
+        className="additional-filters grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
       >
+        {/* Search Filter */}
+        <div className="search-input-container">
+          <label
+            htmlFor="search-filter"
+            className="block text-primary-dark font-medium mb-2"
+          >
+            Search Events
+          </label>
+          <input
+            type="text"
+            id="search-filter"
+            placeholder="Search by title, description, contact, or location..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-field search-input w-full"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="search-clear-button"
+              aria-label="Clear search"
+              title="Clear search (Esc)"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
         {/* Date Filter */}
         <div>
           <label
@@ -310,24 +343,25 @@ export default function Events(): ReactElement {
       </TutorialHighlight>
 
       {/* Results Count */}
+      {/* Results Count */}
       <div className="mb-4 text-sm text-gray-600">
         {isAdmin ? (
-          searchTerm.trim() || activeFilter !== "All" || selectedDate ? (
+          searchQuery.trim() || activeFilter !== "All" || selectedDate ? (
             <span>
               Showing {filteredAdminEvents.length} of {adminEvents.length}{" "}
               events
-              {searchTerm.trim() && ` matching "${searchTerm}"`}
+              {searchQuery.trim() && ` matching "${searchQuery}"`}
               {activeFilter !== "All" && ` with ${activeFilter} status`}
               {selectedDate && ` on ${selectedDate}`}
             </span>
           ) : (
             <span>Showing all {adminEvents.length} events</span>
           )
-        ) : searchTerm.trim() || selectedDate ? (
+        ) : searchQuery.trim() || selectedDate ? (
           <span>
             Showing {filteredLimitedEvents.length} of {limitedEvents.length}{" "}
             events
-            {searchTerm.trim() && ` matching "${searchTerm}"`}
+            {searchQuery.trim() && ` matching "${searchQuery}"`}
             {selectedDate && ` on ${selectedDate}`}
           </span>
         ) : (
@@ -427,7 +461,15 @@ export default function Events(): ReactElement {
               </TutorialHighlight>
             ))
           ) : (
-            <p className="text-gray-500">No events found.</p>
+            <div className="search-no-results">
+              <div className="search-no-results-icon">🔍</div>
+              <h3>No events found</h3>
+              <p>
+                {searchQuery.trim()
+                  ? `No events match your search for "${searchQuery}". Try adjusting your search terms or filters.`
+                  : "No events match your current filters. Try adjusting the date or status filters."}
+              </p>
+            </div>
           )
         ) : filteredLimitedEvents.length > 0 ? (
           filteredLimitedEvents.map((event) => (
@@ -487,7 +529,15 @@ export default function Events(): ReactElement {
             </TutorialHighlight>
           ))
         ) : (
-          <p className="text-gray-500">No events found.</p>
+          <div className="search-no-results">
+            <div className="search-no-results-icon">🔍</div>
+            <h3>No events found</h3>
+            <p>
+              {searchQuery.trim()
+                ? `No events match your search for "${searchQuery}". Try adjusting your search terms or filters.`
+                : "No events match your current filters. Try adjusting the date or status filters."}
+            </p>
+          </div>
         )}
       </TutorialHighlight>
     </div>

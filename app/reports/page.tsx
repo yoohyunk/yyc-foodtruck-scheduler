@@ -7,6 +7,7 @@ import {
   FiDollarSign,
   FiCalendar,
   FiClock,
+  FiUserX,
 } from "react-icons/fi";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -90,19 +91,28 @@ export default function ReportsPage(): ReactElement {
       highlightClass: ".truck-availability-report",
     },
     {
-      title: "Payroll Report",
+      title: "Scheduled Payroll Report",
       description:
-        "Calculate total employee hours and wages for the selected pay period (1st-15th or 16th-end of month).",
+        "Calculate total employee hours and wages for the selected pay period (1st-15th or 16th-end of month) based on scheduled assignments.",
       icon: <FiDollarSign />,
       href: "/reports/payroll",
       color: "hover:border-green-300",
       highlightClass: ".payroll-report",
     },
     {
+      title: "Clocked Payroll Report",
+      description:
+        "Calculate total employee hours and wages for the selected pay period based on actual clocked-in/clocked-out times.",
+      icon: <FiClock />,
+      href: "/reports/clocked-payroll",
+      color: "hover:border-emerald-300",
+      highlightClass: ".clocked-payroll-report",
+    },
+    {
       title: "Time Off Requests Report",
       description:
         "View detailed time off requests for specific employees with filtering and status tracking.",
-      icon: <FiClock />,
+      icon: <FiUserX />,
       href: "/reports/time-off-requests",
       color: "hover:border-indigo-300",
       highlightClass: ".time-off-requests-report",
