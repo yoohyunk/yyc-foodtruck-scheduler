@@ -223,7 +223,7 @@ export default function Home(): ReactElement {
     // Add a small delay to ensure auth state is stable
     const timeoutId = setTimeout(fetchData, 100);
     return () => clearTimeout(timeoutId);
-  }, [isAdmin, user, authLoading]);
+  }, [isAdmin, user, authLoading, supabase]);
 
   // Helper function to get employee name by ID
   const getEmployeeName = (employeeId: string | null): string => {

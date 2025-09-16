@@ -22,6 +22,8 @@
   --text-primary: #1a202c;
   --text-secondary: #4a5568;
   --text-muted: #718096;
+  --surface-hover: #f1f5f9;
+  --surface-light: #f8fafc;
 
   /* Status Colors */
   --success-light: #dcfce7;
@@ -965,7 +967,6 @@ body {
   overflow: hidden;
   z-index: 40;
   transition: transform 0.3s ease-in-out;
-  
 }
 
 .sidebar-content {
@@ -6482,7 +6483,6 @@ input:not(:-webkit-autofill) {
   filter: brightness(0.8);
 }
 
-
 @media (min-width: 1024px) {
   .profile-avatar {
     width: 40px;
@@ -6492,7 +6492,7 @@ input:not(:-webkit-autofill) {
 }
 
 .profile-initials {
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
   line-height: 1;
 }
 
@@ -6556,14 +6556,18 @@ input:not(:-webkit-autofill) {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-warning) 0%,
+    var(--accent-light) 100%
+  );
 }
 
 .login-background-image {
   display: none;
   width: 25%;
   height: 100vh;
-  background-image: url('/loginBackground.png');
+  background-image: url("/loginBackground.png");
   background-size: cover;
   background-position: center;
   position: relative;
@@ -6652,7 +6656,6 @@ input:not(:-webkit-autofill) {
   }
 }
 
-
 /* Login Page  */
 .login-container {
   min-height: 100vh;
@@ -6660,14 +6663,18 @@ input:not(:-webkit-autofill) {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-warning) 0%,
+    var(--accent-light) 100%
+  );
 }
 
 .login-background-image {
   display: none;
   width: 25%;
   height: 100vh;
-  background-image: url('/loginBackground.png');
+  background-image: url("/loginBackground.png");
   background-size: cover;
   background-position: center;
   position: relative;

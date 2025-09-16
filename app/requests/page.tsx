@@ -105,7 +105,7 @@ export default function RequestsPage(): ReactElement {
     };
 
     fetchData();
-  }, []);
+  }, [timeOffRequestsApi, employeesApi]);
 
   const handleStatusUpdate = async (requestId: string, newStatus: string) => {
     // Only allow admins to update status
